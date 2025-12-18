@@ -1,0 +1,80 @@
+name: RRA Repository Ingestion
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+  schedule:
+    # Run weekly by default (can be overridden in .market.yaml)
+    - cron: '0 0 * * 0'
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install RRA Module
+        run: |
+          pip install rra-module
+          # Or if running from repo:
+          # pip install -e .
+
+      - name: Check for .market.yaml
+        id: check_config
+        run: |
+          if [ -f ".market.yaml" ]; then
+            echo "config_exists=true" >> $GITHUB_OUTPUT
+            echo "✓ Found .market.yaml configuration"
+          else
+            echo "config_exists=false" >> $GITHUB_OUTPUT
+            echo "⚠ No .market.yaml found - RRA not configured"
+          fi
+
+      - name: Ingest Repository
+        if: steps.check_config.outputs.config_exists == 'true'
+        run: |
+          echo "Ingesting repository: ${{ github.repository }}"
+          rra ingest https://github.com/${{ github.repository }}.git
+
+      - name: Upload Knowledge Base
+        if: steps.check_config.outputs.config_exists == 'true'
+        uses: actions/upload-artifact@v3
+        with:
+          name: knowledge-base
+          path: agent_knowledge_bases/*.json
+          retention-days: 90
+
+      - name: Deploy Agent (Optional)
+        if: steps.check_config.outputs.config_exists == 'true'
+        env:
+          ETHEREUM_WALLET: ${{ secrets.ETHEREUM_WALLET }}
+          ETHEREUM_PRIVATE_KEY: ${{ secrets.ETHEREUM_PRIVATE_KEY }}
+        run: |
+          # Optional: Deploy negotiation agent to a service
+          # This would integrate with your agent hosting platform
+          echo "Negotiation agent ready for deployment"
+
+      - name: Post Status
+        if: always()
+        run: |
+          if [ "${{ steps.check_config.outputs.config_exists }}" = "true" ]; then
+            echo "✓ RRA ingestion completed successfully"
+            echo "Repository is now available for autonomous licensing"
+          else
+            echo "ℹ To enable RRA:"
+            echo "  1. Create .market.yaml in repository root"
+            echo "  2. Run: rra init . (or see rra example)"
+            echo "  3. Commit and push"
+          fi

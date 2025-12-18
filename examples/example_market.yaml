@@ -1,0 +1,61 @@
+# Example .market.yaml configuration for RRA Module
+# Place this file in the root of your repository
+
+# License model for the codebase
+# Options: per-seat, subscription, one-time, perpetual, custom
+license_model: "per-seat"
+
+# Suggested starting price for negotiations
+target_price: "0.05 ETH"
+
+# Minimum acceptable price - agent won't go below this
+floor_price: "0.02 ETH"
+
+# Negotiation style for the agent
+# Options: concise (quick deals), persuasive (upselling), strict (no negotiation), adaptive (flexible)
+negotiation_style: "concise"
+
+# Allow buyers to negotiate custom forking permissions
+allow_custom_fork_rights: true
+
+# Enable automatic license renewal
+auto_renewal: false
+
+# Repository update monitoring frequency
+# Options: daily, weekly, monthly, on-push
+update_frequency: "weekly"
+
+# Optional: Path to verification scripts that prove code quality
+# sandbox_tests: "tests/verification.py"
+
+# Human-readable description of your codebase's value
+description: "Production-ready web framework with comprehensive testing and documentation"
+
+# Key features to highlight in negotiations
+features:
+  - "Full source code access"
+  - "Regular security updates"
+  - "Developer support via GitHub issues"
+  - "Commercial use permitted"
+  - "API documentation included"
+
+# Optional: Minimum license duration
+# min_license_duration: "1 month"
+
+# Optional: Maximum seats for per-seat licensing
+# max_seats: 100
+
+# Optional: Royalty percentage on derivative works (0.0 to 1.0)
+royalty_on_derivatives: 0.15  # 15% royalty
+
+# Your Ethereum wallet address for receiving payments
+# developer_wallet: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+
+# Additional custom metadata
+metadata:
+  category: "web-framework"
+  maturity: "production"
+  use_cases:
+    - "Web application development"
+    - "API backends"
+    - "Microservices"

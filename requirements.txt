@@ -1,0 +1,28 @@
+# Core dependencies
+pyyaml>=6.0
+gitpython>=3.1.40
+requests>=2.31.0
+click>=8.1.7
+pydantic>=2.5.0
+python-dotenv>=1.0.0
+rich>=13.7.0
+
+# Web/API
+fastapi>=0.104.1
+uvicorn>=0.24.0
+httpx>=0.25.2
+
+# Blockchain
+web3>=6.11.3
+
+# Testing (optional)
+pytest>=7.4.3
+pytest-asyncio>=0.21.1
+
+# Code quality (optional)
+black>=23.11.0
+flake8>=6.1.0
+mypy>=1.7.1
+
+# TOML support for pyproject.toml parsing
+tomli>=2.0.1; python_version < "3.11"
