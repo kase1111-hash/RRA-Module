@@ -47,6 +47,25 @@ dev = [
     "mypy>=1.7.1",
 ]
 
+# NatLangChain ecosystem integration (optional)
+# Install with: pip install rra-module[natlangchain]
+natlangchain = [
+    # These will be actual packages once the ecosystem repos are published
+    # For now, these are placeholder references
+    # "natlangchain-common>=0.1.0",
+    # "natlangchain-agent-os>=0.1.0",
+    # "natlangchain-memory-vault>=0.1.0",
+    # "natlangchain-value-ledger>=0.1.0",
+    # "natlangchain-mediator-node>=0.1.0",
+    # "natlangchain-intent-log>=0.1.0",
+    # "natlangchain-synth-mind>=0.1.0",
+]
+
+# Full installation with all extras
+all = [
+    "rra-module[dev,natlangchain]",
+]
+
 [project.scripts]
 rra = "rra.cli.main:cli"
 

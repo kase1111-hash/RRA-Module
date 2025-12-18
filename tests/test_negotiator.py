@@ -75,7 +75,8 @@ def test_respond_to_message(sample_kb):
 
     assert isinstance(response, str)
     assert len(response) > 0
-    assert len(negotiator.negotiation_history) == 2
+    # Should log: intro + buyer message + negotiator response = 3 messages
+    assert len(negotiator.negotiation_history) == 3
 
 
 def test_price_negotiation(sample_kb):
@@ -150,6 +151,7 @@ def test_negotiation_summary(sample_kb):
     summary = negotiator.get_negotiation_summary()
 
     assert summary["repo"] == sample_kb.repo_url
-    assert summary["message_count"] == 2
+    # Should have: intro + buyer message + negotiator response = 3 messages
+    assert summary["message_count"] == 3
     assert "history" in summary
-    assert len(summary["history"]) == 2
+    assert len(summary["history"]) == 3

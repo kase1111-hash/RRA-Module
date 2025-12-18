@@ -174,7 +174,12 @@ class MarketConfig(BaseModel):
         Args:
             file_path: Path where to save the configuration
         """
-        data = self.model_dump(exclude_none=True)
+        data = self.model_dump(exclude_none=True, mode='json')
+
+        # Convert enum values to strings for clean YAML serialization
+        for key, value in data.items():
+            if isinstance(value, Enum):
+                data[key] = value.value
 
         with open(file_path, 'w') as f:
             yaml.dump(data, f, default_flow_style=False, sort_keys=False)
