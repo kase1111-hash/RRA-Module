@@ -4,6 +4,8 @@ Negotiator Agent for automated licensing negotiations.
 The Negotiator Agent represents the repository owner and conducts
 autonomous negotiations with potential buyers based on the .market.yaml
 configuration.
+
+Supports both standalone and NatLangChain-integrated modes.
 """
 
 from typing import Dict, List, Any, Optional
@@ -12,6 +14,7 @@ from enum import Enum
 
 from rra.ingestion.knowledge_base import KnowledgeBase
 from rra.config.market_config import NegotiationStyle
+from rra.integration.base import BaseAgent, IntegrationMode
 
 
 class NegotiationPhase(str, Enum):
@@ -24,21 +27,38 @@ class NegotiationPhase(str, Enum):
     REJECTED = "rejected"
 
 
-class NegotiatorAgent:
+class NegotiatorAgent(BaseAgent):
     """
     Autonomous negotiation agent for repository licensing.
 
     This agent uses the repository's knowledge base and market configuration
     to conduct intelligent, multi-turn negotiations with buyers.
+
+    Integrates with NatLangChain ecosystem when available:
+    - memory-vault: Persists negotiation state
+    - value-ledger: Tracks transactions
+    - mediator-node: Routes messages to buyers
+    - IntentLog: Logs negotiation decisions
     """
 
-    def __init__(self, knowledge_base: KnowledgeBase):
+    def __init__(
+        self,
+        knowledge_base: KnowledgeBase,
+        integrated: bool = False,
+        agent_id: Optional[str] = None
+    ):
         """
         Initialize the NegotiatorAgent.
 
         Args:
             knowledge_base: KnowledgeBase containing repository information
+            integrated: Enable NatLangChain ecosystem integration
+            agent_id: Unique agent ID (auto-generated if not provided)
         """
+        # Initialize base agent with integration mode
+        mode = IntegrationMode.INTEGRATED if integrated else IntegrationMode.STANDALONE
+        super().__init__(agent_id=agent_id, mode=mode)
+
         self.kb = knowledge_base
         self.config = knowledge_base.market_config
 
@@ -48,6 +68,17 @@ class NegotiatorAgent:
         self.negotiation_history: List[Dict[str, Any]] = []
         self.current_phase = NegotiationPhase.INTRODUCTION
         self.current_offer: Optional[Dict[str, Any]] = None
+
+        # Load state from memory-vault if in integrated mode
+        if self.is_integrated():
+            self.load_state()
+
+        # Log agent creation intent if in integrated mode
+        self.log_intent("agent_created", {
+            "repo": self.kb.repo_url,
+            "license_model": self.config.license_model.value,
+            "target_price": self.config.target_price
+        })
 
     def start_negotiation(self) -> str:
         """
@@ -415,3 +446,58 @@ Or we can proceed directly if you're ready. What would you like to know?"""
             "history": self.negotiation_history,
             "current_offer": self.current_offer,
         }
+
+    # BaseAgent abstract methods implementation
+
+    def process_message(self, message: str) -> str:
+        """
+        Process an incoming message and generate a response.
+
+        This is the main entry point for the BaseAgent interface.
+
+        Args:
+            message: Incoming message from buyer
+
+        Returns:
+            Response message
+        """
+        response = self.respond(message)
+
+        # Save state after processing if in integrated mode
+        if self.is_integrated():
+            self.save_state()
+
+        return response
+
+    def get_state(self) -> Dict[str, Any]:
+        """
+        Get current agent state for persistence.
+
+        Returns:
+            Dictionary containing agent state
+        """
+        return {
+            "negotiation_history": self.negotiation_history,
+            "current_phase": self.current_phase.value,
+            "current_offer": self.current_offer,
+            "kb_metadata": {
+                "repo_url": self.kb.repo_url,
+                "repo_path": str(self.kb.repo_path) if self.kb.repo_path else None,
+            }
+        }
+
+    def restore_state(self, state: Dict[str, Any]) -> None:
+        """
+        Restore agent state from dictionary.
+
+        Args:
+            state: Previously saved state
+        """
+        if "negotiation_history" in state:
+            self.negotiation_history = state["negotiation_history"]
+
+        if "current_phase" in state:
+            self.current_phase = NegotiationPhase(state["current_phase"])
+
+        if "current_offer" in state:
+            self.current_offer = state["current_offer"]
