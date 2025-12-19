@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: FSL-1.1-ALv2
+# Copyright 2025 Kase Branham
 """
 Revenant Repo Agent Module (RRA)
 
