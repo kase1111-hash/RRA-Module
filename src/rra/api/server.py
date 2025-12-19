@@ -84,7 +84,7 @@ def create_app() -> FastAPI:
         """Root endpoint."""
         return {
             "name": "RRA Module API",
-            "version": "0.3.0",
+            "version": "0.4.0",
             "endpoints": {
                 "ingest": "/api/ingest",
                 "negotiate": "/api/negotiate",
@@ -105,6 +105,14 @@ def create_app() -> FastAPI:
                     "qr_code": "/api/links/qr/{repo_id}",
                     "embed": "/api/links/embed/{repo_id}",
                     "stats": "/api/links/stats",
+                },
+                "webhooks": {
+                    "trigger": "/webhook/{agent_id}",
+                    "session_status": "/webhook/session/{session_id}",
+                    "session_messages": "/webhook/session/{session_id}/messages",
+                    "send_message": "/webhook/session/{session_id}/message",
+                    "credentials": "/webhook/credentials",
+                    "rate_limit": "/webhook/rate-limit/{agent_id}",
                 },
                 "websocket": "/ws/negotiate/{repo_id}",
             }
@@ -303,14 +311,16 @@ def create_app() -> FastAPI:
         """Health check endpoint."""
         return {"status": "healthy"}
 
-    # Include marketplace, websocket, and deep links routers
+    # Include marketplace, websocket, deep links, and webhook routers
     try:
         from rra.api.marketplace import router as marketplace_router
         from rra.api.websocket import router as websocket_router
         from rra.api.deep_links import router as deep_links_router
+        from rra.api.webhooks import router as webhooks_router
         app.include_router(marketplace_router)
         app.include_router(websocket_router)
         app.include_router(deep_links_router)
+        app.include_router(webhooks_router)
     except ImportError:
         # Routers not available in minimal install
         pass
