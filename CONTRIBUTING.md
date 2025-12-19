@@ -130,7 +130,9 @@ npx hardhat run scripts/deploy.js --network sepolia
 - Update docstrings for all public functions
 - Add examples to `examples/` directory
 - Update README.md and QUICKSTART.md as needed
-- Keep FUTURE.md updated with roadmap items
+- Keep ROADMAP.md updated with roadmap items
+- Update relevant docs in `docs/` directory
+- Maintain cross-references in docs/README.md
 
 ## Questions?
 

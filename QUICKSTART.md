@@ -186,16 +186,18 @@ rra example
 ## Next Steps
 
 - Read the [full README](README.md) for detailed information
-- Check out [examples](examples/) for more use cases
-- Review [smart contracts](src/rra/contracts/) for blockchain integration
-- Explore the [API documentation](src/rra/api/)
+- Check out [examples](examples/README.md) for more use cases
+- Review [blockchain licensing guide](docs/BLOCKCHAIN-LICENSING.md) for monetization
+- Explore [Story Protocol integration](docs/STORY-PROTOCOL-INTEGRATION.md) for programmable IP
+- See [full documentation index](docs/README.md) for all guides
 
 ## Getting Help
 
 - CLI help: `rra --help`
 - Command help: `rra <command> --help`
 - Issues: https://github.com/kase1111-hash/RRA-Module/issues
+- Documentation: [docs/README.md](docs/README.md)
 
 ## License
 
-This project is licensed under the MIT License - see [LICENSE.md](LICENSE.md) for details.
+This project is licensed under FSL-1.1-ALv2 - see [LICENSE.md](LICENSE.md) for the complete license text and [LICENSING.md](LICENSING.md) for compliance guidelines.

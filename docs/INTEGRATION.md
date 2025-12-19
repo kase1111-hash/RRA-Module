@@ -364,7 +364,7 @@ fallback_to_standalone: true
 
 ## Contributing
 
-We welcome contributions to enhance NatLangChain integration! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+We welcome contributions to enhance NatLangChain integration! See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
 
 ### Integration Development
 
@@ -391,4 +391,4 @@ We welcome contributions to enhance NatLangChain integration! See [CONTRIBUTING.
 
 ## License
 
-MIT License - See [LICENSE.md](LICENSE.md)
+FSL-1.1-ALv2 - See [LICENSE.md](../LICENSE.md)
