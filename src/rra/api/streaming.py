@@ -10,11 +10,12 @@ Provides REST API endpoints for:
 - Stream analytics
 """
 
+import re
 from typing import Optional, List
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Query, BackgroundTasks
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 from rra.integrations.superfluid import (
     SuperfluidManager,
@@ -22,6 +23,26 @@ from rra.integrations.superfluid import (
     SupportedNetwork,
 )
 from rra.access.stream_controller import StreamAccessController, AccessLevel
+
+
+# =============================================================================
+# Input Validation Utilities
+# =============================================================================
+
+ETH_ADDRESS_PATTERN = re.compile(r'^0x[a-fA-F0-9]{40}$')
+
+
+def validate_eth_address(address: str) -> bool:
+    """
+    Validate Ethereum address format.
+
+    Args:
+        address: Address to validate
+
+    Returns:
+        True if valid Ethereum address format
+    """
+    return bool(ETH_ADDRESS_PATTERN.match(address))
 
 
 router = APIRouter(prefix="/api/streaming", tags=["streaming-payments"])
@@ -33,12 +54,28 @@ access_controller = StreamAccessController(sf_manager)
 
 # Request/Response models
 class CreateStreamRequest(BaseModel):
-    repo_id: str
+    repo_id: str = Field(..., min_length=1, max_length=100)
     buyer_address: str
     seller_address: str
-    monthly_price_usd: float
-    token: str = "USDCx"
-    grace_period_hours: int = 24
+    monthly_price_usd: float = Field(..., gt=0, le=1000000)
+    token: str = Field(default="USDCx", pattern=r'^[A-Za-z0-9]+x?$')
+    grace_period_hours: int = Field(default=24, ge=0, le=8760)  # Max 1 year
+
+    @field_validator('buyer_address', 'seller_address')
+    @classmethod
+    def validate_eth_addresses(cls, v: str) -> str:
+        """Validate Ethereum address format."""
+        if not ETH_ADDRESS_PATTERN.match(v):
+            raise ValueError('Invalid Ethereum address format. Expected: 0x followed by 40 hex characters')
+        return v.lower()
+
+    @field_validator('repo_id')
+    @classmethod
+    def validate_repo_id(cls, v: str) -> str:
+        """Validate repo ID format."""
+        if '..' in v or '/' in v or '\\' in v:
+            raise ValueError('Invalid repo_id format')
+        return v
 
 
 class CreateStreamResponse(BaseModel):

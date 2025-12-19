@@ -12,6 +12,8 @@ Provides REST API endpoints for:
 - WebSocket real-time chat (NEW)
 """
 
+import re
+import os
 from typing import Optional, Dict, Any
 from pathlib import Path
 
@@ -20,6 +22,99 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from rra.ingestion.repo_ingester import RepoIngester
+
+
+# =============================================================================
+# Security Utilities
+# =============================================================================
+
+# Allowed directory for knowledge bases
+KB_BASE_DIR = Path("agent_knowledge_bases").resolve()
+
+
+def validate_repo_name(repo_name: str) -> bool:
+    """
+    Validate repository name to prevent path traversal.
+
+    Args:
+        repo_name: Repository name to validate
+
+    Returns:
+        True if valid, False otherwise
+    """
+    if not repo_name:
+        return False
+
+    # Only allow alphanumeric, underscore, hyphen, and dot
+    if not re.match(r'^[\w\-\.]+$', repo_name):
+        return False
+
+    # Reject path traversal attempts
+    if '..' in repo_name or repo_name.startswith('.'):
+        return False
+
+    return True
+
+
+def validate_kb_path(kb_path: str, allowed_dir: Path = KB_BASE_DIR) -> bool:
+    """
+    Validate knowledge base path to prevent path traversal.
+
+    Args:
+        kb_path: Path to validate
+        allowed_dir: Directory that paths must be within
+
+    Returns:
+        True if path is valid and within allowed directory
+    """
+    try:
+        # Resolve to absolute path
+        resolved = Path(kb_path).resolve()
+
+        # Ensure it's within the allowed directory
+        resolved.relative_to(allowed_dir)
+
+        # Check file extension
+        if not str(resolved).endswith('_kb.json'):
+            return False
+
+        return True
+    except (ValueError, RuntimeError):
+        return False
+
+
+def sanitize_error_message(error: Exception) -> str:
+    """
+    Sanitize error message to prevent information disclosure.
+
+    Args:
+        error: Exception to sanitize
+
+    Returns:
+        Safe error message
+    """
+    error_str = str(error)
+
+    # List of patterns to redact
+    sensitive_patterns = [
+        r'/home/[\w/]+',  # File paths
+        r'/usr/[\w/]+',
+        r'postgresql://[^\s]+',  # Database URLs
+        r'mongodb://[^\s]+',
+        r'redis://[^\s]+',
+        r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b',  # IP addresses
+    ]
+
+    for pattern in sensitive_patterns:
+        error_str = re.sub(pattern, '[REDACTED]', error_str)
+
+    # Truncate long messages
+    if len(error_str) > 200:
+        error_str = error_str[:200] + '...'
+
+    return error_str
+
+
 from rra.ingestion.knowledge_base import KnowledgeBase
 from rra.agents.negotiator import NegotiatorAgent
 from rra.config.market_config import MarketConfig
@@ -166,6 +261,13 @@ def create_app() -> FastAPI:
         Creates a negotiation agent and returns its introduction.
         """
         try:
+            # Security: Validate kb_path to prevent path traversal
+            if not validate_kb_path(request.kb_path):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid knowledge base path"
+                )
+
             # Load knowledge base
             kb = KnowledgeBase.load(Path(request.kb_path))
 

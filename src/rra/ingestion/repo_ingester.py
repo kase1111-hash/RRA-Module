@@ -13,11 +13,19 @@ import json
 from pathlib import Path
 from typing import Optional, Dict, List, Any
 from datetime import datetime
+from urllib.parse import urlparse
 import git
 from git.exc import GitCommandError
 
 from rra.config.market_config import MarketConfig
 from rra.ingestion.knowledge_base import KnowledgeBase
+
+
+# Security constants
+MAX_FILES = 10000  # Maximum files to process per repository
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB max file size
+MAX_COMMITS_TO_COUNT = 10000  # Maximum commits to count
+ALLOWED_GIT_HOSTS = ['github.com', 'gitlab.com', 'bitbucket.org']
 
 
 class RepoIngester:
@@ -38,6 +46,48 @@ class RepoIngester:
         self.workspace_dir = workspace_dir
         self.workspace_dir.mkdir(parents=True, exist_ok=True)
 
+    def _validate_repo_url(self, repo_url: str) -> None:
+        """
+        Validate repository URL to prevent command injection and SSRF.
+
+        Args:
+            repo_url: URL to validate
+
+        Raises:
+            ValueError: If URL is invalid or potentially malicious
+        """
+        if not repo_url:
+            raise ValueError("Repository URL cannot be empty")
+
+        # Only allow HTTPS protocol
+        parsed = urlparse(repo_url)
+        if parsed.scheme != 'https':
+            raise ValueError("Only HTTPS GitHub URLs are allowed")
+
+        # Check for allowed hosts
+        hostname = parsed.hostname
+        if not hostname:
+            raise ValueError("Invalid URL: no hostname")
+
+        if not any(hostname.endswith(host) for host in ALLOWED_GIT_HOSTS):
+            raise ValueError(
+                f"Only HTTPS GitHub URLs are allowed. "
+                f"Got hostname: {hostname}"
+            )
+
+        # Validate path format to prevent command injection
+        # Path should be /owner/repo or /owner/repo.git
+        path = parsed.path.rstrip('/')
+        if not re.match(r'^/[\w\-\.]+/[\w\-\.]+(?:\.git)?$', path):
+            raise ValueError(
+                f"Invalid repository path format: {path}. "
+                f"Expected format: /owner/repo"
+            )
+
+        # Reject URLs with query strings or fragments (potential injection)
+        if parsed.query or parsed.fragment:
+            raise ValueError("Repository URL cannot contain query strings or fragments")
+
     def ingest(
         self,
         repo_url: str,
@@ -57,6 +107,9 @@ class RepoIngester:
             ValueError: If repo_url is invalid
             GitCommandError: If cloning fails
         """
+        # Security: Validate URL before any git operations
+        self._validate_repo_url(repo_url)
+
         repo_name = self._extract_repo_name(repo_url)
         repo_path = self.workspace_dir / repo_name
 

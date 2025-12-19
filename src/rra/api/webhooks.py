@@ -28,12 +28,20 @@ from pydantic import BaseModel, EmailStr
 from rra.security.webhook_auth import (
     WebhookSecurity,
     RateLimiter,
+    validate_callback_url,
     webhook_security,
     rate_limiter,
 )
 from rra.services.deep_links import DeepLinkService
 from rra.ingestion.knowledge_base import KnowledgeBase
 from rra.agents.negotiator import NegotiatorAgent
+
+
+# =============================================================================
+# Security Constants
+# =============================================================================
+
+MAX_PAYLOAD_SIZE = 1 * 1024 * 1024  # 1MB max payload size
 
 
 router = APIRouter(prefix="/webhook", tags=["webhooks"])
@@ -104,8 +112,42 @@ class SessionMessageResponse(BaseModel):
 
 # Helper functions
 def generate_session_id() -> str:
-    """Generate a unique session ID."""
-    return f"wh_{uuid.uuid4().hex[:16]}"
+    """
+    Generate a cryptographically secure session ID.
+
+    Uses 256 bits of entropy for security against brute-force attacks.
+    """
+    import secrets
+    return f"wh_{secrets.token_urlsafe(32)}"
+
+
+def validate_session_id(session_id: str) -> bool:
+    """
+    Validate session ID format.
+
+    Args:
+        session_id: Session ID to validate
+
+    Returns:
+        True if valid format
+    """
+    import re
+    if not session_id:
+        return False
+
+    # Must start with wh_ prefix and have sufficient length
+    if not session_id.startswith("wh_"):
+        return False
+
+    token_part = session_id[3:]
+    if len(token_part) < 20:  # Minimum reasonable length
+        return False
+
+    # Must be URL-safe characters only
+    if not re.match(r'^[\w\-]+$', token_part):
+        return False
+
+    return True
 
 
 async def load_knowledge_base(agent_id: str) -> Optional[KnowledgeBase]:
@@ -218,8 +260,22 @@ async def process_webhook_negotiation(
 
 
 async def send_callback(callback_url: str, data: dict) -> None:
-    """Send a callback to the specified URL."""
+    """
+    Send a callback to the specified URL.
+
+    Args:
+        callback_url: URL to send callback to (must pass SSRF validation)
+        data: JSON data to send
+
+    Note:
+        URL is validated to prevent SSRF attacks
+    """
     import httpx
+
+    # Security: Validate URL to prevent SSRF
+    if not validate_callback_url(callback_url):
+        # Log but don't raise - don't reveal validation failure
+        return
 
     try:
         async with httpx.AsyncClient() as client:
