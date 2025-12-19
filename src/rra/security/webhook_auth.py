@@ -14,10 +14,96 @@ import hmac
 import hashlib
 import secrets
 import json
+import ipaddress
+import socket
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from pathlib import Path
 from collections import defaultdict
+from urllib.parse import urlparse
+
+
+# =============================================================================
+# SSRF Protection
+# =============================================================================
+
+# Networks to block for SSRF protection
+BLOCKED_NETWORKS = [
+    ipaddress.ip_network('127.0.0.0/8'),       # Localhost
+    ipaddress.ip_network('10.0.0.0/8'),        # Private (Class A)
+    ipaddress.ip_network('172.16.0.0/12'),     # Private (Class B)
+    ipaddress.ip_network('192.168.0.0/16'),    # Private (Class C)
+    ipaddress.ip_network('169.254.0.0/16'),    # Link-local (AWS/cloud metadata)
+    ipaddress.ip_network('0.0.0.0/8'),         # "This" network
+    ipaddress.ip_network('224.0.0.0/4'),       # Multicast
+    ipaddress.ip_network('240.0.0.0/4'),       # Reserved
+    ipaddress.ip_network('::1/128'),           # IPv6 localhost
+    ipaddress.ip_network('fc00::/7'),          # IPv6 private
+    ipaddress.ip_network('fe80::/10'),         # IPv6 link-local
+]
+
+
+def validate_callback_url(url: str) -> bool:
+    """
+    Validate callback URL to prevent SSRF attacks.
+
+    Blocks:
+    - Non-HTTPS URLs
+    - Localhost and loopback addresses
+    - Private network ranges
+    - Cloud metadata endpoints
+    - Link-local addresses
+
+    Args:
+        url: URL to validate
+
+    Returns:
+        True if URL is safe to call, False otherwise
+    """
+    if not url:
+        return False
+
+    try:
+        parsed = urlparse(url)
+
+        # Only allow HTTPS
+        if parsed.scheme != 'https':
+            return False
+
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+
+        # Block localhost variants
+        if hostname.lower() in ('localhost', 'localhost.localdomain'):
+            return False
+
+        # Resolve hostname to IP
+        try:
+            ip_str = socket.gethostbyname(hostname)
+            ip = ipaddress.ip_address(ip_str)
+
+            # Check against blocked networks
+            for network in BLOCKED_NETWORKS:
+                if ip in network:
+                    return False
+        except socket.gaierror:
+            # DNS resolution failed - could be malicious
+            return False
+
+        # Block specific cloud metadata hostnames
+        blocked_hostnames = [
+            'metadata.google.internal',
+            'metadata.goog',
+            'kubernetes.default',
+        ]
+        if any(hostname.lower().endswith(h) for h in blocked_hostnames):
+            return False
+
+        return True
+
+    except Exception:
+        return False
 
 
 class RateLimiter:
