@@ -1,0 +1,74 @@
+name: License Verification
+
+on:
+  push:
+    branches: [ main, master, develop, "claude/*" ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+
+jobs:
+  verify-license:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Verify license compliance
+      run: |
+        echo "Running license verification..."
+        python scripts/verify_license.py
+
+    - name: Check LICENSE.md exists
+      run: |
+        if [ ! -f LICENSE.md ]; then
+          echo "Error: LICENSE.md file not found"
+          exit 1
+        fi
+        echo "✓ LICENSE.md file found"
+
+    - name: Verify FSL-1.1-ALv2 license
+      run: |
+        if ! grep -q "FSL-1.1-ALv2" LICENSE.md; then
+          echo "Error: LICENSE.md does not contain FSL-1.1-ALv2 identifier"
+          exit 1
+        fi
+        echo "✓ FSL-1.1-ALv2 license identifier verified"
+
+    - name: Verify copyright notice
+      run: |
+        if ! grep -q "Copyright 2025 Kase Branham" LICENSE.md; then
+          echo "Error: LICENSE.md does not contain proper copyright notice"
+          exit 1
+        fi
+        echo "✓ Copyright notice verified"
+
+    - name: Generate license report
+      if: always()
+      run: |
+        echo "# License Verification Report" > license-report.md
+        echo "" >> license-report.md
+        echo "**Date:** $(date)" >> license-report.md
+        echo "**Branch:** ${{ github.ref_name }}" >> license-report.md
+        echo "**Commit:** ${{ github.sha }}" >> license-report.md
+        echo "" >> license-report.md
+        echo "## License Information" >> license-report.md
+        echo "- **License:** FSL-1.1-ALv2 (Functional Source License 1.1, ALv2 Future)" >> license-report.md
+        echo "- **Copyright:** 2025 Kase Branham" >> license-report.md
+        echo "" >> license-report.md
+        echo "## Verification Status" >> license-report.md
+        python scripts/verify_license.py 2>&1 | tee -a license-report.md || true
+
+    - name: Upload license report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: license-report
+        path: license-report.md
+        retention-days: 30
