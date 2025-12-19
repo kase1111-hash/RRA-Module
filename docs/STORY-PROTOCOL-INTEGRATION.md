@@ -406,7 +406,8 @@ pytest tests/test_story_protocol.py --cov=rra.contracts.story_protocol --cov=rra
 - [Story Protocol Documentation](https://docs.story.foundation)
 - [Story Protocol Whitepaper](https://story.foundation/whitepaper)
 - [RRA Module Repository](https://github.com/kase1111-hash/RRA-Module)
-- [DeFi Stack Feasibility Analysis](../defi-stack.md)
+- [DeFi Integration Feasibility](DEFI-INTEGRATION.md)
+- [Full Documentation Index](README.md)
 
 ## Roadmap
 

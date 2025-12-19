@@ -490,10 +490,11 @@ natlang rra init https://github.com/yourname/yourrepo
 
 ## Support & Resources
 
-- **Full Documentation:** [LICENSING.md](LICENSING.md)
-- **License Terms:** [LICENSE.md](LICENSE.md)
-- **Buyer Notice:** [Buyer-Beware.md](Buyer-Beware.md)
-- **RRA Module Docs:** [README.md](README.md)
+- **Full Documentation:** [docs/README.md](README.md)
+- **License Compliance Guide:** [../LICENSING.md](../LICENSING.md)
+- **License Terms:** [../LICENSE.md](../LICENSE.md)
+- **Buyer Notice:** [../Buyer-Beware.md](../Buyer-Beware.md)
+- **RRA Module Overview:** [../README.md](../README.md)
 - **GitHub Issues:** https://github.com/kase1111-hash/RRA-Module/issues
 
 ## Vision

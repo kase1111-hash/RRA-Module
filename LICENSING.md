@@ -216,6 +216,7 @@ A: The GitHub Actions workflow will verify license compliance. If it passes, you
 ## References
 
 - **Full License Text:** [LICENSE.md](LICENSE.md)
+- **Blockchain Licensing Guide:** [docs/BLOCKCHAIN-LICENSING.md](docs/BLOCKCHAIN-LICENSING.md)
 - **Buyer Beware Notice:** [Buyer-Beware.md](Buyer-Beware.md)
 - **SPDX Specification:** https://spdx.dev/
 - **Functional Source License:** https://fsl.software/

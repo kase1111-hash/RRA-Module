@@ -136,7 +136,26 @@ Interaction: Buyers discover via search, negotiate via chat interfaces, and tran
 Monitoring: Dashboard tracks revenue, reputation, and metrics.
 Iteration: Update .market.yaml or code for instant agent refreshes.
 
-Vision and Outcomes
+## Vision and Outcomes
+
 The RRA Module reimagines GitHub as a vibrant marketplace for autonomous code assets, turning neglected repositories into perpetual revenue engines. By democratizing access to developer expertise, it cultivates a global, on-chain economy where code quality directly correlates with economic reward. With zero marketing required and full automation, RRA positions NatLangChain as the premier platform for AI-orchestrated software monetization.
-Potential Extensions: Multi-repo bundling, AI-driven code enhancements, or integration with DeFi for yield-bearing licenses.
-For implementation details or customization, refer to NatLangChain docs or contact the core team.
+
+**Potential Extensions:** Multi-repo bundling, AI-driven code enhancements, or integration with DeFi for yield-bearing licenses.
+
+## Documentation
+
+For detailed documentation, see:
+- **[Quick Start Guide](QUICKSTART.md)** - Get up and running quickly
+- **[Full Documentation](docs/README.md)** - Complete documentation index
+- **[Blockchain Licensing](docs/BLOCKCHAIN-LICENSING.md)** - Automated monetization guide
+- **[NatLangChain Integration](docs/INTEGRATION.md)** - Ecosystem integration
+- **[Story Protocol Integration](docs/STORY-PROTOCOL-INTEGRATION.md)** - Programmable IP licensing
+- **[DeFi Integration](docs/DEFI-INTEGRATION.md)** - DeFi protocol feasibility
+- **[Roadmap](ROADMAP.md)** - Product roadmap and strategy
+- **[Contributing](CONTRIBUTING.md)** - How to contribute
+
+## License
+
+This project is licensed under the **FSL-1.1-ALv2** (Functional Source License 1.1 with Apache 2.0 Future Grant).
+
+See [LICENSE.md](LICENSE.md) for the complete license text and [LICENSING.md](LICENSING.md) for compliance guidelines.

@@ -55,5 +55,6 @@ python examples/story_protocol_example.py
 
 For detailed documentation, see:
 - [Story Protocol Integration Guide](../docs/STORY-PROTOCOL-INTEGRATION.md)
+- [DeFi Integration Feasibility](../docs/DEFI-INTEGRATION.md)
+- [Full Documentation Index](../docs/README.md)
 - [Main README](../README.md)
-- [DeFi Stack Feasibility](../defi-stack.md)
