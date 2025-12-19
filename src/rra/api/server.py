@@ -8,6 +8,8 @@ Provides REST API endpoints for:
 - Agent management
 - Negotiation sessions
 - License verification
+- Marketplace discovery (NEW)
+- WebSocket real-time chat (NEW)
 """
 
 from typing import Optional, Dict, Any
@@ -82,12 +84,20 @@ def create_app() -> FastAPI:
         """Root endpoint."""
         return {
             "name": "RRA Module API",
-            "version": "0.1.0",
+            "version": "0.2.0",
             "endpoints": {
                 "ingest": "/api/ingest",
                 "negotiate": "/api/negotiate",
                 "verify": "/api/verify",
                 "repositories": "/api/repositories",
+                "marketplace": {
+                    "repos": "/api/marketplace/repos",
+                    "featured": "/api/marketplace/featured",
+                    "categories": "/api/marketplace/categories",
+                    "agent_details": "/api/marketplace/agent/{repo_id}/details",
+                    "agent_stats": "/api/marketplace/agent/{repo_id}/stats",
+                },
+                "websocket": "/ws/negotiate/{repo_id}",
             }
         }
 
@@ -283,6 +293,16 @@ def create_app() -> FastAPI:
     async def health_check():
         """Health check endpoint."""
         return {"status": "healthy"}
+
+    # Include marketplace and websocket routers
+    try:
+        from rra.api.marketplace import router as marketplace_router
+        from rra.api.websocket import router as websocket_router
+        app.include_router(marketplace_router)
+        app.include_router(websocket_router)
+    except ImportError:
+        # Routers not available in minimal install
+        pass
 
     return app
 
