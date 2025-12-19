@@ -14,21 +14,19 @@ Thank you for your interest in contributing to the Revenant Repo Agent Module!
 
 ## Development Setup
 
+For basic installation, see the [Quick Start Guide](QUICKSTART.md#installation).
+
+For development setup with additional tools:
+
 ```bash
-# Clone the repository
+# Clone and install (see QUICKSTART.md for details)
 git clone https://github.com/kase1111-hash/RRA-Module.git
 cd RRA-Module
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install in development mode with dev dependencies
 pip install -e ".[dev]"
 
-# Copy environment template
+# Set up environment
 cp .env.example .env
-# Edit .env with your configuration
+# Edit .env with your configuration (API keys, wallet addresses, etc.)
 ```
 
 ## Running Tests
@@ -142,4 +140,6 @@ npx hardhat run scripts/deploy.js --network sepolia
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+By contributing, you agree that your contributions will be licensed under the FSL-1.1-ALv2 license.
+
+See [LICENSE.md](LICENSE.md) for the complete license text and [LICENSING.md](LICENSING.md) for compliance guidelines.

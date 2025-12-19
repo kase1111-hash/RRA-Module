@@ -1,4 +1,4 @@
-Buyer Beware: A Note on Responsibility in an Open Code Market
+# Buyer Beware: A Note on Responsibility in an Open Code Market
 
 The systems described here are powerful—but they are not magic, and they are not a guarantee of value.
 
@@ -36,3 +36,9 @@ You are also the ones choosing where to spend your money.
 Use judgment. Ask questions. Walk away when something feels wrong.
 
 Powerful tools demand informed users.
+
+## License
+
+This project is licensed under FSL-1.1-ALv2.
+
+See [LICENSE.md](LICENSE.md) for the complete license text and [LICENSING.md](LICENSING.md) for compliance guidelines.
