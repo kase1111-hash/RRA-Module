@@ -340,5 +340,127 @@ metadata:
     console.print("  3. Customize the generated configuration")
 
 
+@cli.command()
+@click.argument('repo_url')
+@click.option('--format', 'output_format', type=click.Choice(['table', 'json', 'markdown']), default='table', help='Output format')
+@click.option('--register', is_flag=True, help='Register the repository for permanent linking')
+def links(repo_url: str, output_format: str, register: bool):
+    """
+    Generate shareable deep links for a repository.
+
+    Creates URLs for:
+    - Agent page (for browsing)
+    - Direct chat (starts negotiation immediately)
+    - License tiers (specific tier purchase)
+    - QR codes (for print/sharing)
+    - README badges (for documentation)
+    - Embed codes (for websites)
+    """
+    from rra.services.deep_links import DeepLinkService
+    import json
+
+    console.print(Panel.fit(
+        f"[bold blue]Generating Deep Links[/bold blue]\n{repo_url}",
+        border_style="blue"
+    ))
+
+    service = DeepLinkService()
+
+    # Register if requested
+    if register:
+        service.register_repo(repo_url)
+        console.print(f"[green]✓[/green] Repository registered for permanent linking\n")
+
+    # Get all links
+    all_links = service.get_all_links(repo_url)
+
+    if output_format == 'json':
+        console.print(json.dumps(all_links, indent=2))
+
+    elif output_format == 'markdown':
+        md = f"""# Deep Links for Repository
+
+**Repository ID:** `{all_links['repo_id']}`
+
+## Quick Links
+
+| Type | URL |
+|------|-----|
+| Agent Page | [{all_links['agent_page']}]({all_links['agent_page']}) |
+| Direct Chat | [{all_links['chat_direct']}]({all_links['chat_direct']}) |
+| Individual License | [{all_links['license_individual']}]({all_links['license_individual']}) |
+| Team License | [{all_links['license_team']}]({all_links['license_team']}) |
+| Enterprise License | [{all_links['license_enterprise']}]({all_links['license_enterprise']}) |
+
+## QR Code
+
+![QR Code]({all_links['qr_code']})
+
+## README Badge
+
+```markdown
+{all_links['badge_markdown']}
+```
+
+## Embed Code
+
+```html
+{all_links['embed_script']}
+```
+"""
+        console.print(Markdown(md))
+
+    else:  # table format
+        # Basic links table
+        table = Table(title="Generated Links", show_header=True)
+        table.add_column("Type", style="cyan", width=20)
+        table.add_column("URL/Value", style="green")
+
+        table.add_row("Repository ID", all_links['repo_id'])
+        table.add_row("Agent Page", all_links['agent_page'])
+        table.add_row("Direct Chat", all_links['chat_direct'])
+        table.add_row("Individual License", all_links['license_individual'])
+        table.add_row("Team License", all_links['license_team'])
+        table.add_row("Enterprise License", all_links['license_enterprise'])
+        table.add_row("QR Code (PNG)", all_links['qr_code'])
+
+        console.print(table)
+
+        # Badge section
+        console.print("\n[bold]README Badge (Markdown):[/bold]")
+        console.print(Panel(all_links['badge_markdown'], border_style="dim"))
+
+        # Embed section
+        console.print("\n[bold]Embed Code (HTML):[/bold]")
+        console.print(Panel(all_links['embed_script'], border_style="dim"))
+
+
+@cli.command()
+@click.argument('repo_id')
+def resolve(repo_id: str):
+    """
+    Resolve a repository ID to its original URL.
+
+    Looks up a 12-character repo ID and shows its registration info.
+    """
+    from rra.services.deep_links import DeepLinkService
+
+    service = DeepLinkService()
+    mapping = service.resolve_repo_id(repo_id)
+
+    if mapping:
+        table = Table(title=f"Repository: {repo_id}")
+        table.add_column("Field", style="cyan")
+        table.add_column("Value", style="green")
+
+        for key, value in mapping.items():
+            table.add_row(key, str(value))
+
+        console.print(table)
+    else:
+        console.print(f"[yellow]Repository ID not found: {repo_id}[/yellow]")
+        console.print("\nThis ID may not be registered. Use 'rra links <repo-url> --register' to register a repository.")
+
+
 if __name__ == '__main__':
     cli()

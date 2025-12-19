@@ -84,7 +84,7 @@ def create_app() -> FastAPI:
         """Root endpoint."""
         return {
             "name": "RRA Module API",
-            "version": "0.2.0",
+            "version": "0.3.0",
             "endpoints": {
                 "ingest": "/api/ingest",
                 "negotiate": "/api/negotiate",
@@ -96,6 +96,15 @@ def create_app() -> FastAPI:
                     "categories": "/api/marketplace/categories",
                     "agent_details": "/api/marketplace/agent/{repo_id}/details",
                     "agent_stats": "/api/marketplace/agent/{repo_id}/stats",
+                },
+                "deep_links": {
+                    "generate": "/api/links/generate",
+                    "resolve": "/api/links/resolve/{repo_id}",
+                    "register": "/api/links/register",
+                    "badge": "/api/links/badge",
+                    "qr_code": "/api/links/qr/{repo_id}",
+                    "embed": "/api/links/embed/{repo_id}",
+                    "stats": "/api/links/stats",
                 },
                 "websocket": "/ws/negotiate/{repo_id}",
             }
@@ -294,12 +303,14 @@ def create_app() -> FastAPI:
         """Health check endpoint."""
         return {"status": "healthy"}
 
-    # Include marketplace and websocket routers
+    # Include marketplace, websocket, and deep links routers
     try:
         from rra.api.marketplace import router as marketplace_router
         from rra.api.websocket import router as websocket_router
+        from rra.api.deep_links import router as deep_links_router
         app.include_router(marketplace_router)
         app.include_router(websocket_router)
+        app.include_router(deep_links_router)
     except ImportError:
         # Routers not available in minimal install
         pass
