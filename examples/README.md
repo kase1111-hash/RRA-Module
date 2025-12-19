@@ -58,3 +58,9 @@ For detailed documentation, see:
 - [DeFi Integration Feasibility](../docs/DEFI-INTEGRATION.md)
 - [Full Documentation Index](../docs/README.md)
 - [Main README](../README.md)
+
+## License
+
+This project is licensed under FSL-1.1-ALv2.
+
+See [LICENSE.md](../LICENSE.md) for the complete license text and [LICENSING.md](../LICENSING.md) for compliance guidelines.

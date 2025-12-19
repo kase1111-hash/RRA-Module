@@ -156,6 +156,6 @@ For detailed documentation, see:
 
 ## License
 
-This project is licensed under the **FSL-1.1-ALv2** (Functional Source License 1.1 with Apache 2.0 Future Grant).
+This project is licensed under FSL-1.1-ALv2 (Functional Source License 1.1 with Apache 2.0 Future Grant).
 
 See [LICENSE.md](LICENSE.md) for the complete license text and [LICENSING.md](LICENSING.md) for compliance guidelines.
