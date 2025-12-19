@@ -28,6 +28,7 @@ from pydantic import BaseModel, EmailStr
 from rra.security.webhook_auth import (
     WebhookSecurity,
     RateLimiter,
+    NonceTracker,
     validate_callback_url,
     webhook_security,
     rate_limiter,
@@ -42,6 +43,9 @@ from rra.agents.negotiator import NegotiatorAgent
 # =============================================================================
 
 MAX_PAYLOAD_SIZE = 1 * 1024 * 1024  # 1MB max payload size
+
+# Replay attack protection
+nonce_tracker = NonceTracker()
 
 
 router = APIRouter(prefix="/webhook", tags=["webhooks"])
@@ -296,6 +300,8 @@ async def webhook_trigger(
     request: Request,
     background_tasks: BackgroundTasks,
     x_webhook_signature: Optional[str] = Header(None),
+    x_request_timestamp: Optional[str] = Header(None),
+    x_request_nonce: Optional[str] = Header(None),
 ) -> WebhookTriggerResponse:
     """
     Universal webhook endpoint for external integrations.
@@ -312,10 +318,21 @@ async def webhook_trigger(
         agent_id: The agent/repo ID (12-character hex)
         request: FastAPI request object
         x_webhook_signature: HMAC-SHA256 signature (optional for registered webhooks)
+        x_request_timestamp: ISO timestamp for replay protection
+        x_request_nonce: Unique nonce for replay protection
 
     Returns:
         Session ID and chat URL for continuing the negotiation
     """
+    # Replay attack protection (if headers provided)
+    if x_request_timestamp:
+        is_valid, error_msg = nonce_tracker.validate_request(
+            timestamp=x_request_timestamp,
+            nonce=x_request_nonce
+        )
+        if not is_valid:
+            raise HTTPException(400, f"Request rejected: {error_msg}")
+
     try:
         payload_dict = await request.json()
         payload = WebhookTriggerRequest(**payload_dict)
