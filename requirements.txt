@@ -15,6 +15,11 @@ httpx>=0.25.2
 # Blockchain
 web3>=6.11.3
 
+# DeFi Protocol Integrations
+# Story Protocol - Programmable IP licensing
+eth-abi>=4.0.0  # For Story Protocol contract interactions
+eth-utils>=2.3.0
+
 # Testing (optional)
 pytest>=7.4.3
 pytest-asyncio>=0.21.1

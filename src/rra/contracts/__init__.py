@@ -4,5 +4,16 @@
 
 from rra.contracts.license_nft import LicenseNFTContract
 from rra.contracts.manager import ContractManager
+from rra.contracts.story_protocol import (
+    StoryProtocolClient,
+    IPAssetMetadata,
+    PILTerms
+)
 
-__all__ = ["LicenseNFTContract", "ContractManager"]
+__all__ = [
+    "LicenseNFTContract",
+    "ContractManager",
+    "StoryProtocolClient",
+    "IPAssetMetadata",
+    "PILTerms"
+]
