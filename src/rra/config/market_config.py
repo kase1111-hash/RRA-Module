@@ -119,6 +119,44 @@ class MarketConfig(BaseModel):
         description="Ethereum wallet address for receiving payments"
     )
 
+    # Story Protocol Integration
+    story_protocol_enabled: bool = Field(
+        default=False,
+        description="Enable Story Protocol for programmable IP licensing"
+    )
+
+    ip_asset_id: Optional[str] = Field(
+        default=None,
+        description="Story Protocol IP Asset ID (auto-generated on registration)"
+    )
+
+    pil_commercial_use: bool = Field(
+        default=True,
+        description="Allow commercial use in PIL terms"
+    )
+
+    pil_derivatives_allowed: bool = Field(
+        default=True,
+        description="Allow derivative works in PIL terms"
+    )
+
+    pil_derivatives_attribution: bool = Field(
+        default=True,
+        description="Require attribution for derivatives in PIL terms"
+    )
+
+    pil_derivatives_reciprocal: bool = Field(
+        default=False,
+        description="Require reciprocal licensing for derivatives (copyleft)"
+    )
+
+    derivative_royalty_percentage: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="Royalty percentage for derivatives via Story Protocol (0.0-1.0)"
+    )
+
     metadata: Dict[str, Any] = Field(
         default_factory=dict,
         description="Additional custom metadata"
@@ -193,7 +231,7 @@ class MarketConfig(BaseModel):
         Returns:
             Dictionary of parameters suitable for smart contract deployment
         """
-        return {
+        params = {
             "license_model": self.license_model.value,
             "target_price_wei": self._parse_price_to_wei(self.target_price),
             "floor_price_wei": self._parse_price_to_wei(self.floor_price),
@@ -201,6 +239,41 @@ class MarketConfig(BaseModel):
             "royalty_rate": int((self.royalty_on_derivatives or 0) * 10000),  # Basis points
             "developer_address": self.developer_wallet or "0x0",
             "auto_renewal": self.auto_renewal,
+        }
+
+        # Add Story Protocol parameters if enabled
+        if self.story_protocol_enabled:
+            params["story_protocol"] = {
+                "enabled": True,
+                "ip_asset_id": self.ip_asset_id,
+                "pil_commercial_use": self.pil_commercial_use,
+                "pil_derivatives_allowed": self.pil_derivatives_allowed,
+                "pil_derivatives_attribution": self.pil_derivatives_attribution,
+                "pil_derivatives_reciprocal": self.pil_derivatives_reciprocal,
+                "derivative_royalty_bps": int((self.derivative_royalty_percentage or 0) * 10000),
+            }
+
+        return params
+
+    def to_pil_terms(self) -> Dict[str, Any]:
+        """
+        Convert configuration to Story Protocol PIL terms.
+
+        Returns:
+            Dictionary of PIL terms for Story Protocol
+        """
+        royalty_percentage = self.derivative_royalty_percentage or self.royalty_on_derivatives or 0.0
+
+        return {
+            "commercial_use": self.pil_commercial_use,
+            "derivatives_allowed": self.pil_derivatives_allowed,
+            "derivatives_approve": False,  # Auto-approve derivatives
+            "derivatives_attribution": self.pil_derivatives_attribution,
+            "derivatives_reciprocal": self.pil_derivatives_reciprocal,
+            "royalty_policy": "automated",
+            "commercial_revenue_share": int(royalty_percentage * 10000),  # Basis points
+            "territory_restriction": None,
+            "distribution_channels": None,
         }
 
     @staticmethod

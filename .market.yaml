@@ -126,6 +126,29 @@ buyer_requirements:
     - "USDC"
     - "DAI"
 
+# DeFi Protocol Integration Settings
+defi_integrations:
+  # Story Protocol - Programmable IP Licensing (Phase 3)
+  story_protocol:
+    enabled: false  # Set to true to enable Story Protocol integration
+    ip_asset_id: null  # Auto-populated after registration on Story Protocol
+    network: "mainnet"  # Options: mainnet, testnet
+
+    # Programmable IP License (PIL) Terms
+    pil_terms:
+      commercial_use: true              # Allow commercial use of licensed code
+      derivatives_allowed: true         # Allow forks and derivative works
+      derivatives_attribution: true     # Require attribution in derivatives
+      derivatives_reciprocal: false     # Copyleft requirement (false = permissive)
+
+    # Derivative Royalty Configuration
+    derivative_royalty_percentage: 0.15  # 15% royalty on derivative revenues
+    payment_token: "ETH"  # Options: ETH, USDC, DAI
+
+    # Automatic Derivative Tracking
+    auto_track_forks: true  # Automatically detect and register GitHub forks
+    require_fork_registration: false  # Require forks to register as derivatives
+
 # Custom Clauses (Blockchain-Enforced)
 custom_clauses:
   - id: "non-competing-use"
