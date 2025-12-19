@@ -16,8 +16,10 @@ import secrets
 import json
 import ipaddress
 import socket
+import base64
+import os
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Set
 from pathlib import Path
 from collections import defaultdict
 from urllib.parse import urlparse
@@ -104,6 +106,198 @@ def validate_callback_url(url: str) -> bool:
 
     except Exception:
         return False
+
+
+# =============================================================================
+# Encryption Utilities
+# =============================================================================
+
+class CredentialEncryption:
+    """
+    Encrypt/decrypt credentials at rest using Fernet symmetric encryption.
+
+    Uses environment variable for encryption key or generates a local key.
+    """
+
+    def __init__(self):
+        """Initialize encryption with key from environment or generate one."""
+        self._key = self._get_or_create_key()
+
+    def _get_or_create_key(self) -> bytes:
+        """Get encryption key from environment or create a local one."""
+        # Try environment variable first
+        env_key = os.environ.get("RRA_ENCRYPTION_KEY")
+        if env_key:
+            # Decode base64-encoded key from environment
+            try:
+                return base64.urlsafe_b64decode(env_key.encode())
+            except Exception:
+                pass
+
+        # Fall back to local key file
+        key_path = Path("data/.encryption_key")
+        if key_path.exists():
+            return key_path.read_bytes()
+
+        # Generate new key
+        key = secrets.token_bytes(32)
+        key_path.parent.mkdir(parents=True, exist_ok=True)
+        key_path.write_bytes(key)
+        # Set restrictive permissions
+        os.chmod(key_path, 0o600)
+        return key
+
+    def encrypt(self, data: str) -> str:
+        """
+        Encrypt a string using AES-256-GCM.
+
+        Args:
+            data: Plaintext string to encrypt
+
+        Returns:
+            Base64-encoded encrypted data with nonce
+        """
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+        nonce = secrets.token_bytes(12)  # 96-bit nonce for GCM
+        aesgcm = AESGCM(self._key)
+        ciphertext = aesgcm.encrypt(nonce, data.encode(), None)
+
+        # Combine nonce and ciphertext
+        encrypted = nonce + ciphertext
+        return base64.urlsafe_b64encode(encrypted).decode()
+
+    def decrypt(self, encrypted_data: str) -> str:
+        """
+        Decrypt a string.
+
+        Args:
+            encrypted_data: Base64-encoded encrypted data
+
+        Returns:
+            Decrypted plaintext string
+        """
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+        data = base64.urlsafe_b64decode(encrypted_data.encode())
+        nonce = data[:12]
+        ciphertext = data[12:]
+
+        aesgcm = AESGCM(self._key)
+        plaintext = aesgcm.decrypt(nonce, ciphertext, None)
+        return plaintext.decode()
+
+
+# =============================================================================
+# Replay Attack Protection
+# =============================================================================
+
+class NonceTracker:
+    """
+    Track used nonces/timestamps to prevent replay attacks.
+
+    Maintains a sliding window of recently used nonces.
+    """
+
+    # Maximum age of valid requests (5 minutes)
+    MAX_AGE_SECONDS = 300
+
+    # Maximum number of nonces to track
+    MAX_NONCES = 10000
+
+    def __init__(self, storage_path: Optional[Path] = None):
+        """Initialize nonce tracker."""
+        self.storage_path = storage_path or Path("data/nonces.json")
+        self._nonces: Dict[str, datetime] = {}
+        self._load_nonces()
+
+    def _load_nonces(self) -> None:
+        """Load nonces from storage."""
+        if self.storage_path.exists():
+            try:
+                with open(self.storage_path, 'r') as f:
+                    data = json.load(f)
+                    self._nonces = {
+                        k: datetime.fromisoformat(v)
+                        for k, v in data.items()
+                    }
+            except (json.JSONDecodeError, IOError):
+                self._nonces = {}
+
+        # Cleanup old nonces on load
+        self._cleanup()
+
+    def _save_nonces(self) -> None:
+        """Save nonces to storage."""
+        self.storage_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(self.storage_path, 'w') as f:
+            json.dump(
+                {k: v.isoformat() for k, v in self._nonces.items()},
+                f
+            )
+
+    def _cleanup(self) -> None:
+        """Remove expired nonces."""
+        cutoff = datetime.utcnow() - timedelta(seconds=self.MAX_AGE_SECONDS)
+        self._nonces = {
+            k: v for k, v in self._nonces.items()
+            if v > cutoff
+        }
+
+        # Also limit total count
+        if len(self._nonces) > self.MAX_NONCES:
+            # Keep most recent
+            sorted_nonces = sorted(self._nonces.items(), key=lambda x: x[1], reverse=True)
+            self._nonces = dict(sorted_nonces[:self.MAX_NONCES])
+
+    def validate_request(
+        self,
+        timestamp: str,
+        nonce: Optional[str] = None
+    ) -> tuple[bool, str]:
+        """
+        Validate a request's timestamp and optional nonce.
+
+        Args:
+            timestamp: ISO format timestamp from request
+            nonce: Optional unique nonce from request
+
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        try:
+            request_time = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+        except (ValueError, AttributeError):
+            return False, "Invalid timestamp format"
+
+        now = datetime.utcnow()
+
+        # Check if timestamp is too old
+        age = (now - request_time.replace(tzinfo=None)).total_seconds()
+        if age > self.MAX_AGE_SECONDS:
+            return False, f"Request expired (age: {age:.0f}s, max: {self.MAX_AGE_SECONDS}s)"
+
+        # Check if timestamp is in the future (with 30s tolerance for clock skew)
+        if age < -30:
+            return False, "Request timestamp is in the future"
+
+        # If nonce provided, check for replay
+        if nonce:
+            nonce_key = f"{timestamp}:{nonce}"
+            if nonce_key in self._nonces:
+                return False, "Duplicate request (replay detected)"
+
+            # Record this nonce
+            self._nonces[nonce_key] = datetime.utcnow()
+            self._cleanup()
+            self._save_nonces()
+
+        return True, ""
+
+    def clear(self) -> None:
+        """Clear all tracked nonces."""
+        self._nonces = {}
+        self._save_nonces()
 
 
 class RateLimiter:

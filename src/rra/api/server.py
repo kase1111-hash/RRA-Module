@@ -162,16 +162,48 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="RRA Module API",
         description="REST API for Revenant Repo Agent Module",
-        version="0.1.0",
+        version="0.6.0",
     )
 
-    # CORS middleware
+    # ==========================================================================
+    # CORS Configuration
+    # ==========================================================================
+    # Get allowed origins from environment or use secure defaults
+    cors_origins_env = os.environ.get("RRA_CORS_ORIGINS", "")
+    if cors_origins_env:
+        # Parse comma-separated origins from environment
+        allowed_origins = [origin.strip() for origin in cors_origins_env.split(",")]
+    else:
+        # Default: Only allow specific origins
+        allowed_origins = [
+            "https://natlangchain.io",
+            "https://app.natlangchain.io",
+            "https://marketplace.natlangchain.io",
+        ]
+
+    # In development, also allow localhost
+    if os.environ.get("RRA_ENV", "production") == "development":
+        allowed_origins.extend([
+            "http://localhost:3000",
+            "http://localhost:8000",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:8000",
+        ])
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Configure appropriately for production
+        allow_origins=allowed_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=[
+            "Content-Type",
+            "Authorization",
+            "X-API-Key",
+            "X-Webhook-Signature",
+            "X-Request-Timestamp",
+            "X-Request-Nonce",
+        ],
+        expose_headers=["X-RateLimit-Remaining", "X-RateLimit-Reset"],
     )
 
     @app.get("/")
