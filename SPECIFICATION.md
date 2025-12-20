@@ -1,8 +1,8 @@
 # RRA Module - Complete Specification & Implementation Status
 
-**Version:** 1.3.0
+**Version:** 1.4.0
 **Last Updated:** 2025-12-20
-**Status:** Phase 5 - Security & Privacy (75% Complete)
+**Status:** Phase 5 - Security & Privacy (75% Complete) | Phase 6 Planned
 
 ---
 
@@ -2605,6 +2605,354 @@ Implementation Path:
 
 ---
 
+### Phase 6: NatLangChain Advanced Infrastructure ⏳ PLANNED
+**Timeline:** Q3 2026 - Q4 2027
+**Status:** 0% Complete
+**Source:** NatLangChain-roadmap.md, Dispute-Membership-Circuit.md
+
+Phase 6 implements advanced conflict-compression infrastructure, making disagreement economically irrational and resolution cheap. This transforms NatLangChain from a contract negotiation system into a general-purpose coordination layer.
+
+#### 6.1 License Entropy Oracle ⏳ PLANNED
+**Priority:** High | **Effort:** 4-5 weeks | **Source:** NatLangChain-roadmap.md (Phase 2)
+
+```
+Implementation Path:
+├── contracts/LicenseEntropyOracle.sol  # Clause stability scoring
+├── src/rra/analytics/entropy_scorer.py # Historical instability analysis
+├── src/rra/predictions/dispute_model.py # ML dispute prediction
+└── src/rra/api/entropy.py              # API for upstream contracts
+```
+
+**Capabilities:**
+- Score clauses by historical instability
+- Predict likelihood of future disputes
+- Exposed as API for upstream contracts
+- Inform negotiation with entropy warnings
+
+---
+
+#### 6.2 Counter-Proposal Caps & Delay Costs ⏳ PLANNED
+**Priority:** Medium | **Effort:** 2-3 weeks | **Source:** NatLangChain-roadmap.md (Phase 2)
+
+```
+Implementation Path:
+├── contracts/NegotiationPressure.sol   # Exponential delay costs
+├── src/rra/negotiation/pressure.py     # Counter-proposal limiting
+└── tests/test_negotiation_pressure.py  # Pressure mechanism tests
+```
+
+**Mechanics:**
+- Counter-proposal caps prevent infinite negotiation loops
+- Exponential delay costs make prolonged disagreement expensive
+- Time-bounded economic pressure for resolution
+
+---
+
+#### 6.3 Decentralized Identity (DID) Integration ⏳ PLANNED
+**Priority:** High | **Effort:** 4-5 weeks | **Source:** NatLangChain-roadmap.md (Phase 2)
+
+```
+Implementation Path:
+├── src/rra/identity/did_resolver.py    # DID resolution
+├── src/rra/identity/sybil_resistance.py # Sybil attack prevention
+├── contracts/DIDRegistry.sol           # On-chain DID registry
+└── src/rra/auth/did_auth.py            # DID-based authentication
+```
+
+**Features:**
+- Sybil-resistant participation in disputes
+- Portable identity across NatLangChain ecosystem
+- Privacy-preserving identity verification
+- Integration with existing DID standards (did:web, did:ethr)
+
+---
+
+#### 6.4 Multi-Party Reconciliation ⏳ PLANNED
+**Priority:** Medium | **Effort:** 5-6 weeks | **Source:** NatLangChain-roadmap.md (Phase 2)
+
+```
+Implementation Path:
+├── contracts/MultiPartyILRM.sol        # N-party dispute resolution
+├── src/rra/reconciliation/multi.py     # Multi-party orchestration
+├── src/rra/reconciliation/voting.py    # Weighted voting mechanisms
+└── circuits/multi_party_membership.circom # ZK multi-party proofs
+```
+
+**Capabilities:**
+- Support disputes with 3+ parties
+- Weighted stake and voting mechanisms
+- Coalition formation and proposal aggregation
+- Privacy-preserving multi-party ZK proofs
+
+---
+
+#### 6.5 Automated Clause Hardening ⏳ PLANNED
+**Priority:** Medium | **Effort:** 3-4 weeks | **Source:** NatLangChain-roadmap.md (Phase 3)
+
+```
+Implementation Path:
+├── src/rra/negotiation/clause_hardener.py # AI clause improvement
+├── src/rra/analytics/clause_patterns.py   # Pattern clustering
+├── src/rra/templates/hardened_clauses.py  # Pre-hardened templates
+└── tests/test_clause_hardening.py         # Hardening validation
+```
+
+**Capabilities:**
+- AI-suggested clause improvements during negotiation
+- Pattern analysis: "what causes fights?"
+- Pre-hardened clause templates
+- Reduce high-entropy terms before disputes occur
+
+---
+
+#### 6.6 Predictive Dispute Warnings ⏳ PLANNED
+**Priority:** Medium | **Effort:** 3-4 weeks | **Source:** NatLangChain-roadmap.md (Phase 3)
+
+```
+Implementation Path:
+├── src/rra/predictions/dispute_warning.py # Warning generation
+├── src/rra/analytics/term_analysis.py     # High-entropy term detection
+├── src/rra/api/warnings.py                # Warning API endpoints
+└── tests/test_dispute_predictions.py      # Prediction accuracy tests
+```
+
+**Features:**
+- Real-time warnings for high-entropy contract terms
+- Dispute probability scoring
+- Suggested mitigations
+- Historical pattern matching
+
+---
+
+#### 6.7 High-Throughput Dispute Processing ⏳ PLANNED
+**Priority:** Low | **Effort:** 6-8 weeks | **Source:** NatLangChain-roadmap.md (Phase 3)
+
+```
+Implementation Path:
+├── contracts/L3DisputeRollup.sol       # App-specific rollup
+├── src/rra/l3/batch_processor.py       # Batch dispute processing
+├── src/rra/l3/sequencer.py             # Dispute sequencing
+└── scripts/deploy_l3.py                # L3 deployment scripts
+```
+
+**Capabilities:**
+- L3 or app-specific rollup for dispute handling
+- High-throughput batch processing
+- Reduced gas costs for small disputes
+- Sub-second finality
+
+---
+
+#### 6.8 Treasury Coordination Tools ⏳ PLANNED
+**Priority:** Medium | **Effort:** 3-4 weeks | **Source:** NatLangChain-roadmap.md (Phase 3)
+
+```
+Implementation Path:
+├── contracts/TreasuryCoordinator.sol   # Multi-treasury management
+├── src/rra/treasury/coordinator.py     # Treasury orchestration
+├── src/rra/governance/treasury_votes.py # Treasury decisions
+└── src/rra/api/treasury.py             # Treasury API
+```
+
+**Use Cases:**
+- DAO treasury disagreements
+- Contributor compensation disputes
+- Shared asset licensing decisions
+- Economic pressure for resolution (no binding authority)
+
+---
+
+#### 6.9 Off-Chain Event Bridging ⏳ PLANNED
+**Priority:** Medium | **Effort:** 4-5 weeks | **Source:** NatLangChain-roadmap.md (Phase 3)
+
+```
+Implementation Path:
+├── src/rra/oracles/event_bridge.py     # Chainlink event bridging
+├── contracts/EventOracle.sol           # Oracle contract
+├── src/rra/oracles/validators.py       # Event validation
+└── tests/test_event_bridge.py          # Bridge integration tests
+```
+
+**Features:**
+- Bridge real-world events to on-chain disputes
+- Chainlink Functions for external data
+- Dispute evidence from off-chain sources
+- Validated event attestations
+
+---
+
+#### 6.10 Reputation-Weighted Participation ⏳ PLANNED
+**Priority:** Medium | **Effort:** 3-4 weeks | **Source:** NatLangChain-roadmap.md (Phase 4)
+
+```
+Implementation Path:
+├── contracts/ReputationWeightedVoting.sol # Weighted voting
+├── src/rra/reputation/weighted.py         # Weight calculation
+├── src/rra/governance/rep_voting.py       # Rep-based governance
+└── tests/test_reputation_weights.py       # Weight accuracy tests
+```
+
+**Mechanics:**
+- Historical resolution success affects vote weight
+- Good-faith actors have more influence
+- Prevents gaming by bad actors
+- Transparent weight calculation
+
+---
+
+#### 6.11 Tokenized Real-World Assets ⏳ PLANNED
+**Priority:** Low | **Effort:** 8-10 weeks | **Source:** NatLangChain-roadmap.md (Phase 4)
+
+```
+Implementation Path:
+├── contracts/RWALicense.sol            # Real-world asset licensing
+├── src/rra/rwa/tokenizer.py            # Asset tokenization
+├── src/rra/rwa/compliance.py           # RWA compliance checks
+├── src/rra/oracles/rwa_valuations.py   # Asset valuation oracles
+└── src/rra/legal/rwa_wrappers.py       # Legal wrapper generation
+```
+
+**Capabilities:**
+- Tokenize patents, trademarks, physical IP
+- Bridge physical and digital licensing
+- Compliance-aware tokenization
+- Valuation oracles for RWA
+
+---
+
+#### 6.12 Jurisdiction-Aware Wrappers ⏳ PLANNED
+**Priority:** Low | **Effort:** 6-8 weeks | **Source:** NatLangChain-roadmap.md (Phase 4)
+
+```
+Implementation Path:
+├── src/rra/legal/jurisdiction.py       # Jurisdiction detection
+├── src/rra/legal/compliance_rules.py   # Per-jurisdiction rules
+├── src/rra/templates/legal_wrappers.py # Legal wrapper templates
+└── contracts/JurisdictionRouter.sol    # Jurisdiction-based routing
+```
+
+**Features:**
+- Opt-in modular jurisdiction wrappers
+- Integration with existing legal systems
+- Compliance with regional IP laws
+- Automatic jurisdiction detection
+
+---
+
+#### Phase 6 Implementation Status
+
+| Feature | Priority | Effort | Status |
+|---------|----------|--------|--------|
+| License Entropy Oracle | High | 4-5 weeks | ⏳ Planned |
+| Counter-Proposal Caps | Medium | 2-3 weeks | ⏳ Planned |
+| DID Integration | High | 4-5 weeks | ⏳ Planned |
+| Multi-Party Reconciliation | Medium | 5-6 weeks | ⏳ Planned |
+| Automated Clause Hardening | Medium | 3-4 weeks | ⏳ Planned |
+| Predictive Dispute Warnings | Medium | 3-4 weeks | ⏳ Planned |
+| High-Throughput L3 | Low | 6-8 weeks | ⏳ Planned |
+| Treasury Coordination | Medium | 3-4 weeks | ⏳ Planned |
+| Off-Chain Event Bridging | Medium | 4-5 weeks | ⏳ Planned |
+| Reputation-Weighted Voting | Medium | 3-4 weeks | ⏳ Planned |
+| Tokenized RWA | Low | 8-10 weeks | ⏳ Planned |
+| Jurisdiction Wrappers | Low | 6-8 weeks | ⏳ Planned |
+
+**Total Phase 6 Effort:** ~55-70 weeks
+**Estimated Completion:** Q4 2027
+
+---
+
+### Phase 7: Ecosystem Expansion ⏳ FUTURE
+**Timeline:** 2028+
+**Status:** Conceptual
+**Source:** NatLangChain-roadmap.md (Phase 4), ROADMAP.md
+
+#### 7.1 Progressive/Hybrid Access ⏳ FUTURE
+**Source:** ROADMAP.md (Section 4)
+
+- Detect buyer sophistication automatically
+- Offer off-chain previews for non-crypto users
+- Fiat on-ramps for traditional payment
+- Deferred on-chain settlement option
+- Gradual Web3 onboarding
+
+---
+
+#### 7.2 Mediator Node Tie-In ⏳ FUTURE
+**Source:** ROADMAP.md (Section 4)
+
+- Embedded chats route via mediator nodes
+- Resilience through distributed routing
+- Fee distribution to mediators
+- Censorship resistance
+- Decentralized without feeling decentralized
+
+---
+
+#### 7.3 Fiat On-Ramps ⏳ FUTURE
+**Source:** ROADMAP.md, Risk-mitigation.md
+
+- Support traditional payment methods
+- Integration with payment processors (Stripe, PayPal)
+- Automatic crypto conversion
+- Reduce crypto barrier to entry
+
+---
+
+#### 7.4 Insurance Options ⏳ FUTURE
+**Source:** Risk-mitigation.md
+
+- IP liability insurance integration
+- Coverage for dispute outcomes
+- Smart contract insurance (Nexus Mutual style)
+- Risk pooling for high-value licenses
+
+---
+
+#### 7.5 Contributor Signature Verification ⏳ FUTURE
+**Source:** Risk-mitigation.md
+
+- Track proof of ownership via commit history
+- Multi-contributor signature collection
+- Prevent unauthorized licensing
+- On-chain contributor attestations
+
+---
+
+## Security Remediation Backlog
+
+**Source:** PENTEST-REPORT-2025-12-20.md, CRYPTOGRAPHIC-SECURITY-AUDIT-2025-12-20.md
+
+### Critical Priority (Immediate Action Required)
+
+| ID | Issue | File | Effort | Status |
+|----|-------|------|--------|--------|
+| CRIT-001 | Missing Auth - marketplace.py | src/rra/api/marketplace.py | 1 day | ⏳ Open |
+| CRIT-002 | Missing Auth - deep_links.py | src/rra/api/deep_links.py | 1 day | ⏳ Open |
+| CRIT-003 | Missing Auth - widget.py | src/rra/api/widget.py | 1 day | ⏳ Open |
+| CRIT-004 | Point Deserialization Curve Validation | src/rra/crypto/pedersen.py | 2 hours | ⏳ Open |
+| CRIT-005 | Unverified Prime in Shamir SS | src/rra/crypto/shamir.py | 1 hour | ⏳ Open |
+
+### High Priority (Within 1 Week)
+
+| ID | Issue | File | Effort | Status |
+|----|-------|------|--------|--------|
+| HIGH-001 | Settlement DoS missing claim address | contracts/ILRMv2.sol | 4 hours | ⏳ Open |
+| HIGH-002 | HKDF without salt | src/rra/privacy/viewing_keys.py | 2 hours | ⏳ Open |
+| HIGH-003 | Timing attack polynomial eval | src/rra/crypto/shamir.py | 4 hours | ⏳ Open |
+| HIGH-004 | Timing attack Lagrange interpolation | src/rra/crypto/shamir.py | 4 hours | ⏳ Open |
+| HIGH-005 | Share verification fails open | src/rra/crypto/shamir.py | 2 hours | ⏳ Open |
+| HIGH-006 | Plaintext private key export | src/rra/crypto/viewing_keys.py | 3 hours | ⏳ Open |
+
+### Medium Priority (Within 1 Month)
+
+| ID | Issue | Category | Count | Status |
+|----|-------|----------|-------|--------|
+| MED-001-003 | Smart Contract issues | Non-standard ownership, front-running, stake reset | 3 | ⏳ Open |
+| MED-004-011 | Cryptography issues | MDS matrix, round constants, key commitment, IV | 8 | ⏳ Open |
+| MED-012-014 | API issues | webhooks.py mixed auth | 3 | ⏳ Open |
+
+---
+
 ## Critical Path Analysis
 
 ### Immediate Priorities (Next 3 Months)
@@ -2668,11 +3016,30 @@ This specification has been updated based on a comprehensive review of **19 docu
 
 | Category | Features | Critical | High | Medium | Low |
 |----------|----------|----------|------|--------|-----|
-| **A: Platform & UX** | 6 | 3 | 1 | 1 | 1 |
-| **B: DeFi & Blockchain** | 6 | 0 | 2 | 2 | 2 |
-| **C: NatLangChain** | 4 | 0 | 0 | 4 | 0 |
-| **D: Automation** | 4 | 0 | 2 | 0 | 2 |
-| **TOTAL** | **20** | **3** | **5** | **7** | **5** |
+| **A: Platform & UX** | 6 | 0 | 0 | 0 | 0 |
+| **B: DeFi & Blockchain** | 6 | 0 | 1 | 0 | 0 |
+| **C: NatLangChain** | 4 | 0 | 0 | 0 | 0 |
+| **D: Automation** | 4 | 0 | 0 | 0 | 0 |
+| **E: Phase 5 Security** | 5 | 0 | 2 | 1 | 0 |
+| **F: Phase 6 Advanced** | 12 | 0 | 2 | 7 | 3 |
+| **G: Phase 7 Future** | 5 | 0 | 0 | 0 | 5 |
+| **H: Security Remediation** | 19 | 5 | 6 | 14 | 0 |
+| **TOTAL** | **61** | **5** | **11** | **22** | **8** |
+
+### Unimplemented Features by Phase
+
+| Phase | Total Features | Implemented | Remaining | % Complete |
+|-------|----------------|-------------|-----------|------------|
+| Phase 1: Foundation | 11 | 11 | 0 | 100% |
+| Phase 2: Ecosystem | 12 | 11 | 1* | 92% |
+| Phase 3: Advanced | 8 | 8 | 0 | 100% |
+| Phase 4: Platform | 7 | 7 | 0 | 100% |
+| Phase 5: Security | 5 | 2 | 3 | 40% |
+| Phase 6: Advanced Infra | 12 | 0 | 12 | 0% |
+| Phase 7: Ecosystem Expansion | 5 | 0 | 5 | 0% |
+| Security Remediation | 19 | 0 | 19 | 0% |
+
+*Story Protocol needs mainnet contract addresses
 
 ### Critical Path Forward
 
@@ -2722,22 +3089,75 @@ The RRA Module has a **solid foundation** (Phase 1 complete) and is **80% throug
 
 ### Timeline Summary
 
-**Phases 1-4 Complete:** Platform is production-ready. Phase 5 (Security & Privacy) 75% complete.
+**Phases 1-4 Complete:** Platform is production-ready. Phase 5 (Security & Privacy) 40% complete.
 
-| Phase | Status | Completion |
-|-------|--------|------------|
-| Phase 1: Foundation | ✅ 100% | Complete |
-| Phase 2: Ecosystem | ✅ 100% | Complete (Story Protocol needs real addresses) |
-| Phase 3: Advanced | ✅ 100% | Complete |
-| Phase 4: Platform | ✅ 100% | Complete |
-| Phase 5: Security & Privacy | 🚧 75% | FIDO2 + Transaction Security complete |
+| Phase | Status | Completion | Target |
+|-------|--------|------------|--------|
+| Phase 1: Foundation | ✅ 100% | Complete | Q4 2024 |
+| Phase 2: Ecosystem | ✅ 92% | Story Protocol needs addresses | Q1 2025 |
+| Phase 3: Advanced | ✅ 100% | Complete | Q2 2025 |
+| Phase 4: Platform | ✅ 100% | Complete | Q4 2025 |
+| Phase 5: Security & Privacy | 🚧 40% | FIDO2 + Transaction Security done | Q2 2026 |
+| Phase 6: Advanced Infrastructure | ⏳ 0% | Planned (12 features) | Q4 2027 |
+| Phase 7: Ecosystem Expansion | 📋 0% | Conceptual (5 features) | 2028+ |
+| Security Remediation | ⚠️ 0% | 19 issues from pentest | Ongoing |
+
+### Full Roadmap to Feature Completion
+
+```
+2025 Q1  ─────────────────────────────────────────────────────────────
+         [Phase 2 Complete] Story Protocol mainnet deployment
+
+2025 Q2  ─────────────────────────────────────────────────────────────
+         [Security] Fix 5 CRITICAL + 6 HIGH pentest findings
+
+2026 Q1-Q2 ───────────────────────────────────────────────────────────
+         [Phase 5] Viewing Key Infrastructure
+         [Phase 5] Inference Attack Prevention
+         [Phase 5] Threshold Decryption
+
+2026 Q3-Q4 ───────────────────────────────────────────────────────────
+         [Phase 6] License Entropy Oracle
+         [Phase 6] DID Integration
+         [Phase 6] Counter-Proposal Caps
+
+2027 Q1-Q2 ───────────────────────────────────────────────────────────
+         [Phase 6] Multi-Party Reconciliation
+         [Phase 6] Clause Hardening + Dispute Predictions
+         [Phase 6] Treasury Coordination
+
+2027 Q3-Q4 ───────────────────────────────────────────────────────────
+         [Phase 6] Off-Chain Event Bridging
+         [Phase 6] Reputation-Weighted Voting
+         [Phase 6] L3 Rollup (if needed)
+
+2028+ ────────────────────────────────────────────────────────────────
+         [Phase 7] Tokenized RWA
+         [Phase 7] Jurisdiction Wrappers
+         [Phase 7] Fiat On-Ramps
+         [Phase 7] Progressive Access
+         [Phase 7] Insurance Integration
+```
 
 ### Recommended Immediate Actions
 
-1. **Story Protocol Production:** Obtain real contract addresses and deploy to mainnet
-2. **Security:** Implement high-priority recommendations from SECURITY-AUDIT.md (update cryptography package, add ReentrancyGuard)
-3. **Documentation:** Keep documentation in sync with implementation updates
-4. **Monitoring:** Set up production monitoring and alerting as per Risk-mitigation.md recommendations
+**Priority 1 - Critical Security (This Week)**
+1. **CRIT-001 to CRIT-003:** Add authentication to marketplace.py, deep_links.py, widget.py endpoints
+2. **CRIT-004:** Add curve validation to Pedersen point deserialization
+3. **CRIT-005:** Add primality verification for Shamir SS prime constant
+
+**Priority 2 - High Security (Next 2 Weeks)**
+4. **HIGH-001 to HIGH-006:** Fix timing attacks in Shamir, add HKDF salt, fix settlement DoS
+5. **Cryptography Package:** Update to 43.0.1+ to fix known CVEs
+6. **ReentrancyGuard:** Add to Solidity contracts for defense in depth
+
+**Priority 3 - Phase Completion (Next Month)**
+7. **Story Protocol Production:** Obtain real contract addresses and deploy to mainnet
+8. **Phase 5 Completion:** Viewing Key Infrastructure, Inference Attack Prevention, Threshold Decryption
+
+**Priority 4 - Operational (Ongoing)**
+9. **Monitoring:** Set up production monitoring per MONITORING.md
+10. **Documentation:** Keep docs in sync with implementation updates
 
 ---
 
