@@ -25,6 +25,59 @@ router = APIRouter(prefix="/api/widget", tags=["widget"])
 
 
 # =============================================================================
+# Widget Security Configuration
+# =============================================================================
+
+# Rate limiting: max requests per IP per minute for widget endpoints
+WIDGET_RATE_LIMIT = 60
+
+# Allowed origins for widget initialization (set in production)
+# Use "*" for development, specific domains in production
+ALLOWED_WIDGET_ORIGINS: set = {"*"}  # Configure via environment in production
+
+
+def _validate_widget_origin(origin: str) -> bool:
+    """
+    Validate widget request origin.
+
+    SECURITY: Prevents cross-origin widget abuse by validating
+    the Origin header against allowed domains.
+
+    Args:
+        origin: Origin header from request
+
+    Returns:
+        True if origin is allowed
+    """
+    if "*" in ALLOWED_WIDGET_ORIGINS:
+        return True
+    if not origin:
+        return False
+    return origin in ALLOWED_WIDGET_ORIGINS
+
+
+def _validate_session_token(widget_id: str, provided_token: str) -> bool:
+    """
+    Validate widget session token using constant-time comparison.
+
+    SECURITY: Prevents timing attacks on session token validation.
+
+    Args:
+        widget_id: Widget session ID
+        provided_token: Token provided in request
+
+    Returns:
+        True if token is valid
+    """
+    import hmac
+    session = _widget_sessions.get(widget_id)
+    if not session:
+        return False
+    expected_token = session.get("session_token", "")
+    return hmac.compare_digest(expected_token, provided_token)
+
+
+# =============================================================================
 # Widget Configuration Models
 # =============================================================================
 
