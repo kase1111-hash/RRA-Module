@@ -101,28 +101,29 @@ contract RepoLicense is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         string memory _tokenURI
     ) public payable nonReentrant returns (uint256) {
         Repository storage repo = repositories[_repoUrl];
+
+        // CHECKS - all validation first
         require(repo.active, "Repository not registered");
         require(msg.value >= repo.floorPrice, "Payment below floor price");
         require(_royaltyBasisPoints <= 10000, "Invalid royalty percentage");
+        require(_licensee != address(0), "Invalid licensee address");
 
-        // Transfer payment to developer
-        (bool success, ) = repo.developer.call{value: msg.value}("");
-        require(success, "Payment transfer failed");
+        // Cache developer address before any state changes
+        address developer = repo.developer;
 
-        // Mint token
+        // EFFECTS - all state changes before external calls
+
+        // 1. Get and increment token ID
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
 
-        _safeMint(_licensee, tokenId);
-        _setTokenURI(tokenId, _tokenURI);
-
-        // Calculate expiration
+        // 2. Calculate expiration
         uint256 expiration = 0;
         if (_duration > 0) {
             expiration = block.timestamp + _duration;
         }
 
-        // Store license details
+        // 3. Store license details
         licenses[tokenId] = License({
             licenseType: _licenseType,
             price: msg.value,
@@ -136,7 +137,18 @@ contract RepoLicense is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
             active: true
         });
 
+        // 4. Update user licenses mapping
         userLicenses[_licensee].push(tokenId);
+
+        // INTERACTIONS - external calls last
+
+        // 5. Mint token (may trigger onERC721Received callback)
+        _safeMint(_licensee, tokenId);
+        _setTokenURI(tokenId, _tokenURI);
+
+        // 6. Transfer payment to developer (external call)
+        (bool success, ) = developer.call{value: msg.value}("");
+        require(success, "Payment transfer failed");
 
         emit LicenseIssued(tokenId, _licensee, _repoUrl, _licenseType);
         emit PaymentReceived(msg.sender, msg.value, tokenId);
@@ -168,22 +180,19 @@ contract RepoLicense is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
      */
     function renewLicense(uint256 _tokenId, uint256 _additionalDuration) public payable nonReentrant {
         License storage license = licenses[_tokenId];
+        Repository storage repo = repositories[license.repoUrl];
+
+        // CHECKS - all validation first
         require(license.active, "License is not active");
         require(ownerOf(_tokenId) == msg.sender, "Not license owner");
-
-        Repository storage repo = repositories[license.repoUrl];
         require(msg.value >= repo.floorPrice, "Payment below floor price");
+        require(license.expirationDate != 0, "Perpetual license cannot be renewed");
+        require(_additionalDuration > 0, "Duration must be positive");
 
-        // Transfer payment to developer
-        (bool success, ) = repo.developer.call{value: msg.value}("");
-        require(success, "Payment transfer failed");
+        // Cache developer address before state changes
+        address developer = repo.developer;
 
-        // Update expiration
-        if (license.expirationDate == 0) {
-            // Perpetual licenses cannot be renewed
-            revert("Perpetual license cannot be renewed");
-        }
-
+        // EFFECTS - calculate and update expiration before external calls
         uint256 newExpiration;
         if (license.expirationDate < block.timestamp) {
             // Expired - renew from now
@@ -194,6 +203,10 @@ contract RepoLicense is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         }
 
         license.expirationDate = newExpiration;
+
+        // INTERACTIONS - external call last
+        (bool success, ) = developer.call{value: msg.value}("");
+        require(success, "Payment transfer failed");
 
         emit LicenseRenewed(_tokenId, newExpiration);
         emit PaymentReceived(msg.sender, msg.value, _tokenId);

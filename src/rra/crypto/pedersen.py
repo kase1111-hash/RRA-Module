@@ -4,7 +4,8 @@
 """
 Pedersen Commitments for On-Chain Evidence Proofs.
 
-Enables proving existence of evidence without revealing content.
+SECURITY FIX: Now uses proper elliptic curve point multiplication
+instead of modular exponentiation.
 
 Properties:
 - Hiding: Commitment reveals nothing about the value
@@ -19,32 +20,147 @@ Use Cases:
 
 import os
 import hashlib
+import hmac
 from typing import Tuple, Optional, Dict, Any, List
 from dataclasses import dataclass
 from datetime import datetime
 
 from eth_utils import keccak
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
 
 
-# Generator points for Pedersen commitment
-# In production, these would be derived from a trusted setup
-# or use a hash-to-curve function
-# For now, we use deterministic derivation from fixed seeds
-
-def _derive_generator(seed: bytes) -> int:
-    """Derive a generator point from seed (simplified)."""
-    # This is a simplified version - in production use proper
-    # hash-to-curve or trusted setup
-    h = hashlib.sha256(seed).digest()
-    return int.from_bytes(h, 'big')
+# BN254/BN128 curve parameters (used in Ethereum ZK applications)
+# Field prime
+BN254_FIELD_PRIME = 21888242871839275222246405745257275088696311157297823662689037894645226208583
+# Curve order (number of points)
+BN254_CURVE_ORDER = 21888242871839275222246405745257275088548364400416034343698204186575808495617
 
 
-# BN254 curve order (common for Ethereum ZK applications)
-CURVE_ORDER = 21888242871839275222246405745257275088548364400416034343698204186575808495617
+def _hash_to_scalar(data: bytes, domain: bytes = b"") -> int:
+    """
+    Hash data to a scalar in the curve's field.
 
-# Generator points
-G = _derive_generator(b"pedersen-g-v1")
-H = _derive_generator(b"pedersen-h-v1")
+    Uses domain separation to prevent cross-protocol attacks.
+    """
+    # Domain-separated hash
+    h = hashlib.sha256(domain + b":" + data).digest()
+    # Reduce modulo curve order
+    return int.from_bytes(h, 'big') % BN254_CURVE_ORDER
+
+
+def _derive_generator_point(seed: bytes) -> Tuple[int, int]:
+    """
+    Derive a generator point using hash-to-curve.
+
+    This is a simplified version - production should use RFC 9380.
+    Uses try-and-increment method with proper domain separation.
+    """
+    domain = b"pedersen-generator-rra-v1"
+
+    for counter in range(256):
+        # Hash seed with counter
+        attempt = hashlib.sha256(domain + seed + counter.to_bytes(1, 'big')).digest()
+        x = int.from_bytes(attempt, 'big') % BN254_FIELD_PRIME
+
+        # Try to compute y^2 = x^3 + 3 (BN254 curve equation: y^2 = x^3 + 3)
+        y_squared = (pow(x, 3, BN254_FIELD_PRIME) + 3) % BN254_FIELD_PRIME
+
+        # Check if y_squared is a quadratic residue (has square root)
+        # Using Euler's criterion: a^((p-1)/2) = 1 (mod p) if a is QR
+        if pow(y_squared, (BN254_FIELD_PRIME - 1) // 2, BN254_FIELD_PRIME) == 1:
+            # Compute square root using Tonelli-Shanks (simplified for this prime)
+            y = pow(y_squared, (BN254_FIELD_PRIME + 1) // 4, BN254_FIELD_PRIME)
+            # Verify
+            if (y * y) % BN254_FIELD_PRIME == y_squared:
+                return (x, y)
+
+    raise ValueError("Failed to derive generator point")
+
+
+# Generator points derived using nothing-up-my-sleeve construction
+# G is the standard BN254 generator
+G_POINT = (1, 2)  # Standard BN254 G1 generator
+
+# H is derived from a fixed seed - cannot be computed as k*G for known k
+H_POINT = _derive_generator_point(b"pedersen-h-seed-2025")
+
+
+def _point_add(p1: Tuple[int, int], p2: Tuple[int, int]) -> Tuple[int, int]:
+    """Add two points on BN254 curve."""
+    if p1 == (0, 0):
+        return p2
+    if p2 == (0, 0):
+        return p1
+
+    x1, y1 = p1
+    x2, y2 = p2
+
+    if x1 == x2:
+        if y1 == y2:
+            # Point doubling
+            if y1 == 0:
+                return (0, 0)  # Point at infinity
+            # lambda = (3*x1^2) / (2*y1)
+            num = (3 * x1 * x1) % BN254_FIELD_PRIME
+            denom = (2 * y1) % BN254_FIELD_PRIME
+            lam = (num * pow(denom, BN254_FIELD_PRIME - 2, BN254_FIELD_PRIME)) % BN254_FIELD_PRIME
+        else:
+            # P + (-P) = O (point at infinity)
+            return (0, 0)
+    else:
+        # Point addition
+        # lambda = (y2 - y1) / (x2 - x1)
+        num = (y2 - y1) % BN254_FIELD_PRIME
+        denom = (x2 - x1) % BN254_FIELD_PRIME
+        lam = (num * pow(denom, BN254_FIELD_PRIME - 2, BN254_FIELD_PRIME)) % BN254_FIELD_PRIME
+
+    # x3 = lambda^2 - x1 - x2
+    x3 = (lam * lam - x1 - x2) % BN254_FIELD_PRIME
+    # y3 = lambda * (x1 - x3) - y1
+    y3 = (lam * (x1 - x3) - y1) % BN254_FIELD_PRIME
+
+    return (x3, y3)
+
+
+def _scalar_mult(k: int, point: Tuple[int, int]) -> Tuple[int, int]:
+    """Multiply point by scalar using double-and-add."""
+    if k == 0:
+        return (0, 0)
+    if k < 0:
+        k = -k
+        point = (point[0], (-point[1]) % BN254_FIELD_PRIME)
+
+    result = (0, 0)  # Point at infinity
+    addend = point
+
+    while k:
+        if k & 1:
+            result = _point_add(result, addend)
+        addend = _point_add(addend, addend)
+        k >>= 1
+
+    return result
+
+
+def _point_to_bytes(point: Tuple[int, int]) -> bytes:
+    """Serialize EC point to 64 bytes (x || y)."""
+    if point == (0, 0):
+        return b'\x00' * 64
+    x, y = point
+    return x.to_bytes(32, 'big') + y.to_bytes(32, 'big')
+
+
+def _bytes_to_point(data: bytes) -> Tuple[int, int]:
+    """Deserialize EC point from 64 bytes."""
+    if len(data) != 64:
+        raise ValueError("Point must be 64 bytes")
+    if data == b'\x00' * 64:
+        return (0, 0)
+    x = int.from_bytes(data[:32], 'big')
+    y = int.from_bytes(data[32:], 'big')
+    return (x, y)
 
 
 @dataclass
@@ -54,7 +170,7 @@ class CommitmentProof:
 
     Used for on-chain verification without revealing the value.
     """
-    commitment: bytes  # The commitment itself
+    commitment: bytes  # The commitment (64 bytes, EC point)
     blinding_factor_hash: bytes  # Hash of blinding factor for verification
     created_at: datetime
     context_id: str
@@ -88,28 +204,32 @@ class CommitmentProof:
 
 class PedersenCommitment:
     """
-    Pedersen commitment scheme implementation.
+    Pedersen commitment scheme using proper elliptic curve math.
 
-    Commitment: C = g^v * h^r (mod p)
+    SECURITY: Uses EC point multiplication (not modular exponentiation).
+
+    Commitment: C = v*G + r*H
     where:
-    - v is the value being committed
-    - r is a random blinding factor
-    - g, h are generator points
+    - v is the value being committed (scalar)
+    - r is a random blinding factor (scalar)
+    - G, H are generator points on BN254
+    - * denotes scalar multiplication
+    - + denotes point addition
     """
 
     def __init__(
         self,
-        g: int = G,
-        h: int = H,
-        order: int = CURVE_ORDER
+        g: Tuple[int, int] = G_POINT,
+        h: Tuple[int, int] = H_POINT,
+        order: int = BN254_CURVE_ORDER
     ):
         """
         Initialize with generator points.
 
         Args:
-            g: First generator
-            h: Second generator (for blinding)
-            order: Curve/group order
+            g: First generator point
+            h: Second generator point (for blinding)
+            order: Curve order
         """
         self.g = g
         self.h = h
@@ -123,14 +243,16 @@ class PedersenCommitment:
         """
         Create a Pedersen commitment to a value.
 
+        C = v*G + r*H (EC point multiplication and addition)
+
         Args:
             value: Value to commit (max 32 bytes)
             blinding: Optional blinding factor (random if not provided)
 
         Returns:
-            Tuple of (commitment, blinding_factor)
+            Tuple of (commitment_bytes, blinding_factor)
         """
-        # Convert value to integer
+        # Convert value to scalar
         if len(value) > 32:
             raise ValueError("Value must be at most 32 bytes")
         v = int.from_bytes(value.ljust(32, b'\x00'), 'big') % self.order
@@ -140,11 +262,12 @@ class PedersenCommitment:
             blinding = os.urandom(32)
         r = int.from_bytes(blinding, 'big') % self.order
 
-        # Compute commitment: C = g^v * h^r (mod order)
-        # Simplified - in production use proper elliptic curve math
-        c = (pow(self.g, v, self.order) * pow(self.h, r, self.order)) % self.order
+        # Compute commitment: C = v*G + r*H (proper EC math!)
+        vG = _scalar_mult(v, self.g)
+        rH = _scalar_mult(r, self.h)
+        C = _point_add(vG, rH)
 
-        commitment = c.to_bytes(32, 'big')
+        commitment = _point_to_bytes(C)
         return commitment, blinding
 
     def verify(
@@ -157,7 +280,7 @@ class PedersenCommitment:
         Verify a commitment opening.
 
         Args:
-            commitment: The commitment
+            commitment: The commitment (64 bytes)
             value: Claimed value
             blinding: Blinding factor used
 
@@ -166,7 +289,8 @@ class PedersenCommitment:
         """
         try:
             expected_commitment, _ = self.commit(value, blinding)
-            return commitment == expected_commitment
+            # Use constant-time comparison
+            return hmac.compare_digest(commitment, expected_commitment)
         except Exception:
             return False
 
@@ -219,25 +343,28 @@ class PedersenCommitment:
         Returns:
             True if proof is valid
         """
-        # Verify blinding factor matches
-        if keccak(blinding) != proof.blinding_factor_hash:
+        # Verify blinding factor matches (constant-time)
+        expected_blinding_hash = keccak(blinding)
+        if not hmac.compare_digest(expected_blinding_hash, proof.blinding_factor_hash):
             return False
 
         # Verify commitment
         return self.verify(proof.commitment, evidence_hash, blinding)
 
     @staticmethod
-    def hash_evidence(evidence: bytes) -> bytes:
+    def hash_evidence(evidence: bytes, context: str = "evidence") -> bytes:
         """
-        Hash evidence for commitment.
+        Hash evidence for commitment with domain separation.
 
         Args:
             evidence: Raw evidence data
+            context: Domain separator
 
         Returns:
             32-byte hash
         """
-        return keccak(evidence)
+        # Domain-separated hash prevents cross-context collisions
+        return keccak(context.encode() + b":" + evidence)
 
     def aggregate_commitments(
         self,
@@ -246,20 +373,20 @@ class PedersenCommitment:
         """
         Homomorphically aggregate multiple commitments.
 
-        C_agg = C_1 * C_2 * ... * C_n
+        C_agg = C_1 + C_2 + ... + C_n (EC point addition)
 
         Args:
-            commitments: List of commitments to aggregate
+            commitments: List of commitments to aggregate (64 bytes each)
 
         Returns:
-            Aggregated commitment
+            Aggregated commitment (64 bytes)
         """
-        result = 1
+        result = (0, 0)  # Point at infinity
         for c in commitments:
-            c_int = int.from_bytes(c, 'big')
-            result = (result * c_int) % self.order
+            point = _bytes_to_point(c)
+            result = _point_add(result, point)
 
-        return result.to_bytes(32, 'big')
+        return _point_to_bytes(result)
 
 
 class EvidenceCommitmentManager:
@@ -290,7 +417,8 @@ class EvidenceCommitmentManager:
         Returns:
             CommitmentProof for on-chain storage
         """
-        evidence_hash = self.pedersen.hash_evidence(evidence)
+        # Domain-separated hash
+        evidence_hash = self.pedersen.hash_evidence(evidence, f"dispute:{dispute_id}")
 
         proof, blinding = self.pedersen.commit_evidence(
             evidence_hash,
@@ -325,7 +453,7 @@ class EvidenceCommitmentManager:
         if dispute_id not in self._blindings:
             raise ValueError(f"No commitment found for dispute {dispute_id}")
 
-        evidence_hash = self.pedersen.hash_evidence(evidence)
+        evidence_hash = self.pedersen.hash_evidence(evidence, f"dispute:{dispute_id}")
         blinding = self._blindings[dispute_id]
 
         return evidence_hash, blinding
@@ -351,7 +479,7 @@ class EvidenceCommitmentManager:
             return False
 
         proof = self._commitments[dispute_id]
-        evidence_hash = self.pedersen.hash_evidence(evidence)
+        evidence_hash = self.pedersen.hash_evidence(evidence, f"dispute:{dispute_id}")
 
         return self.pedersen.verify_evidence_commitment(
             proof, evidence_hash, blinding
@@ -365,7 +493,7 @@ class EvidenceCommitmentManager:
             dispute_id: Dispute identifier
 
         Returns:
-            32-byte commitment
+            64-byte commitment (EC point)
 
         Raises:
             ValueError: If no commitment exists
@@ -393,8 +521,10 @@ class EvidenceCommitmentManager:
         commitments = []
         blindings = []
 
-        for evidence in evidence_list:
-            evidence_hash = self.pedersen.hash_evidence(evidence)
+        for i, evidence in enumerate(evidence_list):
+            evidence_hash = self.pedersen.hash_evidence(
+                evidence, f"dispute:{dispute_id}:item:{i}"
+            )
             commitment, blinding = self.pedersen.commit(evidence_hash)
             commitments.append(commitment)
             blindings.append(blinding)
