@@ -11,9 +11,10 @@ Provides REST API endpoints for:
 """
 
 from typing import Optional, List
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel, HttpUrl
 
+from rra.api.auth import verify_api_key, optional_api_key
 from rra.services.deep_links import DeepLinkService
 
 
@@ -81,7 +82,10 @@ class RegisterRepoResponse(BaseModel):
 
 # Endpoints
 @router.post("/generate", response_model=LinksResponse)
-async def generate_links(request: GenerateLinksRequest) -> LinksResponse:
+async def generate_links(
+    request: GenerateLinksRequest,
+    _auth: bool = Depends(verify_api_key),
+) -> LinksResponse:
     """
     Generate all deep links for a repository.
 
@@ -93,7 +97,10 @@ async def generate_links(request: GenerateLinksRequest) -> LinksResponse:
 
 
 @router.get("/resolve/{repo_id}", response_model=ResolveResponse)
-async def resolve_repo_id(repo_id: str) -> ResolveResponse:
+async def resolve_repo_id(
+    repo_id: str,
+    _auth: Optional[bool] = Depends(optional_api_key),
+) -> ResolveResponse:
     """
     Resolve a repository ID to its original URL and metadata.
 
@@ -118,7 +125,10 @@ async def resolve_repo_id(repo_id: str) -> ResolveResponse:
 
 
 @router.post("/register", response_model=RegisterRepoResponse)
-async def register_repo(request: RegisterRepoRequest) -> RegisterRepoResponse:
+async def register_repo(
+    request: RegisterRepoRequest,
+    _auth: bool = Depends(verify_api_key),
+) -> RegisterRepoResponse:
     """
     Register a repository for deep linking.
 
@@ -148,7 +158,10 @@ async def register_repo(request: RegisterRepoRequest) -> RegisterRepoResponse:
 
 
 @router.get("/id/{repo_url:path}")
-async def get_repo_id(repo_url: str) -> dict:
+async def get_repo_id(
+    repo_url: str,
+    _auth: Optional[bool] = Depends(optional_api_key),
+) -> dict:
     """
     Get the repository ID for a given URL without registration.
 
@@ -165,7 +178,10 @@ async def get_repo_id(repo_url: str) -> dict:
 
 
 @router.post("/badge", response_model=BadgeResponse)
-async def generate_badge(request: BadgeRequest) -> BadgeResponse:
+async def generate_badge(
+    request: BadgeRequest,
+    _auth: Optional[bool] = Depends(optional_api_key),
+) -> BadgeResponse:
     """
     Generate a README badge for a repository.
 
@@ -194,7 +210,8 @@ async def generate_badge(request: BadgeRequest) -> BadgeResponse:
 @router.get("/qr/{repo_id}", response_model=QRCodeResponse)
 async def get_qr_code(
     repo_id: str,
-    size: int = Query(200, ge=50, le=1000, description="QR code size in pixels")
+    size: int = Query(200, ge=50, le=1000, description="QR code size in pixels"),
+    _auth: Optional[bool] = Depends(optional_api_key),
 ) -> QRCodeResponse:
     """
     Get QR code URLs for a repository.
@@ -227,7 +244,10 @@ async def get_qr_code(
 
 
 @router.get("/embed/{repo_id}")
-async def get_embed_code(repo_id: str) -> dict:
+async def get_embed_code(
+    repo_id: str,
+    _auth: Optional[bool] = Depends(optional_api_key),
+) -> dict:
     """
     Get embeddable widget code for a repository.
 
@@ -269,7 +289,9 @@ async def get_embed_code(repo_id: str) -> dict:
 
 
 @router.get("/stats")
-async def get_link_stats() -> dict:
+async def get_link_stats(
+    _auth: bool = Depends(verify_api_key),
+) -> dict:
     """
     Get statistics about registered deep links.
 

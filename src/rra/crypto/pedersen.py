@@ -211,14 +211,34 @@ def _point_to_bytes(point: Tuple[int, int]) -> bytes:
 
 
 def _bytes_to_point(data: bytes) -> Tuple[int, int]:
-    """Deserialize EC point from 64 bytes."""
+    """
+    Deserialize EC point from 64 bytes with curve validation.
+
+    SECURITY: Validates that the deserialized point lies on the BN254 curve
+    to prevent invalid curve attacks that could enable commitment forgery.
+
+    Args:
+        data: 64 bytes (x || y)
+
+    Returns:
+        (x, y) point on the curve
+
+    Raises:
+        ValueError: If data is not 64 bytes or point is not on curve
+    """
     if len(data) != 64:
         raise ValueError("Point must be 64 bytes")
     if data == b'\x00' * 64:
         return (0, 0)
     x = int.from_bytes(data[:32], 'big')
     y = int.from_bytes(data[32:], 'big')
-    return (x, y)
+    point = (x, y)
+
+    # SECURITY: Validate point is on the curve
+    if not _is_on_curve(point):
+        raise ValueError("Deserialized point is not on the BN254 curve")
+
+    return point
 
 
 @dataclass

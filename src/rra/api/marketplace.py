@@ -15,9 +15,10 @@ from typing import Optional, List, Dict, Any
 from pathlib import Path
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel
 
+from rra.api.auth import verify_api_key, optional_api_key
 from rra.ingestion.knowledge_base import KnowledgeBase
 from rra.config.market_config import MarketConfig
 
@@ -133,6 +134,7 @@ async def list_marketplace_repos(
     sort_by: str = Query("recent", description="Sort by: recent, popular, price_low, price_high"),
     page: int = Query(1, ge=1, description="Page number"),
     per_page: int = Query(20, ge=1, le=100, description="Results per page"),
+    _auth: Optional[bool] = Depends(optional_api_key),
 ) -> SearchResponse:
     """
     List all repositories in the marketplace with optional filtering.
@@ -209,7 +211,9 @@ async def list_marketplace_repos(
 
 
 @router.get("/featured", response_model=List[RepositoryListing])
-async def get_featured_repos() -> List[RepositoryListing]:
+async def get_featured_repos(
+    _auth: Optional[bool] = Depends(optional_api_key),
+) -> List[RepositoryListing]:
     """
     Get featured repositories for the homepage.
 
@@ -235,7 +239,9 @@ async def get_featured_repos() -> List[RepositoryListing]:
 
 
 @router.get("/categories", response_model=List[str])
-async def get_categories() -> List[str]:
+async def get_categories(
+    _auth: Optional[bool] = Depends(optional_api_key),
+) -> List[str]:
     """
     Get available repository categories.
 
@@ -256,7 +262,10 @@ async def get_categories() -> List[str]:
 
 
 @router.get("/agent/{repo_id}/details", response_model=AgentDetailsResponse)
-async def get_agent_details(repo_id: str) -> AgentDetailsResponse:
+async def get_agent_details(
+    repo_id: str,
+    _auth: Optional[bool] = Depends(optional_api_key),
+) -> AgentDetailsResponse:
     """
     Get detailed information about a specific agent/repository.
 
@@ -304,7 +313,10 @@ async def get_agent_details(repo_id: str) -> AgentDetailsResponse:
 
 
 @router.get("/agent/{repo_id}/stats", response_model=AgentStatsResponse)
-async def get_agent_stats(repo_id: str) -> AgentStatsResponse:
+async def get_agent_stats(
+    repo_id: str,
+    _auth: bool = Depends(verify_api_key),
+) -> AgentStatsResponse:
     """
     Get statistics for a specific agent.
 

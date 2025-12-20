@@ -127,6 +127,8 @@ contract ILRMv2 is Ownable, ReentrancyGuard, Pausable {
     mapping(bytes32 => address) public claimAddresses;
     // identityHash => address => balance
     mapping(bytes32 => mapping(address => uint256)) public withdrawableBalances;
+    // Pending payouts for unregistered claim addresses (identityHash => amount)
+    mapping(bytes32 => uint256) public pendingPayouts;
 
     // Mediator registry
     mapping(address => bool) public registeredMediators;
@@ -181,6 +183,11 @@ contract ILRMv2 is Ownable, ReentrancyGuard, Pausable {
     event FundsWithdrawn(
         bytes32 indexed identityHash,
         address indexed recipient,
+        uint256 amount
+    );
+
+    event PayoutPending(
+        bytes32 indexed identityHash,
         uint256 amount
     );
 
@@ -559,16 +566,28 @@ contract ILRMv2 is Ownable, ReentrancyGuard, Pausable {
 
         // Store payouts in withdrawable balances (pull pattern)
         // This is safer than direct transfers as it follows CEI
+        // SECURITY FIX: Handle unregistered claim addresses gracefully
+        // to prevent DoS attacks where one party refuses to register
         if (initiatorPayout > 0) {
             address initiatorClaim = claimAddresses[d.initiatorHash];
-            require(initiatorClaim != address(0), "Initiator claim address not registered");
-            withdrawableBalances[d.initiatorHash][initiatorClaim] += initiatorPayout;
+            if (initiatorClaim != address(0)) {
+                withdrawableBalances[d.initiatorHash][initiatorClaim] += initiatorPayout;
+            } else {
+                // Store in pending payouts until claim address is registered
+                pendingPayouts[d.initiatorHash] += initiatorPayout;
+                emit PayoutPending(d.initiatorHash, initiatorPayout);
+            }
         }
 
         if (counterpartyPayout > 0) {
             address counterpartyClaim = claimAddresses[d.counterpartyHash];
-            require(counterpartyClaim != address(0), "Counterparty claim address not registered");
-            withdrawableBalances[d.counterpartyHash][counterpartyClaim] += counterpartyPayout;
+            if (counterpartyClaim != address(0)) {
+                withdrawableBalances[d.counterpartyHash][counterpartyClaim] += counterpartyPayout;
+            } else {
+                // Store in pending payouts until claim address is registered
+                pendingPayouts[d.counterpartyHash] += counterpartyPayout;
+                emit PayoutPending(d.counterpartyHash, counterpartyPayout);
+            }
         }
 
         emit SettlementProcessed(_disputeId, initiatorPayout, counterpartyPayout);
@@ -597,6 +616,14 @@ contract ILRMv2 is Ownable, ReentrancyGuard, Pausable {
         // Register claim address (can only be set once)
         require(claimAddresses[_identityHash] == address(0), "Claim address already registered");
         claimAddresses[_identityHash] = msg.sender;
+
+        // SECURITY FIX: Claim any pending payouts from settlements that occurred
+        // before the claim address was registered
+        uint256 pending = pendingPayouts[_identityHash];
+        if (pending > 0) {
+            pendingPayouts[_identityHash] = 0;
+            withdrawableBalances[_identityHash][msg.sender] += pending;
+        }
 
         emit ClaimAddressRegistered(_identityHash, msg.sender);
     }

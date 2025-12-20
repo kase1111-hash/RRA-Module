@@ -14,9 +14,11 @@ import secrets
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query, Request, Response
+from fastapi import APIRouter, HTTPException, Query, Request, Response, Depends
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
+
+from rra.api.auth import verify_api_key, optional_api_key
 
 
 router = APIRouter(prefix="/api/widget", tags=["widget"])
@@ -707,6 +709,7 @@ async def widget_message(
 async def get_widget_analytics(
     agent_id: str,
     days: int = Query(default=7, ge=1, le=90),
+    _auth: bool = Depends(verify_api_key),
 ) -> Dict[str, Any]:
     """Get widget analytics for an agent."""
     # Filter analytics for this agent

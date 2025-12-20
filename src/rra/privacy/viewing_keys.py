@@ -103,11 +103,17 @@ class ECIESCipher:
         shared_key = ephemeral_private.exchange(ec.ECDH(), recipient_key)
 
         # Derive encryption key using HKDF
+        # SECURITY FIX: Use ephemeral public key as salt to strengthen key derivation
+        # Without salt, HKDF is weakened against certain attacks
+        ephemeral_pub_bytes = ephemeral_public.public_bytes(
+            encoding=serialization.Encoding.X962,
+            format=serialization.PublicFormat.UncompressedPoint
+        )
         derived_key = HKDF(
             algorithm=hashes.SHA256(),
             length=32,
-            salt=None,
-            info=b"viewing_key_encryption",
+            salt=ephemeral_pub_bytes[:16],  # Use first 16 bytes of ephemeral pubkey as salt
+            info=b"viewing_key_encryption_v2",
             backend=default_backend()
         ).derive(shared_key)
 
@@ -157,11 +163,12 @@ class ECIESCipher:
         shared_key = private_key_obj.exchange(ec.ECDH(), ephemeral_public)
 
         # Derive decryption key using HKDF
+        # SECURITY FIX: Use ephemeral public key as salt (must match encrypt)
         derived_key = HKDF(
             algorithm=hashes.SHA256(),
             length=32,
-            salt=None,
-            info=b"viewing_key_encryption",
+            salt=encrypted.ephemeral_public_key[:16],  # Same salt derivation as encrypt
+            info=b"viewing_key_encryption_v2",
             backend=default_backend()
         ).derive(shared_key)
 
@@ -295,6 +302,9 @@ class ViewingKeyManager:
 
         Returns:
             Dictionary with hex-encoded key components
+
+        WARNING: If include_private=True, the private key is exported in plaintext.
+        For secure export, use export_viewing_key_encrypted() instead.
         """
         result = {
             "public_key": key.public_key.hex(),
@@ -306,6 +316,96 @@ class ViewingKeyManager:
             result["private_key"] = key.private_key.hex()
 
         return result
+
+    def export_viewing_key_encrypted(self, key: ViewingKey, password: bytes) -> Dict[str, str]:
+        """
+        Export viewing key with encrypted private key.
+
+        SECURITY: The private key is encrypted with PBKDF2+AES-GCM.
+        This is the recommended method for exporting viewing keys.
+
+        Args:
+            key: ViewingKey to export
+            password: Password to encrypt the private key with
+
+        Returns:
+            Dictionary with hex-encoded components (private key encrypted)
+        """
+        from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
+        # Generate salt for PBKDF2
+        salt = os.urandom(16)
+
+        # Derive encryption key from password
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=salt,
+            iterations=600000,  # OWASP recommended minimum
+            backend=default_backend()
+        )
+        encryption_key = kdf.derive(password)
+
+        # Encrypt private key with AES-GCM
+        nonce = os.urandom(12)
+        aesgcm = AESGCM(encryption_key)
+        ciphertext = aesgcm.encrypt(nonce, key.private_key, None)
+
+        return {
+            "public_key": key.public_key.hex(),
+            "commitment": key.commitment.hex(),
+            "blinding_factor": key.blinding_factor.hex(),
+            "encrypted_private_key": (salt + nonce + ciphertext).hex(),
+        }
+
+    def import_viewing_key_encrypted(self, data: Dict[str, str], password: bytes) -> ViewingKey:
+        """
+        Import viewing key with encrypted private key.
+
+        Args:
+            data: Output from export_viewing_key_encrypted
+            password: Password used for encryption
+
+        Returns:
+            ViewingKey with decrypted private key
+
+        Raises:
+            ValueError: If decryption fails (wrong password)
+        """
+        from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
+        encrypted_data = bytes.fromhex(data["encrypted_private_key"])
+        if len(encrypted_data) < 28:  # 16 salt + 12 nonce
+            raise ValueError("Invalid encrypted data format")
+
+        # Extract components
+        salt = encrypted_data[:16]
+        nonce = encrypted_data[16:28]
+        ciphertext = encrypted_data[28:]
+
+        # Derive decryption key
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=salt,
+            iterations=600000,
+            backend=default_backend()
+        )
+        decryption_key = kdf.derive(password)
+
+        # Decrypt private key
+        aesgcm = AESGCM(decryption_key)
+        try:
+            private_key = aesgcm.decrypt(nonce, ciphertext, None)
+        except Exception:
+            raise ValueError("Decryption failed - wrong password or corrupted data")
+
+        return ViewingKey(
+            private_key=private_key,
+            public_key=bytes.fromhex(data["public_key"]),
+            commitment=bytes.fromhex(data["commitment"]),
+            blinding_factor=bytes.fromhex(data["blinding_factor"])
+        )
 
     def import_viewing_key(self, data: Dict[str, str]) -> ViewingKey:
         """Import viewing key from exported format."""
