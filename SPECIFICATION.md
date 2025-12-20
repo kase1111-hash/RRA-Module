@@ -2620,16 +2620,17 @@ Implementation:
 
 Phase 6 implements advanced conflict-compression infrastructure, making disagreement economically irrational and resolution cheap. This transforms NatLangChain from a contract negotiation system into a general-purpose coordination layer.
 
-#### 6.1 License Entropy Oracle ⚙️ IN PROGRESS
+#### 6.1 License Entropy Oracle ✅ COMPLETE
 **Priority:** High | **Effort:** 4-5 weeks | **Source:** NatLangChain-roadmap.md (Phase 2)
 
 ```
 Implementation Path:
-├── contracts/LicenseEntropyOracle.sol  # Clause stability scoring (TODO)
-├── src/rra/analytics/entropy_scorer.py # Historical instability analysis ✅
-├── src/rra/analytics/clause_patterns.py # Pattern clustering ✅
-├── src/rra/predictions/dispute_model.py # ML dispute prediction ✅
-└── src/rra/api/entropy.py              # API for upstream contracts ✅
+├── contracts/src/LicenseEntropyOracle.sol     # On-chain oracle ✅
+├── contracts/script/DeployLicenseEntropyOracle.s.sol # Deployment ✅
+├── src/rra/analytics/entropy_scorer.py        # Instability analysis ✅
+├── src/rra/analytics/clause_patterns.py       # Pattern clustering ✅
+├── src/rra/predictions/dispute_model.py       # ML prediction ✅
+└── src/rra/api/entropy.py                     # REST API ✅
 ```
 
 **Implemented Capabilities:**
@@ -2638,8 +2639,9 @@ Implementation Path:
 - ✅ REST API exposed for upstream integration
 - ✅ Pattern analysis and hardening suggestions
 - ✅ Dispute trigger identification
-- ⏳ On-chain oracle contract (TODO)
-- ⏳ LEO Dashboard (separate repo)
+- ✅ On-chain oracle contract (LicenseEntropyOracle.sol)
+- ✅ Deployment scripts with configuration helpers
+- ⏳ LEO Dashboard (separate repo - future)
 
 ---
 
@@ -2855,7 +2857,7 @@ Implementation Path:
 
 | Feature | Priority | Effort | Status |
 |---------|----------|--------|--------|
-| License Entropy Oracle | High | 4-5 weeks | ⚙️ In Progress (Python complete) |
+| License Entropy Oracle | High | 4-5 weeks | ✅ Complete |
 | Counter-Proposal Caps | Medium | 2-3 weeks | ⏳ Planned |
 | DID Integration | High | 4-5 weeks | ⏳ Planned |
 | Multi-Party Reconciliation | Medium | 5-6 weeks | ⏳ Planned |
