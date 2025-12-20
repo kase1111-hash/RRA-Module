@@ -12,11 +12,13 @@ Provides bidirectional communication for:
 
 import json
 import asyncio
+import os
+import hmac
 from typing import Dict, Set, Optional
 from datetime import datetime
 import uuid
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from pydantic import BaseModel
 
 from rra.ingestion.knowledge_base import KnowledgeBase
@@ -95,8 +97,46 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
+def _validate_ws_api_key(api_key: Optional[str]) -> bool:
+    """
+    Validate API key for WebSocket connections.
+
+    Args:
+        api_key: API key from query parameter
+
+    Returns:
+        True if valid, False otherwise
+    """
+    if api_key is None:
+        return False
+
+    # Get valid API keys from environment
+    api_keys_env = os.environ.get("RRA_API_KEYS", "")
+    if not api_keys_env:
+        api_keys_env = os.environ.get("RRA_API_KEY", "")
+
+    if not api_keys_env:
+        # Development mode - accept any non-empty key
+        if os.environ.get("RRA_DEV_MODE", "").lower() == "true":
+            return True
+        return False
+
+    valid_keys = [k.strip() for k in api_keys_env.split(",") if k.strip()]
+
+    # Constant-time comparison
+    for valid_key in valid_keys:
+        if hmac.compare_digest(api_key, valid_key):
+            return True
+
+    return False
+
+
 @router.websocket("/ws/negotiate/{repo_id}")
-async def websocket_negotiate(websocket: WebSocket, repo_id: str):
+async def websocket_negotiate(
+    websocket: WebSocket,
+    repo_id: str,
+    api_key: Optional[str] = Query(None, alias="api_key"),
+):
     """
     WebSocket endpoint for real-time negotiation.
 
@@ -109,7 +149,18 @@ async def websocket_negotiate(websocket: WebSocket, repo_id: str):
     Args:
         websocket: WebSocket connection
         repo_id: Repository ID to negotiate for
+        api_key: API key for authentication (query parameter)
     """
+    # Validate API key before accepting connection
+    if not _validate_ws_api_key(api_key):
+        await websocket.accept()
+        await websocket.send_json(WSMessage(
+            type="error",
+            payload={"message": "Unauthorized: Invalid or missing API key"}
+        ).model_dump())
+        await websocket.close(code=4001)  # Custom close code for auth failure
+        return
+
     session_id = str(uuid.uuid4())
 
     # Try to load knowledge base

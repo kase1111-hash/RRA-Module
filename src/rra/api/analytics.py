@@ -20,9 +20,11 @@ from pathlib import Path
 from collections import defaultdict
 from enum import Enum
 
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Depends
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
+
+from rra.api.auth import verify_api_key
 
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
@@ -236,7 +238,10 @@ def calculate_rate(numerator: int, denominator: int) -> float:
 # =============================================================================
 
 @router.post("/event")
-async def record_analytics_event(event: AnalyticsEvent) -> Dict[str, str]:
+async def record_analytics_event(
+    event: AnalyticsEvent,
+    authenticated: bool = Depends(verify_api_key),
+) -> Dict[str, str]:
     """
     Record an analytics event.
 
@@ -249,6 +254,7 @@ async def record_analytics_event(event: AnalyticsEvent) -> Dict[str, str]:
 @router.get("/overview")
 async def get_analytics_overview(
     time_range: TimeRange = Query(default=TimeRange.WEEK),
+    authenticated: bool = Depends(verify_api_key),
 ) -> Dict[str, Any]:
     """
     Get high-level analytics overview.
@@ -300,6 +306,7 @@ async def get_analytics_overview(
 async def get_agent_analytics(
     agent_id: str,
     time_range: TimeRange = Query(default=TimeRange.WEEK),
+    authenticated: bool = Depends(verify_api_key),
 ) -> AgentMetrics:
     """
     Get detailed analytics for a specific agent.
@@ -363,6 +370,7 @@ async def get_agent_analytics(
 async def get_funnel_analytics(
     agent_id: Optional[str] = None,
     time_range: TimeRange = Query(default=TimeRange.WEEK),
+    authenticated: bool = Depends(verify_api_key),
 ) -> FunnelMetrics:
     """
     Get negotiation funnel analytics.
@@ -409,6 +417,7 @@ async def get_funnel_analytics(
 @router.get("/revenue")
 async def get_revenue_analytics(
     time_range: TimeRange = Query(default=TimeRange.MONTH),
+    authenticated: bool = Depends(verify_api_key),
 ) -> RevenueMetrics:
     """
     Get revenue analytics.
@@ -467,6 +476,7 @@ async def get_timeseries_data(
     agent_id: Optional[str] = None,
     time_range: TimeRange = Query(default=TimeRange.WEEK),
     granularity: str = Query(default="day", pattern="^(hour|day|week)$"),
+    authenticated: bool = Depends(verify_api_key),
 ) -> Dict[str, Any]:
     """
     Get time-series data for a specific metric.
@@ -519,6 +529,7 @@ async def list_agents_with_metrics(
     time_range: TimeRange = Query(default=TimeRange.WEEK),
     sort_by: str = Query(default="revenue", pattern="^(revenue|views|conversions|licenses)$"),
     limit: int = Query(default=20, ge=1, le=100),
+    authenticated: bool = Depends(verify_api_key),
 ) -> Dict[str, Any]:
     """
     List all agents with their metrics.
@@ -585,6 +596,7 @@ async def export_analytics(
     agent_id: Optional[str] = None,
     time_range: TimeRange = Query(default=TimeRange.MONTH),
     format: str = Query(default="json", pattern="^(json|csv)$"),
+    authenticated: bool = Depends(verify_api_key),
 ) -> Dict[str, Any]:
     """
     Export analytics data.

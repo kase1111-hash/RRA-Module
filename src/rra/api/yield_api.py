@@ -14,8 +14,10 @@ import re
 from typing import Optional, List
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel, Field, field_validator
+
+from rra.api.auth import verify_api_key
 
 from rra.defi.yield_tokens import (
     StakingManager,
@@ -184,7 +186,10 @@ class DistributionResponse(BaseModel):
 # =============================================================================
 
 @router.post("/pools", response_model=PoolResponse)
-async def create_pool(request: CreatePoolRequest):
+async def create_pool(
+    request: CreatePoolRequest,
+    authenticated: bool = Depends(verify_api_key),
+):
     """
     Create a new yield pool.
 
@@ -222,7 +227,10 @@ async def create_pool(request: CreatePoolRequest):
 
 
 @router.get("/pools", response_model=List[PoolResponse])
-async def list_pools(active_only: bool = Query(True)):
+async def list_pools(
+    active_only: bool = Query(True),
+    authenticated: bool = Depends(verify_api_key),
+):
     """List all yield pools."""
     pools = staking_manager.list_pools(active_only=active_only)
 
@@ -247,7 +255,10 @@ async def list_pools(active_only: bool = Query(True)):
 
 
 @router.get("/pools/{pool_id}", response_model=PoolResponse)
-async def get_pool(pool_id: str):
+async def get_pool(
+    pool_id: str,
+    authenticated: bool = Depends(verify_api_key),
+):
     """Get details of a specific pool."""
     pool = staking_manager.get_pool(pool_id)
     if not pool:
@@ -271,7 +282,10 @@ async def get_pool(pool_id: str):
 
 
 @router.get("/pools/{pool_id}/stats", response_model=PoolStatsResponse)
-async def get_pool_stats(pool_id: str):
+async def get_pool_stats(
+    pool_id: str,
+    authenticated: bool = Depends(verify_api_key),
+):
     """Get detailed statistics for a pool."""
     try:
         stats = staking_manager.get_pool_stats(pool_id)
@@ -281,7 +295,11 @@ async def get_pool_stats(pool_id: str):
 
 
 @router.post("/pools/{pool_id}/revenue", response_model=PoolResponse)
-async def add_pool_revenue(pool_id: str, request: AddRevenueRequest):
+async def add_pool_revenue(
+    pool_id: str,
+    request: AddRevenueRequest,
+    authenticated: bool = Depends(verify_api_key),
+):
     """
     Add revenue to a pool for distribution.
 
@@ -311,7 +329,10 @@ async def add_pool_revenue(pool_id: str, request: AddRevenueRequest):
 
 
 @router.post("/pools/{pool_id}/distribute", response_model=DistributionResponse)
-async def distribute_pool_revenue(pool_id: str):
+async def distribute_pool_revenue(
+    pool_id: str,
+    authenticated: bool = Depends(verify_api_key),
+):
     """
     Distribute pending revenue to all stakers in the pool.
 
@@ -336,7 +357,10 @@ async def distribute_pool_revenue(pool_id: str):
 # =============================================================================
 
 @router.post("/stake", response_model=StakeResponse)
-async def stake_license(request: StakeLicenseRequest):
+async def stake_license(
+    request: StakeLicenseRequest,
+    authenticated: bool = Depends(verify_api_key),
+):
     """
     Stake a license in a yield pool.
 
@@ -375,7 +399,10 @@ async def stake_license(request: StakeLicenseRequest):
 
 
 @router.delete("/stake/{stake_id}", response_model=StakeResponse)
-async def unstake_license(stake_id: str):
+async def unstake_license(
+    stake_id: str,
+    authenticated: bool = Depends(verify_api_key),
+):
     """
     Unstake a license.
 
@@ -406,7 +433,10 @@ async def unstake_license(stake_id: str):
 
 
 @router.get("/stake/{stake_id}", response_model=StakeResponse)
-async def get_stake(stake_id: str):
+async def get_stake(
+    stake_id: str,
+    authenticated: bool = Depends(verify_api_key),
+):
     """Get details of a specific stake."""
     stake = staking_manager.get_stake(stake_id)
     if not stake:
@@ -431,7 +461,10 @@ async def get_stake(stake_id: str):
 
 
 @router.post("/stake/{stake_id}/claim", response_model=ClaimYieldResponse)
-async def claim_yield(stake_id: str):
+async def claim_yield(
+    stake_id: str,
+    authenticated: bool = Depends(verify_api_key),
+):
     """
     Claim earned yield for a stake.
 
@@ -462,7 +495,10 @@ async def claim_yield(stake_id: str):
 # =============================================================================
 
 @router.get("/staker/{staker_address}", response_model=StakerSummaryResponse)
-async def get_staker_summary(staker_address: str):
+async def get_staker_summary(
+    staker_address: str,
+    authenticated: bool = Depends(verify_api_key),
+):
     """
     Get staking summary for an address.
 
@@ -479,7 +515,8 @@ async def get_staker_summary(staker_address: str):
 @router.get("/staker/{staker_address}/stakes", response_model=List[StakeResponse])
 async def get_staker_stakes(
     staker_address: str,
-    active_only: bool = Query(True)
+    active_only: bool = Query(True),
+    authenticated: bool = Depends(verify_api_key),
 ):
     """Get all stakes for a staker."""
     if not validate_eth_address(staker_address):
@@ -516,7 +553,9 @@ async def get_staker_stakes(
 # =============================================================================
 
 @router.get("/overview")
-async def get_yield_overview():
+async def get_yield_overview(
+    authenticated: bool = Depends(verify_api_key),
+):
     """
     Get overview of the yield-bearing license token system.
 

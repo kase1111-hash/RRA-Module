@@ -32,10 +32,48 @@ from cryptography.hazmat.primitives import serialization
 
 
 # BN254/BN128 curve parameters (used in Ethereum ZK applications)
-# Field prime
+# Field prime p (verified against EIP-196)
 BN254_FIELD_PRIME = 21888242871839275222246405745257275088696311157297823662689037894645226208583
-# Curve order (number of points)
+# Curve order n (number of points, verified against EIP-196)
 BN254_CURVE_ORDER = 21888242871839275222246405745257275088548364400416034343698204186575808495617
+
+# BN254 curve equation: y^2 = x^3 + 3 (mod p)
+BN254_CURVE_B = 3
+
+
+def _is_on_curve(point: tuple) -> bool:
+    """
+    Verify that a point is on the BN254 curve.
+
+    BN254 curve equation: y^2 = x^3 + 3 (mod p)
+
+    Args:
+        point: (x, y) coordinates
+
+    Returns:
+        True if point is on the curve
+    """
+    if point == (0, 0):  # Point at infinity is valid
+        return True
+
+    x, y = point
+    # Verify y^2 = x^3 + 3 (mod p)
+    left = (y * y) % BN254_FIELD_PRIME
+    right = (pow(x, 3, BN254_FIELD_PRIME) + BN254_CURVE_B) % BN254_FIELD_PRIME
+    return left == right
+
+
+def _verify_generator_points() -> None:
+    """
+    Verify that generator points G and H are valid curve points.
+
+    Raises:
+        ValueError: If any generator point is not on the curve
+    """
+    if not _is_on_curve(G_POINT):
+        raise ValueError("G_POINT is not on the BN254 curve")
+    if not _is_on_curve(H_POINT):
+        raise ValueError("H_POINT is not on the BN254 curve")
 
 
 def _hash_to_scalar(data: bytes, domain: bytes = b"") -> int:
@@ -85,6 +123,26 @@ G_POINT = (1, 2)  # Standard BN254 G1 generator
 
 # H is derived from a fixed seed - cannot be computed as k*G for known k
 H_POINT = _derive_generator_point(b"pedersen-h-seed-2025")
+
+
+# Verify generator points at module load time
+def _validate_curve_constants() -> None:
+    """Validate all curve constants at module initialization."""
+    # Verify field prime and curve order match EIP-196
+    expected_p = 21888242871839275222246405745257275088696311157297823662689037894645226208583
+    expected_n = 21888242871839275222246405745257275088548364400416034343698204186575808495617
+
+    if BN254_FIELD_PRIME != expected_p:
+        raise ValueError("BN254_FIELD_PRIME does not match EIP-196")
+    if BN254_CURVE_ORDER != expected_n:
+        raise ValueError("BN254_CURVE_ORDER does not match EIP-196")
+
+    # Verify generator points are on the curve
+    _verify_generator_points()
+
+
+# Run validation at module load
+_validate_curve_constants()
 
 
 def _point_add(p1: Tuple[int, int], p2: Tuple[int, int]) -> Tuple[int, int]:
@@ -266,6 +324,14 @@ class PedersenCommitment:
         vG = _scalar_mult(v, self.g)
         rH = _scalar_mult(r, self.h)
         C = _point_add(vG, rH)
+
+        # SECURITY: Reject point-at-infinity as commitment
+        # Point at infinity reveals that v*G = -(r*H), leaking information
+        if C == (0, 0):
+            raise ValueError(
+                "Commitment resulted in point-at-infinity; "
+                "this leaks information about the value"
+            )
 
         commitment = _point_to_bytes(C)
         return commitment, blinding
