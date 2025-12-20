@@ -14,8 +14,10 @@ import re
 from typing import Optional, List
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Query, BackgroundTasks, Depends
 from pydantic import BaseModel, Field, field_validator
+
+from rra.api.auth import verify_api_key
 
 from rra.integrations.superfluid import (
     SuperfluidManager,
@@ -150,6 +152,7 @@ class FlowRateCalculation(BaseModel):
 async def create_streaming_license(
     request: CreateStreamRequest,
     background_tasks: BackgroundTasks,
+    authenticated: bool = Depends(verify_api_key),
 ) -> CreateStreamResponse:
     """
     Create a new streaming subscription license.
@@ -190,7 +193,10 @@ async def create_streaming_license(
 
 
 @router.post("/activate/{license_id}")
-async def activate_stream(license_id: str) -> dict:
+async def activate_stream(
+    license_id: str,
+    authenticated: bool = Depends(verify_api_key),
+) -> dict:
     """
     Activate a pending streaming license.
 
@@ -218,7 +224,10 @@ async def activate_stream(license_id: str) -> dict:
 
 
 @router.post("/stop/{license_id}")
-async def stop_stream(license_id: str) -> dict:
+async def stop_stream(
+    license_id: str,
+    authenticated: bool = Depends(verify_api_key),
+) -> dict:
     """
     Stop a streaming license.
 
@@ -250,7 +259,10 @@ async def stop_stream(license_id: str) -> dict:
 
 
 @router.get("/status/{license_id}", response_model=StreamStatusResponse)
-async def get_stream_status(license_id: str) -> StreamStatusResponse:
+async def get_stream_status(
+    license_id: str,
+    authenticated: bool = Depends(verify_api_key),
+) -> StreamStatusResponse:
     """
     Get the current status of a streaming license.
 
@@ -271,7 +283,10 @@ async def get_stream_status(license_id: str) -> StreamStatusResponse:
 
 
 @router.get("/access/{license_id}", response_model=AccessCheckResponse)
-async def check_access(license_id: str) -> AccessCheckResponse:
+async def check_access(
+    license_id: str,
+    authenticated: bool = Depends(verify_api_key),
+) -> AccessCheckResponse:
     """
     Check if a license has valid access.
 
@@ -289,6 +304,7 @@ async def check_access(license_id: str) -> AccessCheckResponse:
 async def check_access_by_buyer(
     repo_id: str,
     buyer: str = Query(..., description="Buyer wallet address"),
+    authenticated: bool = Depends(verify_api_key),
 ) -> AccessCheckResponse:
     """
     Check if a buyer has access to a specific repository.
@@ -305,7 +321,10 @@ async def check_access_by_buyer(
 
 
 @router.get("/licenses/buyer/{buyer_address}")
-async def get_buyer_licenses(buyer_address: str) -> dict:
+async def get_buyer_licenses(
+    buyer_address: str,
+    authenticated: bool = Depends(verify_api_key),
+) -> dict:
     """
     Get all streaming licenses for a buyer.
 
@@ -324,7 +343,10 @@ async def get_buyer_licenses(buyer_address: str) -> dict:
 
 
 @router.get("/licenses/repo/{repo_id}")
-async def get_repo_licenses(repo_id: str) -> dict:
+async def get_repo_licenses(
+    repo_id: str,
+    authenticated: bool = Depends(verify_api_key),
+) -> dict:
     """
     Get all streaming licenses for a repository.
 
@@ -343,7 +365,9 @@ async def get_repo_licenses(repo_id: str) -> dict:
 
 
 @router.get("/active")
-async def get_active_licenses() -> dict:
+async def get_active_licenses(
+    authenticated: bool = Depends(verify_api_key),
+) -> dict:
     """
     Get all active streaming licenses.
 
@@ -358,7 +382,9 @@ async def get_active_licenses() -> dict:
 
 
 @router.post("/revoke-expired")
-async def revoke_expired_licenses() -> dict:
+async def revoke_expired_licenses(
+    authenticated: bool = Depends(verify_api_key),
+) -> dict:
     """
     Revoke all licenses that have exceeded their grace period.
 
@@ -379,6 +405,7 @@ async def revoke_expired_licenses() -> dict:
 @router.post("/proposal", response_model=StreamProposalResponse)
 async def generate_stream_proposal(
     request: StreamProposalRequest,
+    authenticated: bool = Depends(verify_api_key),
 ) -> StreamProposalResponse:
     """
     Generate a negotiation proposal for streaming subscription.
@@ -412,6 +439,7 @@ async def generate_stream_proposal(
 async def calculate_flow_rate(
     monthly_usd: float = Query(..., gt=0, description="Monthly price in USD"),
     token: str = Query("USDCx", description="Super token"),
+    authenticated: bool = Depends(verify_api_key),
 ) -> FlowRateCalculation:
     """
     Calculate Superfluid flow rate from monthly price.
@@ -435,7 +463,9 @@ async def calculate_flow_rate(
 
 
 @router.get("/tokens")
-async def get_supported_tokens() -> dict:
+async def get_supported_tokens(
+    authenticated: bool = Depends(verify_api_key),
+) -> dict:
     """
     Get list of supported super tokens on current network.
 
@@ -454,7 +484,9 @@ async def get_supported_tokens() -> dict:
 
 
 @router.get("/stats", response_model=StreamStatsResponse)
-async def get_streaming_stats() -> StreamStatsResponse:
+async def get_streaming_stats(
+    authenticated: bool = Depends(verify_api_key),
+) -> StreamStatsResponse:
     """
     Get streaming payment statistics.
 
@@ -466,7 +498,10 @@ async def get_streaming_stats() -> StreamStatsResponse:
 
 
 @router.get("/summary/{repo_id}")
-async def get_repo_streaming_summary(repo_id: str) -> dict:
+async def get_repo_streaming_summary(
+    repo_id: str,
+    authenticated: bool = Depends(verify_api_key),
+) -> dict:
     """
     Get streaming summary for a repository.
 

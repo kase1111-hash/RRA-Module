@@ -122,6 +122,12 @@ contract ILRMv2 is Ownable, ReentrancyGuard, Pausable {
     // Hardware credential to identity group mapping
     uint256 public hardwareGroupId;
 
+    // Withdrawal state (from ILRM security pattern)
+    // identityHash => claimAddress
+    mapping(bytes32 => address) public claimAddresses;
+    // identityHash => address => balance
+    mapping(bytes32 => mapping(address => uint256)) public withdrawableBalances;
+
     // Mediator registry
     mapping(address => bool) public registeredMediators;
 
@@ -159,6 +165,23 @@ contract ILRMv2 is Ownable, ReentrancyGuard, Pausable {
         uint256 indexed delegationId,
         address indexed agent,
         bytes32 actionHash
+    );
+
+    event SettlementProcessed(
+        uint256 indexed disputeId,
+        uint256 initiatorPayout,
+        uint256 counterpartyPayout
+    );
+
+    event ClaimAddressRegistered(
+        bytes32 indexed identityHash,
+        address indexed claimAddress
+    );
+
+    event FundsWithdrawn(
+        bytes32 indexed identityHash,
+        address indexed recipient,
+        uint256 amount
     );
 
     // =========================================================================
@@ -526,6 +549,7 @@ contract ILRMv2 is Ownable, ReentrancyGuard, Pausable {
     function _processSettlement(uint256 _disputeId, uint8 _initiatorShare) internal {
         Dispute storage d = disputes[_disputeId];
 
+        // EFFECTS: Update state before any potential external calls
         d.phase = DisputePhase.Resolved;
         d.resolution = Resolution.MutualSettlement;
 
@@ -533,7 +557,83 @@ contract ILRMv2 is Ownable, ReentrancyGuard, Pausable {
         uint256 initiatorPayout = (totalStake * _initiatorShare) / 100;
         uint256 counterpartyPayout = totalStake - initiatorPayout;
 
-        // Payout logic would go here
+        // Store payouts in withdrawable balances (pull pattern)
+        // This is safer than direct transfers as it follows CEI
+        if (initiatorPayout > 0) {
+            address initiatorClaim = claimAddresses[d.initiatorHash];
+            require(initiatorClaim != address(0), "Initiator claim address not registered");
+            withdrawableBalances[d.initiatorHash][initiatorClaim] += initiatorPayout;
+        }
+
+        if (counterpartyPayout > 0) {
+            address counterpartyClaim = claimAddresses[d.counterpartyHash];
+            require(counterpartyClaim != address(0), "Counterparty claim address not registered");
+            withdrawableBalances[d.counterpartyHash][counterpartyClaim] += counterpartyPayout;
+        }
+
+        emit SettlementProcessed(_disputeId, initiatorPayout, counterpartyPayout);
+    }
+
+    /**
+     * @notice Register claim address for identity hash
+     * @dev Must be done before settlement to receive funds
+     * @param _identityHash The identity hash to register for
+     * @param _proofA ZK proof point A
+     * @param _proofB ZK proof point B
+     * @param _proofC ZK proof point C
+     * @param _publicSignals Public signals (identity hash)
+     */
+    function registerClaimAddress(
+        bytes32 _identityHash,
+        uint[2] calldata _proofA,
+        uint[2][2] calldata _proofB,
+        uint[2] calldata _proofC,
+        uint[1] calldata _publicSignals
+    ) external whenNotPaused {
+        // Verify the caller controls this identity via ZK proof
+        require(bytes32(_publicSignals[0]) == _identityHash, "Identity mismatch");
+        require(zkVerifier.verifyProof(_proofA, _proofB, _proofC, _publicSignals), "Invalid ZK proof");
+
+        // Register claim address (can only be set once)
+        require(claimAddresses[_identityHash] == address(0), "Claim address already registered");
+        claimAddresses[_identityHash] = msg.sender;
+
+        emit ClaimAddressRegistered(_identityHash, msg.sender);
+    }
+
+    /**
+     * @notice Withdraw funds to registered claim address
+     * @dev Uses pull pattern for safety (CEI)
+     * @param _identityHash The identity hash to withdraw for
+     */
+    function withdraw(bytes32 _identityHash) external nonReentrant whenNotPaused {
+        address claimAddress = claimAddresses[_identityHash];
+        require(claimAddress == msg.sender, "Not authorized to withdraw");
+
+        uint256 amount = withdrawableBalances[_identityHash][msg.sender];
+        require(amount > 0, "No funds to withdraw");
+
+        // EFFECTS: Update state before external call
+        withdrawableBalances[_identityHash][msg.sender] = 0;
+
+        // INTERACTIONS: External call after state update
+        (bool success, ) = msg.sender.call{value: amount}("");
+        require(success, "Withdrawal transfer failed");
+
+        emit FundsWithdrawn(_identityHash, msg.sender, amount);
+    }
+
+    /**
+     * @notice Check withdrawable balance for an identity
+     * @param _identityHash The identity hash
+     * @param _claimAddress The claim address
+     * @return balance The withdrawable balance
+     */
+    function getWithdrawableBalance(
+        bytes32 _identityHash,
+        address _claimAddress
+    ) external view returns (uint256) {
+        return withdrawableBalances[_identityHash][_claimAddress];
     }
 
     // =========================================================================
