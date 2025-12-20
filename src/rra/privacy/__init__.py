@@ -9,6 +9,7 @@ This module provides privacy-preserving primitives for ILRM dispute resolution:
 - Shamir's Secret Sharing for threshold key escrow
 - ZK proof generation helpers
 - Identity hash generation for anonymous participation
+- Batch queue for inference attack prevention
 """
 
 from .viewing_keys import (
@@ -28,6 +29,16 @@ from .identity import (
     generate_identity_secret,
     compute_identity_hash,
 )
+from .batch_queue import (
+    BatchQueueClient,
+    PrivacyEnhancer,
+    QueuedDispute,
+    QueuedProof,
+    BatchConfig,
+    SubmissionStatus,
+    create_batch_client,
+    create_privacy_enhancer,
+)
 
 __all__ = [
     # Viewing Keys
@@ -44,4 +55,13 @@ __all__ = [
     "IdentityManager",
     "generate_identity_secret",
     "compute_identity_hash",
+    # Batch Queue (Inference Attack Prevention)
+    "BatchQueueClient",
+    "PrivacyEnhancer",
+    "QueuedDispute",
+    "QueuedProof",
+    "BatchConfig",
+    "SubmissionStatus",
+    "create_batch_client",
+    "create_privacy_enhancer",
 ]
