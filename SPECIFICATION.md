@@ -29,6 +29,8 @@ This specification has been updated based on a comprehensive review of all proje
 | docs/DEFI-INTEGRATION.md | docs/ | DeFi protocol feasibility analysis |
 | docs/TESTING-RESULTS.md | docs/ | Test coverage and results |
 | docs/SECURITY-AUDIT.md | docs/ | Security audit report (Score: A-) |
+| docs/MONITORING.md | docs/ | Production monitoring and alerting guide |
+| docs/Dispute-Membership-Circuit.md | docs/ | ZK identity proofs and privacy infrastructure |
 | examples/README.md | examples/ | Example code documentation |
 
 ### External Documentation Status
@@ -2470,6 +2472,99 @@ natlangchain.io/user/{username}              # Developer profile
 
 **Completed:** December 2025
 
+### Phase 5: Privacy & Zero-Knowledge Infrastructure (PLANNED) ⏳
+**Timeline:** Q1-Q2 2026
+**Status:** 0% - Specification Complete, Implementation Pending
+
+Phase 5 adds privacy-preserving dispute resolution and selective de-anonymization capabilities as specified in `docs/Dispute-Membership-Circuit.md`. This enables:
+- Anonymous participation in disputes without revealing identity
+- Compliance-ready audit trails with threshold decryption
+- Protection against inference attacks
+
+**Planned Features:**
+
+#### 5.1 ZK Identity Proof Circuit (Circom)
+**Priority:** High | **Effort:** 3-4 weeks | **Dependencies:** Circom, snarkjs
+
+```
+Implementation Path:
+├── circuits/prove_identity.circom    # Poseidon hash identity circuit
+├── contracts/IdentityVerifier.sol    # Auto-generated verifier contract
+├── src/rra/zk/identity_prover.py     # Python ZK proof generation
+└── src/rra/contracts/ilrm.py         # ILRM dispute contract integration
+```
+
+- **Circuit:** ProveIdentity template using Poseidon(1) hash
+- **Public Inputs:** `identityManager` (on-chain hash)
+- **Private Inputs:** `identitySecret` (user's secret salt/key)
+- **Gas Cost:** ~100k on L2 (verifier contract)
+- **Use Case:** Prove dispute initiator/counterparty role without revealing address
+
+#### 5.2 Viewing Key Infrastructure
+**Priority:** High | **Effort:** 4-5 weeks | **Dependencies:** ECIES, Shamir's SS, IPFS/Arweave
+
+```
+Implementation Path:
+├── src/rra/crypto/viewing_keys.py       # ECIES encryption/decryption
+├── src/rra/crypto/shamir.py             # M-of-N secret sharing
+├── contracts/ComplianceEscrow.sol       # Key share escrow contract
+├── src/rra/storage/encrypted_ipfs.py    # Lit Protocol integration
+└── src/rra/integrations/pedersen.py     # Commitment scheme
+```
+
+- **Pedersen Commitments:** On-chain evidence existence proofs
+- **ECIES Encryption:** Per-dispute viewing key generation (secp256k1)
+- **Shamir's Secret Sharing:** M-of-N key escrow (3-of-5: user, DAO, 2 escrows)
+- **Storage:** Encrypted metadata on IPFS/Arweave via Lit Protocol
+- **Struct Addition:** `viewingKeyCommitment` in Dispute struct
+
+#### 5.3 Inference Attack Prevention
+**Priority:** Medium | **Effort:** 2-3 weeks | **Dependencies:** Chainlink Automation
+
+```
+Implementation Path:
+├── contracts/BatchQueue.sol            # Transaction batching queue
+├── src/rra/privacy/batch_submitter.py  # Batch release logic
+├── scripts/dummy_tx_generator.py       # Treasury-funded noop transactions
+└── src/rra/integrations/mixnet.py      # Nym/Hopr integration (optional)
+```
+
+- **Batching:** Buffer submissions, release every X blocks via Chainlink Automation
+- **Dummy Transactions:** Treasury-funded noop calls at random intervals
+- **Mixnet Integration:** Optional Nym/Hopr for tx origin obfuscation
+- **ZK Aggregates:** Prove "X disputes this week" without per-dispute details
+
+#### 5.4 Legal Compliance - Threshold Decryption
+**Priority:** High | **Effort:** 3-4 weeks | **Dependencies:** BLS, FROST, Governance
+
+```
+Implementation Path:
+├── contracts/ComplianceCouncil.sol     # Threshold signature governance
+├── src/rra/crypto/bls_threshold.py     # BLS threshold signatures
+├── src/rra/governance/reveal_voting.py # On-chain governance for reveals
+└── src/rra/compliance/warrant_handler.py # Legal warrant processing
+```
+
+- **Threshold Decryption:** M-of-N BLS/FROST signatures for key reconstruction
+- **Compliance Council:** User rep, protocol governance, independent auditor
+- **Governance Voting:** Transparent on-chain voting for legal reveals
+- **Event Emission:** All reveals logged on-chain for audit trail
+- **Alignment:** BIS "Regulated DeFi" standards compliance
+
+#### Phase 5 Implementation Roadmap
+
+| Week | Milestone | Deliverables |
+|------|-----------|--------------|
+| 1-2 | ZK Circuit Setup | Circom environment, prove_identity.circom, trusted setup |
+| 3-4 | Verifier Integration | IdentityVerifier.sol, snarkjs proof generation, ILRM hooks |
+| 5-6 | Viewing Keys Core | ECIES encryption, Shamir implementation, key generation |
+| 7-8 | Escrow & Storage | ComplianceEscrow.sol, Lit Protocol integration, IPFS storage |
+| 9-10 | Batching & Dummies | BatchQueue.sol, Chainlink Automation, dummy tx generator |
+| 11-12 | Compliance Council | BLS threshold, governance voting, warrant handler |
+| 13-14 | Testing & Audit | E2E tests, security audit, documentation |
+
+**Estimated Completion:** Q2 2026
+
 ---
 
 ## Critical Path Analysis
@@ -2520,13 +2615,14 @@ natlangchain.io/user/{username}              # Developer profile
 
 ### Documentation Review Findings
 
-This specification has been updated based on a comprehensive review of **17 documentation files** across the repository. Key findings:
+This specification has been updated based on a comprehensive review of **19 documentation files** across the repository. Key findings:
 
 1. **Documentation Quality:** All docs are well-structured and consistent
 2. **External Dependencies:** NatLangChain ecosystem repo not available for cross-reference
 3. **Risk Management:** Comprehensive risk mitigation strategies documented (Risk-mitigation.md)
 4. **Long-term Vision:** NatLangChain conflict-compression roadmap through 2030+ (NatLangChain-roadmap.md)
-5. **Feature Status:** All 4 phases complete, Story Protocol needs real contract addresses for production
+5. **Feature Status:** Phases 1-4 complete, Phase 5 (Privacy & ZK) planned
+6. **Privacy Infrastructure:** ZK identity proofs and viewing key infrastructure specified (Dispute-Membership-Circuit.md)
 
 ### Summary of Unimplemented Features
 
@@ -2586,7 +2682,7 @@ The RRA Module has a **solid foundation** (Phase 1 complete) and is **80% throug
 
 ### Timeline Summary
 
-**All Phases Complete:** Platform is production-ready
+**Phases 1-4 Complete:** Platform is production-ready. Phase 5 (Privacy & ZK) planned.
 
 | Phase | Status | Completion |
 |-------|--------|------------|
@@ -2594,6 +2690,7 @@ The RRA Module has a **solid foundation** (Phase 1 complete) and is **80% throug
 | Phase 2: Ecosystem | ✅ 100% | Complete (Story Protocol needs real addresses) |
 | Phase 3: Advanced | ✅ 100% | Complete |
 | Phase 4: Platform | ✅ 100% | Complete |
+| Phase 5: Privacy & ZK | ⏳ 0% | Planned (see Dispute-Membership-Circuit.md) |
 
 ### Recommended Immediate Actions
 

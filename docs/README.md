@@ -34,6 +34,9 @@ Complete documentation for the Revenant Repo Agent Module.
 - **[Risk Mitigation](../Risk-mitigation.md)** - Legal, technical, financial, and operational risk mitigation strategies
 - **[NatLangChain Roadmap](../NatLangChain-roadmap.md)** - Long-term roadmap for conflict-compression infrastructure
 
+#### Privacy & Zero-Knowledge
+- **[Dispute Membership Circuit](Dispute-Membership-Circuit.md)** - ZK identity proofs, viewing keys, and privacy infrastructure for ILRM disputes
+
 ### Examples
 - **[Examples Directory](../examples/README.md)** - Code examples and demonstrations
 
@@ -60,7 +63,8 @@ RRA-Module/
 │   ├── DEFI-INTEGRATION.md     # DeFi integration guide
 │   ├── TESTING-RESULTS.md      # Test results (290 tests)
 │   ├── SECURITY-AUDIT.md       # Security audit report
-│   └── MONITORING.md           # Monitoring and alerting guide
+│   ├── MONITORING.md           # Monitoring and alerting guide
+│   └── Dispute-Membership-Circuit.md  # ZK identity proofs
 │
 └── examples/                   # Example code
     └── README.md              # Examples guide
@@ -99,6 +103,13 @@ RRA-Module/
 - [Cryptographic Practices](SECURITY-AUDIT.md#4-cryptographic-practices--strong)
 - [SSRF Protection](SECURITY-AUDIT.md#6-ssrf-protection--comprehensive)
 - [Rate Limiting](SECURITY-AUDIT.md#7-rate-limiting--implemented)
+
+#### Privacy & Zero-Knowledge Infrastructure
+- [Dispute Membership Circuit](Dispute-Membership-Circuit.md)
+- [ZK Identity Proofs (Circom)](Dispute-Membership-Circuit.md#1-refined-dispute-membership-circuit-circom-implementation)
+- [Viewing Key Infrastructure](Dispute-Membership-Circuit.md#2-viewing-key-infrastructure-selective-de-anonymization)
+- [Inference Attack Prevention](Dispute-Membership-Circuit.md#3-addressing-inference-attack-risks)
+- [Threshold Decryption for Compliance](Dispute-Membership-Circuit.md#4-legal-compliance-threshold-decryption-for-master-key)
 
 #### Ecosystem Integration
 - [NatLangChain Integration](INTEGRATION.md)
