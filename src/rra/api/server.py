@@ -14,14 +14,100 @@ Provides REST API endpoints for:
 
 import re
 import os
-from typing import Optional, Dict, Any
+import secrets
+import hmac
+from typing import Optional, Dict, Any, Callable
 from pathlib import Path
+from datetime import datetime, timedelta
+from functools import wraps
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, Request, Security
+from fastapi.security import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from rra.ingestion.repo_ingester import RepoIngester
+
+
+# =============================================================================
+# API Key Authentication
+# =============================================================================
+
+# API Key header
+API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+# Session configuration
+SESSION_ID_LENGTH = 32  # bytes
+SESSION_EXPIRY_HOURS = 24
+
+
+def get_api_keys() -> set:
+    """
+    Get valid API keys from environment.
+
+    In production, these should come from a secure secrets manager.
+    """
+    keys_env = os.environ.get("RRA_API_KEYS", "")
+    if keys_env:
+        return set(key.strip() for key in keys_env.split(",") if key.strip())
+    return set()
+
+
+def verify_api_key(api_key: str = Security(API_KEY_HEADER)) -> bool:
+    """
+    Verify API key from request header.
+
+    Args:
+        api_key: API key from X-API-Key header
+
+    Returns:
+        True if valid
+
+    Raises:
+        HTTPException: If key is invalid
+    """
+    if not api_key:
+        raise HTTPException(
+            status_code=401,
+            detail="Missing API key",
+            headers={"WWW-Authenticate": "ApiKey"},
+        )
+
+    valid_keys = get_api_keys()
+
+    # Allow bypass in development with specific env var
+    if os.environ.get("RRA_ENV") == "development" and os.environ.get("RRA_DEV_AUTH_BYPASS") == "true":
+        return True
+
+    # If no keys configured in production, require setup
+    if not valid_keys:
+        if os.environ.get("RRA_ENV") == "development":
+            return True  # Allow in development if no keys configured
+        raise HTTPException(
+            status_code=500,
+            detail="API authentication not configured",
+        )
+
+    # Constant-time comparison to prevent timing attacks
+    for valid_key in valid_keys:
+        if hmac.compare_digest(api_key, valid_key):
+            return True
+
+    raise HTTPException(
+        status_code=401,
+        detail="Invalid API key",
+        headers={"WWW-Authenticate": "ApiKey"},
+    )
+
+
+def generate_session_id() -> str:
+    """
+    Generate a cryptographically secure session ID.
+
+    Returns:
+        URL-safe base64 encoded random string
+    """
+    return secrets.token_urlsafe(SESSION_ID_LENGTH)
 
 
 # =============================================================================
@@ -148,8 +234,34 @@ class LicenseVerifyRequest(BaseModel):
     token_id: int
 
 
-# Global state (in production, use proper state management)
-active_agents: Dict[str, NegotiatorAgent] = {}
+# Session storage with expiry tracking
+class SessionData:
+    """Session data with expiry tracking."""
+
+    def __init__(self, agent: NegotiatorAgent):
+        self.agent = agent
+        self.created_at = datetime.utcnow()
+        self.last_activity = datetime.utcnow()
+
+    def is_expired(self) -> bool:
+        """Check if session has expired."""
+        expiry_time = timedelta(hours=SESSION_EXPIRY_HOURS)
+        return datetime.utcnow() - self.last_activity > expiry_time
+
+    def touch(self) -> None:
+        """Update last activity time."""
+        self.last_activity = datetime.utcnow()
+
+
+# Global state (in production, use proper state management with Redis/DB)
+active_sessions: Dict[str, SessionData] = {}
+
+
+def cleanup_expired_sessions() -> None:
+    """Remove expired sessions."""
+    expired = [sid for sid, data in active_sessions.items() if data.is_expired()]
+    for sid in expired:
+        del active_sessions[sid]
 
 
 def create_app() -> FastAPI:
@@ -277,13 +389,16 @@ def create_app() -> FastAPI:
     @app.post("/api/ingest", response_model=IngestResponse)
     async def ingest_repository(
         request: IngestRequest,
-        background_tasks: BackgroundTasks
+        background_tasks: BackgroundTasks,
+        authenticated: bool = Depends(verify_api_key),
     ):
         """
         Ingest a repository and generate knowledge base.
 
         This endpoint clones the repository, parses its contents,
         and creates a knowledge base for agent operations.
+
+        Requires API key authentication.
         """
         try:
             ingester = RepoIngester()
@@ -303,16 +418,24 @@ def create_app() -> FastAPI:
             )
 
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            # Sanitize error message to prevent information disclosure
+            raise HTTPException(status_code=500, detail=sanitize_error_message(e))
 
     @app.post("/api/negotiate/start", response_model=NegotiationResponse)
-    async def start_negotiation(request: NegotiationRequest):
+    async def start_negotiation(
+        request: NegotiationRequest,
+        authenticated: bool = Depends(verify_api_key),
+    ):
         """
         Start a new negotiation session.
 
         Creates a negotiation agent and returns its introduction.
+        Requires API key authentication.
         """
         try:
+            # Cleanup expired sessions periodically
+            cleanup_expired_sessions()
+
             # Security: Validate kb_path to prevent path traversal
             if not validate_kb_path(request.kb_path):
                 raise HTTPException(
@@ -329,9 +452,11 @@ def create_app() -> FastAPI:
             # Start negotiation
             intro = negotiator.start_negotiation()
 
-            # Store agent (in production, use proper session management)
-            session_id = f"session_{len(active_agents)}"
-            active_agents[session_id] = negotiator
+            # Generate cryptographically secure session ID
+            session_id = generate_session_id()
+
+            # Store session with expiry tracking
+            active_sessions[session_id] = SessionData(negotiator)
 
             return NegotiationResponse(
                 message=intro,
@@ -339,13 +464,16 @@ def create_app() -> FastAPI:
                 session_id=session_id
             )
 
+        except HTTPException:
+            raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=sanitize_error_message(e))
 
     @app.post("/api/negotiate/message", response_model=NegotiationResponse)
     async def send_message(
         session_id: str,
-        message: str
+        message: str,
+        authenticated: bool = Depends(verify_api_key),
     ):
         """
         Send a message in an active negotiation.
@@ -356,12 +484,24 @@ def create_app() -> FastAPI:
 
         Returns:
             Response from negotiator
+
+        Requires API key authentication.
         """
-        if session_id not in active_agents:
+        if session_id not in active_sessions:
             raise HTTPException(status_code=404, detail="Session not found")
 
+        session = active_sessions[session_id]
+
+        # Check if session has expired
+        if session.is_expired():
+            del active_sessions[session_id]
+            raise HTTPException(status_code=401, detail="Session expired")
+
         try:
-            negotiator = active_agents[session_id]
+            # Update last activity
+            session.touch()
+
+            negotiator = session.agent
             response = negotiator.respond(message)
 
             return NegotiationResponse(
@@ -370,11 +510,16 @@ def create_app() -> FastAPI:
                 session_id=session_id
             )
 
+        except HTTPException:
+            raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=sanitize_error_message(e))
 
     @app.get("/api/negotiate/summary/{session_id}")
-    async def get_negotiation_summary(session_id: str):
+    async def get_negotiation_summary(
+        session_id: str,
+        authenticated: bool = Depends(verify_api_key),
+    ):
         """
         Get summary of a negotiation session.
 
@@ -383,20 +528,31 @@ def create_app() -> FastAPI:
 
         Returns:
             Summary including history and current state
+
+        Requires API key authentication.
         """
-        if session_id not in active_agents:
+        if session_id not in active_sessions:
             raise HTTPException(status_code=404, detail="Session not found")
 
-        negotiator = active_agents[session_id]
-        return negotiator.get_negotiation_summary()
+        session = active_sessions[session_id]
+        if session.is_expired():
+            del active_sessions[session_id]
+            raise HTTPException(status_code=401, detail="Session expired")
+
+        session.touch()
+        return session.agent.get_negotiation_summary()
 
     @app.get("/api/repositories")
-    async def list_repositories():
+    async def list_repositories(
+        authenticated: bool = Depends(verify_api_key),
+    ):
         """
         List all ingested repositories.
 
         Returns:
             List of knowledge bases
+
+        Requires API key authentication.
         """
         kb_dir = Path("agent_knowledge_bases")
 
@@ -414,13 +570,17 @@ def create_app() -> FastAPI:
                     "languages": kb.statistics.get("languages", []),
                     "files": kb.statistics.get("code_files", 0),
                 })
-            except:
-                pass
+            except Exception:
+                # Silently skip corrupted knowledge bases
+                continue
 
         return {"repositories": repositories}
 
     @app.get("/api/repository/{repo_name}")
-    async def get_repository_info(repo_name: str):
+    async def get_repository_info(
+        repo_name: str,
+        authenticated: bool = Depends(verify_api_key),
+    ):
         """
         Get detailed information about a repository.
 
@@ -429,7 +589,13 @@ def create_app() -> FastAPI:
 
         Returns:
             Repository details and configuration
+
+        Requires API key authentication.
         """
+        # Validate repo_name to prevent path traversal
+        if not validate_repo_name(repo_name):
+            raise HTTPException(status_code=400, detail="Invalid repository name")
+
         kb_dir = Path("agent_knowledge_bases")
         kb_file = kb_dir / f"{repo_name}_kb.json"
 
@@ -447,11 +613,16 @@ def create_app() -> FastAPI:
                 "market_config": kb.market_config.model_dump() if kb.market_config else None,
             }
 
+        except HTTPException:
+            raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=sanitize_error_message(e))
 
     @app.post("/api/verify")
-    async def verify_license(request: LicenseVerifyRequest):
+    async def verify_license(
+        request: LicenseVerifyRequest,
+        authenticated: bool = Depends(verify_api_key),
+    ):
         """
         Verify a license token.
 
@@ -460,7 +631,13 @@ def create_app() -> FastAPI:
 
         Returns:
             Verification result
+
+        Requires API key authentication.
         """
+        # Validate token ID
+        if request.token_id < 0:
+            raise HTTPException(status_code=400, detail="Invalid token ID")
+
         # In production, would check blockchain
         # For now, return placeholder
         return {

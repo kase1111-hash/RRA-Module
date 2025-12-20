@@ -57,6 +57,9 @@ contract WebAuthnVerifier is P256Verifier {
     // State Variables
     // =========================================================================
 
+    // Contract owner for admin functions
+    address public owner;
+
     // Credential storage: credentialIdHash => credential
     mapping(bytes32 => WebAuthnCredential) public credentials;
 
@@ -99,6 +102,30 @@ contract WebAuthnVerifier is P256Verifier {
         uint256 expiresAt
     );
 
+    event OwnershipTransferred(
+        address indexed previousOwner,
+        address indexed newOwner
+    );
+
+    event RpIdHashUpdated(
+        bytes32 indexed oldHash,
+        bytes32 indexed newHash
+    );
+
+    event ChallengeValidityUpdated(
+        uint256 oldPeriod,
+        uint256 newPeriod
+    );
+
+    // =========================================================================
+    // Modifiers
+    // =========================================================================
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "WebAuthnVerifier: caller is not the owner");
+        _;
+    }
+
     // =========================================================================
     // Constructor
     // =========================================================================
@@ -107,7 +134,10 @@ contract WebAuthnVerifier is P256Verifier {
      * @param _rpIdHash SHA-256 hash of the Relying Party ID (domain)
      */
     constructor(bytes32 _rpIdHash) {
+        require(_rpIdHash != bytes32(0), "WebAuthnVerifier: invalid RP ID hash");
         rpIdHash = _rpIdHash;
+        owner = msg.sender;
+        emit OwnershipTransferred(address(0), msg.sender);
     }
 
     // =========================================================================
@@ -365,14 +395,45 @@ contract WebAuthnVerifier is P256Verifier {
     // Admin Functions
     // =========================================================================
 
-    function updateRpIdHash(bytes32 _newRpIdHash) external {
-        // In production, add access control
+    /**
+     * @notice Update the Relying Party ID hash
+     * @param _newRpIdHash New RP ID hash
+     */
+    function updateRpIdHash(bytes32 _newRpIdHash) external onlyOwner {
+        require(_newRpIdHash != bytes32(0), "WebAuthnVerifier: invalid RP ID hash");
+        bytes32 oldHash = rpIdHash;
         rpIdHash = _newRpIdHash;
+        emit RpIdHashUpdated(oldHash, _newRpIdHash);
     }
 
-    function updateChallengeValidity(uint256 _newPeriod) external {
-        // In production, add access control
-        require(_newPeriod >= 1 minutes && _newPeriod <= 30 minutes, "Invalid period");
+    /**
+     * @notice Update the challenge validity period
+     * @param _newPeriod New validity period in seconds
+     */
+    function updateChallengeValidity(uint256 _newPeriod) external onlyOwner {
+        require(_newPeriod >= 1 minutes && _newPeriod <= 30 minutes, "WebAuthnVerifier: invalid period");
+        uint256 oldPeriod = challengeValidityPeriod;
         challengeValidityPeriod = _newPeriod;
+        emit ChallengeValidityUpdated(oldPeriod, _newPeriod);
+    }
+
+    /**
+     * @notice Transfer ownership to a new address
+     * @param _newOwner New owner address
+     */
+    function transferOwnership(address _newOwner) external onlyOwner {
+        require(_newOwner != address(0), "WebAuthnVerifier: new owner is the zero address");
+        address oldOwner = owner;
+        owner = _newOwner;
+        emit OwnershipTransferred(oldOwner, _newOwner);
+    }
+
+    /**
+     * @notice Renounce ownership (irreversible)
+     */
+    function renounceOwnership() external onlyOwner {
+        address oldOwner = owner;
+        owner = address(0);
+        emit OwnershipTransferred(oldOwner, address(0));
     }
 }

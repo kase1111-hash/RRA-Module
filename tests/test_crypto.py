@@ -370,7 +370,7 @@ class TestPedersenCommitment:
 
         commitment, blinding = pedersen.commit(value)
 
-        assert len(commitment) == 32
+        assert len(commitment) == 64  # EC point (x || y)
         assert len(blinding) == 32
         assert pedersen.verify(commitment, value, blinding)
 
@@ -433,7 +433,7 @@ class TestPedersenCommitment:
         c3, _ = pedersen.commit(b"value3")
 
         aggregated = pedersen.aggregate_commitments([c1, c2, c3])
-        assert len(aggregated) == 32
+        assert len(aggregated) == 64  # EC point (x || y)
 
 
 class TestEvidenceCommitmentManager:
@@ -464,7 +464,7 @@ class TestEvidenceCommitmentManager:
 
         aggregated, blindings = manager.batch_commit("dispute-1", evidence_list)
 
-        assert len(aggregated) == 32
+        assert len(aggregated) == 64  # EC point (x || y)
         assert len(blindings) == 3
 
 
@@ -517,7 +517,7 @@ class TestCryptoIntegration:
 
         # The commitment can be stored on-chain
         on_chain_commitment = commit_manager.get_commitment_for_chain("d-1")
-        assert len(on_chain_commitment) == 32
+        assert len(on_chain_commitment) == 64  # EC point (x || y)
 
         # Later, reveal and verify
         _, blinding = commit_manager.reveal_evidence("d-1", evidence)

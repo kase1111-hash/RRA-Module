@@ -94,6 +94,16 @@ contract ILRM is Ownable, ReentrancyGuard, Pausable {
     mapping(address => bool) public registeredMediators;
     mapping(address => uint256) public mediatorReputation;
 
+    // Withdrawal balances: identityHash => claimAddress => withdrawable amount
+    // Allows verified parties to claim funds to a specified address
+    mapping(bytes32 => mapping(address => uint256)) public withdrawableBalances;
+
+    // Identity hash to verified claim address (set when first withdrawal initiated)
+    mapping(bytes32 => address) public claimAddresses;
+
+    // Total pending withdrawals (for accounting)
+    uint256 public totalPendingWithdrawals;
+
     // Configuration
     uint256 public minStake = 0.01 ether;
     uint256 public negotiationPeriod = 7 days;
@@ -144,6 +154,23 @@ contract ILRM is Ownable, ReentrancyGuard, Pausable {
     event ViewingKeyCommitted(
         uint256 indexed disputeId,
         bytes32 keyCommitment
+    );
+
+    event FundsAllocated(
+        uint256 indexed disputeId,
+        bytes32 indexed identityHash,
+        uint256 amount
+    );
+
+    event FundsWithdrawn(
+        bytes32 indexed identityHash,
+        address indexed recipient,
+        uint256 amount
+    );
+
+    event ClaimAddressSet(
+        bytes32 indexed identityHash,
+        address indexed claimAddress
     );
 
     // =========================================================================
@@ -240,7 +267,7 @@ contract ILRM is Ownable, ReentrancyGuard, Pausable {
      * @param _proofA Groth16 proof component A
      * @param _proofB Groth16 proof component B
      * @param _proofC Groth16 proof component C
-     * @param _publicSignals Public signals [identityManager]
+     * @param _publicSignals Public signals [identityHash]
      */
     function submitIdentityProof(
         uint256 _disputeId,
@@ -250,26 +277,43 @@ contract ILRM is Ownable, ReentrancyGuard, Pausable {
         uint[1] calldata _publicSignals
     ) external whenNotPaused {
         Dispute storage d = disputes[_disputeId];
-        require(d.phase != DisputePhase.Resolved && d.phase != DisputePhase.Dismissed, "Dispute closed");
 
-        // Verify the ZK proof
+        // --- PUBLIC INPUT VALIDATION FIRST (cheap checks before expensive ZK verification) ---
+
+        // 1. Validate dispute state
+        require(d.phase != DisputePhase.Resolved && d.phase != DisputePhase.Dismissed, "Dispute closed");
+        require(d.id == _disputeId, "Invalid dispute ID"); // Ensure dispute exists
+
+        // 2. Extract and validate the identity hash from public signals
+        bytes32 claimedHash = bytes32(_publicSignals[0]);
+        require(claimedHash != bytes32(0), "Invalid identity hash");
+
+        // 3. Check that the claimed identity hash matches one of the dispute parties
+        //    This prevents wasting gas on proofs for unrelated identities
+        bool isInitiator = (claimedHash == d.initiatorHash);
+        bool isCounterparty = (claimedHash == d.counterpartyHash);
+        require(isInitiator || isCounterparty, "Identity not party to dispute");
+
+        // 4. Check party hasn't already verified
+        if (isInitiator) {
+            require(!d.initiatorVerified, "Initiator already verified");
+        } else {
+            require(!d.counterpartyVerified, "Counterparty already verified");
+        }
+
+        // --- NOW PERFORM EXPENSIVE ZK VERIFICATION ---
+        // Only called after all cheap validations pass
         require(verifier.verifyProof(_proofA, _proofB, _proofC, _publicSignals), "Invalid ZK proof");
 
-        bytes32 provenHash = bytes32(_publicSignals[0]);
-
-        // Check if proof matches initiator or counterparty
-        if (provenHash == d.initiatorHash) {
-            require(!d.initiatorVerified, "Already verified");
+        // --- UPDATE STATE ---
+        if (isInitiator) {
             d.initiatorVerified = true;
-            verifiedParties[provenHash][_disputeId] = true;
-            emit IdentityProofSubmitted(_disputeId, provenHash, true);
-        } else if (provenHash == d.counterpartyHash) {
-            require(!d.counterpartyVerified, "Already verified");
-            d.counterpartyVerified = true;
-            verifiedParties[provenHash][_disputeId] = true;
-            emit IdentityProofSubmitted(_disputeId, provenHash, false);
+            verifiedParties[claimedHash][_disputeId] = true;
+            emit IdentityProofSubmitted(_disputeId, claimedHash, true);
         } else {
-            revert("Hash does not match dispute parties");
+            d.counterpartyVerified = true;
+            verifiedParties[claimedHash][_disputeId] = true;
+            emit IdentityProofSubmitted(_disputeId, claimedHash, false);
         }
 
         d.lastActionAt = block.timestamp;
@@ -326,14 +370,8 @@ contract ILRM is Ownable, ReentrancyGuard, Pausable {
         d.phase = DisputePhase.Resolved;
         d.resolution = Resolution.MutualSettlement;
 
-        uint256 totalStake = d.stakeAmount + d.counterpartyStake;
-        uint256 initiatorPayout = (totalStake * _initiatorShare) / 100;
-        uint256 counterpartyPayout = totalStake - initiatorPayout;
-
-        // Note: Actual payout would require verified addresses or withdrawal pattern
-        // For privacy, we emit events and use off-chain claiming
-
-        emit DisputeResolved(_disputeId, Resolution.MutualSettlement, initiatorPayout, counterpartyPayout);
+        // Distribute funds using pull pattern
+        _distributeSettlement(_disputeId, _initiatorShare);
     }
 
     // =========================================================================
@@ -378,11 +416,8 @@ contract ILRM is Ownable, ReentrancyGuard, Pausable {
         d.phase = DisputePhase.Resolved;
         d.resolution = _resolution;
 
-        uint256 totalStake = d.stakeAmount + d.counterpartyStake;
-        uint256 initiatorPayout = (totalStake * _initiatorShare) / 100;
-        uint256 counterpartyPayout = totalStake - initiatorPayout;
-
-        emit DisputeResolved(_disputeId, _resolution, initiatorPayout, counterpartyPayout);
+        // Distribute funds using pull pattern
+        _distributeSettlement(_disputeId, _initiatorShare);
     }
 
     // =========================================================================
@@ -426,7 +461,9 @@ contract ILRM is Ownable, ReentrancyGuard, Pausable {
         uint256 refund = d.stakeAmount;
         d.stakeAmount = 0;
 
-        // Refund via withdrawal pattern would be implemented here
+        // Allocate funds to initiator for withdrawal
+        _allocateFunds(_disputeId, d.initiatorHash, refund);
+
         emit DisputeResolved(_disputeId, Resolution.Dismissed, refund, 0);
     }
 
@@ -435,6 +472,178 @@ contract ILRM is Ownable, ReentrancyGuard, Pausable {
         uint256 totalStake = d.stakeAmount + d.counterpartyStake;
         uint256 halfStake = totalStake / 2;
 
+        // Reset stakes to prevent double-spending
+        d.stakeAmount = 0;
+        d.counterpartyStake = 0;
+
+        // Allocate funds to both parties
+        _allocateFunds(_disputeId, d.initiatorHash, halfStake);
+        _allocateFunds(_disputeId, d.counterpartyHash, totalStake - halfStake);
+
         emit DisputeResolved(_disputeId, Resolution.MutualSettlement, halfStake, totalStake - halfStake);
+    }
+
+    /**
+     * @notice Internal function to allocate funds to an identity hash
+     * @param _disputeId The dispute ID
+     * @param _identityHash The identity hash to allocate funds to
+     * @param _amount Amount to allocate
+     */
+    function _allocateFunds(
+        uint256 _disputeId,
+        bytes32 _identityHash,
+        uint256 _amount
+    ) internal {
+        if (_amount == 0) return;
+
+        address claimAddr = claimAddresses[_identityHash];
+        if (claimAddr == address(0)) {
+            // No claim address set yet - use a placeholder that will be set on claim
+            claimAddr = address(this);
+        }
+
+        withdrawableBalances[_identityHash][claimAddr] += _amount;
+        totalPendingWithdrawals += _amount;
+
+        emit FundsAllocated(_disputeId, _identityHash, _amount);
+    }
+
+    /**
+     * @notice Distribute settlement funds based on share
+     * @param _disputeId The dispute ID
+     * @param _initiatorShare Percentage to initiator (0-100)
+     */
+    function _distributeSettlement(
+        uint256 _disputeId,
+        uint8 _initiatorShare
+    ) internal {
+        Dispute storage d = disputes[_disputeId];
+        uint256 totalStake = d.stakeAmount + d.counterpartyStake;
+        uint256 initiatorPayout = (totalStake * _initiatorShare) / 100;
+        uint256 counterpartyPayout = totalStake - initiatorPayout;
+
+        // Reset stakes to prevent double-spending
+        d.stakeAmount = 0;
+        d.counterpartyStake = 0;
+
+        // Allocate funds
+        _allocateFunds(_disputeId, d.initiatorHash, initiatorPayout);
+        _allocateFunds(_disputeId, d.counterpartyHash, counterpartyPayout);
+
+        emit DisputeResolved(_disputeId, d.resolution, initiatorPayout, counterpartyPayout);
+    }
+
+    // =========================================================================
+    // Withdrawal Functions
+    // =========================================================================
+
+    /**
+     * @notice Set claim address for an identity hash (requires ZK proof verification)
+     * @dev Must have verified identity in at least one dispute
+     * @param _identityHash The identity hash
+     * @param _claimAddress The address to receive withdrawals
+     * @param _disputeId A dispute where this identity is verified
+     * @param _proofA Groth16 proof component A
+     * @param _proofB Groth16 proof component B
+     * @param _proofC Groth16 proof component C
+     * @param _publicSignals Public signals containing identity hash
+     */
+    function setClaimAddress(
+        bytes32 _identityHash,
+        address _claimAddress,
+        uint256 _disputeId,
+        uint[2] calldata _proofA,
+        uint[2][2] calldata _proofB,
+        uint[2] calldata _proofC,
+        uint[1] calldata _publicSignals
+    ) external nonReentrant whenNotPaused {
+        require(_claimAddress != address(0), "Invalid claim address");
+        require(claimAddresses[_identityHash] == address(0), "Claim address already set");
+
+        // Verify ZK proof matches the identity hash
+        require(verifier.verifyProof(_proofA, _proofB, _proofC, _publicSignals), "Invalid ZK proof");
+        require(bytes32(_publicSignals[0]) == _identityHash, "Proof does not match identity");
+
+        // Verify this identity is verified in the specified dispute
+        require(verifiedParties[_identityHash][_disputeId], "Identity not verified in dispute");
+
+        // Set claim address
+        claimAddresses[_identityHash] = _claimAddress;
+
+        // Transfer any funds held at contract address to new claim address
+        uint256 pendingAmount = withdrawableBalances[_identityHash][address(this)];
+        if (pendingAmount > 0) {
+            withdrawableBalances[_identityHash][address(this)] = 0;
+            withdrawableBalances[_identityHash][_claimAddress] = pendingAmount;
+        }
+
+        emit ClaimAddressSet(_identityHash, _claimAddress);
+    }
+
+    /**
+     * @notice Withdraw funds allocated to an identity hash
+     * @param _identityHash The identity hash
+     */
+    function withdraw(bytes32 _identityHash) external nonReentrant whenNotPaused {
+        address claimAddr = claimAddresses[_identityHash];
+        require(claimAddr != address(0), "Claim address not set");
+        require(claimAddr == msg.sender, "Not authorized");
+
+        uint256 amount = withdrawableBalances[_identityHash][msg.sender];
+        require(amount > 0, "No funds to withdraw");
+
+        // Update state before transfer (CEI pattern)
+        withdrawableBalances[_identityHash][msg.sender] = 0;
+        totalPendingWithdrawals -= amount;
+
+        // Transfer funds
+        (bool success, ) = msg.sender.call{value: amount}("");
+        require(success, "Transfer failed");
+
+        emit FundsWithdrawn(_identityHash, msg.sender, amount);
+    }
+
+    /**
+     * @notice Get withdrawable balance for an identity hash
+     * @param _identityHash The identity hash
+     * @return amount The withdrawable amount
+     */
+    function getWithdrawableBalance(bytes32 _identityHash) external view returns (uint256) {
+        address claimAddr = claimAddresses[_identityHash];
+        if (claimAddr == address(0)) {
+            // Check if there are funds waiting for claim address to be set
+            return withdrawableBalances[_identityHash][address(this)];
+        }
+        return withdrawableBalances[_identityHash][claimAddr];
+    }
+
+    /**
+     * @notice Emergency withdrawal by owner (only for stuck funds after long timeout)
+     * @dev Can only withdraw funds that have been unclaimed for over 365 days
+     * @param _disputeId The dispute with unclaimed funds
+     */
+    function emergencyWithdraw(uint256 _disputeId) external onlyOwner nonReentrant {
+        Dispute storage d = disputes[_disputeId];
+        require(d.phase == DisputePhase.Resolved || d.phase == DisputePhase.Dismissed, "Dispute not closed");
+        require(block.timestamp > d.lastActionAt + 365 days, "Funds not yet claimable by owner");
+
+        // Only allow withdrawal of actually stuck funds
+        uint256 initiatorBalance = withdrawableBalances[d.initiatorHash][address(this)];
+        uint256 counterpartyBalance = withdrawableBalances[d.counterpartyHash][address(this)];
+
+        if (initiatorBalance > 0) {
+            withdrawableBalances[d.initiatorHash][address(this)] = 0;
+            totalPendingWithdrawals -= initiatorBalance;
+        }
+        if (counterpartyBalance > 0) {
+            withdrawableBalances[d.counterpartyHash][address(this)] = 0;
+            totalPendingWithdrawals -= counterpartyBalance;
+        }
+
+        uint256 total = initiatorBalance + counterpartyBalance;
+        require(total > 0, "No stuck funds");
+
+        (bool success, ) = owner().call{value: total}("");
+        require(success, "Transfer failed");
     }
 }
