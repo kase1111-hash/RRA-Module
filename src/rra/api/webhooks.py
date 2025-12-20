@@ -48,6 +48,73 @@ MAX_PAYLOAD_SIZE = 1 * 1024 * 1024  # 1MB max payload size
 nonce_tracker = NonceTracker()
 
 
+# =============================================================================
+# SECURITY FIX MED-012-014: Authentication Helpers
+# =============================================================================
+
+def _generate_owner_api_key() -> str:
+    """Generate a cryptographically secure owner API key."""
+    import secrets
+    return f"rra_owner_{secrets.token_urlsafe(32)}"
+
+
+def _generate_session_token() -> str:
+    """Generate a cryptographically secure session access token."""
+    import secrets
+    return f"rra_session_{secrets.token_urlsafe(32)}"
+
+
+def _verify_owner_api_key(agent_id: str, provided_key: str) -> bool:
+    """
+    Verify owner API key for credential management.
+
+    SECURITY FIX MED-012: Requires owner authentication for credential endpoints.
+
+    Args:
+        agent_id: The agent/repo ID
+        provided_key: API key from X-Owner-API-Key header
+
+    Returns:
+        True if key is valid for this agent
+    """
+    import hmac
+    # Get the full credentials including owner key (internal only)
+    creds = webhook_security._credentials.get(agent_id)
+    if not creds:
+        return False
+
+    expected_key = creds.get("owner_api_key", "")
+    if not expected_key or not provided_key:
+        return False
+
+    return hmac.compare_digest(expected_key, provided_key)
+
+
+def _verify_session_token(session_id: str, provided_token: str) -> bool:
+    """
+    Verify session access token.
+
+    SECURITY FIX MED-013: Requires session token for session access.
+
+    Args:
+        session_id: The session ID
+        provided_token: Token from X-Session-Token header
+
+    Returns:
+        True if token is valid for this session
+    """
+    import hmac
+    session = _webhook_sessions.get(session_id)
+    if not session:
+        return False
+
+    expected_token = session.get("session_token", "")
+    if not expected_token or not provided_token:
+        return False
+
+    return hmac.compare_digest(expected_token, provided_token)
+
+
 router = APIRouter(prefix="/webhook", tags=["webhooks"])
 
 # Session storage (in production, use Redis or database)
@@ -72,6 +139,7 @@ class WebhookTriggerResponse(BaseModel):
     """Response from webhook trigger."""
     status: str
     session_id: str
+    session_token: str  # SECURITY FIX MED-013: Token required for session access
     chat_url: str
     message: Optional[str] = None
 
@@ -87,6 +155,7 @@ class WebhookCredentialsResponse(BaseModel):
     agent_id: str
     webhook_url: str
     secret_key: str
+    owner_api_key: str  # SECURITY FIX MED-012: Required for credential management
     rate_limit: str
     created_at: str
 
@@ -368,10 +437,14 @@ async def webhook_trigger(
     session_id = generate_session_id()
     link_service = DeepLinkService()
 
+    # SECURITY FIX MED-013: Generate session token for authentication
+    session_token = _generate_session_token()
+
     # Store session info
     _webhook_sessions[session_id] = {
         "agent_id": agent_id,
         "status": "initializing",
+        "session_token": session_token,  # SECURITY: Required for session access
         "created_at": datetime.utcnow().isoformat(),
         "last_activity": datetime.utcnow().isoformat(),
         "buyer_email": payload.email,
@@ -391,18 +464,25 @@ async def webhook_trigger(
     return WebhookTriggerResponse(
         status="processing",
         session_id=session_id,
+        session_token=session_token,  # SECURITY FIX MED-013: Token required for session access
         chat_url=f"{link_service.base_url}/session/{session_id}",
         message="Negotiation session initiated. Use the chat_url to continue the conversation.",
     )
 
 
 @router.get("/session/{session_id}", response_model=SessionStatusResponse)
-async def get_session_status(session_id: str) -> SessionStatusResponse:
+async def get_session_status(
+    session_id: str,
+    x_session_token: Optional[str] = Header(None),
+) -> SessionStatusResponse:
     """
     Get the status of a webhook session.
 
+    SECURITY FIX MED-013: Requires session token authentication.
+
     Args:
         session_id: The session ID from webhook_trigger
+        x_session_token: Session token from X-Session-Token header
 
     Returns:
         Session status and metadata
@@ -410,6 +490,10 @@ async def get_session_status(session_id: str) -> SessionStatusResponse:
     session = _webhook_sessions.get(session_id)
     if not session:
         raise HTTPException(404, "Session not found")
+
+    # SECURITY FIX MED-013: Verify session token
+    if not x_session_token or not _verify_session_token(session_id, x_session_token):
+        raise HTTPException(401, "Invalid or missing session token")
 
     messages = _session_messages.get(session_id, [])
 
@@ -425,18 +509,28 @@ async def get_session_status(session_id: str) -> SessionStatusResponse:
 
 
 @router.get("/session/{session_id}/messages")
-async def get_session_messages(session_id: str) -> dict:
+async def get_session_messages(
+    session_id: str,
+    x_session_token: Optional[str] = Header(None),
+) -> dict:
     """
     Get all messages from a webhook session.
 
+    SECURITY FIX MED-013: Requires session token authentication.
+
     Args:
         session_id: The session ID
+        x_session_token: Session token from X-Session-Token header
 
     Returns:
         List of messages in the session
     """
     if session_id not in _webhook_sessions:
         raise HTTPException(404, "Session not found")
+
+    # SECURITY FIX MED-013: Verify session token
+    if not x_session_token or not _verify_session_token(session_id, x_session_token):
+        raise HTTPException(401, "Invalid or missing session token")
 
     return {
         "session_id": session_id,
@@ -448,13 +542,17 @@ async def get_session_messages(session_id: str) -> dict:
 async def send_session_message(
     session_id: str,
     message: SessionMessageRequest,
+    x_session_token: Optional[str] = Header(None),
 ) -> SessionMessageResponse:
     """
     Send a message to a webhook session.
 
+    SECURITY FIX MED-013: Requires session token authentication.
+
     Args:
         session_id: The session ID
         message: Message content
+        x_session_token: Session token from X-Session-Token header
 
     Returns:
         Agent response
@@ -462,6 +560,10 @@ async def send_session_message(
     session = _webhook_sessions.get(session_id)
     if not session:
         raise HTTPException(404, "Session not found")
+
+    # SECURITY FIX MED-013: Verify session token
+    if not x_session_token or not _verify_session_token(session_id, x_session_token):
+        raise HTTPException(401, "Invalid or missing session token")
 
     if session["status"] != "active":
         raise HTTPException(400, f"Session is not active: {session['status']}")
@@ -513,11 +615,13 @@ async def generate_credentials(
     This creates a secret key for signing webhook payloads and
     configures rate limiting.
 
+    SECURITY FIX MED-012: Returns owner_api_key required for credential management.
+
     Args:
         request: Agent ID and optional IP allowlist
 
     Returns:
-        Webhook URL and secret key
+        Webhook URL, secret key, and owner API key
     """
     # Verify agent exists
     kb = await load_knowledge_base(request.agent_id)
@@ -529,22 +633,35 @@ async def generate_credentials(
         allowed_ips=request.allowed_ips,
     )
 
+    # SECURITY FIX MED-012: Generate owner API key for credential management
+    owner_api_key = _generate_owner_api_key()
+
+    # Store owner key in credentials (internal storage)
+    webhook_security._credentials[request.agent_id]["owner_api_key"] = owner_api_key
+
     return WebhookCredentialsResponse(
         agent_id=creds["agent_id"],
         webhook_url=creds["webhook_url"],
         secret_key=creds["secret_key"],
+        owner_api_key=owner_api_key,  # SECURITY: Save this! Required for credential management
         rate_limit=creds["rate_limit"],
         created_at=creds["created_at"],
     )
 
 
 @router.get("/credentials/{agent_id}")
-async def get_credentials(agent_id: str) -> dict:
+async def get_credentials(
+    agent_id: str,
+    x_owner_api_key: Optional[str] = Header(None),
+) -> dict:
     """
     Get webhook configuration for an agent (without secret key).
 
+    SECURITY FIX MED-012: Requires owner API key authentication.
+
     Args:
         agent_id: The agent/repo ID
+        x_owner_api_key: Owner API key from X-Owner-API-Key header
 
     Returns:
         Webhook configuration
@@ -553,20 +670,34 @@ async def get_credentials(agent_id: str) -> dict:
     if not creds:
         raise HTTPException(404, "No webhook credentials for this agent")
 
+    # SECURITY FIX MED-012: Verify owner API key
+    if not x_owner_api_key or not _verify_owner_api_key(agent_id, x_owner_api_key):
+        raise HTTPException(401, "Invalid or missing owner API key")
+
     return creds
 
 
 @router.post("/credentials/{agent_id}/rotate")
-async def rotate_credentials(agent_id: str) -> dict:
+async def rotate_credentials(
+    agent_id: str,
+    x_owner_api_key: Optional[str] = Header(None),
+) -> dict:
     """
     Rotate the webhook secret key for an agent.
 
+    SECURITY FIX MED-012: Requires owner API key authentication.
+
     Args:
         agent_id: The agent/repo ID
+        x_owner_api_key: Owner API key from X-Owner-API-Key header
 
     Returns:
         New secret key
     """
+    # SECURITY FIX MED-012: Verify owner API key first
+    if not x_owner_api_key or not _verify_owner_api_key(agent_id, x_owner_api_key):
+        raise HTTPException(401, "Invalid or missing owner API key")
+
     new_secret = webhook_security.rotate_secret(agent_id)
     if not new_secret:
         raise HTTPException(404, "No webhook credentials for this agent")
@@ -579,16 +710,26 @@ async def rotate_credentials(agent_id: str) -> dict:
 
 
 @router.delete("/credentials/{agent_id}")
-async def revoke_credentials(agent_id: str) -> dict:
+async def revoke_credentials(
+    agent_id: str,
+    x_owner_api_key: Optional[str] = Header(None),
+) -> dict:
     """
     Revoke webhook credentials for an agent.
 
+    SECURITY FIX MED-012: Requires owner API key authentication.
+
     Args:
         agent_id: The agent/repo ID
+        x_owner_api_key: Owner API key from X-Owner-API-Key header
 
     Returns:
         Confirmation message
     """
+    # SECURITY FIX MED-012: Verify owner API key first
+    if not x_owner_api_key or not _verify_owner_api_key(agent_id, x_owner_api_key):
+        raise HTTPException(401, "Invalid or missing owner API key")
+
     if not webhook_security.revoke_credentials(agent_id):
         raise HTTPException(404, "No webhook credentials for this agent")
 
@@ -599,16 +740,26 @@ async def revoke_credentials(agent_id: str) -> dict:
 
 
 @router.get("/rate-limit/{agent_id}")
-async def get_rate_limit_status(agent_id: str) -> dict:
+async def get_rate_limit_status(
+    agent_id: str,
+    x_owner_api_key: Optional[str] = Header(None),
+) -> dict:
     """
     Get rate limit status for an agent.
 
+    SECURITY FIX MED-014: Requires owner API key authentication.
+
     Args:
         agent_id: The agent/repo ID
+        x_owner_api_key: Owner API key from X-Owner-API-Key header
 
     Returns:
         Rate limit info
     """
+    # SECURITY FIX MED-014: Verify owner API key
+    if not x_owner_api_key or not _verify_owner_api_key(agent_id, x_owner_api_key):
+        raise HTTPException(401, "Invalid or missing owner API key")
+
     remaining = rate_limiter.get_remaining(agent_id)
     reset_time = rate_limiter.get_reset_time(agent_id)
 
