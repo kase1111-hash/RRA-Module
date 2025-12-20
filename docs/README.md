@@ -25,6 +25,7 @@ Complete documentation for the Revenant Repo Agent Module.
 - **[Roadmap](../ROADMAP.md)** - Viral distribution strategy and product roadmap
 - **[Testing Results](TESTING-RESULTS.md)** - Test suite results (290 tests passing)
 - **[Security Audit](SECURITY-AUDIT.md)** - Security audit report (Score: A-)
+- **[Monitoring Guide](MONITORING.md)** - Production monitoring and alerting setup
 
 ### User Information
 - **[Buyer Beware](../Buyer-Beware.md)** - Important notice for marketplace users
@@ -58,7 +59,8 @@ RRA-Module/
 │   ├── STORY-PROTOCOL-INTEGRATION.md # Story Protocol guide
 │   ├── DEFI-INTEGRATION.md     # DeFi integration guide
 │   ├── TESTING-RESULTS.md      # Test results (290 tests)
-│   └── SECURITY-AUDIT.md       # Security audit report
+│   ├── SECURITY-AUDIT.md       # Security audit report
+│   └── MONITORING.md           # Monitoring and alerting guide
 │
 └── examples/                   # Example code
     └── README.md              # Examples guide

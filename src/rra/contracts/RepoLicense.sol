@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title RepoLicense
@@ -12,8 +13,11 @@ import "@openzeppelin/contracts/utils/Counters.sol";
  *
  * Each token represents a cryptographic grant for repository access.
  * Tokens encode licensing terms including duration, seats, and permissions.
+ *
+ * Security: Uses ReentrancyGuard for defense-in-depth against reentrancy attacks
+ * on functions that transfer ETH.
  */
-contract RepoLicense is ERC721, ERC721URIStorage, Ownable {
+contract RepoLicense is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
 
     // Token counter
@@ -84,6 +88,7 @@ contract RepoLicense is ERC721, ERC721URIStorage, Ownable {
 
     /**
      * @dev Issue a new license NFT
+     * @notice Protected by ReentrancyGuard to prevent reentrancy attacks during ETH transfer
      */
     function issueLicense(
         address _licensee,
@@ -94,7 +99,7 @@ contract RepoLicense is ERC721, ERC721URIStorage, Ownable {
         bool _allowForks,
         uint16 _royaltyBasisPoints,
         string memory _tokenURI
-    ) public payable returns (uint256) {
+    ) public payable nonReentrant returns (uint256) {
         Repository storage repo = repositories[_repoUrl];
         require(repo.active, "Repository not registered");
         require(msg.value >= repo.floorPrice, "Payment below floor price");
@@ -159,8 +164,9 @@ contract RepoLicense is ERC721, ERC721URIStorage, Ownable {
 
     /**
      * @dev Renew an existing license
+     * @notice Protected by ReentrancyGuard to prevent reentrancy attacks during ETH transfer
      */
-    function renewLicense(uint256 _tokenId, uint256 _additionalDuration) public payable {
+    function renewLicense(uint256 _tokenId, uint256 _additionalDuration) public payable nonReentrant {
         License storage license = licenses[_tokenId];
         require(license.active, "License is not active");
         require(ownerOf(_tokenId) == msg.sender, "Not license owner");
