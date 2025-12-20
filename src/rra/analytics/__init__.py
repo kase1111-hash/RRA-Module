@@ -10,6 +10,7 @@ for NatLangChain license negotiations.
 Components:
 - entropy_scorer: Core entropy/instability scoring for clauses
 - clause_patterns: Pattern clustering and similarity analysis
+- term_analysis: High-entropy term detection (Phase 6.6)
 """
 
 from .entropy_scorer import (
@@ -23,6 +24,14 @@ from .clause_patterns import (
     PatternCluster,
     ClausePatternAnalyzer,
 )
+from .term_analysis import (
+    TermAnalyzer,
+    TermAnalysis,
+    TermReport,
+    TermRiskLevel,
+    TermCategory,
+    find_high_entropy_terms,
+)
 
 __all__ = [
     # Entropy scoring
@@ -34,4 +43,11 @@ __all__ = [
     "ClausePattern",
     "PatternCluster",
     "ClausePatternAnalyzer",
+    # Term analysis (6.6)
+    "TermAnalyzer",
+    "TermAnalysis",
+    "TermReport",
+    "TermRiskLevel",
+    "TermCategory",
+    "find_high_entropy_terms",
 ]
