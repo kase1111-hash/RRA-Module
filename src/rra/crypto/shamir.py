@@ -402,20 +402,30 @@ class ShamirSecretSharing:
 
         Uses subset reconstruction to verify without revealing secret.
 
+        SECURITY FIX: Previously returned True when not enough shares were
+        available for verification, which is a "fail open" vulnerability.
+        Now raises ValueError to ensure explicit handling.
+
         Args:
             share: Share to verify
             all_shares: All available shares
 
         Returns:
             True if share is valid
+
+        Raises:
+            ValueError: If not enough shares available for verification
         """
         # Need at least threshold shares including the one to verify
         threshold = share.threshold
         other_shares = [s for s in all_shares if s.index != share.index]
 
         if len(other_shares) < threshold - 1:
-            # Not enough other shares to verify
-            return True  # Assume valid
+            # SECURITY FIX: Fail closed instead of open
+            raise ValueError(
+                f"Not enough shares to verify: have {len(other_shares)}, "
+                f"need at least {threshold - 1} other shares"
+            )
 
         # Try to reconstruct using threshold-1 other shares + this share
         test_shares = other_shares[:threshold - 1] + [share]
