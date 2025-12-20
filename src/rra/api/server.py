@@ -504,5 +504,9 @@ app = create_app()
 
 
 if __name__ == "__main__":
+    import os
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Use environment variable for host binding; 127.0.0.1 for local dev, 0.0.0.0 for production behind reverse proxy
+    host = os.environ.get("RRA_HOST", "127.0.0.1")  # nosec B104
+    port = int(os.environ.get("RRA_PORT", "8000"))
+    uvicorn.run(app, host=host, port=port)
