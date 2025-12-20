@@ -262,6 +262,8 @@ class ViewingKey:
         """
         Decrypt ECIES-encrypted data.
 
+        SECURITY FIX MED-004: Enforces key expiration before allowing decryption.
+
         Args:
             encrypted: EncryptedData to decrypt
 
@@ -269,8 +271,14 @@ class ViewingKey:
             Decrypted plaintext
 
         Raises:
-            ValueError: If decryption fails or key doesn't match
+            ValueError: If decryption fails, key doesn't match, or key is expired
         """
+        # SECURITY FIX MED-004: Enforce expiration before decryption
+        if self.is_expired:
+            raise ValueError(
+                "Cannot decrypt with expired viewing key. "
+                f"Key expired at {self.expires_at}."
+            )
         return ViewingKeyManager.decrypt_with_key(encrypted, self.private_key)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -417,6 +425,38 @@ class ViewingKeyManager:
     AES_IV_SIZE = 12   # 96 bits for GCM
     AES_TAG_SIZE = 16  # 128 bits
 
+    # SECURITY FIX MED-003: Class-level IV counter for uniqueness enforcement
+    # Catastrophic failure occurs if same IV is used twice with same key
+    _iv_counter: int = 0
+    _iv_counter_lock = None  # Initialized on first use for thread safety
+
+    @classmethod
+    def _generate_unique_iv(cls) -> bytes:
+        """
+        Generate a unique IV using hybrid counter + random approach.
+
+        SECURITY FIX MED-003: Prevents IV reuse which would catastrophically
+        break AES-GCM security. Uses 8 bytes random + 4 bytes counter.
+
+        Returns:
+            12-byte unique IV
+        """
+        import threading
+        if cls._iv_counter_lock is None:
+            cls._iv_counter_lock = threading.Lock()
+
+        with cls._iv_counter_lock:
+            counter = cls._iv_counter
+            cls._iv_counter += 1
+            # Wrap counter at 2^32 (4 bytes)
+            if cls._iv_counter >= 0xFFFFFFFF:
+                cls._iv_counter = 0
+
+        # Hybrid IV: 8 random bytes + 4 counter bytes
+        random_part = os.urandom(8)
+        counter_part = counter.to_bytes(4, 'big')
+        return random_part + counter_part
+
     def __init__(
         self,
         master_key: Optional[bytes] = None,
@@ -553,8 +593,8 @@ class ViewingKeyManager:
         )
         aes_key = hkdf.derive(shared_secret)
 
-        # Generate IV
-        iv = os.urandom(12)
+        # SECURITY FIX MED-003: Generate unique IV using counter+random hybrid
+        iv = ViewingKeyManager._generate_unique_iv()
 
         # Encrypt with AES-GCM
         aesgcm = AESGCM(aes_key)

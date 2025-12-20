@@ -60,6 +60,34 @@ class ECIESCipher:
 
     CURVE = ec.SECP256K1()
 
+    # SECURITY FIX MED-003: IV counter for uniqueness enforcement
+    _iv_counter: int = 0
+    _iv_counter_lock = None
+
+    @classmethod
+    def _generate_unique_nonce(cls) -> bytes:
+        """
+        Generate a unique nonce using hybrid counter + random approach.
+
+        SECURITY FIX MED-003: Prevents nonce reuse which would catastrophically
+        break AES-GCM security.
+
+        Returns:
+            12-byte unique nonce
+        """
+        import threading
+        if cls._iv_counter_lock is None:
+            cls._iv_counter_lock = threading.Lock()
+
+        with cls._iv_counter_lock:
+            counter = cls._iv_counter
+            cls._iv_counter += 1
+            if cls._iv_counter >= 0xFFFFFFFF:
+                cls._iv_counter = 0
+
+        # Hybrid: 8 random bytes + 4 counter bytes
+        return os.urandom(8) + counter.to_bytes(4, 'big')
+
     @classmethod
     def generate_key_pair(cls) -> Tuple[bytes, bytes]:
         """
@@ -117,8 +145,8 @@ class ECIESCipher:
             backend=default_backend()
         ).derive(shared_key)
 
-        # Encrypt with AES-GCM
-        nonce = os.urandom(12)
+        # SECURITY FIX MED-003: Use unique nonce to prevent catastrophic IV reuse
+        nonce = cls._generate_unique_nonce()
         aesgcm = AESGCM(derived_key)
         ciphertext_with_tag = aesgcm.encrypt(nonce, plaintext, None)
 
