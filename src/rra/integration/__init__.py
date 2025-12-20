@@ -38,9 +38,70 @@ Installation:
 from rra.integration.base import BaseAgent, IntegrationMode, get_integration_mode
 from rra.integration.config import IntegrationConfig
 
+from rra.integration.boundary_daemon import (
+    BoundaryDaemon,
+    Permission,
+    ResourceType,
+    AccessPolicy,
+    Principal,
+    AccessToken,
+    create_boundary_daemon,
+)
+
+from rra.integration.synth_mind import (
+    SynthMindRouter,
+    ModelConfig,
+    ModelProvider,
+    ModelCapability,
+    LLMRequest,
+    LLMResponse,
+    RequestPriority,
+    create_synth_mind_router,
+)
+
+from rra.integration.agent_os import (
+    AgentOSRuntime,
+    AgentInstance,
+    AgentConfig,
+    AgentStatus,
+    AgentType,
+    RuntimeNode,
+    ResourceAllocation,
+    ResourceTier,
+    create_agent_os_runtime,
+)
+
 __all__ = [
+    # Base
     "BaseAgent",
     "IntegrationMode",
     "IntegrationConfig",
     "get_integration_mode",
+    # Boundary Daemon
+    "BoundaryDaemon",
+    "Permission",
+    "ResourceType",
+    "AccessPolicy",
+    "Principal",
+    "AccessToken",
+    "create_boundary_daemon",
+    # Synth Mind
+    "SynthMindRouter",
+    "ModelConfig",
+    "ModelProvider",
+    "ModelCapability",
+    "LLMRequest",
+    "LLMResponse",
+    "RequestPriority",
+    "create_synth_mind_router",
+    # Agent OS
+    "AgentOSRuntime",
+    "AgentInstance",
+    "AgentConfig",
+    "AgentStatus",
+    "AgentType",
+    "RuntimeNode",
+    "ResourceAllocation",
+    "ResourceTier",
+    "create_agent_os_runtime",
 ]
