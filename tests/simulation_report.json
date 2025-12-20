@@ -1,0 +1,170 @@
+{
+  "summary": {
+    "total_tests": 100,
+    "passed": 74,
+    "failed": 26,
+    "soft_locks": 4,
+    "race_conditions": 0,
+    "validation_bypasses": 12,
+    "price_manipulations": 10,
+    "timeouts": 0
+  },
+  "critical_issues": [
+    {
+      "type": "state_machine_abandon_no_timeout",
+      "id": 77,
+      "error": "No timeout mechanism - negotiation can hang forever",
+      "result": "soft_lock"
+    },
+    {
+      "type": "state_machine_abandon_no_timeout",
+      "id": 81,
+      "error": "No timeout mechanism - negotiation can hang forever",
+      "result": "soft_lock"
+    },
+    {
+      "type": "state_machine_abandon_no_timeout",
+      "id": 85,
+      "error": "No timeout mechanism - negotiation can hang forever",
+      "result": "soft_lock"
+    },
+    {
+      "type": "state_machine_abandon_no_timeout",
+      "id": 89,
+      "error": "No timeout mechanism - negotiation can hang forever",
+      "result": "soft_lock"
+    },
+    {
+      "type": "edge_case_negative_offer",
+      "id": 44,
+      "error": "Validation bypassed for negative_offer",
+      "result": "validation_bypass"
+    },
+    {
+      "type": "edge_case_floor_above_target",
+      "id": 45,
+      "error": "Validation bypassed for floor_above_target",
+      "result": "validation_bypass"
+    },
+    {
+      "type": "edge_case_overflow_target",
+      "id": 46,
+      "error": "Validation bypassed for overflow_target",
+      "result": "validation_bypass"
+    },
+    {
+      "type": "edge_case_precision_limit",
+      "id": 47,
+      "error": "Validation bypassed for precision_limit",
+      "result": "validation_bypass"
+    },
+    {
+      "type": "edge_case_excessive_decimals",
+      "id": 48,
+      "error": "Validation bypassed for excessive_decimals",
+      "result": "validation_bypass"
+    },
+    {
+      "type": "edge_case_unknown_currency",
+      "id": 50,
+      "error": "Validation bypassed for unknown_currency",
+      "result": "validation_bypass"
+    },
+    {
+      "type": "edge_case_negative_offer",
+      "id": 54,
+      "error": "Validation bypassed for negative_offer",
+      "result": "validation_bypass"
+    },
+    {
+      "type": "edge_case_floor_above_target",
+      "id": 55,
+      "error": "Validation bypassed for floor_above_target",
+      "result": "validation_bypass"
+    },
+    {
+      "type": "edge_case_overflow_target",
+      "id": 56,
+      "error": "Validation bypassed for overflow_target",
+      "result": "validation_bypass"
+    },
+    {
+      "type": "edge_case_precision_limit",
+      "id": 57,
+      "error": "Validation bypassed for precision_limit",
+      "result": "validation_bypass"
+    },
+    {
+      "type": "edge_case_excessive_decimals",
+      "id": 58,
+      "error": "Validation bypassed for excessive_decimals",
+      "result": "validation_bypass"
+    },
+    {
+      "type": "edge_case_unknown_currency",
+      "id": 60,
+      "error": "Validation bypassed for unknown_currency",
+      "result": "validation_bypass"
+    },
+    {
+      "type": "price_manipulation_bait_and_switch",
+      "id": 91,
+      "error": "Price manipulation succeeded: Offer below floor then claim agreed",
+      "result": "price_manipulation"
+    },
+    {
+      "type": "price_manipulation_decimal_confusion",
+      "id": 92,
+      "error": "Price manipulation succeeded: Use comma instead of decimal",
+      "result": "price_manipulation"
+    },
+    {
+      "type": "price_manipulation_currency_confusion",
+      "id": 93,
+      "error": "Price manipulation succeeded: Switch currencies mid-negotiation",
+      "result": "price_manipulation"
+    },
+    {
+      "type": "price_manipulation_scientific_notation",
+      "id": 94,
+      "error": "Price manipulation succeeded: Use tiny scientific notation",
+      "result": "price_manipulation"
+    },
+    {
+      "type": "price_manipulation_unicode_injection",
+      "id": 95,
+      "error": "Price manipulation succeeded: Null byte injection",
+      "result": "price_manipulation"
+    },
+    {
+      "type": "price_manipulation_sql_injection",
+      "id": 96,
+      "error": "Price manipulation succeeded: SQL injection in price",
+      "result": "price_manipulation"
+    },
+    {
+      "type": "price_manipulation_overflow_attack",
+      "id": 97,
+      "error": "Price manipulation succeeded: uint256 max",
+      "result": "price_manipulation"
+    },
+    {
+      "type": "price_manipulation_bait_and_switch",
+      "id": 98,
+      "error": "Price manipulation succeeded: Offer below floor then claim agreed",
+      "result": "price_manipulation"
+    },
+    {
+      "type": "price_manipulation_decimal_confusion",
+      "id": 99,
+      "error": "Price manipulation succeeded: Use comma instead of decimal",
+      "result": "price_manipulation"
+    },
+    {
+      "type": "price_manipulation_currency_confusion",
+      "id": 100,
+      "error": "Price manipulation succeeded: Switch currencies mid-negotiation",
+      "result": "price_manipulation"
+    }
+  ]
+}
