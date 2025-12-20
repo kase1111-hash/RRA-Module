@@ -19,17 +19,25 @@ from enum import Enum
 
 class ChainId(Enum):
     """Supported chain IDs."""
+    # Mainnets
     ETHEREUM_MAINNET = 1
-    ETHEREUM_GOERLI = 5
-    ETHEREUM_SEPOLIA = 11155111
     POLYGON_MAINNET = 137
-    POLYGON_MUMBAI = 80001
     ARBITRUM_ONE = 42161
-    ARBITRUM_GOERLI = 421613
     BASE_MAINNET = 8453
-    BASE_GOERLI = 84531
     OPTIMISM_MAINNET = 10
-    OPTIMISM_GOERLI = 420
+
+    # Testnets (Sepolia-based - preferred for development)
+    ETHEREUM_SEPOLIA = 11155111
+    ARBITRUM_SEPOLIA = 421614
+    OPTIMISM_SEPOLIA = 11155420
+    BASE_SEPOLIA = 84532
+
+    # Legacy testnets (deprecated but kept for compatibility)
+    ETHEREUM_GOERLI = 5  # Deprecated
+    POLYGON_MUMBAI = 80001  # Deprecated
+    ARBITRUM_GOERLI = 421613  # Deprecated
+    BASE_GOERLI = 84531  # Deprecated
+    OPTIMISM_GOERLI = 420  # Deprecated
 
 
 @dataclass
@@ -87,7 +95,7 @@ CHAIN_CONFIGS: Dict[int, ChainConfig] = {
         },
     ),
 
-    # Ethereum Sepolia (Testnet)
+    # Ethereum Sepolia (Testnet) - Primary development network
     ChainId.ETHEREUM_SEPOLIA.value: ChainConfig(
         chain_id=11155111,
         name="sepolia",
@@ -97,6 +105,61 @@ CHAIN_CONFIGS: Dict[int, ChainConfig] = {
         native_currency="ETH",
         is_testnet=True,
         avg_block_time=12.0,
+        # Mock addresses for development - deploy your own or use address(0xdead)
+        license_nft_address="0x000000000000000000000000000000000000dEaD",
+        license_manager_address="0x000000000000000000000000000000000000dEaD",
+        story_protocol_addresses={
+            # Deploy mocks using Foundry/Hardhat before testing
+            "IPAssetRegistry": "0x000000000000000000000000000000000000dEaD",
+            "LicenseRegistry": "0x000000000000000000000000000000000000dEaD",
+            "RoyaltyModule": "0x000000000000000000000000000000000000dEaD",
+            "PILFramework": "0x000000000000000000000000000000000000dEaD",
+        },
+    ),
+
+    # Arbitrum Sepolia (Testnet) - L2 development
+    ChainId.ARBITRUM_SEPOLIA.value: ChainConfig(
+        chain_id=421614,
+        name="arbitrum-sepolia",
+        display_name="Arbitrum Sepolia",
+        rpc_url=os.environ.get("ARBITRUM_SEPOLIA_RPC_URL", "https://sepolia-rollup.arbitrum.io/rpc"),
+        explorer_url="https://sepolia.arbiscan.io",
+        native_currency="ETH",
+        is_testnet=True,
+        is_l2=True,
+        avg_block_time=0.25,
+        license_nft_address="0x000000000000000000000000000000000000dEaD",
+        license_manager_address="0x000000000000000000000000000000000000dEaD",
+    ),
+
+    # Optimism Sepolia (Testnet) - L2 development
+    ChainId.OPTIMISM_SEPOLIA.value: ChainConfig(
+        chain_id=11155420,
+        name="optimism-sepolia",
+        display_name="Optimism Sepolia",
+        rpc_url=os.environ.get("OPTIMISM_SEPOLIA_RPC_URL", "https://sepolia.optimism.io"),
+        explorer_url="https://sepolia-optimism.etherscan.io",
+        native_currency="ETH",
+        is_testnet=True,
+        is_l2=True,
+        avg_block_time=2.0,
+        license_nft_address="0x000000000000000000000000000000000000dEaD",
+        license_manager_address="0x000000000000000000000000000000000000dEaD",
+    ),
+
+    # Base Sepolia (Testnet) - L2 development
+    ChainId.BASE_SEPOLIA.value: ChainConfig(
+        chain_id=84532,
+        name="base-sepolia",
+        display_name="Base Sepolia",
+        rpc_url=os.environ.get("BASE_SEPOLIA_RPC_URL", "https://sepolia.base.org"),
+        explorer_url="https://sepolia.basescan.org",
+        native_currency="ETH",
+        is_testnet=True,
+        is_l2=True,
+        avg_block_time=2.0,
+        license_nft_address="0x000000000000000000000000000000000000dEaD",
+        license_manager_address="0x000000000000000000000000000000000000dEaD",
     ),
 
     # Polygon Mainnet
