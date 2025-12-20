@@ -43,9 +43,11 @@ htmlcov/
 .env
 .env.local
 
-# RRA specific
-agent_knowledge_bases/
-cloned_repos/
+# RRA specific - runtime data (keep .gitkeep files)
+agent_knowledge_bases/*
+!agent_knowledge_bases/.gitkeep
+cloned_repos/*
+!cloned_repos/.gitkeep
 *.db
 logs/
 
@@ -53,5 +55,7 @@ logs/
 .DS_Store
 Thumbs.db
 
-# Runtime data
-data/
+# Runtime data (keep .gitkeep files)
+data/*
+!data/.gitkeep
+!data/*/.gitkeep

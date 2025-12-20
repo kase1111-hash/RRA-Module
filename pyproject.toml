@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=65.0", "wheel"]
+requires = ["setuptools>=70.0", "wheel"]  # >=70.0 fixes CVE-2024-6345
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -38,6 +38,8 @@ dependencies = [
     "httpx>=0.25.2",
     "eth-abi>=4.0.0",
     "eth-utils>=2.3.0",
+    # Security - pinned to fix CVEs
+    "cryptography>=43.0.1",  # Fixes CVE-2023-50782, CVE-2024-0727
 ]
 
 [project.optional-dependencies]

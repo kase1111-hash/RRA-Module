@@ -15,6 +15,9 @@ httpx>=0.25.2
 # Blockchain
 web3>=6.11.3
 
+# Security - pinned versions to fix CVEs
+cryptography>=43.0.1  # Fixes CVE-2023-50782, CVE-2024-0727, PYSEC-2024-225, GHSA-h4gh-qq45-vh27
+
 # DeFi Protocol Integrations
 # Story Protocol - Programmable IP licensing
 eth-abi>=4.0.0  # For Story Protocol contract interactions
