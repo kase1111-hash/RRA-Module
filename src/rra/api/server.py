@@ -260,6 +260,17 @@ def create_app() -> FastAPI:
                     "analytics": "/api/widget/analytics/{agent_id}",
                     "demo": "/api/widget/demo",
                 },
+                "analytics": {
+                    "overview": "/api/analytics/overview",
+                    "agent": "/api/analytics/agent/{agent_id}",
+                    "funnel": "/api/analytics/funnel",
+                    "revenue": "/api/analytics/revenue",
+                    "timeseries": "/api/analytics/timeseries",
+                    "agents": "/api/analytics/agents",
+                    "export": "/api/analytics/export",
+                    "dashboard": "/api/analytics/dashboard",
+                    "event": "/api/analytics/event",
+                },
             }
         }
 
@@ -471,12 +482,14 @@ def create_app() -> FastAPI:
         from rra.api.webhooks import router as webhooks_router
         from rra.api.streaming import router as streaming_router
         from rra.api.widget import router as widget_router
+        from rra.api.analytics import router as analytics_router
         app.include_router(marketplace_router)
         app.include_router(websocket_router)
         app.include_router(deep_links_router)
         app.include_router(webhooks_router)
         app.include_router(streaming_router)
         app.include_router(widget_router)
+        app.include_router(analytics_router)
     except ImportError:
         # Routers not available in minimal install
         pass
