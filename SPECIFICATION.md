@@ -70,8 +70,10 @@ Transform GitHub into a vibrant marketplace for autonomous code assets, where zo
 - ✅ **Superfluid streaming payments** complete
 - ✅ **Analytics Dashboard** complete with real-time metrics
 - ✅ **Mobile SDKs** (iOS/Android) complete
+- ✅ **Multi-chain support** (Ethereum, Polygon, Arbitrum, Base, Optimism)
+- ✅ **Adaptive pricing engine** with demand-based strategies
+- ✅ **Multi-repo bundling** with discount strategies
 - ⏳ **Story Protocol integration** needs real contract addresses
-- ⏳ **Multi-chain deployment** planned (Polygon, Arbitrum)
 
 ---
 
@@ -128,13 +130,18 @@ GitHub Repository
 - ✅ Deep links system
 
 **Not Implemented:**
-- ❌ Multi-chain deployment (only Ethereum implemented)
+- ❌ IPFi lending integration
+- ❌ Fractional IP ownership
+- ❌ Yield-bearing license tokens
 
 **Implemented (Recent - December 2025):**
 - ✅ Embeddable negotiation widget
 - ✅ GitHub fork auto-detection
 - ✅ Analytics Dashboard
 - ✅ Mobile SDKs (iOS/Android)
+- ✅ Multi-chain support (Polygon, Arbitrum, Base, Optimism)
+- ✅ Multi-repo bundling with discount strategies
+- ✅ Adaptive pricing engine
 
 ---
 
@@ -180,9 +187,9 @@ GitHub Repository
 | Feature | Status | Priority |
 |---------|--------|----------|
 | Superfluid streaming payments | ✅ Complete | HIGH |
-| learning-contracts adaptive pricing | ❌ Not started | MEDIUM |
-| Multi-repo bundling | ❌ Not started | LOW |
-| Cross-chain support (Polygon, Arbitrum) | ❌ Not started | MEDIUM |
+| learning-contracts adaptive pricing | ✅ Complete | MEDIUM |
+| Multi-repo bundling | ✅ Complete | LOW |
+| Cross-chain support (Polygon, Arbitrum) | ✅ Complete | MEDIUM |
 | Automated fork detection (GitHub webhooks) | ✅ Complete | HIGH |
 | IPFi lending integration (NFTfi) | ❌ Not started | LOW |
 | Fractional IP ownership | ❌ Not started | LOW |
