@@ -251,6 +251,15 @@ def create_app() -> FastAPI:
                     "stats": "/api/streaming/stats",
                 },
                 "websocket": "/ws/negotiate/{repo_id}",
+                "widget": {
+                    "init": "/api/widget/init",
+                    "embed_js": "/api/widget/embed.js",
+                    "message": "/api/widget/message",
+                    "config": "/api/widget/config/{widget_id}",
+                    "event": "/api/widget/event",
+                    "analytics": "/api/widget/analytics/{agent_id}",
+                    "demo": "/api/widget/demo",
+                },
             }
         }
 
@@ -461,11 +470,13 @@ def create_app() -> FastAPI:
         from rra.api.deep_links import router as deep_links_router
         from rra.api.webhooks import router as webhooks_router
         from rra.api.streaming import router as streaming_router
+        from rra.api.widget import router as widget_router
         app.include_router(marketplace_router)
         app.include_router(websocket_router)
         app.include_router(deep_links_router)
         app.include_router(webhooks_router)
         app.include_router(streaming_router)
+        app.include_router(widget_router)
     except ImportError:
         # Routers not available in minimal install
         pass

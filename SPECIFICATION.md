@@ -125,9 +125,12 @@ GitHub Repository
 - ✅ Deep links system
 
 **Not Implemented:**
-- ❌ Embeddable negotiation widget
-- ❌ GitHub fork auto-detection
 - ❌ Multi-chain deployment (only Ethereum implemented)
+- ❌ Analytics Dashboard
+
+**Implemented (Recent - December 2025):**
+- ✅ Embeddable negotiation widget
+- ✅ GitHub fork auto-detection
 
 ---
 
@@ -176,7 +179,7 @@ GitHub Repository
 | learning-contracts adaptive pricing | ❌ Not started | MEDIUM |
 | Multi-repo bundling | ❌ Not started | LOW |
 | Cross-chain support (Polygon, Arbitrum) | ❌ Not started | MEDIUM |
-| Automated fork detection (GitHub webhooks) | ❌ Not started | HIGH |
+| Automated fork detection (GitHub webhooks) | ✅ Complete | HIGH |
 | IPFi lending integration (NFTfi) | ❌ Not started | LOW |
 | Fractional IP ownership | ❌ Not started | LOW |
 | Yield-bearing license tokens | ❌ Not started | MEDIUM |
@@ -187,7 +190,7 @@ GitHub Repository
 |---------|--------|----------|
 | Marketplace discovery UI | ✅ Complete | CRITICAL |
 | Webhook bridge endpoints | ✅ Complete | CRITICAL |
-| Embeddable negotiation widget | ❌ Not started | HIGH |
+| Embeddable negotiation widget | ✅ Complete | HIGH |
 | Deep links system | ✅ Complete | HIGH |
 | Mobile SDKs | ❌ Not started | LOW |
 | DAO governance for IP portfolios | ❌ Not started | LOW |
@@ -560,12 +563,21 @@ webhook_config:
 
 ---
 
-### 3. Embeddable Negotiation Widget 🟡 HIGH PRIORITY
+### 3. Embeddable Negotiation Widget ✅ COMPLETE
 
-**Status:** Not implemented
+**Status:** ✅ Implemented (December 2025)
 **Priority:** HIGH (Phase 4 - Endgame)
 **Complexity:** Medium-High
 **Effort:** 3-4 weeks
+
+#### Implementation (Completed)
+- ✅ Widget initialization API (`/api/widget/init`)
+- ✅ Embeddable JavaScript loader (`/api/widget/embed.js`)
+- ✅ Widget configuration management
+- ✅ REST message endpoint (WebSocket fallback)
+- ✅ Widget analytics and event tracking
+- ✅ Demo page for testing (`/api/widget/demo`)
+- ✅ Comprehensive test suite (16 tests)
 
 #### Description
 Drop-in JavaScript widget that embeds full negotiation functionality into any website. The "Uniswap Widget moment" for IP licensing.
@@ -1070,12 +1082,20 @@ class StreamMonitor:
 
 ---
 
-### 5. Automated Fork Detection & Registration 🟡 HIGH PRIORITY
+### 5. Automated Fork Detection & Registration ✅ COMPLETE
 
-**Status:** Not implemented
+**Status:** ✅ Implemented (December 2025)
 **Priority:** HIGH (Phase 3)
 **Complexity:** Medium
 **Effort:** 2 weeks
+
+#### Implementation (Completed)
+- ✅ GitHub webhook handler (`src/rra/integrations/github_webhooks.py`)
+- ✅ Fork event processing and storage
+- ✅ Fork owner notification system
+- ✅ Derivative registration tracking
+- ✅ Fork tracking and derivative tree API
+- ✅ RRA registration checker
 
 #### Description
 Automatically detect GitHub forks and track them as derivatives on Story Protocol. Enables automated royalty collection from derivative works.
@@ -1633,7 +1653,7 @@ This section provides a consolidated inventory of ALL unimplemented features ide
 | A1 | **Marketplace Discovery UI** | 🔴 CRITICAL | ROADMAP.md, SPECIFICATION.md | 3-4 weeks | User adoption | ✅ DONE |
 | A2 | **Deep Links System** | 🔴 CRITICAL | ROADMAP.md | 3 days | Viral distribution | ✅ DONE |
 | A3 | **Webhook Bridge Infrastructure** | 🔴 CRITICAL | ROADMAP.md, SPECIFICATION.md | 1-2 weeks | External embedding | ✅ DONE |
-| A4 | **Embeddable Negotiation Widget** | 🟡 HIGH | ROADMAP.md, SPECIFICATION.md | 3-4 weeks | Website integrations |
+| A4 | **Embeddable Negotiation Widget** | 🟡 HIGH | ROADMAP.md, SPECIFICATION.md | 3-4 weeks | Website integrations | ✅ DONE |
 | A5 | **Analytics Dashboard** | 🟢 MEDIUM | SPECIFICATION.md | 2 weeks | Developer insights |
 | A6 | **Mobile SDKs (iOS/Android)** | 🔵 LOW | SPECIFICATION.md | 4 weeks | Mobile users |
 
@@ -1661,8 +1681,8 @@ This section provides a consolidated inventory of ALL unimplemented features ide
 
 | # | Feature | Priority | Source Document | Effort | Blocker For |
 |---|---------|----------|-----------------|--------|-------------|
-| D1 | **Automated Fork Detection** | 🟡 HIGH | SPECIFICATION.md | 2 weeks | Derivative tracking |
-| D2 | **GitHub Webhook Listeners** | 🟡 HIGH | SPECIFICATION.md | 1 week | Real-time updates |
+| D1 | **Automated Fork Detection** | 🟡 HIGH | SPECIFICATION.md | 2 weeks | Derivative tracking | ✅ DONE |
+| D2 | **GitHub Webhook Listeners** | 🟡 HIGH | SPECIFICATION.md | 1 week | Real-time updates | ✅ DONE |
 | D3 | **Multi-repo Bundling** | 🔵 LOW | SPECIFICATION.md | 1 week | Portfolio sales |
 | D4 | **DAO Governance for IP** | 🔵 LOW | SPECIFICATION.md | 2 weeks | Collective ownership |
 
@@ -2535,12 +2555,16 @@ The RRA Module has a **solid foundation** (Phase 1 complete) and is **80% throug
 - ✅ Deep Links System (NEW - Dec 2025)
 - ✅ Webhook Bridge Infrastructure (NEW - Dec 2025)
 - ✅ Superfluid Streaming Payments (NEW - Dec 2025)
+- ✅ Embeddable Negotiation Widget (NEW - Dec 2025)
+- ✅ GitHub Fork Detection (NEW - Dec 2025)
 
 **Required for Product-Market Fit:**
 - ✅ Marketplace UI (COMPLETE)
 - ✅ Deep Links (COMPLETE)
 - ✅ Webhook Bridge (COMPLETE)
 - ✅ Streaming payments (COMPLETE)
+- ✅ Embeddable Widget (COMPLETE)
+- ✅ Fork Detection (COMPLETE)
 
 ### Timeline Summary
 
@@ -2550,15 +2574,15 @@ The RRA Module has a **solid foundation** (Phase 1 complete) and is **80% throug
 |-------|--------|------------|
 | Phase 1: Foundation | ✅ 100% | Complete |
 | Phase 2: Ecosystem | ⚠️ 90% | January 2025 |
-| Phase 3: Advanced | ⚠️ 25% | February 2025 |
-| Phase 4: Platform | ⚠️ 60% | April 2025 |
+| Phase 3: Advanced | ⚠️ 40% | February 2025 |
+| Phase 4: Platform | ⚠️ 85% | March 2025 |
 
 ### Recommended Immediate Actions
 
 1. **Week 1:** Complete Story Protocol testing and deployment
-2. **Week 2-3:** Build Embeddable Negotiation Widget
-3. **Week 3-4:** Add Analytics Dashboard
-4. **Week 4-5:** Multi-chain deployment
+2. **Week 2:** Add Analytics Dashboard
+3. **Week 3:** Multi-chain deployment
+4. **Week 4:** Mobile SDK development (optional)
 5. **Ongoing:** Document APIs for frontend integration
 
 ---
