@@ -1,7 +1,9 @@
-NatLangChain Roadmap
-From Contract Negotiation to Conflict-Compression Infrastructure
+# NatLangChain Roadmap
+## From Contract Negotiation to Conflict-Compression Infrastructure
 
-Draft v1.0 — December 19, 2025
+**Draft v1.0** — December 19, 2025
+
+---
 
 NatLangChain is an economic coordination system designed to reduce the cost of disagreement. It does not impose authority, judgment, or governance outcomes. Instead, it introduces time-bounded economic pressure that makes prolonged conflict irrational and voluntary resolution cheap.
 
@@ -226,4 +228,12 @@ How much is continued disagreement worth to you?
 
 By making conflict expensive and resolution cheap, NatLangChain turns coordination from a moral problem into an economic one.
 
-That’s the entire bet.
+That's the entire bet.
+
+---
+
+## License
+
+This project is licensed under FSL-1.1-ALv2.
+
+See [LICENSE.md](LICENSE.md) for the complete license text and [LICENSING.md](LICENSING.md) for compliance guidelines.

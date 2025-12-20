@@ -159,11 +159,15 @@ The RRA Module reimagines GitHub as a vibrant marketplace for autonomous code as
 For detailed documentation, see:
 - **[Quick Start Guide](QUICKSTART.md)** - Get up and running quickly
 - **[Full Documentation](docs/README.md)** - Complete documentation index
+- **[Specification](SPECIFICATION.md)** - Complete technical specification and implementation status
 - **[Blockchain Licensing](docs/BLOCKCHAIN-LICENSING.md)** - Automated monetization guide
 - **[NatLangChain Integration](docs/INTEGRATION.md)** - Ecosystem integration
 - **[Story Protocol Integration](docs/STORY-PROTOCOL-INTEGRATION.md)** - Programmable IP licensing
 - **[DeFi Integration](docs/DEFI-INTEGRATION.md)** - DeFi protocol feasibility
 - **[Roadmap](ROADMAP.md)** - Product roadmap and strategy
+- **[NatLangChain Roadmap](NatLangChain-roadmap.md)** - Long-term vision and conflict-compression infrastructure
+- **[Risk Mitigation](Risk-mitigation.md)** - Legal, technical, and operational risk strategies
+- **[Security Audit](docs/SECURITY-AUDIT.md)** - Security audit report (Score: A-)
 - **[Contributing](CONTRIBUTING.md)** - How to contribute
 
 ## License
