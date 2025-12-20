@@ -590,6 +590,11 @@ contract ILRMv2 is Ownable, ReentrancyGuard, Pausable {
             }
         }
 
+        // SECURITY FIX MED-003: Reset stakes to zero after distribution
+        // Prevents potential accounting issues or double-payout scenarios
+        d.stakeAmount = 0;
+        d.counterpartyStake = 0;
+
         emit SettlementProcessed(_disputeId, initiatorPayout, counterpartyPayout);
     }
 

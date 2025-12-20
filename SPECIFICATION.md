@@ -2960,7 +2960,7 @@ Implementation Path:
 
 | ID | Issue | Category | Count | Status |
 |----|-------|----------|-------|--------|
-| MED-001-003 | Smart Contract issues | Non-standard ownership, front-running, stake reset | 3 | ⏳ Open |
+| MED-001-003 | Smart Contract issues | Non-standard ownership, front-running, stake reset | 3 | ✅ Fixed |
 | MED-004-011 | Cryptography issues | MDS matrix, round constants, key commitment, IV | 8 | ⏳ Open |
 | MED-012-014 | API issues | webhooks.py mixed auth | 3 | ⏳ Open |
 
@@ -2970,10 +2970,10 @@ Implementation Path:
 |----------|-------|-------|------------|-----------|
 | Critical | 5 | 5 | 0 | 0 |
 | High | 6 | 4 | 2 | 0 |
-| Medium | 14 | 0 | 0 | 14 |
-| **Total** | **25** | **9** | **2** | **14** |
+| Medium | 14 | 3 | 0 | 11 |
+| **Total** | **25** | **12** | **2** | **11** |
 
-**Progress: 44% Complete (11/25 addressed)**
+**Progress: 56% Complete (14/25 addressed)**
 
 ---
 
