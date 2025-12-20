@@ -2393,7 +2393,7 @@ natlangchain.io/user/{username}              # Developer profile
 | IntentLog | ✅ Complete | Decision logging ready |
 | synth-mind | ✅ Complete | LLM routing in `src/rra/integration/synth_mind.py` |
 | boundary-daemon | ✅ Complete | Permission system in `src/rra/integration/boundary_daemon.py` |
-| learning-contracts | ✅ Complete | Adaptive pricing in `src/rra/defi/pricing.py` |
+| learning-contracts | ✅ Complete | Adaptive pricing in `src/rra/pricing/adaptive.py` |
 
 ### External Protocols
 
@@ -2441,11 +2441,11 @@ natlangchain.io/user/{username}              # Developer profile
 **Status:** 100% Complete
 
 **Implemented Features:**
-1. **Superfluid Integration** - ✅ Complete (`src/rra/payments/superfluid.py`)
-2. **Automated Fork Detection** - ✅ Complete (`src/rra/services/fork_detection.py`)
-3. **Multi-Chain Support** - ✅ Complete (`src/rra/defi/chains.py`)
-4. **learning-contracts/Adaptive Pricing** - ✅ Complete (`src/rra/defi/pricing.py`)
-5. **Multi-repo Bundling** - ✅ Complete (`src/rra/defi/bundling.py`)
+1. **Superfluid Integration** - ✅ Complete (`src/rra/integrations/superfluid.py`)
+2. **Automated Fork Detection** - ✅ Complete (`src/rra/integrations/github_webhooks.py`)
+3. **Multi-Chain Support** - ✅ Complete (`src/rra/chains/config.py`)
+4. **learning-contracts/Adaptive Pricing** - ✅ Complete (`src/rra/pricing/adaptive.py`)
+5. **Multi-repo Bundling** - ✅ Complete (`src/rra/bundling/repo_bundle.py`)
 6. **IPFi Lending** - ✅ Complete (`src/rra/defi/ipfi_lending.py`)
 7. **Fractional IP Ownership** - ✅ Complete (`src/rra/defi/fractional_ip.py`)
 8. **Yield-bearing License Tokens** - ✅ Complete (`src/rra/defi/yield_tokens.py`)
@@ -2458,11 +2458,11 @@ natlangchain.io/user/{username}              # Developer profile
 
 **Implemented Features:**
 1. **Marketplace UI** - ✅ Complete (`marketplace/`)
-2. **Webhook Bridge** - ✅ Complete (`src/rra/webhooks/`)
+2. **Webhook Bridge** - ✅ Complete (`src/rra/api/webhooks.py`, `src/rra/integrations/github_webhooks.py`)
 3. **Deep Links System** - ✅ Complete (`src/rra/services/deep_links.py`)
-4. **Embeddable Widget** - ✅ Complete (`src/rra/widget/`)
+4. **Embeddable Widget** - ✅ Complete (`src/rra/api/widget.py`)
 5. **Analytics Dashboard** - ✅ Complete (`src/rra/api/analytics.py`)
-6. **Mobile SDKs** - ✅ Complete (`mobile/ios/`, `mobile/android/`)
+6. **Mobile SDKs** - ✅ Complete (`sdks/ios/`, `sdks/android/`)
 7. **DAO Governance** - ✅ Complete (`src/rra/governance/dao.py`)
 
 **Completed:** December 2025
