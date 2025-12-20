@@ -2645,20 +2645,23 @@ Implementation Path:
 
 ---
 
-#### 6.2 Counter-Proposal Caps & Delay Costs ⏳ PLANNED
+#### 6.2 Counter-Proposal Caps & Delay Costs ✅ COMPLETE
 **Priority:** Medium | **Effort:** 2-3 weeks | **Source:** NatLangChain-roadmap.md (Phase 2)
 
 ```
 Implementation Path:
-├── contracts/NegotiationPressure.sol   # Exponential delay costs
-├── src/rra/negotiation/pressure.py     # Counter-proposal limiting
-└── tests/test_negotiation_pressure.py  # Pressure mechanism tests
+├── contracts/src/NegotiationPressure.sol   # Exponential delay costs ✅
+├── src/rra/negotiation/pressure.py         # Counter-proposal limiting ✅
+└── tests/test_negotiation_pressure.py      # Pressure mechanism tests ✅
 ```
 
-**Mechanics:**
-- Counter-proposal caps prevent infinite negotiation loops
-- Exponential delay costs make prolonged disagreement expensive
-- Time-bounded economic pressure for resolution
+**Implemented Mechanics:**
+- ✅ Counter-proposal caps prevent infinite negotiation loops (configurable per-negotiation)
+- ✅ Exponential delay costs: cost = baseRate * 2^(days/halfLife)
+- ✅ Time-bounded economic pressure with stake-based penalties
+- ✅ Smart contract with role-based access and treasury integration
+- ✅ Python module for off-chain pressure tracking
+- ✅ Comprehensive test suite (25+ tests)
 
 ---
 
@@ -2858,7 +2861,7 @@ Implementation Path:
 | Feature | Priority | Effort | Status |
 |---------|----------|--------|--------|
 | License Entropy Oracle | High | 4-5 weeks | ✅ Complete |
-| Counter-Proposal Caps | Medium | 2-3 weeks | ⏳ Planned |
+| Counter-Proposal Caps | Medium | 2-3 weeks | ✅ Complete |
 | DID Integration | High | 4-5 weeks | ⏳ Planned |
 | Multi-Party Reconciliation | Medium | 5-6 weeks | ⏳ Planned |
 | Automated Clause Hardening | Medium | 3-4 weeks | ⏳ Planned |
