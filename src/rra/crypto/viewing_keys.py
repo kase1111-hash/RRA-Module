@@ -702,14 +702,24 @@ class ViewingKeyManager:
         """
         Export a key's private bytes for escrow.
 
-        The exported bytes should be split using Shamir's Secret Sharing
-        before storage.
+        SECURITY: The exported bytes MUST be immediately split using
+        Shamir's Secret Sharing before any storage or transmission.
+        Never store or log the raw bytes returned by this method.
+
+        Recommended usage::
+
+            key_bytes = manager.export_key_for_escrow(dispute_id)
+            shares = split_key_for_escrow(key_bytes, dispute_id)
+            del key_bytes  # Clear from memory immediately
+
+        For password-protected export (not for Shamir splitting), use
+        ViewingKey.export_private_encrypted() instead.
 
         Args:
             dispute_id: Dispute identifier
 
         Returns:
-            32-byte private key
+            32-byte private key (handle securely - split immediately!)
 
         Raises:
             ValueError: If key not found
