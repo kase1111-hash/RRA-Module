@@ -2,12 +2,11 @@
 # SPDX-License-Identifier: FSL-1.1-ALv2
 
 """
-Hardware Authentication Module for RRA.
+Authentication Module for RRA.
 
-Provides FIDO2/WebAuthn integration for hardware-backed security:
-- YubiKey and platform authenticator support
-- Challenge-response authentication
-- ZK-compatible identity commitment generation
+Provides multiple authentication mechanisms:
+- FIDO2/WebAuthn for hardware-backed security
+- DID-based authentication for decentralized identity
 - Scoped delegation management
 """
 
@@ -28,6 +27,19 @@ from .delegation import (
     DelegationScope,
     ActionType,
 )
+from .did_auth import (
+    DIDAuthenticator,
+    DIDAuthMiddleware,
+    AuthChallenge,
+    AuthSession,
+    AuthResult,
+    AuthStatus,
+    AuthError,
+    ChallengeExpiredError,
+    InvalidSignatureError,
+    DIDResolutionError,
+    InsufficientScoreError,
+)
 
 __all__ = [
     # WebAuthn
@@ -44,4 +56,16 @@ __all__ = [
     "ScopedDelegation",
     "DelegationScope",
     "ActionType",
+    # DID Authentication
+    "DIDAuthenticator",
+    "DIDAuthMiddleware",
+    "AuthChallenge",
+    "AuthSession",
+    "AuthResult",
+    "AuthStatus",
+    "AuthError",
+    "ChallengeExpiredError",
+    "InvalidSignatureError",
+    "DIDResolutionError",
+    "InsufficientScoreError",
 ]

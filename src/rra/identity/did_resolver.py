@@ -1,0 +1,709 @@
+# SPDX-FileCopyrightText: 2025 Kase Branham
+# SPDX-License-Identifier: FSL-1.1-ALv2
+
+"""
+DID Resolver for NatLangChain Identity System.
+
+Implements resolution for multiple DID methods:
+- did:web - Web-based DIDs (domain-linked)
+- did:ethr - Ethereum address-based DIDs
+- did:key - Cryptographic key-based DIDs
+- did:nlc - NatLangChain native DIDs (on-chain registry)
+
+DID Document Structure (W3C DID Core 1.0):
+{
+    "@context": ["https://www.w3.org/ns/did/v1"],
+    "id": "did:ethr:0x123...",
+    "verificationMethod": [...],
+    "authentication": [...],
+    "assertionMethod": [...],
+    "service": [...]
+}
+
+Usage:
+    resolver = DIDResolver()
+
+    # Resolve a DID
+    doc = await resolver.resolve("did:ethr:0x123...")
+
+    # Verify a signature
+    is_valid = await resolver.verify_signature(
+        did="did:ethr:0x123...",
+        message=b"hello",
+        signature=b"..."
+    )
+"""
+
+import re
+import json
+import hashlib
+import asyncio
+from enum import Enum
+from typing import Dict, List, Optional, Any, Tuple, Union
+from dataclasses import dataclass, field
+from datetime import datetime
+from abc import ABC, abstractmethod
+
+import httpx
+from eth_utils import keccak, to_checksum_address
+from eth_keys import keys
+from eth_account.messages import encode_defunct
+from eth_account import Account
+
+
+class DIDMethod(Enum):
+    """Supported DID methods."""
+    WEB = "web"       # did:web:example.com
+    ETHR = "ethr"     # did:ethr:0x123...
+    KEY = "key"       # did:key:z6Mk...
+    NLC = "nlc"       # did:nlc:abc123 (NatLangChain native)
+
+
+@dataclass
+class VerificationMethod:
+    """
+    Verification method in a DID Document.
+
+    Represents a public key or other verification material.
+    """
+    id: str                          # e.g., "did:ethr:0x123...#key-1"
+    type: str                        # e.g., "EcdsaSecp256k1VerificationKey2019"
+    controller: str                  # DID that controls this key
+    public_key_hex: Optional[str] = None
+    public_key_jwk: Optional[Dict] = None
+    public_key_multibase: Optional[str] = None
+    blockchain_account_id: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to DID Document format."""
+        result = {
+            "id": self.id,
+            "type": self.type,
+            "controller": self.controller,
+        }
+        if self.public_key_hex:
+            result["publicKeyHex"] = self.public_key_hex
+        if self.public_key_jwk:
+            result["publicKeyJwk"] = self.public_key_jwk
+        if self.public_key_multibase:
+            result["publicKeyMultibase"] = self.public_key_multibase
+        if self.blockchain_account_id:
+            result["blockchainAccountId"] = self.blockchain_account_id
+        return result
+
+
+@dataclass
+class ServiceEndpoint:
+    """Service endpoint in a DID Document."""
+    id: str                          # e.g., "did:ethr:0x123...#messaging"
+    type: str                        # e.g., "MessagingService"
+    service_endpoint: str            # URL or other endpoint
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to DID Document format."""
+        return {
+            "id": self.id,
+            "type": self.type,
+            "serviceEndpoint": self.service_endpoint,
+        }
+
+
+@dataclass
+class DIDDocument:
+    """
+    W3C DID Document representation.
+
+    Contains identity information, verification methods,
+    authentication methods, and service endpoints.
+    """
+    id: str                                              # The DID
+    context: List[str] = field(default_factory=lambda: ["https://www.w3.org/ns/did/v1"])
+    controller: Optional[str] = None
+    verification_method: List[VerificationMethod] = field(default_factory=list)
+    authentication: List[str] = field(default_factory=list)
+    assertion_method: List[str] = field(default_factory=list)
+    key_agreement: List[str] = field(default_factory=list)
+    capability_invocation: List[str] = field(default_factory=list)
+    capability_delegation: List[str] = field(default_factory=list)
+    service: List[ServiceEndpoint] = field(default_factory=list)
+
+    # Metadata
+    created: Optional[datetime] = None
+    updated: Optional[datetime] = None
+    deactivated: bool = False
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to standard DID Document JSON format."""
+        doc = {
+            "@context": self.context,
+            "id": self.id,
+        }
+
+        if self.controller:
+            doc["controller"] = self.controller
+
+        if self.verification_method:
+            doc["verificationMethod"] = [vm.to_dict() for vm in self.verification_method]
+
+        if self.authentication:
+            doc["authentication"] = self.authentication
+
+        if self.assertion_method:
+            doc["assertionMethod"] = self.assertion_method
+
+        if self.key_agreement:
+            doc["keyAgreement"] = self.key_agreement
+
+        if self.capability_invocation:
+            doc["capabilityInvocation"] = self.capability_invocation
+
+        if self.capability_delegation:
+            doc["capabilityDelegation"] = self.capability_delegation
+
+        if self.service:
+            doc["service"] = [s.to_dict() for s in self.service]
+
+        return doc
+
+    def get_verification_method(self, method_id: str) -> Optional[VerificationMethod]:
+        """Get a verification method by ID."""
+        for vm in self.verification_method:
+            if vm.id == method_id or vm.id.endswith(f"#{method_id}"):
+                return vm
+        return None
+
+    def get_primary_verification_method(self) -> Optional[VerificationMethod]:
+        """Get the primary verification method (first authentication key)."""
+        if self.authentication and self.verification_method:
+            primary_id = self.authentication[0]
+            return self.get_verification_method(primary_id)
+        if self.verification_method:
+            return self.verification_method[0]
+        return None
+
+
+class DIDMethodResolver(ABC):
+    """Abstract base class for DID method resolvers."""
+
+    @abstractmethod
+    async def resolve(self, did: str) -> Optional[DIDDocument]:
+        """Resolve a DID to a DID Document."""
+        pass
+
+    @abstractmethod
+    def supports(self, did: str) -> bool:
+        """Check if this resolver supports the given DID."""
+        pass
+
+
+class EthrDIDResolver(DIDMethodResolver):
+    """
+    Resolver for did:ethr (Ethereum address-based DIDs).
+
+    Format: did:ethr:<network>:<address> or did:ethr:<address>
+    Examples:
+        - did:ethr:0x123...
+        - did:ethr:mainnet:0x123...
+        - did:ethr:sepolia:0x123...
+    """
+
+    # Network chain IDs
+    NETWORKS = {
+        "mainnet": 1,
+        "sepolia": 11155111,
+        "goerli": 5,
+        "polygon": 137,
+        "arbitrum": 42161,
+        "optimism": 10,
+        "base": 8453,
+    }
+
+    def __init__(self, rpc_url: Optional[str] = None):
+        """
+        Initialize the resolver.
+
+        Args:
+            rpc_url: Optional RPC URL for on-chain resolution
+        """
+        self.rpc_url = rpc_url
+
+    def supports(self, did: str) -> bool:
+        """Check if this is an ethr DID."""
+        return did.startswith("did:ethr:")
+
+    def _parse_did(self, did: str) -> Tuple[Optional[str], str]:
+        """Parse network and address from DID."""
+        parts = did.replace("did:ethr:", "").split(":")
+        if len(parts) == 1:
+            return None, parts[0]  # No network specified
+        return parts[0], parts[1]
+
+    async def resolve(self, did: str) -> Optional[DIDDocument]:
+        """Resolve an Ethereum DID to a document."""
+        if not self.supports(did):
+            return None
+
+        network, address = self._parse_did(did)
+
+        # Validate address
+        try:
+            address = to_checksum_address(address)
+        except Exception:
+            return None
+
+        # Build verification method
+        vm = VerificationMethod(
+            id=f"{did}#controller",
+            type="EcdsaSecp256k1RecoveryMethod2020",
+            controller=did,
+            blockchain_account_id=f"eip155:{self.NETWORKS.get(network, 1)}:{address}",
+        )
+
+        # Build DID Document
+        doc = DIDDocument(
+            id=did,
+            context=[
+                "https://www.w3.org/ns/did/v1",
+                "https://w3id.org/security/suites/secp256k1recovery-2020/v2",
+            ],
+            verification_method=[vm],
+            authentication=[f"{did}#controller"],
+            assertion_method=[f"{did}#controller"],
+        )
+
+        return doc
+
+
+class WebDIDResolver(DIDMethodResolver):
+    """
+    Resolver for did:web (Web-based DIDs).
+
+    Format: did:web:<domain>[:path]
+    Examples:
+        - did:web:example.com
+        - did:web:example.com:user:alice
+    """
+
+    def __init__(self, timeout: float = 10.0):
+        """
+        Initialize the resolver.
+
+        Args:
+            timeout: HTTP request timeout in seconds
+        """
+        self.timeout = timeout
+
+    def supports(self, did: str) -> bool:
+        """Check if this is a web DID."""
+        return did.startswith("did:web:")
+
+    def _did_to_url(self, did: str) -> str:
+        """Convert DID to well-known URL."""
+        # Remove did:web: prefix
+        domain_path = did.replace("did:web:", "")
+
+        # Replace : with /
+        parts = domain_path.split(":")
+
+        # First part is domain (URL decode %3A back to :)
+        domain = parts[0].replace("%3A", ":")
+
+        if len(parts) == 1:
+            # Root DID: /.well-known/did.json
+            return f"https://{domain}/.well-known/did.json"
+        else:
+            # Path-based DID
+            path = "/".join(parts[1:])
+            return f"https://{domain}/{path}/did.json"
+
+    async def resolve(self, did: str) -> Optional[DIDDocument]:
+        """Resolve a Web DID by fetching the document."""
+        if not self.supports(did):
+            return None
+
+        url = self._did_to_url(did)
+
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, timeout=self.timeout)
+                response.raise_for_status()
+                data = response.json()
+
+                # Validate that the document ID matches
+                if data.get("id") != did:
+                    return None
+
+                return self._parse_document(data)
+
+        except Exception:
+            return None
+
+    def _parse_document(self, data: Dict) -> DIDDocument:
+        """Parse JSON to DIDDocument."""
+        doc = DIDDocument(
+            id=data["id"],
+            context=data.get("@context", ["https://www.w3.org/ns/did/v1"]),
+            controller=data.get("controller"),
+        )
+
+        # Parse verification methods
+        for vm_data in data.get("verificationMethod", []):
+            vm = VerificationMethod(
+                id=vm_data["id"],
+                type=vm_data["type"],
+                controller=vm_data.get("controller", doc.id),
+                public_key_hex=vm_data.get("publicKeyHex"),
+                public_key_jwk=vm_data.get("publicKeyJwk"),
+                public_key_multibase=vm_data.get("publicKeyMultibase"),
+            )
+            doc.verification_method.append(vm)
+
+        # Parse relationships
+        doc.authentication = data.get("authentication", [])
+        doc.assertion_method = data.get("assertionMethod", [])
+        doc.key_agreement = data.get("keyAgreement", [])
+
+        # Parse services
+        for svc_data in data.get("service", []):
+            svc = ServiceEndpoint(
+                id=svc_data["id"],
+                type=svc_data["type"],
+                service_endpoint=svc_data["serviceEndpoint"],
+            )
+            doc.service.append(svc)
+
+        return doc
+
+
+class KeyDIDResolver(DIDMethodResolver):
+    """
+    Resolver for did:key (Cryptographic key-based DIDs).
+
+    Format: did:key:<multibase-encoded-public-key>
+    The DID itself encodes the public key, so no external resolution needed.
+
+    Supports:
+        - Ed25519 keys (z6Mk prefix)
+        - Secp256k1 keys (zQ3s prefix)
+    """
+
+    # Multicodec prefixes
+    ED25519_PREFIX = bytes([0xed, 0x01])
+    SECP256K1_PREFIX = bytes([0xe7, 0x01])
+
+    def supports(self, did: str) -> bool:
+        """Check if this is a key DID."""
+        return did.startswith("did:key:")
+
+    def _decode_multibase(self, encoded: str) -> bytes:
+        """Decode multibase-encoded data."""
+        if encoded.startswith("z"):
+            # Base58btc encoding
+            import base58
+            return base58.b58decode(encoded[1:])
+        raise ValueError(f"Unsupported multibase encoding: {encoded[0]}")
+
+    async def resolve(self, did: str) -> Optional[DIDDocument]:
+        """Resolve a key DID (self-describing)."""
+        if not self.supports(did):
+            return None
+
+        try:
+            # Extract multibase key
+            multibase_key = did.replace("did:key:", "")
+            key_bytes = self._decode_multibase(multibase_key)
+
+            # Determine key type from multicodec prefix
+            if key_bytes[:2] == self.ED25519_PREFIX:
+                key_type = "Ed25519VerificationKey2020"
+                public_key = key_bytes[2:]
+            elif key_bytes[:2] == self.SECP256K1_PREFIX:
+                key_type = "EcdsaSecp256k1VerificationKey2019"
+                public_key = key_bytes[2:]
+            else:
+                return None
+
+            # Build verification method
+            vm = VerificationMethod(
+                id=f"{did}#{multibase_key}",
+                type=key_type,
+                controller=did,
+                public_key_multibase=multibase_key,
+            )
+
+            doc = DIDDocument(
+                id=did,
+                context=[
+                    "https://www.w3.org/ns/did/v1",
+                    "https://w3id.org/security/suites/ed25519-2020/v1",
+                ],
+                verification_method=[vm],
+                authentication=[f"{did}#{multibase_key}"],
+                assertion_method=[f"{did}#{multibase_key}"],
+                key_agreement=[f"{did}#{multibase_key}"],
+            )
+
+            return doc
+
+        except Exception:
+            return None
+
+
+class NLCDIDResolver(DIDMethodResolver):
+    """
+    Resolver for did:nlc (NatLangChain native DIDs).
+
+    Format: did:nlc:<identifier>
+    These DIDs are resolved against the on-chain DIDRegistry contract.
+    """
+
+    def __init__(self, registry_address: Optional[str] = None, rpc_url: Optional[str] = None):
+        """
+        Initialize the resolver.
+
+        Args:
+            registry_address: Address of DIDRegistry contract
+            rpc_url: RPC URL for the blockchain
+        """
+        self.registry_address = registry_address
+        self.rpc_url = rpc_url
+        self._cache: Dict[str, Tuple[DIDDocument, datetime]] = {}
+        self._cache_ttl = 300  # 5 minutes
+
+    def supports(self, did: str) -> bool:
+        """Check if this is an NLC DID."""
+        return did.startswith("did:nlc:")
+
+    async def resolve(self, did: str) -> Optional[DIDDocument]:
+        """Resolve an NLC DID from the on-chain registry."""
+        if not self.supports(did):
+            return None
+
+        # Check cache
+        if did in self._cache:
+            doc, cached_at = self._cache[did]
+            if (datetime.utcnow() - cached_at).total_seconds() < self._cache_ttl:
+                return doc
+
+        # Extract identifier
+        identifier = did.replace("did:nlc:", "")
+
+        # TODO: Implement actual on-chain resolution
+        # For now, return a mock document
+        doc = DIDDocument(
+            id=did,
+            context=[
+                "https://www.w3.org/ns/did/v1",
+                "https://natlangchain.io/did/v1",
+            ],
+            verification_method=[
+                VerificationMethod(
+                    id=f"{did}#key-1",
+                    type="EcdsaSecp256k1VerificationKey2019",
+                    controller=did,
+                )
+            ],
+            authentication=[f"{did}#key-1"],
+            assertion_method=[f"{did}#key-1"],
+        )
+
+        # Cache
+        self._cache[did] = (doc, datetime.utcnow())
+
+        return doc
+
+
+class DIDResolver:
+    """
+    Universal DID Resolver supporting multiple methods.
+
+    Aggregates method-specific resolvers and provides a unified interface.
+    """
+
+    def __init__(
+        self,
+        rpc_url: Optional[str] = None,
+        registry_address: Optional[str] = None
+    ):
+        """
+        Initialize the resolver with method-specific resolvers.
+
+        Args:
+            rpc_url: RPC URL for blockchain-based resolution
+            registry_address: Address of NLC DID Registry
+        """
+        self.resolvers: List[DIDMethodResolver] = [
+            EthrDIDResolver(rpc_url),
+            WebDIDResolver(),
+            KeyDIDResolver(),
+            NLCDIDResolver(registry_address, rpc_url),
+        ]
+        self._cache: Dict[str, Tuple[DIDDocument, datetime]] = {}
+        self._cache_ttl = 300  # 5 minutes
+
+    def add_resolver(self, resolver: DIDMethodResolver) -> None:
+        """Add a custom DID method resolver."""
+        self.resolvers.insert(0, resolver)
+
+    async def resolve(self, did: str) -> Optional[DIDDocument]:
+        """
+        Resolve a DID to a DID Document.
+
+        Args:
+            did: The DID to resolve
+
+        Returns:
+            DIDDocument if found, None otherwise
+        """
+        # Validate DID format
+        if not self._validate_did_format(did):
+            return None
+
+        # Check cache
+        if did in self._cache:
+            doc, cached_at = self._cache[did]
+            if (datetime.utcnow() - cached_at).total_seconds() < self._cache_ttl:
+                return doc
+
+        # Try each resolver
+        for resolver in self.resolvers:
+            if resolver.supports(did):
+                doc = await resolver.resolve(did)
+                if doc:
+                    self._cache[did] = (doc, datetime.utcnow())
+                    return doc
+
+        return None
+
+    def _validate_did_format(self, did: str) -> bool:
+        """Validate DID format according to W3C spec."""
+        # Basic pattern: did:<method>:<method-specific-id>
+        pattern = r'^did:[a-z0-9]+:[a-zA-Z0-9._:%-]+$'
+        return bool(re.match(pattern, did))
+
+    def get_method(self, did: str) -> Optional[DIDMethod]:
+        """Extract the DID method from a DID."""
+        if not did.startswith("did:"):
+            return None
+
+        parts = did.split(":")
+        if len(parts) < 3:
+            return None
+
+        method = parts[1]
+        try:
+            return DIDMethod(method)
+        except ValueError:
+            return None
+
+    async def verify_signature(
+        self,
+        did: str,
+        message: bytes,
+        signature: bytes,
+        verification_method_id: Optional[str] = None
+    ) -> bool:
+        """
+        Verify a signature against a DID's verification method.
+
+        Args:
+            did: The DID of the signer
+            message: The signed message
+            signature: The signature bytes
+            verification_method_id: Optional specific verification method to use
+
+        Returns:
+            True if signature is valid
+        """
+        doc = await self.resolve(did)
+        if not doc:
+            return False
+
+        # Get verification method
+        if verification_method_id:
+            vm = doc.get_verification_method(verification_method_id)
+        else:
+            vm = doc.get_primary_verification_method()
+
+        if not vm:
+            return False
+
+        # Verify based on key type
+        try:
+            if "Secp256k1" in vm.type:
+                return self._verify_secp256k1(vm, message, signature)
+            elif "Ed25519" in vm.type:
+                return self._verify_ed25519(vm, message, signature)
+            else:
+                return False
+        except Exception:
+            return False
+
+    def _verify_secp256k1(
+        self,
+        vm: VerificationMethod,
+        message: bytes,
+        signature: bytes
+    ) -> bool:
+        """Verify secp256k1 signature."""
+        # For blockchain account ID (Ethereum)
+        if vm.blockchain_account_id:
+            # Extract address
+            parts = vm.blockchain_account_id.split(":")
+            address = parts[-1]
+
+            # Recover address from signature
+            message_hash = encode_defunct(message)
+            recovered = Account.recover_message(message_hash, signature=signature)
+
+            return recovered.lower() == address.lower()
+
+        return False
+
+    def _verify_ed25519(
+        self,
+        vm: VerificationMethod,
+        message: bytes,
+        signature: bytes
+    ) -> bool:
+        """Verify Ed25519 signature."""
+        # TODO: Implement Ed25519 verification
+        return False
+
+    async def authenticate(
+        self,
+        did: str,
+        challenge: bytes,
+        response: bytes
+    ) -> bool:
+        """
+        Authenticate a DID by verifying a challenge-response.
+
+        Args:
+            did: The DID claiming authentication
+            challenge: Random challenge bytes
+            response: Signed response
+
+        Returns:
+            True if authentication successful
+        """
+        return await self.verify_signature(did, challenge, response)
+
+    def clear_cache(self) -> None:
+        """Clear the resolution cache."""
+        self._cache.clear()
+
+
+# Convenience function
+async def resolve_did(did: str) -> Optional[DIDDocument]:
+    """
+    Resolve a DID using the default resolver.
+
+    Args:
+        did: The DID to resolve
+
+    Returns:
+        DIDDocument if found
+    """
+    resolver = DIDResolver()
+    return await resolver.resolve(did)
