@@ -12,6 +12,12 @@ from datetime import datetime, timedelta
 
 from fastapi.testclient import TestClient
 
+import os
+
+# Set up authentication for tests
+os.environ["RRA_DEV_MODE"] = "true"
+os.environ["RRA_API_KEY"] = "test-key"
+
 from rra.api.server import app
 from rra.api.analytics import (
     AnalyticsStore,
@@ -23,7 +29,7 @@ from rra.api.analytics import (
 )
 
 
-client = TestClient(app)
+client = TestClient(app, headers={"X-API-Key": "test-key"})
 
 
 class TestAnalyticsStore:

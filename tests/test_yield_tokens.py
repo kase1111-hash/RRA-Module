@@ -830,14 +830,19 @@ class TestYieldAPI:
 
     @pytest.fixture
     def client(self):
-        """Create test client."""
+        """Create test client with authentication."""
+        import os
         from fastapi.testclient import TestClient
         from rra.api.yield_api import router
         from fastapi import FastAPI
 
+        # Set dev mode for testing
+        os.environ["RRA_DEV_MODE"] = "true"
+        os.environ["RRA_API_KEY"] = "test-key"
+
         app = FastAPI()
         app.include_router(router)
-        return TestClient(app)
+        return TestClient(app, headers={"X-API-Key": "test-key"})
 
     def test_create_pool_endpoint(self, client):
         """Test POST /api/yield/pools endpoint."""
