@@ -25,9 +25,14 @@ Complete documentation for the Revenant Repo Agent Module.
 - **[Roadmap](../ROADMAP.md)** - Viral distribution strategy and product roadmap
 - **[Testing Results](TESTING-RESULTS.md)** - Test suite results (290 tests passing)
 - **[Security Audit](SECURITY-AUDIT.md)** - Security audit report (Score: A-)
+- **[Monitoring Guide](MONITORING.md)** - Production monitoring and alerting setup
 
 ### User Information
 - **[Buyer Beware](../Buyer-Beware.md)** - Important notice for marketplace users
+
+### Strategy & Planning
+- **[Risk Mitigation](../Risk-mitigation.md)** - Legal, technical, financial, and operational risk mitigation strategies
+- **[NatLangChain Roadmap](../NatLangChain-roadmap.md)** - Long-term roadmap for conflict-compression infrastructure
 
 ### Examples
 - **[Examples Directory](../examples/README.md)** - Code examples and demonstrations
@@ -42,7 +47,10 @@ RRA-Module/
 ├── LICENSE.md                  # License text
 ├── LICENSING.md                # License compliance guide
 ├── ROADMAP.md                  # Product roadmap
+├── SPECIFICATION.md            # Complete technical specification
 ├── Buyer-Beware.md            # Marketplace user notice
+├── Risk-mitigation.md         # Risk mitigation strategies
+├── NatLangChain-roadmap.md    # Long-term NatLangChain roadmap
 │
 ├── docs/                       # Detailed documentation
 │   ├── README.md              # This file
@@ -51,7 +59,8 @@ RRA-Module/
 │   ├── STORY-PROTOCOL-INTEGRATION.md # Story Protocol guide
 │   ├── DEFI-INTEGRATION.md     # DeFi integration guide
 │   ├── TESTING-RESULTS.md      # Test results (290 tests)
-│   └── SECURITY-AUDIT.md       # Security audit report
+│   ├── SECURITY-AUDIT.md       # Security audit report
+│   └── MONITORING.md           # Monitoring and alerting guide
 │
 └── examples/                   # Example code
     └── README.md              # Examples guide
@@ -95,6 +104,15 @@ RRA-Module/
 - [NatLangChain Integration](INTEGRATION.md)
 - [Standalone vs Integrated Mode](INTEGRATION.md#integration-modes)
 - [Component Architecture](INTEGRATION.md#integration-components)
+
+#### Strategy & Risk Management
+- [Risk Mitigation Overview](../Risk-mitigation.md)
+- [Legal & IP Risk](../Risk-mitigation.md#1-legal--ip-risk-mitigation)
+- [Technical Risk](../Risk-mitigation.md#2-technical-risk-mitigation)
+- [Financial/Market Risk](../Risk-mitigation.md#3-financial--market-risk-mitigation)
+- [Operational Risk](../Risk-mitigation.md#4-operational--reputational-risk-mitigation)
+- [NatLangChain Vision](../NatLangChain-roadmap.md)
+- [Conflict Compression Phases](../NatLangChain-roadmap.md#phase-1-core-stabilization--economic-proof-2026)
 
 ### By Use Case
 

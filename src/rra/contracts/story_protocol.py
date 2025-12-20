@@ -47,26 +47,51 @@ class StoryProtocolClient:
     with programmable licensing terms and automated royalty distribution.
     """
 
-    # Story Protocol contract addresses (mainnet - launched Feb 2025)
+    # ==========================================================================
+    # Contract Address Configuration
+    # ==========================================================================
+    # Development workflow:
+    # 1. Local/Fork: Deploy mocks using Foundry/Hardhat, update LOCALHOST_CONTRACTS
+    # 2. Testnet: Deploy to Sepolia, update TESTNET_CONTRACTS with real addresses
+    # 3. Mainnet: Only after thorough testing, use verified mainnet addresses
+    #
+    # Use address(0xdead) as placeholder until contracts are deployed
+    # ==========================================================================
+
+    # Placeholder address for undeployed contracts
+    DEAD_ADDRESS = "0x000000000000000000000000000000000000dEaD"
+    ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+
+    # Story Protocol mainnet addresses (update when available)
+    # IMPORTANT: Do not verify on explorer until final production version
     STORY_MAINNET_CONTRACTS = {
-        "IPAssetRegistry": "0x1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a",  # Placeholder
-        "LicenseRegistry": "0x2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b",  # Placeholder
-        "RoyaltyModule": "0x3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c",  # Placeholder
-        "PILFramework": "0x4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d",  # Placeholder
+        "IPAssetRegistry": "0x000000000000000000000000000000000000dEaD",  # TODO: Replace after mainnet deployment
+        "LicenseRegistry": "0x000000000000000000000000000000000000dEaD",  # TODO: Replace after mainnet deployment
+        "RoyaltyModule": "0x000000000000000000000000000000000000dEaD",  # TODO: Replace after mainnet deployment
+        "PILFramework": "0x000000000000000000000000000000000000dEaD",  # TODO: Replace after mainnet deployment
     }
 
-    # Story Protocol testnet addresses
+    # Story Protocol Sepolia testnet addresses
+    # Deploy your own mocks or use Story Protocol's official testnet deployment
     STORY_TESTNET_CONTRACTS = {
-        "IPAssetRegistry": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
-        "LicenseRegistry": "0xb2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2",
-        "RoyaltyModule": "0xc3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
-        "PILFramework": "0xd4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4",
+        "IPAssetRegistry": "0x000000000000000000000000000000000000dEaD",  # Deploy on Sepolia first
+        "LicenseRegistry": "0x000000000000000000000000000000000000dEaD",  # Deploy on Sepolia first
+        "RoyaltyModule": "0x000000000000000000000000000000000000dEaD",  # Deploy on Sepolia first
+        "PILFramework": "0x000000000000000000000000000000000000dEaD",  # Deploy on Sepolia first
+    }
+
+    # Local/Fork development addresses (use Foundry anvil or Hardhat node)
+    STORY_LOCALHOST_CONTRACTS = {
+        "IPAssetRegistry": "0x5FbDB2315678afecb367f032d93F642f64180aa3",  # First deployed contract on anvil
+        "LicenseRegistry": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+        "RoyaltyModule": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+        "PILFramework": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
     }
 
     def __init__(
         self,
         web3: Web3,
-        network: str = "mainnet",
+        network: str = "testnet",
         custom_addresses: Optional[Dict[str, str]] = None
     ):
         """
@@ -76,17 +101,28 @@ class StoryProtocolClient:
             web3: Web3 instance connected to blockchain
             network: Network name ("mainnet", "testnet", "localhost")
             custom_addresses: Custom contract addresses (overrides defaults)
+
+        Development workflow:
+            1. Start with network="localhost" for rapid iteration with Foundry/Hardhat
+            2. Move to network="testnet" (Sepolia) for integration testing
+            3. Only use network="mainnet" for production after thorough testing
         """
         self.w3 = web3
         self.network = network
 
-        # Select contract addresses
+        # Select contract addresses based on network
         if custom_addresses:
             self.addresses = custom_addresses
         elif network == "mainnet":
             self.addresses = self.STORY_MAINNET_CONTRACTS
-        else:
+        elif network == "localhost":
+            self.addresses = self.STORY_LOCALHOST_CONTRACTS
+        else:  # testnet (default for safety)
             self.addresses = self.STORY_TESTNET_CONTRACTS
+
+        # Validate addresses are not dead/zero in production
+        if network == "mainnet":
+            self._validate_mainnet_addresses()
 
         # Initialize contract interfaces
         self.ip_asset_registry: Optional[Contract] = None
@@ -581,3 +617,57 @@ class StoryProtocolClient:
                 "type": "function"
             }
         ]
+
+    def _validate_mainnet_addresses(self) -> None:
+        """
+        Validate that mainnet addresses are not placeholder/dead addresses.
+
+        Raises:
+            ValueError: If any contract address is a placeholder
+        """
+        invalid_addresses = [
+            self.DEAD_ADDRESS.lower(),
+            self.ZERO_ADDRESS.lower(),
+        ]
+
+        for name, address in self.addresses.items():
+            if address.lower() in invalid_addresses:
+                raise ValueError(
+                    f"Cannot use mainnet with placeholder address for {name}. "
+                    f"Deploy contracts first or use network='testnet' for development."
+                )
+
+    def is_ready_for_mainnet(self) -> bool:
+        """
+        Check if all contract addresses are valid for mainnet deployment.
+
+        Returns:
+            True if all addresses are valid (non-placeholder)
+        """
+        try:
+            self._validate_mainnet_addresses()
+            return True
+        except ValueError:
+            return False
+
+    @classmethod
+    def get_deployment_status(cls) -> Dict[str, Dict[str, bool]]:
+        """
+        Get deployment status for all networks.
+
+        Returns:
+            Dictionary showing which contracts are deployed on each network
+        """
+        invalid = [cls.DEAD_ADDRESS.lower(), cls.ZERO_ADDRESS.lower()]
+
+        def check_contracts(contracts: Dict[str, str]) -> Dict[str, bool]:
+            return {
+                name: addr.lower() not in invalid
+                for name, addr in contracts.items()
+            }
+
+        return {
+            "mainnet": check_contracts(cls.STORY_MAINNET_CONTRACTS),
+            "testnet": check_contracts(cls.STORY_TESTNET_CONTRACTS),
+            "localhost": check_contracts(cls.STORY_LOCALHOST_CONTRACTS),
+        }
