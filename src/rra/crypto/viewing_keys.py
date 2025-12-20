@@ -286,8 +286,102 @@ class ViewingKey:
         }
 
     def export_private(self) -> bytes:
-        """Export private key bytes (use with caution)."""
+        """
+        Export private key bytes (use with caution).
+
+        WARNING: This returns raw private key bytes. For secure export,
+        use export_private_encrypted() which encrypts the key with a password.
+        """
         return self.private_key.to_bytes()
+
+    def export_private_encrypted(self, password: bytes) -> bytes:
+        """
+        Export private key encrypted with a password.
+
+        SECURITY: Uses PBKDF2 for key derivation and AES-GCM for encryption.
+        This is the recommended method for exporting private keys.
+
+        Args:
+            password: Password to encrypt the key with
+
+        Returns:
+            Encrypted private key (salt + nonce + ciphertext + tag)
+        """
+        import os
+        from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
+        # Generate salt for PBKDF2
+        salt = os.urandom(16)
+
+        # Derive encryption key from password
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=salt,
+            iterations=600000,  # OWASP recommended minimum
+            backend=default_backend()
+        )
+        encryption_key = kdf.derive(password)
+
+        # Encrypt private key with AES-GCM
+        nonce = os.urandom(12)
+        aesgcm = AESGCM(encryption_key)
+        ciphertext = aesgcm.encrypt(nonce, self.private_key.to_bytes(), None)
+
+        # Return salt + nonce + ciphertext (includes tag)
+        return salt + nonce + ciphertext
+
+    @classmethod
+    def import_private_encrypted(
+        cls,
+        encrypted_data: bytes,
+        password: bytes,
+        purpose: 'KeyPurpose',
+        context_id: str
+    ) -> 'ViewingKey':
+        """
+        Import a private key from encrypted export.
+
+        Args:
+            encrypted_data: Output from export_private_encrypted
+            password: Password used for encryption
+            purpose: Key purpose
+            context_id: Context identifier
+
+        Returns:
+            Restored ViewingKey
+
+        Raises:
+            ValueError: If decryption fails (wrong password)
+        """
+        from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
+        if len(encrypted_data) < 28:  # 16 salt + 12 nonce
+            raise ValueError("Invalid encrypted data format")
+
+        # Extract components
+        salt = encrypted_data[:16]
+        nonce = encrypted_data[16:28]
+        ciphertext = encrypted_data[28:]
+
+        # Derive decryption key
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=salt,
+            iterations=600000,
+            backend=default_backend()
+        )
+        decryption_key = kdf.derive(password)
+
+        # Decrypt private key
+        aesgcm = AESGCM(decryption_key)
+        try:
+            private_bytes = aesgcm.decrypt(nonce, ciphertext, None)
+        except Exception:
+            raise ValueError("Decryption failed - wrong password or corrupted data")
+
+        return cls.from_private_bytes(private_bytes, purpose, context_id)
 
     @classmethod
     def from_private_bytes(

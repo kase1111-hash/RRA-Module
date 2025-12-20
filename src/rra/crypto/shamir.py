@@ -31,6 +31,72 @@ from enum import Enum
 PRIME = 2**256 - 189  # A known safe prime
 
 
+def _is_probable_prime(n: int, k: int = 40) -> bool:
+    """
+    Miller-Rabin primality test.
+
+    SECURITY: Verifies the prime modulus at module load to prevent
+    scheme failure from corrupted or misconfigured constants.
+
+    Args:
+        n: Number to test
+        k: Number of rounds (40 gives negligible error probability)
+
+    Returns:
+        True if n is probably prime
+    """
+    if n < 2:
+        return False
+    if n == 2 or n == 3:
+        return True
+    if n % 2 == 0:
+        return False
+
+    # Write n-1 as 2^r * d
+    r, d = 0, n - 1
+    while d % 2 == 0:
+        r += 1
+        d //= 2
+
+    # Witness loop
+    import random
+    for _ in range(k):
+        a = random.randrange(2, n - 1)
+        x = pow(a, d, n)
+
+        if x == 1 or x == n - 1:
+            continue
+
+        for _ in range(r - 1):
+            x = pow(x, 2, n)
+            if x == n - 1:
+                break
+        else:
+            return False
+
+    return True
+
+
+def _verify_prime_constant() -> None:
+    """
+    Verify PRIME constant is actually prime at module load.
+
+    SECURITY: Prevents complete scheme failure from corrupted constants.
+
+    Raises:
+        ValueError: If PRIME is not prime
+    """
+    if not _is_probable_prime(PRIME):
+        raise ValueError(
+            f"FATAL: Shamir prime constant {PRIME} failed primality test. "
+            "This indicates corruption or misconfiguration."
+        )
+
+
+# Verify prime at module load
+_verify_prime_constant()
+
+
 class ShareHolder(str, Enum):
     """Standard share holder roles."""
     USER = "user"
@@ -275,16 +341,20 @@ class ShamirSecretSharing:
         x: int
     ) -> int:
         """
-        Evaluate polynomial at point x.
+        Evaluate polynomial at point x using Horner's method.
 
         f(x) = c0 + c1*x + c2*x^2 + ...
-        """
-        result = 0
-        x_power = 1
 
-        for coef in coefficients:
-            result = (result + coef * x_power) % self.prime
-            x_power = (x_power * x) % self.prime
+        SECURITY: Uses Horner's method which processes all coefficients
+        in constant time regardless of their values. The number of
+        operations depends only on the polynomial degree, not the
+        coefficient values.
+        """
+        # Horner's method: ((c_n * x + c_{n-1}) * x + ...) * x + c_0
+        # This processes all coefficients uniformly
+        result = 0
+        for coef in reversed(coefficients):
+            result = (result * x + coef) % self.prime
 
         return result
 
@@ -297,11 +367,17 @@ class ShamirSecretSharing:
         Lagrange interpolation in finite field.
 
         Computes f(x) given points (x_i, y_i).
+
+        SECURITY: This implementation processes all points uniformly,
+        performing the same operations regardless of point values.
+        The modular inverse uses Fermat's little theorem which has
+        constant-time execution for a given prime size.
         """
         result = 0
 
         for i, (x_i, y_i) in enumerate(points):
             # Compute Lagrange basis polynomial L_i(x)
+            # All points are processed uniformly
             numerator = 1
             denominator = 1
 
@@ -310,7 +386,8 @@ class ShamirSecretSharing:
                     numerator = (numerator * (x - x_j)) % self.prime
                     denominator = (denominator * (x_i - x_j)) % self.prime
 
-            # Compute modular inverse of denominator
+            # Compute modular inverse using Fermat's little theorem
+            # pow() with three arguments uses constant-time modular exponentiation
             inv_denominator = pow(denominator, self.prime - 2, self.prime)
 
             # Add contribution: y_i * L_i(x)

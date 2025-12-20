@@ -4,13 +4,18 @@
 Tests for the Embeddable Widget API.
 """
 
+import os
 import pytest
 from fastapi.testclient import TestClient
+
+# Set up test environment before imports
+os.environ["RRA_DEV_MODE"] = "true"
+os.environ["RRA_API_KEY"] = "test-key"
 
 from rra.api.server import app
 
 
-client = TestClient(app)
+client = TestClient(app, headers={"X-API-Key": "test-key"})
 
 
 class TestWidgetAPI:
