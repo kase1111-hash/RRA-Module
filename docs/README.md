@@ -34,7 +34,9 @@ Complete documentation for the Revenant Repo Agent Module.
 - **[Risk Mitigation](../Risk-mitigation.md)** - Legal, technical, financial, and operational risk mitigation strategies
 - **[NatLangChain Roadmap](../NatLangChain-roadmap.md)** - Long-term roadmap for conflict-compression infrastructure
 
-#### Privacy & Zero-Knowledge
+#### Security & Privacy (Phase 5)
+- **[Hardware Authentication](HARDWARE-AUTHENTICATION.md)** - FIDO2/WebAuthn hardware-backed authentication with ZK proofs
+- **[Transaction Security](TRANSACTION-SECURITY.md)** - Two-step verification with timeout and price commitment
 - **[Dispute Membership Circuit](Dispute-Membership-Circuit.md)** - ZK identity proofs, viewing keys, and privacy infrastructure for ILRM disputes
 
 ### Examples
@@ -61,9 +63,11 @@ RRA-Module/
 │   ├── INTEGRATION.md          # NatLangChain integration
 │   ├── STORY-PROTOCOL-INTEGRATION.md # Story Protocol guide
 │   ├── DEFI-INTEGRATION.md     # DeFi integration guide
-│   ├── TESTING-RESULTS.md      # Test results (290 tests)
+│   ├── TESTING-RESULTS.md      # Test results (290+ tests)
 │   ├── SECURITY-AUDIT.md       # Security audit report
 │   ├── MONITORING.md           # Monitoring and alerting guide
+│   ├── HARDWARE-AUTHENTICATION.md # FIDO2/WebAuthn (Phase 5)
+│   ├── TRANSACTION-SECURITY.md # Two-step verification (Phase 5)
 │   └── Dispute-Membership-Circuit.md  # ZK identity proofs
 │
 └── examples/                   # Example code
@@ -103,6 +107,20 @@ RRA-Module/
 - [Cryptographic Practices](SECURITY-AUDIT.md#4-cryptographic-practices--strong)
 - [SSRF Protection](SECURITY-AUDIT.md#6-ssrf-protection--comprehensive)
 - [Rate Limiting](SECURITY-AUDIT.md#7-rate-limiting--implemented)
+
+#### Hardware Authentication (Phase 5)
+- [FIDO2/WebAuthn Overview](HARDWARE-AUTHENTICATION.md)
+- [P256 Signature Verification](HARDWARE-AUTHENTICATION.md#p256verifiersol)
+- [Scoped Delegation](HARDWARE-AUTHENTICATION.md#scopeddelegationsol)
+- [Anonymous Group Membership](HARDWARE-AUTHENTICATION.md#hardwareidentitygroupsol)
+- [Authentication Flows](HARDWARE-AUTHENTICATION.md#authentication-flows)
+
+#### Transaction Security (Phase 5)
+- [Two-Step Verification](TRANSACTION-SECURITY.md)
+- [Price Commitment](TRANSACTION-SECURITY.md#pricecommitment)
+- [Safeguard Levels](TRANSACTION-SECURITY.md#safeguard-levels)
+- [Timeout and Auto-Cancel](TRANSACTION-SECURITY.md#timeout-flow-auto-cancel)
+- [Rate Limiting](TRANSACTION-SECURITY.md#rate-limiting)
 
 #### Privacy & Zero-Knowledge Infrastructure
 - [Dispute Membership Circuit](Dispute-Membership-Circuit.md)
