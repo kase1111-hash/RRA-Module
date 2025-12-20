@@ -168,6 +168,8 @@ For detailed documentation, see:
 - **[NatLangChain Roadmap](NatLangChain-roadmap.md)** - Long-term vision and conflict-compression infrastructure
 - **[Risk Mitigation](Risk-mitigation.md)** - Legal, technical, and operational risk strategies
 - **[Security Audit](docs/SECURITY-AUDIT.md)** - Security audit report (Score: A-)
+- **[Hardware Authentication](docs/HARDWARE-AUTHENTICATION.md)** - FIDO2/WebAuthn with ZK proofs (Phase 5)
+- **[Transaction Security](docs/TRANSACTION-SECURITY.md)** - Two-step verification with timeout (Phase 5)
 - **[Contributing](CONTRIBUTING.md)** - How to contribute
 
 ## License
