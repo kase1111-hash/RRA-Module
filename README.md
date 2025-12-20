@@ -1,4 +1,16 @@
 NatLangChain: Revenant Repo Agent Module (RRA Module)
+
+The RRA‑Module repository is a Python/Smart‑contract powered extension for the NatLangChain framework that turns a static GitHub repo into an autonomous agent which:
+
+✔ Ingests a repo’s source code
+✔ Parses and vectorizes knowledge about the repo
+✔ Wraps that knowledge into an agent/LLM workflow
+✔ Enables automated on‑chain licensing/negotiation transactions
+✔ Interfaces with blockchain smart contracts (e.g., ERC‑721/ETH)
+✔ Maintains a negotiation agent that can interact with buyer agents
+
+So the code itself implements a modular pipeline transforming repos into living AI agents with monetization features.
+
 Module Overview
 The Revenant Repo Agent Module (RRA) is a transformative extension for NatLangChain designed to resurrect dormant or unmanaged GitHub repositories, converting them into self-sustaining, autonomous agents capable of generating revenue through on-chain negotiations and licensing. By leveraging AI-driven ingestion, negotiation, and blockchain entitlements, RRA minimizes developer involvement while maximizing the economic potential of "zombie" codebases. This module empowers developers worldwide to monetize their intellectual property effortlessly, fostering a decentralized, value-driven code economy.
 Key Benefits:
