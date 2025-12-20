@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 import "./P256Verifier.sol";
 
 /**
@@ -24,7 +25,7 @@ import "./P256Verifier.sol";
  * - Hardware signature is non-repudiable evidence
  * - Combined with ZK proofs for privacy-preserving verification
  */
-contract WebAuthnVerifier is P256Verifier {
+contract WebAuthnVerifier is P256Verifier, Ownable2Step {
     // =========================================================================
     // Types
     // =========================================================================
@@ -56,9 +57,6 @@ contract WebAuthnVerifier is P256Verifier {
     // =========================================================================
     // State Variables
     // =========================================================================
-
-    // Contract owner for admin functions
-    address public owner;
 
     // Credential storage: credentialIdHash => credential
     mapping(bytes32 => WebAuthnCredential) public credentials;
@@ -102,10 +100,7 @@ contract WebAuthnVerifier is P256Verifier {
         uint256 expiresAt
     );
 
-    event OwnershipTransferred(
-        address indexed previousOwner,
-        address indexed newOwner
-    );
+    // Note: OwnershipTransferred event is inherited from Ownable
 
     event RpIdHashUpdated(
         bytes32 indexed oldHash,
@@ -118,26 +113,15 @@ contract WebAuthnVerifier is P256Verifier {
     );
 
     // =========================================================================
-    // Modifiers
-    // =========================================================================
-
-    modifier onlyOwner() {
-        require(msg.sender == owner, "WebAuthnVerifier: caller is not the owner");
-        _;
-    }
-
-    // =========================================================================
     // Constructor
     // =========================================================================
 
     /**
      * @param _rpIdHash SHA-256 hash of the Relying Party ID (domain)
      */
-    constructor(bytes32 _rpIdHash) {
+    constructor(bytes32 _rpIdHash) Ownable(msg.sender) {
         require(_rpIdHash != bytes32(0), "WebAuthnVerifier: invalid RP ID hash");
         rpIdHash = _rpIdHash;
-        owner = msg.sender;
-        emit OwnershipTransferred(address(0), msg.sender);
     }
 
     // =========================================================================
@@ -417,23 +401,6 @@ contract WebAuthnVerifier is P256Verifier {
         emit ChallengeValidityUpdated(oldPeriod, _newPeriod);
     }
 
-    /**
-     * @notice Transfer ownership to a new address
-     * @param _newOwner New owner address
-     */
-    function transferOwnership(address _newOwner) external onlyOwner {
-        require(_newOwner != address(0), "WebAuthnVerifier: new owner is the zero address");
-        address oldOwner = owner;
-        owner = _newOwner;
-        emit OwnershipTransferred(oldOwner, _newOwner);
-    }
-
-    /**
-     * @notice Renounce ownership (irreversible)
-     */
-    function renounceOwnership() external onlyOwner {
-        address oldOwner = owner;
-        owner = address(0);
-        emit OwnershipTransferred(oldOwner, address(0));
-    }
+    // Note: transferOwnership() and renounceOwnership() are inherited from Ownable2Step
+    // Ownable2Step provides safer two-step ownership transfer requiring acceptOwnership() by new owner
 }

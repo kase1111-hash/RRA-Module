@@ -113,14 +113,35 @@ class ShamirSecretSharing:
         """
         Reconstruct secret from shares using Lagrange interpolation.
 
+        SECURITY FIX MED-008: Validates share indices before reconstruction.
+
         Args:
             shares: At least threshold shares
 
         Returns:
             The reconstructed secret
+
+        Raises:
+            ValueError: If shares are insufficient or have invalid indices
         """
         if len(shares) < self.threshold:
             raise ValueError(f"Need at least {self.threshold} shares, got {len(shares)}")
+
+        # SECURITY FIX MED-008: Validate share indices
+        # Index 0 would leak the secret directly (f(0) = secret)
+        # Negative or out-of-range indices could cause undefined behavior
+        seen_indices = set()
+        for share in shares:
+            if not (1 <= share.index <= 255):
+                raise ValueError(
+                    f"Invalid share index {share.index}: must be between 1 and 255"
+                )
+            # Check for duplicate indices (would cause division by zero in Lagrange)
+            if share.index in seen_indices:
+                raise ValueError(
+                    f"Duplicate share index {share.index}: each share must have unique index"
+                )
+            seen_indices.add(share.index)
 
         # Use only threshold shares
         shares = shares[:self.threshold]
