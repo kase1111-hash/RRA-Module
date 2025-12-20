@@ -483,6 +483,7 @@ def create_app() -> FastAPI:
         from rra.api.streaming import router as streaming_router
         from rra.api.widget import router as widget_router
         from rra.api.analytics import router as analytics_router
+        from rra.api.yield_api import router as yield_router
         app.include_router(marketplace_router)
         app.include_router(websocket_router)
         app.include_router(deep_links_router)
@@ -490,6 +491,7 @@ def create_app() -> FastAPI:
         app.include_router(streaming_router)
         app.include_router(widget_router)
         app.include_router(analytics_router)
+        app.include_router(yield_router)
     except ImportError:
         # Routers not available in minimal install
         pass
