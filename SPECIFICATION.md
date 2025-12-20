@@ -2620,22 +2620,26 @@ Implementation:
 
 Phase 6 implements advanced conflict-compression infrastructure, making disagreement economically irrational and resolution cheap. This transforms NatLangChain from a contract negotiation system into a general-purpose coordination layer.
 
-#### 6.1 License Entropy Oracle ⏳ PLANNED
+#### 6.1 License Entropy Oracle ⚙️ IN PROGRESS
 **Priority:** High | **Effort:** 4-5 weeks | **Source:** NatLangChain-roadmap.md (Phase 2)
 
 ```
 Implementation Path:
-├── contracts/LicenseEntropyOracle.sol  # Clause stability scoring
-├── src/rra/analytics/entropy_scorer.py # Historical instability analysis
-├── src/rra/predictions/dispute_model.py # ML dispute prediction
-└── src/rra/api/entropy.py              # API for upstream contracts
+├── contracts/LicenseEntropyOracle.sol  # Clause stability scoring (TODO)
+├── src/rra/analytics/entropy_scorer.py # Historical instability analysis ✅
+├── src/rra/analytics/clause_patterns.py # Pattern clustering ✅
+├── src/rra/predictions/dispute_model.py # ML dispute prediction ✅
+└── src/rra/api/entropy.py              # API for upstream contracts ✅
 ```
 
-**Capabilities:**
-- Score clauses by historical instability
-- Predict likelihood of future disputes
-- Exposed as API for upstream contracts
-- Inform negotiation with entropy warnings
+**Implemented Capabilities:**
+- ✅ Score clauses by historical instability (EntropyScorer)
+- ✅ Predict likelihood of future disputes (DisputePredictor)
+- ✅ REST API exposed for upstream integration
+- ✅ Pattern analysis and hardening suggestions
+- ✅ Dispute trigger identification
+- ⏳ On-chain oracle contract (TODO)
+- ⏳ LEO Dashboard (separate repo)
 
 ---
 
@@ -2851,7 +2855,7 @@ Implementation Path:
 
 | Feature | Priority | Effort | Status |
 |---------|----------|--------|--------|
-| License Entropy Oracle | High | 4-5 weeks | ⏳ Planned |
+| License Entropy Oracle | High | 4-5 weeks | ⚙️ In Progress (Python complete) |
 | Counter-Proposal Caps | Medium | 2-3 weeks | ⏳ Planned |
 | DID Integration | High | 4-5 weeks | ⏳ Planned |
 | Multi-Party Reconciliation | Medium | 5-6 weeks | ⏳ Planned |
