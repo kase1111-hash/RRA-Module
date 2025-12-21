@@ -89,9 +89,9 @@ class ValuationResult:
     confidence_score: int  # 0-10000 basis points
     
     methodology_hash: str  # Hash of methodology document
-    calculation_details: Dict = field(default_factory=dict)
-    
     oracle_address: str
+    calculation_details: Dict = field(default_factory=dict)
+
     calculated_at: datetime = field(default_factory=datetime.utcnow)
     valid_until: datetime = field(default_factory=lambda: datetime.utcnow() + timedelta(days=90))
 

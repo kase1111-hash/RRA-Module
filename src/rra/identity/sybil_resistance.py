@@ -50,6 +50,14 @@ class RiskLevel(Enum):
     CRITICAL = "critical" # Score < 20
 
 
+class TrustLevel(Enum):
+    """Trust level classification for identities."""
+    HIGH = "high"           # Highly trusted identity
+    MEDIUM = "medium"       # Moderately trusted
+    LOW = "low"             # Low trust, limited privileges
+    UNTRUSTED = "untrusted" # Not trusted, probationary status
+
+
 class ProofType(Enum):
     """Types of humanity/identity proofs."""
     NONE = "none"
@@ -151,7 +159,9 @@ class SybilCheck:
     """
     did: str
     is_suspicious: bool
+    is_human: bool                      # Whether identity verified as human
     risk_level: RiskLevel
+    trust_level: TrustLevel             # Trust level for privileges
     confidence: float                  # 0-1 how confident we are
 
     # Risk factors detected
@@ -208,8 +218,13 @@ class SybilResistance:
     MIN_TRANSACTIONS = 10
     MIN_UNIQUE_INTERACTIONS = 5
 
-    def __init__(self):
-        """Initialize the Sybil resistance system."""
+    def __init__(self, resolver: Optional[Any] = None):
+        """Initialize the Sybil resistance system.
+
+        Args:
+            resolver: Optional DID resolver instance for identity lookups
+        """
+        self.resolver = resolver
         # Identity data storage (in production, use database)
         self._identities: Dict[str, Dict] = {}
         self._proofs: Dict[str, List[ProofOfHumanity]] = defaultdict(list)
@@ -419,10 +434,25 @@ class SybilResistance:
         data_points = len(proofs) + len(activity) + len(relationships)
         confidence = min(0.9, 0.3 + (data_points / 50))
 
+        # Determine trust level based on score
+        if score.score >= 70:
+            trust_level = TrustLevel.HIGH
+        elif score.score >= 40:
+            trust_level = TrustLevel.MEDIUM
+        elif score.score >= 20:
+            trust_level = TrustLevel.LOW
+        else:
+            trust_level = TrustLevel.UNTRUSTED
+
+        # is_human is true if we have valid proof of humanity
+        is_human = any(p.verified for p in proofs) if proofs else False
+
         return SybilCheck(
             did=did,
             is_suspicious=is_suspicious,
+            is_human=is_human,
             risk_level=score.risk_level,
+            trust_level=trust_level,
             confidence=confidence,
             risk_factors=risk_factors,
             related_identities=list(related_identities)[:10],

@@ -278,7 +278,7 @@ class TermAnalyzer:
             "entropy": 0.4,
             "dispute_rate": 0.12,
             "explanation": "Permissive language can create ambiguity about obligations",
-            "alternatives": ["shall" for obligations, clarify as optional],
+            "alternatives": ["shall for obligations", "clarify as optional"],
         },
     }
 
