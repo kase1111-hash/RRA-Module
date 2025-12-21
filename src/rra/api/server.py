@@ -24,6 +24,8 @@ from functools import wraps
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, Request, Security
 from fastapi.security import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 from pydantic import BaseModel
 
 from rra.ingestion.repo_ingester import RepoIngester
@@ -317,6 +319,60 @@ def create_app() -> FastAPI:
         ],
         expose_headers=["X-RateLimit-Remaining", "X-RateLimit-Reset"],
     )
+
+    # ==========================================================================
+    # Security Headers Middleware
+    # ==========================================================================
+    class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+        """Add security headers to all responses."""
+
+        async def dispatch(self, request: Request, call_next) -> Response:
+            response = await call_next(request)
+
+            # Prevent MIME type sniffing
+            response.headers["X-Content-Type-Options"] = "nosniff"
+
+            # Prevent clickjacking (except for widget endpoints that need embedding)
+            if not request.url.path.startswith("/api/widget"):
+                response.headers["X-Frame-Options"] = "DENY"
+
+            # Enable XSS protection in older browsers
+            response.headers["X-XSS-Protection"] = "1; mode=block"
+
+            # Referrer policy for privacy
+            response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+
+            # Permissions policy (formerly Feature-Policy)
+            response.headers["Permissions-Policy"] = (
+                "accelerometer=(), camera=(), geolocation=(), gyroscope=(), "
+                "magnetometer=(), microphone=(), payment=(), usb=()"
+            )
+
+            # HSTS - only in production (when not localhost)
+            if os.environ.get("RRA_ENV", "production") == "production":
+                # max-age=1 year, include subdomains, allow preload
+                response.headers["Strict-Transport-Security"] = (
+                    "max-age=31536000; includeSubDomains; preload"
+                )
+
+            # Content Security Policy
+            # Restrictive CSP - adjust based on actual needs
+            csp_directives = [
+                "default-src 'self'",
+                "script-src 'self'",
+                "style-src 'self' 'unsafe-inline'",  # inline styles often needed
+                "img-src 'self' data: https:",
+                "font-src 'self'",
+                "connect-src 'self'",
+                "frame-ancestors 'none'",
+                "base-uri 'self'",
+                "form-action 'self'",
+            ]
+            response.headers["Content-Security-Policy"] = "; ".join(csp_directives)
+
+            return response
+
+    app.add_middleware(SecurityHeadersMiddleware)
 
     @app.get("/")
     def root():
