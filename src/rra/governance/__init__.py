@@ -3,8 +3,8 @@
 """
 DAO Governance module for RRA.
 
-Provides governance mechanisms for collective IP portfolio management
-and multi-treasury dispute resolution voting.
+Provides governance mechanisms for collective IP portfolio management,
+multi-treasury dispute resolution voting, and reputation-weighted voting.
 """
 
 from .dao import (
@@ -29,6 +29,14 @@ from .treasury_votes import (
     TreasuryVotingManager,
     create_treasury_voting_manager,
 )
+from .rep_voting import (
+    ProposalStatus as RepProposalStatus,
+    VoteChoice as RepVoteChoice,
+    WeightedVote,
+    RepWeightedProposal,
+    RepWeightedGovernance,
+    create_rep_weighted_governance,
+)
 
 __all__ = [
     # DAO Governance
@@ -51,4 +59,11 @@ __all__ = [
     "VotingTreasury",
     "TreasuryVotingManager",
     "create_treasury_voting_manager",
+    # Reputation-Weighted Voting
+    "RepProposalStatus",
+    "RepVoteChoice",
+    "WeightedVote",
+    "RepWeightedProposal",
+    "RepWeightedGovernance",
+    "create_rep_weighted_governance",
 ]

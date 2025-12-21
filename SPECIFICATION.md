@@ -2892,15 +2892,15 @@ Implementation Path:
 
 ---
 
-#### 6.10 Reputation-Weighted Participation ⏳ PLANNED
+#### 6.10 Reputation-Weighted Participation ✅ COMPLETE
 **Priority:** Medium | **Effort:** 3-4 weeks | **Source:** NatLangChain-roadmap.md (Phase 4)
 
 ```
 Implementation Path:
-├── contracts/ReputationWeightedVoting.sol # Weighted voting
-├── src/rra/reputation/weighted.py         # Weight calculation
-├── src/rra/governance/rep_voting.py       # Rep-based governance
-└── tests/test_reputation_weights.py       # Weight accuracy tests
+├── contracts/ReputationWeightedVoting.sol # Weighted voting ✅
+├── src/rra/reputation/weighted.py         # Weight calculation ✅
+├── src/rra/governance/rep_voting.py       # Rep-based governance ✅
+└── tests/test_reputation_weights.py       # Weight accuracy tests ✅
 ```
 
 **Mechanics:**
@@ -2908,6 +2908,18 @@ Implementation Path:
 - Good-faith actors have more influence
 - Prevents gaming by bad actors
 - Transparent weight calculation
+
+**Implementation Details:**
+- **Reputation scoring (100-10,000):** Base 1000, with actions affecting score
+  - Resolution success: +50 points
+  - Early voting: +25 points
+  - Malicious behavior: -200 points
+  - Inactivity decay: -5 points per period
+- **Vote weight formula:** `stake × reputation_multiplier × (1 + tenure_bonus)`
+  - Reputation multiplier: 1.0 to 3.0 based on score
+  - Tenure bonus: up to 20% after 1 year participation
+- **Solidity contract:** ReputationWeightedVoting.sol with on-chain reputation tracking
+- **Python modules:** ReputationManager for weight calculation, RepWeightedGovernance for proposals
 
 ---
 
@@ -2963,7 +2975,7 @@ Implementation Path:
 | High-Throughput L3 | Low | 6-8 weeks | ✅ Complete |
 | Treasury Coordination | Medium | 3-4 weeks | ✅ Complete |
 | Off-Chain Event Bridging | Medium | 4-5 weeks | ✅ Complete |
-| Reputation-Weighted Voting | Medium | 3-4 weeks | ⏳ Planned |
+| Reputation-Weighted Voting | Medium | 3-4 weeks | ✅ Complete |
 | Tokenized RWA | Low | 8-10 weeks | ⏳ Planned |
 | Jurisdiction Wrappers | Low | 6-8 weeks | ⏳ Planned |
 
