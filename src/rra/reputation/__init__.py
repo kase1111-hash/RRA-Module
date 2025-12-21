@@ -1,7 +1,31 @@
 # SPDX-License-Identifier: FSL-1.1-ALv2
 # Copyright 2025 Kase Branham
-"""Reputation tracking system for repositories and agents."""
+"""
+Reputation System for RRA.
 
-from rra.reputation.tracker import ReputationTracker
+Provides reputation-weighted participation:
+- Historical resolution success tracking
+- Reputation score management
+- Voting power calculation with reputation multipliers
+- Good-faith behavior incentives
+"""
 
-__all__ = ["ReputationTracker"]
+from .weighted import (
+    ReputationAction,
+    ReputationChange,
+    ParticipantReputation,
+    VotingPower,
+    ReputationConfig,
+    ReputationManager,
+    create_reputation_manager,
+)
+
+__all__ = [
+    "ReputationAction",
+    "ReputationChange",
+    "ParticipantReputation",
+    "VotingPower",
+    "ReputationConfig",
+    "ReputationManager",
+    "create_reputation_manager",
+]
