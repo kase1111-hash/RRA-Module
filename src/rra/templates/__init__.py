@@ -9,6 +9,7 @@ Provides pre-hardened clause templates for common license scenarios:
 - Termination with defined triggers
 - Payment terms with specific formulas
 - Dispute resolution with clear procedures
+- Jurisdiction-specific legal wrappers
 """
 
 from .hardened_clauses import (
@@ -17,10 +18,28 @@ from .hardened_clauses import (
     TemplateLibrary,
     get_default_library,
 )
+from .legal_wrappers import (
+    TemplateType,
+    LanguageCode,
+    TemplateVariable,
+    LegalTemplate,
+    RenderedClause,
+    LegalTemplateLibrary,
+    create_template_library,
+)
 
 __all__ = [
+    # Hardened Clauses
     "ClauseTemplate",
     "TemplateCategory",
     "TemplateLibrary",
     "get_default_library",
+    # Legal Wrapper Templates
+    "TemplateType",
+    "LanguageCode",
+    "TemplateVariable",
+    "LegalTemplate",
+    "RenderedClause",
+    "LegalTemplateLibrary",
+    "create_template_library",
 ]
