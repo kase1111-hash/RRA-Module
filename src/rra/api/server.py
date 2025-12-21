@@ -663,6 +663,7 @@ def create_app() -> FastAPI:
         from rra.api.yield_api import router as yield_router
         from rra.api.entropy import router as entropy_router
         from rra.api.warnings import router as warnings_router
+        from rra.api.treasury import router as treasury_router
         app.include_router(marketplace_router)
         app.include_router(websocket_router)
         app.include_router(deep_links_router)
@@ -673,6 +674,7 @@ def create_app() -> FastAPI:
         app.include_router(yield_router)
         app.include_router(entropy_router)
         app.include_router(warnings_router)
+        app.include_router(treasury_router)
     except ImportError:
         # Routers not available in minimal install
         pass
