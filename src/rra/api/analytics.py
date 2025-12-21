@@ -857,6 +857,20 @@ async def get_dashboard_html() -> HTMLResponse:
         let currentTimeRange = 'week';
         let activityChart = null;
 
+        // HTML escape function to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Safe number formatting
+        function safeNumber(val, decimals = 0) {
+            const num = Number(val);
+            if (isNaN(num)) return '0';
+            return decimals > 0 ? num.toFixed(decimals) : num.toLocaleString();
+        }
+
         async function fetchData(endpoint, params = {}) {
             const url = new URL(endpoint, window.location.origin);
             Object.entries(params).forEach(([k, v]) => url.searchParams.append(k, v));
@@ -987,12 +1001,12 @@ async def get_dashboard_html() -> HTMLResponse:
 
             tbody.innerHTML = data.agents.map(agent => `
                 <tr>
-                    <td>${agent.agent_id}</td>
-                    <td>${agent.views.toLocaleString()}</td>
-                    <td>${agent.negotiations.toLocaleString()}</td>
-                    <td>${agent.licenses.toLocaleString()}</td>
-                    <td>${agent.revenue_eth.toFixed(4)}</td>
-                    <td>${agent.conversion_rate.toFixed(1)}%</td>
+                    <td>${escapeHtml(String(agent.agent_id))}</td>
+                    <td>${safeNumber(agent.views)}</td>
+                    <td>${safeNumber(agent.negotiations)}</td>
+                    <td>${safeNumber(agent.licenses)}</td>
+                    <td>${safeNumber(agent.revenue_eth, 4)}</td>
+                    <td>${safeNumber(agent.conversion_rate, 1)}%</td>
                 </tr>
             `).join('');
         }

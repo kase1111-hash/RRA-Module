@@ -11,7 +11,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional, Dict, Any
 import yaml
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class LicenseModel(str, Enum):
@@ -162,8 +162,9 @@ class MarketConfig(BaseModel):
         description="Additional custom metadata"
     )
 
-    @validator('target_price', 'floor_price')
-    def validate_price_format(cls, v):
+    @field_validator('target_price', 'floor_price')
+    @classmethod
+    def validate_price_format(cls, v: str) -> str:
         """Validate that prices are in acceptable format."""
         # Basic validation - should contain amount and currency
         parts = v.strip().split()
