@@ -64,6 +64,29 @@ class VoteChoice(Enum):
     AMEND = "amend"
 
 
+class ProposalStatus(Enum):
+    """Status of a proposal."""
+
+    PENDING = "pending"          # Awaiting votes
+    APPROVED = "approved"        # Passed threshold
+    REJECTED = "rejected"        # Failed to pass
+    EXECUTED = "executed"        # Resolution executed
+    CANCELLED = "cancelled"      # Cancelled by proposer
+
+
+@dataclass
+class TreasuryConfig:
+    """Configuration for treasury coordinator."""
+
+    min_stake: int = 1000                    # Minimum stake in base units
+    voting_period_days: int = 7              # Days for voting period
+    quorum_threshold: int = 5000             # 50% in basis points
+    approval_threshold: int = 6000           # 60% in basis points
+    mediation_threshold: int = 3             # Number of extensions before mediation
+    max_proposal_age_days: int = 30          # Max age for proposals
+    grace_period_hours: int = 24             # Grace period after voting ends
+
+
 @dataclass
 class Treasury:
     """A registered treasury."""
@@ -225,6 +248,7 @@ class TreasuryCoordinator:
 
     def __init__(
         self,
+        config: Optional[TreasuryConfig] = None,
         staking_period_days: int = 3,
         voting_period_days: int = 7,
     ):
@@ -232,9 +256,11 @@ class TreasuryCoordinator:
         Initialize the treasury coordinator.
 
         Args:
+            config: Optional configuration object
             staking_period_days: Days for staking period
             voting_period_days: Days for voting period
         """
+        self.config = config or TreasuryConfig(voting_period_days=voting_period_days)
         self.staking_period = timedelta(days=staking_period_days)
         self.voting_period = timedelta(days=voting_period_days)
 
