@@ -171,6 +171,10 @@ For detailed documentation, see:
 - **[Hardware Authentication](docs/HARDWARE-AUTHENTICATION.md)** - FIDO2/WebAuthn with ZK proofs (Phase 5)
 - **[Transaction Security](docs/TRANSACTION-SECURITY.md)** - Two-step verification with timeout (Phase 5)
 - **[Contributing](CONTRIBUTING.md)** - How to contribute
+- **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community guidelines
+- **[FAQ](FAQ.md)** - Challenges and resilience analysis
+- **[Founding Contributor Pledge](Founding-Contributor-Pledge.md)** - Ethical commitments
+- **[NCIP-016 Draft](NCIP-016-DRAFT.md)** - Anti-capture mechanisms & market fairness
 
 ## License
 
