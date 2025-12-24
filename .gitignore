@@ -59,3 +59,9 @@ Thumbs.db
 data/*
 !data/.gitkeep
 !data/*/.gitkeep
+
+# Node.js / Next.js
+node_modules/
+.next/
+out/
+*.tsbuildinfo
