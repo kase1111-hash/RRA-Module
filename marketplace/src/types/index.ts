@@ -144,3 +144,91 @@ export interface WSTypingMessage extends WSMessage {
     is_typing: boolean;
   };
 }
+
+// Verification Types
+
+export type VerificationStatus = 'passed' | 'warning' | 'failed' | 'skipped';
+
+export interface VerificationCheck {
+  name: string;
+  status: VerificationStatus;
+  message: string;
+  details?: Record<string, unknown>;
+}
+
+export interface VerificationResult {
+  repo_url: string;
+  overall_status: VerificationStatus;
+  score: number;
+  checks: VerificationCheck[];
+  verified_at: string;
+}
+
+export interface ReadmeMetadata {
+  title: string;
+  description: string;
+  short_description: string;
+  features: string[];
+  technologies: string[];
+  has_examples: boolean;
+  has_api_docs: boolean;
+}
+
+export interface CategoryResult {
+  primary_category: string;
+  subcategory?: string;
+  confidence: number;
+  tags: string[];
+  technologies: string[];
+  frameworks: string[];
+}
+
+// Blockchain / Purchase Link Types
+
+export type NetworkType = 'mainnet' | 'testnet' | 'localhost';
+
+export interface PurchaseLink {
+  url: string;
+  network: NetworkType;
+  tier: string;
+  price_display: string;
+  ip_asset_id: string;
+  license_terms_id?: string;
+}
+
+export interface MarketplaceListing {
+  repo_url: string;
+  repo_name: string;
+  description: string;
+  category: string;
+  ip_asset_id: string;
+  verification_score: number;
+  purchase_links: PurchaseLink[];
+  tags: string[];
+  technologies: string[];
+}
+
+export interface FullVerificationResponse {
+  verification: VerificationResult;
+  category: CategoryResult;
+  readme: ReadmeMetadata;
+  marketplace?: MarketplaceListing;
+}
+
+// Extended Repository with Verification
+
+export interface RepositoryWithVerification extends Repository {
+  verification?: VerificationResult;
+  category?: CategoryResult;
+  blockchain_links?: MarketplaceListing;
+}
+
+// Extended Agent Details with Verification
+
+export interface AgentDetailsWithVerification extends AgentDetails {
+  verification?: VerificationResult;
+  category?: CategoryResult;
+  readme_metadata?: ReadmeMetadata;
+  blockchain_links?: MarketplaceListing;
+}
+

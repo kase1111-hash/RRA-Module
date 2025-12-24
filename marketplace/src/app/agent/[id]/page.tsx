@@ -14,10 +14,14 @@ import {
   Clock,
   Users,
   CheckCircle,
+  Link2,
+  Wallet,
 } from 'lucide-react';
 import { NegotiationChat } from '@/components/NegotiationChat';
+import { VerificationSection, VerificationSummary } from '@/components/VerificationSection';
+import { PurchaseLinksList, BlockchainInfo, ShareLinks } from '@/components/PurchaseLinks';
 import { cn, formatPrice, getLanguageColor } from '@/lib/utils';
-import type { NegotiationMessage, NegotiationPhase } from '@/types';
+import type { NegotiationMessage, NegotiationPhase, VerificationResult, PurchaseLink } from '@/types';
 
 // Mock data - in production would come from API
 const mockAgentData = {
@@ -48,7 +52,7 @@ const mockAgentData = {
       'Commercial usage rights',
     ],
     copyright_holder: 'Kase Branham',
-    developer_wallet: '0x1234...5678',
+    developer_wallet: '0x1234567890abcdef1234567890abcdef12345678',
   },
   statistics: {
     code_files: 31,
@@ -81,6 +85,48 @@ const mockAgentData = {
       features: ['Unlimited seats', 'Custom terms', 'Dedicated support', 'SLA'],
     },
   ],
+  verification: {
+    repo_url: 'https://github.com/kase1111-hash/RRA-Module',
+    overall_status: 'passed' as const,
+    score: 87.5,
+    verified_at: '2025-12-19T12:00:00Z',
+    checks: [
+      { name: 'tests', status: 'passed' as const, message: 'All 42 tests passed', details: { passed: 42, failed: 0, skipped: 0 } },
+      { name: 'linting', status: 'passed' as const, message: 'No linting errors found', details: { errors: 0, warnings: 3 } },
+      { name: 'security', status: 'warning' as const, message: '2 low-severity issues', details: { critical: 0, high: 0, medium: 0, low: 2 } },
+      { name: 'build', status: 'passed' as const, message: 'Build successful', details: { duration_ms: 4250 } },
+      { name: 'documentation', status: 'passed' as const, message: 'README and API docs present', details: { has_readme: true, has_api_docs: true } },
+      { name: 'license', status: 'passed' as const, message: 'Valid FSL-1.1-ALv2 license', details: { license_type: 'FSL-1.1-ALv2' } },
+    ],
+  },
+  purchase_links: [
+    {
+      url: 'https://testnet.marketplace.rra.io/purchase/abc123?ipAsset=0x1234&tier=standard&chain=1315',
+      network: 'testnet' as const,
+      tier: 'standard' as const,
+      price_display: '0.05 ETH',
+      ip_asset_id: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+    },
+    {
+      url: 'https://testnet.marketplace.rra.io/purchase/abc123?ipAsset=0x1234&tier=premium&chain=1315',
+      network: 'testnet' as const,
+      tier: 'premium' as const,
+      price_display: '0.15 ETH',
+      ip_asset_id: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+    },
+    {
+      url: 'https://testnet.marketplace.rra.io/purchase/abc123?ipAsset=0x1234&tier=enterprise&chain=1315',
+      network: 'testnet' as const,
+      tier: 'enterprise' as const,
+      price_display: '0.5 ETH',
+      ip_asset_id: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+    },
+  ],
+  blockchain_info: {
+    ip_asset_id: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+    network: 'testnet' as const,
+    explorer_url: 'https://aeneid.explorer.story.foundation/ip-asset/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+  },
 };
 
 export default function AgentPage() {
@@ -162,7 +208,7 @@ export default function AgentPage() {
     setIsLoading(false);
   }, []);
 
-  const { repository, market_config, statistics, reputation, license_tiers } = mockAgentData;
+  const { repository, market_config, statistics, reputation, license_tiers, verification, purchase_links, blockchain_info } = mockAgentData;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -309,38 +355,69 @@ export default function AgentPage() {
               </div>
             </div>
 
-            {/* License Tiers */}
+            {/* Verification Status */}
+            <VerificationSection verification={verification} />
+
+            {/* Blockchain Info */}
+            <BlockchainInfo
+              ipAssetId={blockchain_info.ip_asset_id}
+              network={blockchain_info.network}
+              explorerUrl={blockchain_info.explorer_url}
+            />
+
+            {/* License Tiers with Purchase Buttons */}
             <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
               <h2 className="font-semibold text-gray-900 dark:text-white">License Tiers</h2>
               <div className="mt-4 space-y-4">
-                {license_tiers.map((tier) => (
-                  <div
-                    key={tier.id}
-                    className="rounded-lg border border-gray-200 p-4 dark:border-gray-700"
-                  >
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-gray-900 dark:text-white">
-                        {tier.name}
-                      </h3>
-                      <span className="text-lg font-bold text-primary-600 dark:text-primary-400">
-                        {tier.price}
-                      </span>
-                    </div>
-                    <ul className="mt-2 space-y-1">
-                      {tier.features.map((feature) => (
-                        <li
-                          key={feature}
-                          className="flex items-center text-xs text-gray-600 dark:text-gray-400"
+                {license_tiers.map((tier) => {
+                  const purchaseLink = purchase_links.find((link) => link.tier === tier.id);
+                  return (
+                    <div
+                      key={tier.id}
+                      className="rounded-lg border border-gray-200 p-4 dark:border-gray-700"
+                    >
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-medium text-gray-900 dark:text-white">
+                          {tier.name}
+                        </h3>
+                        <span className="text-lg font-bold text-primary-600 dark:text-primary-400">
+                          {tier.price}
+                        </span>
+                      </div>
+                      <ul className="mt-2 space-y-1">
+                        {tier.features.map((feature) => (
+                          <li
+                            key={feature}
+                            className="flex items-center text-xs text-gray-600 dark:text-gray-400"
+                          >
+                            <CheckCircle className="mr-1.5 h-3 w-3 text-green-500" />
+                            {feature}
+                          </li>
+                        ))}
+                      </ul>
+                      {purchaseLink && (
+                        <a
+                          href={purchaseLink.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-3 flex w-full items-center justify-center rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
                         >
-                          <CheckCircle className="mr-1.5 h-3 w-3 text-green-500" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
+                          <Wallet className="mr-2 h-4 w-4" />
+                          Purchase License
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
+
+            {/* Share Links */}
+            <ShareLinks
+              repoName={repository.name}
+              purchaseUrl={purchase_links[0]?.url || ''}
+              ipAssetId={blockchain_info.ip_asset_id}
+            />
           </div>
 
           {/* Right Column - Chat */}

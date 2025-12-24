@@ -73,6 +73,40 @@ const marketConfigs = {
   },
 };
 
+// Mock verification data for featured repos
+const verificationData = {
+  'rra-module-abc123': {
+    repo_url: 'https://github.com/kase1111-hash/RRA-Module',
+    overall_status: 'passed' as const,
+    score: 87.5,
+    verified_at: '2025-12-19T12:00:00Z',
+    checks: [
+      { name: 'tests', status: 'passed' as const, message: 'All 42 tests passed' },
+      { name: 'security', status: 'warning' as const, message: '2 low-severity issues' },
+    ],
+  },
+  'web3-utils-def456': {
+    repo_url: 'https://github.com/example/web3-utils',
+    overall_status: 'passed' as const,
+    score: 92.0,
+    verified_at: '2025-12-18T09:30:00Z',
+    checks: [
+      { name: 'tests', status: 'passed' as const, message: 'All 78 tests passed' },
+      { name: 'security', status: 'passed' as const, message: 'No issues found' },
+    ],
+  },
+  'ml-pipeline-ghi789': {
+    repo_url: 'https://github.com/example/ml-pipeline',
+    overall_status: 'warning' as const,
+    score: 75.0,
+    verified_at: '2025-12-17T15:45:00Z',
+    checks: [
+      { name: 'tests', status: 'warning' as const, message: '3 tests skipped' },
+      { name: 'security', status: 'passed' as const, message: 'No issues found' },
+    ],
+  },
+};
+
 export default function HomePage() {
   return (
     <div className="flex flex-col">
@@ -200,6 +234,7 @@ export default function HomePage() {
                 key={repo.id}
                 repository={repo}
                 marketConfig={marketConfigs[repo.id as keyof typeof marketConfigs]}
+                verification={verificationData[repo.id as keyof typeof verificationData]}
                 featured={index === 0}
               />
             ))}
