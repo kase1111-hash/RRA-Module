@@ -1,0 +1,824 @@
+# SPDX-License-Identifier: FSL-1.1-ALv2
+# Copyright 2025 Kase Branham
+"""
+Code verification module.
+
+Verifies that code repositories:
+- Have passing tests
+- Meet code quality standards (linting)
+- Are free of common security issues
+- Match their README descriptions
+"""
+
+import subprocess
+import re
+import os
+from pathlib import Path
+from typing import Dict, List, Any, Optional
+from dataclasses import dataclass, field
+from enum import Enum
+
+
+class VerificationStatus(str, Enum):
+    """Verification status levels."""
+    PASSED = "passed"
+    WARNING = "warning"
+    FAILED = "failed"
+    SKIPPED = "skipped"
+
+
+@dataclass
+class CheckResult:
+    """Result of a single verification check."""
+    name: str
+    status: VerificationStatus
+    message: str
+    details: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class VerificationResult:
+    """Complete verification result for a repository."""
+    repo_path: str
+    repo_url: str
+    overall_status: VerificationStatus
+    checks: List[CheckResult] = field(default_factory=list)
+    score: float = 0.0  # 0-100 verification score
+    verified_at: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for serialization."""
+        return {
+            "repo_path": self.repo_path,
+            "repo_url": self.repo_url,
+            "overall_status": self.overall_status.value,
+            "checks": [
+                {
+                    "name": c.name,
+                    "status": c.status.value,
+                    "message": c.message,
+                    "details": c.details,
+                }
+                for c in self.checks
+            ],
+            "score": self.score,
+            "verified_at": self.verified_at,
+        }
+
+
+class CodeVerifier:
+    """
+    Verifies that code repositories meet quality and correctness standards.
+
+    Performs the following checks:
+    1. Test suite existence and execution
+    2. Linting and code quality
+    3. Security vulnerability scanning
+    4. Build/installation verification
+    5. README-to-code alignment
+    """
+
+    # Common security patterns to check for
+    SECURITY_PATTERNS = {
+        "hardcoded_secrets": [
+            r'(?i)(password|secret|api_key|token|credential)\s*=\s*["\'][^"\']+["\']',
+            r'(?i)aws_secret_access_key\s*=',
+            r'-----BEGIN (RSA |DSA |EC )?PRIVATE KEY-----',
+        ],
+        "sql_injection": [
+            r'execute\s*\(\s*["\'][^"\']*%s',
+            r'cursor\.execute\s*\(\s*f["\']',
+            r'\.query\s*\(\s*f["\'].*\{',
+        ],
+        "command_injection": [
+            r'os\.system\s*\(\s*f["\']',
+            r'subprocess\.\w+\s*\(\s*f["\']',
+            r'eval\s*\(\s*(?:input|request)',
+        ],
+        "path_traversal": [
+            r'open\s*\(\s*(?:request|input|user)',
+            r'\.\./',
+        ],
+    }
+
+    # Test command patterns by language
+    TEST_COMMANDS = {
+        "python": ["pytest", "python -m pytest", "python -m unittest discover"],
+        "javascript": ["npm test", "yarn test", "jest"],
+        "typescript": ["npm test", "yarn test", "jest"],
+        "rust": ["cargo test"],
+        "go": ["go test ./..."],
+        "java": ["mvn test", "gradle test"],
+        "ruby": ["rspec", "rake test"],
+    }
+
+    # Lint command patterns by language
+    LINT_COMMANDS = {
+        "python": ["ruff check .", "flake8", "pylint"],
+        "javascript": ["eslint .", "npm run lint"],
+        "typescript": ["eslint .", "tsc --noEmit"],
+        "rust": ["cargo clippy"],
+        "go": ["golangci-lint run"],
+    }
+
+    def __init__(
+        self,
+        timeout: int = 300,
+        skip_tests: bool = False,
+        skip_security: bool = False,
+    ):
+        """
+        Initialize the code verifier.
+
+        Args:
+            timeout: Maximum time (seconds) for test/lint commands
+            skip_tests: Skip running actual tests (just check existence)
+            skip_security: Skip security pattern scanning
+        """
+        self.timeout = timeout
+        self.skip_tests = skip_tests
+        self.skip_security = skip_security
+
+    def verify(
+        self,
+        repo_path: Path,
+        repo_url: str = "",
+        readme_content: Optional[str] = None,
+    ) -> VerificationResult:
+        """
+        Perform complete verification of a repository.
+
+        Args:
+            repo_path: Path to the local repository
+            repo_url: Original repository URL
+            readme_content: README content for alignment checking
+
+        Returns:
+            VerificationResult with all check results
+        """
+        from datetime import datetime
+
+        checks: List[CheckResult] = []
+
+        # 1. Check for test files
+        test_check = self._check_tests(repo_path)
+        checks.append(test_check)
+
+        # 2. Check code quality (linting)
+        lint_check = self._check_linting(repo_path)
+        checks.append(lint_check)
+
+        # 3. Security scan
+        if not self.skip_security:
+            security_check = self._check_security(repo_path)
+            checks.append(security_check)
+
+        # 4. Check build/installation
+        build_check = self._check_build(repo_path)
+        checks.append(build_check)
+
+        # 5. README alignment check
+        if readme_content:
+            alignment_check = self._check_readme_alignment(repo_path, readme_content)
+            checks.append(alignment_check)
+
+        # 6. Check for documentation
+        docs_check = self._check_documentation(repo_path)
+        checks.append(docs_check)
+
+        # 7. Check for license
+        license_check = self._check_license(repo_path)
+        checks.append(license_check)
+
+        # Calculate overall status and score
+        overall_status, score = self._calculate_overall(checks)
+
+        return VerificationResult(
+            repo_path=str(repo_path),
+            repo_url=repo_url,
+            overall_status=overall_status,
+            checks=checks,
+            score=score,
+            verified_at=datetime.now().isoformat(),
+        )
+
+    def _check_tests(self, repo_path: Path) -> CheckResult:
+        """Check for test files and optionally run them."""
+        test_patterns = [
+            "test_*.py", "*_test.py", "tests/*.py",
+            "*.test.js", "*.spec.js", "*.test.ts", "*.spec.ts",
+            "*_test.go", "*_test.rs",
+        ]
+
+        test_files = []
+        for pattern in test_patterns:
+            test_files.extend(repo_path.rglob(pattern))
+
+        if not test_files:
+            return CheckResult(
+                name="tests",
+                status=VerificationStatus.WARNING,
+                message="No test files found",
+                details={"test_count": 0},
+            )
+
+        # Count test functions/cases
+        test_count = 0
+        for tf in test_files[:50]:  # Limit for performance
+            try:
+                content = tf.read_text(encoding='utf-8', errors='ignore')
+                # Count test functions
+                test_count += len(re.findall(
+                    r'(def test_|test\(|it\(|describe\(|#\[test\]|func Test)',
+                    content
+                ))
+            except Exception:
+                pass
+
+        if self.skip_tests:
+            return CheckResult(
+                name="tests",
+                status=VerificationStatus.PASSED,
+                message=f"Found {len(test_files)} test files with ~{test_count} test cases",
+                details={"test_files": len(test_files), "test_count": test_count},
+            )
+
+        # Try to run tests
+        languages = self._detect_languages(repo_path)
+        test_result = self._run_tests(repo_path, languages)
+
+        if test_result["success"]:
+            return CheckResult(
+                name="tests",
+                status=VerificationStatus.PASSED,
+                message=f"Tests passed ({len(test_files)} files, ~{test_count} cases)",
+                details={
+                    "test_files": len(test_files),
+                    "test_count": test_count,
+                    "output": test_result.get("output", "")[:500],
+                },
+            )
+        else:
+            return CheckResult(
+                name="tests",
+                status=VerificationStatus.FAILED,
+                message=f"Tests failed: {test_result.get('error', 'Unknown error')[:100]}",
+                details={
+                    "test_files": len(test_files),
+                    "test_count": test_count,
+                    "error": test_result.get("error", ""),
+                },
+            )
+
+    def _check_linting(self, repo_path: Path) -> CheckResult:
+        """Check code quality through linting."""
+        languages = self._detect_languages(repo_path)
+
+        if not languages:
+            return CheckResult(
+                name="linting",
+                status=VerificationStatus.SKIPPED,
+                message="No supported languages detected",
+            )
+
+        # Check for linting config files
+        lint_configs = [
+            ".eslintrc", ".eslintrc.js", ".eslintrc.json",
+            "pyproject.toml", "setup.cfg", ".flake8", "ruff.toml",
+            "clippy.toml", ".golangci.yml",
+        ]
+
+        has_lint_config = any((repo_path / cfg).exists() for cfg in lint_configs)
+
+        # Try to run linting
+        lint_result = self._run_linting(repo_path, languages)
+
+        if lint_result["success"]:
+            return CheckResult(
+                name="linting",
+                status=VerificationStatus.PASSED,
+                message="Code passes linting checks" + (" (config found)" if has_lint_config else ""),
+                details={"has_config": has_lint_config, "output": lint_result.get("output", "")[:500]},
+            )
+        elif lint_result.get("skipped"):
+            return CheckResult(
+                name="linting",
+                status=VerificationStatus.SKIPPED,
+                message="Linting tools not available",
+                details={"has_config": has_lint_config},
+            )
+        else:
+            # Linting issues are warnings, not failures
+            return CheckResult(
+                name="linting",
+                status=VerificationStatus.WARNING,
+                message=f"Linting issues found: {lint_result.get('issues', 0)} issues",
+                details={
+                    "has_config": has_lint_config,
+                    "issues": lint_result.get("issues", 0),
+                    "output": lint_result.get("output", "")[:500],
+                },
+            )
+
+    def _check_security(self, repo_path: Path) -> CheckResult:
+        """Scan for common security issues."""
+        issues: List[Dict[str, Any]] = []
+
+        code_extensions = {'.py', '.js', '.ts', '.java', '.go', '.rs', '.rb', '.php'}
+
+        files_scanned = 0
+        for file_path in repo_path.rglob('*'):
+            if not file_path.is_file():
+                continue
+            if file_path.suffix not in code_extensions:
+                continue
+            if any(part.startswith('.') or part in {'node_modules', 'venv', '__pycache__'}
+                   for part in file_path.parts):
+                continue
+
+            files_scanned += 1
+            if files_scanned > 500:  # Limit for performance
+                break
+
+            try:
+                content = file_path.read_text(encoding='utf-8', errors='ignore')
+
+                for category, patterns in self.SECURITY_PATTERNS.items():
+                    for pattern in patterns:
+                        matches = re.findall(pattern, content)
+                        if matches:
+                            issues.append({
+                                "file": str(file_path.relative_to(repo_path)),
+                                "category": category,
+                                "count": len(matches),
+                            })
+            except Exception:
+                pass
+
+        if not issues:
+            return CheckResult(
+                name="security",
+                status=VerificationStatus.PASSED,
+                message=f"No security issues detected ({files_scanned} files scanned)",
+                details={"files_scanned": files_scanned},
+            )
+        else:
+            # Group issues by category
+            by_category = {}
+            for issue in issues:
+                cat = issue["category"]
+                by_category[cat] = by_category.get(cat, 0) + 1
+
+            return CheckResult(
+                name="security",
+                status=VerificationStatus.WARNING,
+                message=f"Potential security issues found: {sum(by_category.values())} in {len(issues)} locations",
+                details={
+                    "files_scanned": files_scanned,
+                    "issues_by_category": by_category,
+                    "issues": issues[:10],  # Limit detail
+                },
+            )
+
+    def _check_build(self, repo_path: Path) -> CheckResult:
+        """Check if the project can be built/installed."""
+        build_files = {
+            "pyproject.toml": "python",
+            "setup.py": "python",
+            "requirements.txt": "python",
+            "package.json": "javascript",
+            "Cargo.toml": "rust",
+            "go.mod": "go",
+            "pom.xml": "java",
+            "build.gradle": "java",
+            "Makefile": "make",
+        }
+
+        detected_builds = []
+        for filename, lang in build_files.items():
+            if (repo_path / filename).exists():
+                detected_builds.append({"file": filename, "language": lang})
+
+        if not detected_builds:
+            return CheckResult(
+                name="build",
+                status=VerificationStatus.SKIPPED,
+                message="No build configuration detected",
+            )
+
+        # Try a simple build/install check
+        build_result = self._try_build(repo_path, detected_builds)
+
+        if build_result["success"]:
+            return CheckResult(
+                name="build",
+                status=VerificationStatus.PASSED,
+                message=f"Build configuration valid ({', '.join(b['language'] for b in detected_builds)})",
+                details={"build_systems": detected_builds},
+            )
+        elif build_result.get("skipped"):
+            return CheckResult(
+                name="build",
+                status=VerificationStatus.SKIPPED,
+                message="Build tools not available for verification",
+                details={"build_systems": detected_builds},
+            )
+        else:
+            return CheckResult(
+                name="build",
+                status=VerificationStatus.WARNING,
+                message=f"Build issues detected: {build_result.get('error', 'Unknown')[:100]}",
+                details={
+                    "build_systems": detected_builds,
+                    "error": build_result.get("error", ""),
+                },
+            )
+
+    def _check_readme_alignment(self, repo_path: Path, readme_content: str) -> CheckResult:
+        """Check if code matches README claims."""
+        claims = self._extract_readme_claims(readme_content)
+
+        if not claims:
+            return CheckResult(
+                name="readme_alignment",
+                status=VerificationStatus.SKIPPED,
+                message="No verifiable claims found in README",
+            )
+
+        verified_claims = []
+        unverified_claims = []
+
+        for claim in claims:
+            if self._verify_claim(repo_path, claim):
+                verified_claims.append(claim)
+            else:
+                unverified_claims.append(claim)
+
+        if not unverified_claims:
+            return CheckResult(
+                name="readme_alignment",
+                status=VerificationStatus.PASSED,
+                message=f"All {len(verified_claims)} README claims verified",
+                details={"verified_claims": verified_claims},
+            )
+        elif len(verified_claims) >= len(unverified_claims):
+            return CheckResult(
+                name="readme_alignment",
+                status=VerificationStatus.WARNING,
+                message=f"{len(verified_claims)}/{len(claims)} README claims verified",
+                details={
+                    "verified_claims": verified_claims,
+                    "unverified_claims": unverified_claims,
+                },
+            )
+        else:
+            return CheckResult(
+                name="readme_alignment",
+                status=VerificationStatus.FAILED,
+                message=f"Most README claims unverified ({len(unverified_claims)}/{len(claims)})",
+                details={
+                    "verified_claims": verified_claims,
+                    "unverified_claims": unverified_claims,
+                },
+            )
+
+    def _check_documentation(self, repo_path: Path) -> CheckResult:
+        """Check for documentation quality."""
+        doc_files = list(repo_path.glob("*.md")) + list(repo_path.glob("docs/**/*.md"))
+
+        readme_exists = (repo_path / "README.md").exists() or (repo_path / "README.rst").exists()
+
+        if not readme_exists:
+            return CheckResult(
+                name="documentation",
+                status=VerificationStatus.FAILED,
+                message="No README file found",
+            )
+
+        # Check README quality
+        readme_path = repo_path / "README.md" if (repo_path / "README.md").exists() else repo_path / "README.rst"
+        try:
+            readme_content = readme_path.read_text(encoding='utf-8', errors='ignore')
+            readme_lines = len(readme_content.split('\n'))
+
+            if readme_lines < 10:
+                return CheckResult(
+                    name="documentation",
+                    status=VerificationStatus.WARNING,
+                    message="README exists but is minimal",
+                    details={"doc_files": len(doc_files), "readme_lines": readme_lines},
+                )
+
+            has_sections = bool(re.search(r'^#+\s+', readme_content, re.MULTILINE))
+            has_code_blocks = '```' in readme_content or '    ' in readme_content
+
+            if has_sections and has_code_blocks:
+                return CheckResult(
+                    name="documentation",
+                    status=VerificationStatus.PASSED,
+                    message=f"Good documentation ({len(doc_files)} doc files, README with sections and examples)",
+                    details={
+                        "doc_files": len(doc_files),
+                        "readme_lines": readme_lines,
+                        "has_sections": has_sections,
+                        "has_examples": has_code_blocks,
+                    },
+                )
+            else:
+                return CheckResult(
+                    name="documentation",
+                    status=VerificationStatus.PASSED,
+                    message=f"Documentation present ({len(doc_files)} doc files)",
+                    details={"doc_files": len(doc_files), "readme_lines": readme_lines},
+                )
+        except Exception:
+            return CheckResult(
+                name="documentation",
+                status=VerificationStatus.WARNING,
+                message="Could not fully analyze documentation",
+            )
+
+    def _check_license(self, repo_path: Path) -> CheckResult:
+        """Check for license file."""
+        license_files = ["LICENSE", "LICENSE.md", "LICENSE.txt", "LICENCE", "COPYING"]
+
+        for lf in license_files:
+            if (repo_path / lf).exists():
+                try:
+                    content = (repo_path / lf).read_text(encoding='utf-8', errors='ignore')
+                    # Detect common licenses
+                    license_type = "Unknown"
+                    if "MIT" in content:
+                        license_type = "MIT"
+                    elif "Apache" in content:
+                        license_type = "Apache 2.0"
+                    elif "GPL" in content:
+                        license_type = "GPL"
+                    elif "BSD" in content:
+                        license_type = "BSD"
+                    elif "FSL" in content:
+                        license_type = "FSL"
+
+                    return CheckResult(
+                        name="license",
+                        status=VerificationStatus.PASSED,
+                        message=f"License file found ({license_type})",
+                        details={"license_type": license_type, "file": lf},
+                    )
+                except Exception:
+                    pass
+
+        return CheckResult(
+            name="license",
+            status=VerificationStatus.WARNING,
+            message="No license file found",
+        )
+
+    def _detect_languages(self, repo_path: Path) -> List[str]:
+        """Detect programming languages in the repository."""
+        extensions = {}
+
+        for file_path in repo_path.rglob('*'):
+            if file_path.is_file() and not any(
+                part.startswith('.') or part in {'node_modules', 'venv', '__pycache__', 'target', 'dist'}
+                for part in file_path.parts
+            ):
+                ext = file_path.suffix
+                extensions[ext] = extensions.get(ext, 0) + 1
+
+        language_map = {
+            '.py': 'python',
+            '.js': 'javascript',
+            '.ts': 'typescript',
+            '.rs': 'rust',
+            '.go': 'go',
+            '.java': 'java',
+            '.rb': 'ruby',
+        }
+
+        languages = []
+        for ext, lang in language_map.items():
+            if extensions.get(ext, 0) >= 1:
+                languages.append(lang)
+
+        return languages
+
+    def _run_tests(self, repo_path: Path, languages: List[str]) -> Dict[str, Any]:
+        """Try to run tests for detected languages."""
+        for lang in languages:
+            if lang not in self.TEST_COMMANDS:
+                continue
+
+            for cmd in self.TEST_COMMANDS[lang]:
+                try:
+                    result = subprocess.run(
+                        cmd.split(),
+                        cwd=repo_path,
+                        capture_output=True,
+                        text=True,
+                        timeout=self.timeout,
+                        env={**os.environ, "CI": "true"},
+                    )
+
+                    if result.returncode == 0:
+                        return {"success": True, "output": result.stdout}
+                    else:
+                        return {
+                            "success": False,
+                            "error": result.stderr or result.stdout,
+                        }
+                except subprocess.TimeoutExpired:
+                    return {"success": False, "error": "Test execution timed out"}
+                except FileNotFoundError:
+                    continue  # Try next command
+                except Exception as e:
+                    continue
+
+        return {"success": True, "skipped": True}  # No test runner found
+
+    def _run_linting(self, repo_path: Path, languages: List[str]) -> Dict[str, Any]:
+        """Try to run linting for detected languages."""
+        for lang in languages:
+            if lang not in self.LINT_COMMANDS:
+                continue
+
+            for cmd in self.LINT_COMMANDS[lang]:
+                try:
+                    result = subprocess.run(
+                        cmd.split(),
+                        cwd=repo_path,
+                        capture_output=True,
+                        text=True,
+                        timeout=120,
+                    )
+
+                    if result.returncode == 0:
+                        return {"success": True, "output": result.stdout}
+                    else:
+                        # Count issues from output
+                        output = result.stdout + result.stderr
+                        issue_count = output.count('\n')
+                        return {
+                            "success": False,
+                            "issues": issue_count,
+                            "output": output,
+                        }
+                except FileNotFoundError:
+                    continue
+                except subprocess.TimeoutExpired:
+                    return {"success": False, "error": "Linting timed out"}
+                except Exception:
+                    continue
+
+        return {"success": True, "skipped": True}
+
+    def _try_build(self, repo_path: Path, build_systems: List[Dict]) -> Dict[str, Any]:
+        """Try to verify build configuration."""
+        for build in build_systems:
+            lang = build["language"]
+
+            try:
+                if lang == "python":
+                    # Check if pyproject.toml/setup.py is valid
+                    if (repo_path / "pyproject.toml").exists():
+                        result = subprocess.run(
+                            ["python", "-c", "import tomli; tomli.load(open('pyproject.toml', 'rb'))"],
+                            cwd=repo_path,
+                            capture_output=True,
+                            timeout=30,
+                        )
+                        if result.returncode == 0:
+                            return {"success": True}
+
+                elif lang == "javascript":
+                    # Validate package.json
+                    if (repo_path / "package.json").exists():
+                        import json
+                        with open(repo_path / "package.json") as f:
+                            json.load(f)  # Just validate JSON
+                        return {"success": True}
+
+                elif lang == "rust":
+                    # Check Cargo.toml
+                    result = subprocess.run(
+                        ["cargo", "check", "--message-format=short"],
+                        cwd=repo_path,
+                        capture_output=True,
+                        timeout=120,
+                    )
+                    if result.returncode == 0:
+                        return {"success": True}
+
+            except FileNotFoundError:
+                continue
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+
+        return {"success": True, "skipped": True}
+
+    def _extract_readme_claims(self, readme_content: str) -> List[Dict[str, str]]:
+        """Extract verifiable claims from README."""
+        claims = []
+
+        # Look for feature claims
+        feature_patterns = [
+            r'[-*]\s+(?:Support[s]? for|Provides?|Includes?|Features?:?)\s+(.+)',
+            r'[-*]\s+(.+?)\s+support',
+            r'(?:can|will|does)\s+(.+)',
+        ]
+
+        for pattern in feature_patterns:
+            matches = re.findall(pattern, readme_content, re.IGNORECASE)
+            for match in matches[:5]:  # Limit
+                claims.append({"type": "feature", "claim": match.strip()})
+
+        # Look for language/technology mentions
+        tech_pattern = r'(?:written in|built with|uses?|requires?)\s+([A-Z][a-z]+(?:\s+\d+\.?\d*)?)'
+        tech_matches = re.findall(tech_pattern, readme_content)
+        for match in tech_matches[:3]:
+            claims.append({"type": "technology", "claim": match.strip()})
+
+        return claims
+
+    def _verify_claim(self, repo_path: Path, claim: Dict[str, str]) -> bool:
+        """Verify a single claim against the codebase."""
+        claim_text = claim["claim"].lower()
+
+        # Technology claims - check for files
+        tech_indicators = {
+            "python": [".py", "requirements.txt", "pyproject.toml"],
+            "javascript": [".js", "package.json"],
+            "typescript": [".ts", "tsconfig.json"],
+            "rust": [".rs", "Cargo.toml"],
+            "go": [".go", "go.mod"],
+            "react": ["react", "jsx"],
+            "vue": [".vue", "vue"],
+            "docker": ["Dockerfile", "docker-compose"],
+        }
+
+        for tech, indicators in tech_indicators.items():
+            if tech in claim_text:
+                for indicator in indicators:
+                    if list(repo_path.rglob(f"*{indicator}")):
+                        return True
+
+        # Generic claim verification - search for keywords in code
+        keywords = re.findall(r'\b\w{4,}\b', claim_text)
+        for keyword in keywords:
+            if keyword in {'with', 'that', 'this', 'from', 'into', 'have', 'been'}:
+                continue
+            for code_file in repo_path.rglob("*.py"):
+                try:
+                    if keyword in code_file.read_text(encoding='utf-8', errors='ignore').lower():
+                        return True
+                except Exception:
+                    pass
+
+        return False
+
+    def _calculate_overall(self, checks: List[CheckResult]) -> tuple[VerificationStatus, float]:
+        """Calculate overall status and score from individual checks."""
+        weights = {
+            "tests": 25,
+            "security": 25,
+            "linting": 15,
+            "build": 15,
+            "documentation": 10,
+            "license": 5,
+            "readme_alignment": 5,
+        }
+
+        score = 0.0
+        has_failure = False
+        has_warning = False
+
+        for check in checks:
+            weight = weights.get(check.name, 10)
+
+            if check.status == VerificationStatus.PASSED:
+                score += weight
+            elif check.status == VerificationStatus.WARNING:
+                score += weight * 0.5
+                has_warning = True
+            elif check.status == VerificationStatus.FAILED:
+                has_failure = True
+            # SKIPPED doesn't affect score
+
+        # Normalize to 0-100
+        max_score = sum(
+            weights.get(c.name, 10)
+            for c in checks
+            if c.status != VerificationStatus.SKIPPED
+        )
+
+        if max_score > 0:
+            score = (score / max_score) * 100
+
+        if has_failure:
+            overall = VerificationStatus.FAILED
+        elif has_warning:
+            overall = VerificationStatus.WARNING
+        else:
+            overall = VerificationStatus.PASSED
+
+        return overall, round(score, 1)

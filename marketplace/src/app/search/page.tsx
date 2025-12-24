@@ -127,6 +127,70 @@ const marketConfigs: Record<string, any> = {
   },
 };
 
+// Mock verification data for repositories
+const verificationData: Record<string, any> = {
+  'rra-module-abc123': {
+    repo_url: 'https://github.com/kase1111-hash/RRA-Module',
+    overall_status: 'passed',
+    score: 87.5,
+    verified_at: '2025-12-19T12:00:00Z',
+    checks: [
+      { name: 'tests', status: 'passed', message: 'All 42 tests passed' },
+      { name: 'security', status: 'warning', message: '2 low-severity issues' },
+    ],
+  },
+  'web3-utils-def456': {
+    repo_url: 'https://github.com/example/web3-utils',
+    overall_status: 'passed',
+    score: 92.0,
+    verified_at: '2025-12-18T09:30:00Z',
+    checks: [
+      { name: 'tests', status: 'passed', message: 'All 78 tests passed' },
+      { name: 'security', status: 'passed', message: 'No issues found' },
+    ],
+  },
+  'ml-pipeline-ghi789': {
+    repo_url: 'https://github.com/example/ml-pipeline',
+    overall_status: 'warning',
+    score: 75.0,
+    verified_at: '2025-12-17T15:45:00Z',
+    checks: [
+      { name: 'tests', status: 'warning', message: '3 tests skipped' },
+      { name: 'security', status: 'passed', message: 'No issues found' },
+    ],
+  },
+  'rust-crypto-jkl012': {
+    repo_url: 'https://github.com/example/rust-crypto',
+    overall_status: 'passed',
+    score: 98.5,
+    verified_at: '2025-12-16T11:20:00Z',
+    checks: [
+      { name: 'tests', status: 'passed', message: 'All 156 tests passed' },
+      { name: 'security', status: 'passed', message: 'No issues found' },
+    ],
+  },
+  'react-components-mno345': {
+    repo_url: 'https://github.com/example/react-components',
+    overall_status: 'passed',
+    score: 89.0,
+    verified_at: '2025-12-15T08:15:00Z',
+    checks: [
+      { name: 'tests', status: 'passed', message: 'All 234 tests passed' },
+      { name: 'security', status: 'warning', message: '1 low-severity issue' },
+    ],
+  },
+  'go-microservices-pqr678': {
+    repo_url: 'https://github.com/example/go-microservices',
+    overall_status: 'failed',
+    score: 45.0,
+    verified_at: '2025-12-14T14:30:00Z',
+    checks: [
+      { name: 'tests', status: 'failed', message: '12 tests failing' },
+      { name: 'security', status: 'warning', message: '5 medium-severity issues' },
+    ],
+  },
+};
+
 function SearchResults() {
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
@@ -188,6 +252,7 @@ function SearchResults() {
               key={repo.id}
               repository={repo}
               marketConfig={marketConfigs[repo.id]}
+              verification={verificationData[repo.id]}
             />
           ))}
         </div>

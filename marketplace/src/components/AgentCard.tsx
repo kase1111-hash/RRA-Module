@@ -1,18 +1,38 @@
 'use client';
 
 import Link from 'next/link';
-import { Star, GitFork, Code, ArrowRight } from 'lucide-react';
+import { Star, GitFork, Code, ArrowRight, ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react';
 import { cn, formatPrice, getLanguageColor, formatRelativeTime } from '@/lib/utils';
-import type { Repository, MarketConfig } from '@/types';
+import type { Repository, MarketConfig, VerificationResult } from '@/types';
 
 interface AgentCardProps {
   repository: Repository;
   marketConfig?: MarketConfig;
   featured?: boolean;
+  verification?: VerificationResult;
 }
 
-export function AgentCard({ repository, marketConfig, featured }: AgentCardProps) {
+export function AgentCard({ repository, marketConfig, featured, verification }: AgentCardProps) {
   const primaryLanguage = repository.languages?.[0] || 'Unknown';
+
+  const getVerificationIcon = () => {
+    if (!verification) return null;
+    switch (verification.overall_status) {
+      case 'passed':
+        return <ShieldCheck className="h-4 w-4 text-green-500" />;
+      case 'warning':
+        return <ShieldAlert className="h-4 w-4 text-yellow-500" />;
+      case 'failed':
+        return <ShieldX className="h-4 w-4 text-red-500" />;
+      default:
+        return null;
+    }
+  };
+
+  const getVerificationLabel = () => {
+    if (!verification) return null;
+    return `${verification.score.toFixed(0)}%`;
+  };
 
   return (
     <Link
@@ -24,14 +44,27 @@ export function AgentCard({ repository, marketConfig, featured }: AgentCardProps
           : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
       )}
     >
-      {/* Featured Badge */}
-      {featured && (
-        <div className="absolute -top-3 left-4">
+      {/* Badges Row */}
+      <div className="absolute -top-3 left-4 flex items-center gap-2">
+        {/* Featured Badge */}
+        {featured && (
           <span className="inline-flex items-center rounded-full bg-primary-600 px-3 py-0.5 text-xs font-medium text-white">
             Featured
           </span>
-        </div>
-      )}
+        )}
+        {/* Verification Badge */}
+        {verification && (
+          <span className={cn(
+            'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+            verification.overall_status === 'passed' && 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+            verification.overall_status === 'warning' && 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
+            verification.overall_status === 'failed' && 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+          )}>
+            {getVerificationIcon()}
+            {getVerificationLabel()}
+          </span>
+        )}
+      </div>
 
       {/* Header */}
       <div className="flex items-start justify-between">

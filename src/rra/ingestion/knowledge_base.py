@@ -57,6 +57,18 @@ class KnowledgeBase:
     # Embeddings for semantic search (future enhancement)
     embeddings: Optional[Dict[str, Any]] = None
 
+    # Verification results
+    verification: Optional[Dict[str, Any]] = None
+
+    # README metadata (parsed description, features, etc.)
+    readme_metadata: Optional[Dict[str, Any]] = None
+
+    # Category classification
+    category: Optional[Dict[str, Any]] = None
+
+    # Blockchain/marketplace links
+    blockchain_links: Optional[Dict[str, Any]] = None
+
     def get_summary(self) -> str:
         """
         Generate a human-readable summary of the repository.
@@ -114,6 +126,29 @@ class KnowledgeBase:
             readme = self.documentation["README.md"]
             lines.append("=== README (excerpt) ===")
             lines.append(readme[:300] + "..." if len(readme) > 300 else readme)
+
+        if self.verification:
+            lines.append("")
+            lines.append("=== Verification ===")
+            lines.append(f"Score: {self.verification.get('score', 0)}/100")
+            lines.append(f"Status: {self.verification.get('overall_status', 'unknown')}")
+
+        if self.category:
+            lines.append("")
+            lines.append("=== Category ===")
+            lines.append(f"Primary: {self.category.get('primary_category', 'unknown')}")
+            if self.category.get('subcategory'):
+                lines.append(f"Subcategory: {self.category.get('subcategory')}")
+            if self.category.get('tags'):
+                lines.append(f"Tags: {', '.join(self.category.get('tags', [])[:5])}")
+
+        if self.blockchain_links:
+            lines.append("")
+            lines.append("=== Marketplace ===")
+            if self.blockchain_links.get('ip_asset_id'):
+                lines.append(f"IP Asset ID: {self.blockchain_links.get('ip_asset_id')}")
+            if self.blockchain_links.get('purchase_links'):
+                lines.append(f"Purchase Links: {len(self.blockchain_links.get('purchase_links', []))} tiers available")
 
         return "\n".join(lines)
 
@@ -209,6 +244,10 @@ class KnowledgeBase:
             "tests": self.tests,
             "statistics": self.statistics,
             "embeddings": self.embeddings,
+            "verification": self.verification,
+            "readme_metadata": self.readme_metadata,
+            "category": self.category,
+            "blockchain_links": self.blockchain_links,
         }
 
         with open(output_path, 'w') as f:
@@ -250,6 +289,10 @@ class KnowledgeBase:
             tests=data.get("tests", {}),
             statistics=data.get("statistics", {}),
             embeddings=data.get("embeddings"),
+            verification=data.get("verification"),
+            readme_metadata=data.get("readme_metadata"),
+            category=data.get("category"),
+            blockchain_links=data.get("blockchain_links"),
         )
 
         return kb

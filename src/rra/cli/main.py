@@ -95,12 +95,21 @@ def init(
 @click.argument('repo_url')
 @click.option('--workspace', type=click.Path(path_type=Path), default=Path('./cloned_repos'), help='Directory for cloned repos')
 @click.option('--force', is_flag=True, help='Force refresh by re-cloning')
-def ingest(repo_url: str, workspace: Path, force: bool):
+@click.option('--verify/--no-verify', default=True, help='Run code verification')
+@click.option('--categorize/--no-categorize', default=True, help='Auto-categorize the repository')
+@click.option('--wallet', help='Ethereum wallet address for blockchain links')
+@click.option('--network', type=click.Choice(['mainnet', 'testnet', 'localhost']), default='testnet', help='Blockchain network')
+def ingest(repo_url: str, workspace: Path, force: bool, verify: bool, categorize: bool, wallet: Optional[str], network: str):
     """
     Ingest a repository and generate its knowledge base.
 
     Clones the repository, parses its contents, and creates a structured
     knowledge base for agent reasoning.
+
+    Now includes:
+    - Code verification (tests, linting, security)
+    - Automatic categorization
+    - Blockchain purchase link generation
     """
     console.print(Panel.fit(
         f"[bold blue]Ingesting Repository[/bold blue]\n{repo_url}",
@@ -109,7 +118,14 @@ def ingest(repo_url: str, workspace: Path, force: bool):
 
     try:
         with console.status("[bold blue]Ingesting repository...", spinner="dots"):
-            ingester = RepoIngester(workspace_dir=workspace)
+            ingester = RepoIngester(
+                workspace_dir=workspace,
+                verify_code=verify,
+                categorize=categorize,
+                generate_blockchain_links=bool(wallet),
+                owner_address=wallet,
+                network=network,
+            )
             kb = ingester.ingest(repo_url, force_refresh=force)
 
         # Save knowledge base
@@ -120,6 +136,36 @@ def ingest(repo_url: str, workspace: Path, force: bool):
         # Display summary
         console.print("\n[bold]Repository Summary:[/bold]")
         console.print(Panel(kb.get_summary(), border_style="green"))
+
+        # Show verification results
+        if kb.verification:
+            console.print("\n[bold]Verification Results:[/bold]")
+            score = kb.verification.get('score', 0)
+            status = kb.verification.get('overall_status', 'unknown')
+            color = "green" if status == "passed" else ("yellow" if status == "warning" else "red")
+            console.print(f"  Score: [{color}]{score}/100[/{color}]")
+            console.print(f"  Status: [{color}]{status}[/{color}]")
+
+            for check in kb.verification.get('checks', []):
+                check_color = "green" if check['status'] == "passed" else ("yellow" if check['status'] == "warning" else "red")
+                console.print(f"    [{check_color}]•[/{check_color}] {check['name']}: {check['message']}")
+
+        # Show category
+        if kb.category:
+            console.print("\n[bold]Category:[/bold]")
+            console.print(f"  Primary: [cyan]{kb.category.get('primary_category', 'unknown')}[/cyan]")
+            if kb.category.get('subcategory'):
+                console.print(f"  Subcategory: {kb.category.get('subcategory')}")
+            if kb.category.get('tags'):
+                tags = ', '.join(kb.category.get('tags', [])[:5])
+                console.print(f"  Tags: {tags}")
+
+        # Show blockchain links
+        if kb.blockchain_links:
+            console.print("\n[bold]Blockchain Links:[/bold]")
+            console.print(f"  IP Asset ID: [cyan]{kb.blockchain_links.get('ip_asset_id')}[/cyan]")
+            for link in kb.blockchain_links.get('purchase_links', []):
+                console.print(f"  {link['tier'].capitalize()}: {link['url']}")
 
         # Show negotiation context
         context = kb.get_negotiation_context()
@@ -460,6 +506,276 @@ def resolve(repo_id: str):
     else:
         console.print(f"[yellow]Repository ID not found: {repo_id}[/yellow]")
         console.print("\nThis ID may not be registered. Use 'rra links <repo-url> --register' to register a repository.")
+
+
+@cli.command()
+@click.argument('repo_url')
+@click.option('--skip-tests', is_flag=True, help='Skip running actual tests')
+@click.option('--skip-security', is_flag=True, help='Skip security scanning')
+@click.option('--workspace', type=click.Path(path_type=Path), default=Path('./cloned_repos'), help='Directory for cloned repos')
+def verify(repo_url: str, skip_tests: bool, skip_security: bool, workspace: Path):
+    """
+    Verify a GitHub repository's code quality.
+
+    Runs comprehensive verification including:
+    - Test suite detection and execution
+    - Linting and code quality checks
+    - Security vulnerability scanning
+    - Build/installation verification
+    - README alignment checking
+    """
+    from rra.verification.verifier import CodeVerifier
+
+    console.print(Panel.fit(
+        f"[bold blue]Verifying Repository[/bold blue]\n{repo_url}",
+        border_style="blue"
+    ))
+
+    try:
+        # Clone the repo first
+        with console.status("[bold blue]Cloning repository...", spinner="dots"):
+            ingester = RepoIngester(
+                workspace_dir=workspace,
+                verify_code=False,
+                categorize=False,
+                generate_blockchain_links=False,
+            )
+            kb = ingester.ingest(repo_url)
+
+        # Run verification
+        console.print("\n[bold]Running verification checks...[/bold]\n")
+
+        verifier = CodeVerifier(skip_tests=skip_tests, skip_security=skip_security)
+
+        readme_content = kb.documentation.get("README.md", "")
+
+        result = verifier.verify(
+            repo_path=kb.repo_path,
+            repo_url=repo_url,
+            readme_content=readme_content,
+        )
+
+        # Display results
+        score = result.score
+        status = result.overall_status.value
+        status_color = "green" if status == "passed" else ("yellow" if status == "warning" else "red")
+
+        console.print(f"[bold]Overall Score:[/bold] [{status_color}]{score}/100[/{status_color}]")
+        console.print(f"[bold]Status:[/bold] [{status_color}]{status.upper()}[/{status_color}]")
+
+        console.print("\n[bold]Detailed Checks:[/bold]\n")
+
+        table = Table(show_header=True)
+        table.add_column("Check", style="cyan", width=20)
+        table.add_column("Status", width=10)
+        table.add_column("Message", style="dim")
+
+        for check in result.checks:
+            check_color = "green" if check.status.value == "passed" else ("yellow" if check.status.value == "warning" else "red")
+            status_icon = "✓" if check.status.value == "passed" else ("⚠" if check.status.value == "warning" else "✗")
+            table.add_row(
+                check.name.replace("_", " ").title(),
+                f"[{check_color}]{status_icon} {check.status.value}[/{check_color}]",
+                check.message[:60] + "..." if len(check.message) > 60 else check.message,
+            )
+
+        console.print(table)
+
+        # Show security issues if any
+        for check in result.checks:
+            if check.name == "security" and check.details and check.details.get("issues"):
+                console.print("\n[bold yellow]Security Issues Found:[/bold yellow]")
+                for issue in check.details["issues"][:5]:
+                    console.print(f"  [{issue['category']}] {issue['file']}")
+
+    except Exception as e:
+        console.print(f"[red]✗[/red] Verification failed: {e}", style="bold red")
+        sys.exit(1)
+
+
+@cli.command()
+@click.argument('repo_url')
+@click.option('--wallet', required=True, help='Your Ethereum wallet address')
+@click.option('--network', type=click.Choice(['mainnet', 'testnet', 'localhost']), default='testnet', help='Blockchain network')
+@click.option('--standard-price', type=float, default=0.05, help='Price for standard license (ETH)')
+@click.option('--premium-price', type=float, default=0.15, help='Price for premium license (ETH)')
+@click.option('--enterprise-price', type=float, default=0.50, help='Price for enterprise license (ETH)')
+@click.option('--format', 'output_format', type=click.Choice(['table', 'json', 'markdown']), default='table', help='Output format')
+def purchase_link(repo_url: str, wallet: str, network: str, standard_price: float, premium_price: float, enterprise_price: float, output_format: str):
+    """
+    Generate blockchain purchase links for a repository.
+
+    Creates links to Story Protocol entries where buyers can purchase licenses.
+    Links include:
+    - Standard tier license
+    - Premium tier license
+    - Enterprise tier license
+    """
+    from rra.verification.blockchain_link import BlockchainLinkGenerator, NetworkType
+    import json
+
+    console.print(Panel.fit(
+        f"[bold blue]Generating Purchase Links[/bold blue]\n{repo_url}",
+        border_style="blue"
+    ))
+
+    try:
+        network_type = NetworkType(network)
+    except ValueError:
+        network_type = NetworkType.TESTNET
+
+    generator = BlockchainLinkGenerator(network=network_type)
+
+    # Generate IP Asset ID
+    ip_asset_id = generator.generate_ip_asset_id(repo_url, wallet)
+
+    # Generate links
+    pricing = {
+        "standard": standard_price,
+        "premium": premium_price,
+        "enterprise": enterprise_price,
+    }
+
+    links = generator.generate_all_tier_links(
+        repo_url=repo_url,
+        ip_asset_id=ip_asset_id,
+        pricing=pricing,
+    )
+
+    # Generate explorer link
+    explorer_url = generator.generate_explorer_link(ip_asset_id)
+
+    if output_format == 'json':
+        data = {
+            "ip_asset_id": ip_asset_id,
+            "explorer_url": explorer_url,
+            "network": network,
+            "links": [link.to_dict() for link in links],
+        }
+        console.print(json.dumps(data, indent=2))
+
+    elif output_format == 'markdown':
+        md = f"""# Purchase Links for {repo_url.split('/')[-1]}
+
+**IP Asset ID:** `{ip_asset_id}`
+**Network:** {network}
+
+## License Tiers
+
+| Tier | Price | Purchase Link |
+|------|-------|---------------|
+"""
+        for link in links:
+            md += f"| {link.tier.value.capitalize()} | {link.price_display} | [{link.url}]({link.url}) |\n"
+
+        md += f"""
+## View on Story Protocol
+
+[View IP Asset on Story Protocol Explorer]({explorer_url})
+
+## Embed Widget
+
+```html
+{generator.generate_embed_widget(generator.generate_marketplace_listing(
+    repo_url=repo_url,
+    repo_name=repo_url.split("/")[-1],
+    description="Software License",
+    category="software",
+    owner_address=wallet,
+    pricing=pricing,
+))}
+```
+"""
+        console.print(Markdown(md))
+
+    else:  # table format
+        console.print(f"\n[bold]IP Asset ID:[/bold] [cyan]{ip_asset_id}[/cyan]")
+        console.print(f"[bold]Network:[/bold] {network}")
+        console.print(f"[bold]Explorer:[/bold] {explorer_url}\n")
+
+        table = Table(title="Purchase Links", show_header=True)
+        table.add_column("Tier", style="cyan", width=12)
+        table.add_column("Price", style="green", width=12)
+        table.add_column("URL", style="blue")
+
+        for link in links:
+            table.add_row(
+                link.tier.value.capitalize(),
+                link.price_display,
+                link.url,
+            )
+
+        console.print(table)
+
+        console.print("\n[bold]Quick Actions:[/bold]")
+        console.print(f"  • Copy link for standard tier: {links[0].url}")
+        console.print(f"  • View on explorer: {explorer_url}")
+
+
+@cli.command()
+@click.argument('repo_url')
+@click.option('--workspace', type=click.Path(path_type=Path), default=Path('./cloned_repos'), help='Directory for cloned repos')
+def categorize(repo_url: str, workspace: Path):
+    """
+    Categorize a repository based on its structure and content.
+
+    Analyzes the repository to determine:
+    - Primary category (library, CLI, web app, API, etc.)
+    - Subcategory (frontend, backend, ML, etc.)
+    - Technologies used
+    - Frameworks detected
+    """
+    from rra.verification.categorizer import CodeCategorizer
+
+    console.print(Panel.fit(
+        f"[bold blue]Categorizing Repository[/bold blue]\n{repo_url}",
+        border_style="blue"
+    ))
+
+    try:
+        # Clone and analyze
+        with console.status("[bold blue]Analyzing repository...", spinner="dots"):
+            ingester = RepoIngester(
+                workspace_dir=workspace,
+                verify_code=False,
+                categorize=True,
+                generate_blockchain_links=False,
+            )
+            kb = ingester.ingest(repo_url)
+
+        if not kb.category:
+            console.print("[yellow]Could not determine category[/yellow]")
+            return
+
+        # Display results
+        category = kb.category
+        confidence_color = "green" if category.get('confidence', 0) > 0.7 else ("yellow" if category.get('confidence', 0) > 0.4 else "red")
+
+        console.print(f"\n[bold]Primary Category:[/bold] [cyan]{category.get('primary_category', 'unknown')}[/cyan]")
+        if category.get('subcategory'):
+            console.print(f"[bold]Subcategory:[/bold] {category.get('subcategory')}")
+        console.print(f"[bold]Confidence:[/bold] [{confidence_color}]{category.get('confidence', 0):.0%}[/{confidence_color}]")
+
+        if category.get('technologies'):
+            console.print(f"\n[bold]Technologies:[/bold]")
+            for tech in category.get('technologies', []):
+                console.print(f"  • {tech}")
+
+        if category.get('frameworks'):
+            console.print(f"\n[bold]Frameworks:[/bold]")
+            for framework in category.get('frameworks', []):
+                console.print(f"  • {framework}")
+
+        if category.get('tags'):
+            tags = ', '.join(category.get('tags', [])[:10])
+            console.print(f"\n[bold]Tags:[/bold] {tags}")
+
+        if category.get('reasoning'):
+            console.print(f"\n[bold]Reasoning:[/bold] {category.get('reasoning')}")
+
+    except Exception as e:
+        console.print(f"[red]✗[/red] Categorization failed: {e}", style="bold red")
+        sys.exit(1)
 
 
 if __name__ == '__main__':
