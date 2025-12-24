@@ -165,7 +165,7 @@ export default function LicenseTierPage() {
 
               <div className="mt-8">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  What's Included
+                  What&apos;s Included
                 </h3>
                 <ul className="mt-4 space-y-3">
                   {selectedTier.features.map((feature, index) => (

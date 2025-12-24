@@ -287,8 +287,9 @@ export function ShareLinks({ repoName, purchaseUrl, ipAssetId, className }: Shar
         {/* Preview */}
         <div className="flex items-center gap-2 text-sm text-gray-500">
           <span>Preview:</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={`https://img.shields.io/badge/RRA-Purchase_License-indigo`}
+            src="https://img.shields.io/badge/RRA-Purchase_License-indigo"
             alt="Purchase License Badge"
             className="h-5"
           />
