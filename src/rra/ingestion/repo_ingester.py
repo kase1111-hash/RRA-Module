@@ -5,6 +5,12 @@ Repository ingestion and parsing module.
 
 Handles cloning, parsing, and extracting key information from repositories
 to build the Agent Knowledge Base (AKB).
+
+Now includes:
+- Code verification (tests, linting, security)
+- README parsing and metadata extraction
+- Automatic categorization
+- Blockchain purchase link generation
 """
 
 import os
@@ -34,17 +40,76 @@ class RepoIngester:
 
     This class manages the process of cloning repositories, parsing their
     contents, and generating structured knowledge bases for agent reasoning.
+
+    Now includes verification, categorization, and blockchain link generation.
     """
 
-    def __init__(self, workspace_dir: Path = Path("./cloned_repos")):
+    def __init__(
+        self,
+        workspace_dir: Path = Path("./cloned_repos"),
+        verify_code: bool = True,
+        categorize: bool = True,
+        generate_blockchain_links: bool = True,
+        owner_address: Optional[str] = None,
+        network: str = "testnet",
+    ):
         """
         Initialize the RepoIngester.
 
         Args:
             workspace_dir: Directory where repositories will be cloned
+            verify_code: Whether to run code verification
+            categorize: Whether to categorize the repository
+            generate_blockchain_links: Whether to generate blockchain links
+            owner_address: Ethereum address for blockchain registration
+            network: Blockchain network ("mainnet", "testnet", "localhost")
         """
         self.workspace_dir = workspace_dir
         self.workspace_dir.mkdir(parents=True, exist_ok=True)
+        self.verify_code = verify_code
+        self.categorize = categorize
+        self.generate_blockchain_links = generate_blockchain_links
+        self.owner_address = owner_address
+        self.network = network
+
+        # Initialize verification and categorization modules
+        self._verifier = None
+        self._categorizer = None
+        self._readme_parser = None
+        self._link_generator = None
+
+    @property
+    def verifier(self):
+        """Lazy-load the code verifier."""
+        if self._verifier is None:
+            from rra.verification.verifier import CodeVerifier
+            self._verifier = CodeVerifier()
+        return self._verifier
+
+    @property
+    def categorizer(self):
+        """Lazy-load the code categorizer."""
+        if self._categorizer is None:
+            from rra.verification.categorizer import CodeCategorizer
+            self._categorizer = CodeCategorizer()
+        return self._categorizer
+
+    @property
+    def readme_parser(self):
+        """Lazy-load the README parser."""
+        if self._readme_parser is None:
+            from rra.verification.readme_parser import ReadmeParser
+            self._readme_parser = ReadmeParser()
+        return self._readme_parser
+
+    @property
+    def link_generator(self):
+        """Lazy-load the blockchain link generator."""
+        if self._link_generator is None:
+            from rra.verification.blockchain_link import BlockchainLinkGenerator, NetworkType
+            network_type = NetworkType(self.network)
+            self._link_generator = BlockchainLinkGenerator(network=network_type)
+        return self._link_generator
 
     def _validate_repo_url(self, repo_url: str) -> None:
         """
@@ -210,7 +275,111 @@ class RepoIngester:
         # Calculate repository statistics
         kb.statistics = self._calculate_statistics(repo_path)
 
+        # Parse README metadata
+        readme_content = kb.documentation.get("README.md", "")
+        if readme_content:
+            print("  Parsing README metadata...")
+            readme_meta = self.readme_parser.parse_from_content(readme_content)
+            kb.readme_metadata = readme_meta.to_dict()
+
+        # Verify code
+        if self.verify_code:
+            print("  Verifying code...")
+            verification_result = self.verifier.verify(
+                repo_path=repo_path,
+                repo_url=repo_url,
+                readme_content=readme_content,
+            )
+            kb.verification = verification_result.to_dict()
+            print(f"    Verification score: {verification_result.score}/100")
+
+        # Categorize repository
+        if self.categorize:
+            print("  Categorizing repository...")
+            category_result = self.categorizer.categorize(
+                repo_path=repo_path,
+                readme_content=readme_content,
+                dependencies=kb.dependencies,
+            )
+            kb.category = category_result.to_dict()
+            print(f"    Category: {category_result.primary_category.value}")
+
+        # Generate blockchain links
+        if self.generate_blockchain_links and self.owner_address:
+            print("  Generating blockchain links...")
+            kb.blockchain_links = self._generate_blockchain_links(kb)
+            print(f"    Generated {len(kb.blockchain_links.get('purchase_links', []))} purchase links")
+
         return kb
+
+    def _generate_blockchain_links(self, kb: KnowledgeBase) -> Dict[str, Any]:
+        """
+        Generate blockchain purchase links for the repository.
+
+        Args:
+            kb: KnowledgeBase with parsed repository information
+
+        Returns:
+            Dictionary with blockchain link information
+        """
+        # Get pricing from market config or use defaults
+        pricing = {
+            "standard": 0.05,
+            "premium": 0.15,
+            "enterprise": 0.50,
+        }
+
+        if kb.market_config:
+            try:
+                # Parse prices from market config
+                target = float(kb.market_config.target_price.replace(" ETH", "").replace("ETH", ""))
+                floor = float(kb.market_config.floor_price.replace(" ETH", "").replace("ETH", ""))
+                pricing = {
+                    "standard": floor,
+                    "premium": target,
+                    "enterprise": target * 3,
+                }
+            except (ValueError, AttributeError):
+                pass
+
+        # Get description
+        description = ""
+        if kb.readme_metadata:
+            description = kb.readme_metadata.get("short_description", "")
+        if not description and kb.documentation.get("README.md"):
+            description = kb.documentation["README.md"][:200]
+
+        # Get category
+        category = "other"
+        if kb.category:
+            category = kb.category.get("primary_category", "other")
+
+        # Get verification score
+        verification_score = 0.0
+        if kb.verification:
+            verification_score = kb.verification.get("score", 0.0)
+
+        # Get tags and technologies
+        tags = []
+        technologies = []
+        if kb.category:
+            tags = kb.category.get("tags", [])
+            technologies = kb.category.get("technologies", [])
+
+        # Generate marketplace listing
+        listing = self.link_generator.generate_marketplace_listing(
+            repo_url=kb.repo_url,
+            repo_name=kb.repo_url.split("/")[-1].replace(".git", ""),
+            description=description,
+            category=category,
+            owner_address=self.owner_address,
+            pricing=pricing,
+            verification_score=verification_score,
+            tags=tags,
+            technologies=technologies,
+        )
+
+        return listing.to_dict()
 
     def _extract_metadata(self, repo_path: Path) -> Dict[str, Any]:
         """Extract repository metadata from git."""
