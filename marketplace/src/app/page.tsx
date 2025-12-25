@@ -1,7 +1,8 @@
 import Link from 'next/link';
-import { ArrowRight, Code, Cpu, Shield, Zap } from 'lucide-react';
+import { ArrowRight, Code, Cpu, Shield, Zap, Link2, FileText, Database, Activity } from 'lucide-react';
 import { SearchBar } from '@/components/SearchBar';
 import { AgentCard } from '@/components/AgentCard';
+import { ChainStatus } from '@/components/ChainStatus';
 
 // Mock data - in production, this would come from API
 const featuredRepos = [
@@ -203,6 +204,80 @@ export default function HomePage() {
                 No paperwork, no emails, no waiting - just click and buy
               </p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* NatLangChain Integration Section */}
+      <section className="px-4 py-16 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-gray-900 dark:to-indigo-900/20">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 rounded-full bg-indigo-100 px-4 py-1.5 text-sm font-medium text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 mb-4">
+              <Link2 className="h-4 w-4" />
+              NatLangChain Integration
+            </div>
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Powered by Natural Language Blockchain
+            </h2>
+            <p className="mt-4 max-w-2xl mx-auto text-gray-600 dark:text-gray-400">
+              Every negotiation, transaction, and license agreement is recorded on NatLangChain -
+              a blockchain that speaks your language.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-100 dark:bg-indigo-900/50 mb-4">
+                <FileText className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                Intent Logging
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Every negotiation step is logged as a verifiable intent on chain
+              </p>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/50 mb-4">
+                <Database className="h-5 w-5 text-green-600 dark:text-green-400" />
+              </div>
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                Transaction Records
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                License purchases recorded immutably with full terms
+              </p>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/50 mb-4">
+                <Activity className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                LLM Validation
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                AI-powered proof of understanding validates entries
+              </p>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/50 mb-4">
+                <Link2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                Chain Connection
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Real-time sync with NatLangChain for transparency
+              </p>
+            </div>
+          </div>
+
+          {/* Chain Status Widget */}
+          <div className="mt-10 flex justify-center">
+            <ChainStatus showDetails={true} />
           </div>
         </div>
       </section>

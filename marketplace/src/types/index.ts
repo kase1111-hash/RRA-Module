@@ -232,3 +232,53 @@ export interface AgentDetailsWithVerification extends AgentDetails {
   blockchain_links?: MarketplaceListing;
 }
 
+// NatLangChain Integration Types
+
+export type ChainConnectionStatus = 'connected' | 'disconnected' | 'connecting' | 'error';
+
+export interface ChainHealth {
+  status: string;
+  service: string;
+  blocks: number;
+  pending_entries: number;
+  llm_validation_available: boolean;
+}
+
+export interface ChainStats {
+  total_blocks: number;
+  total_entries: number;
+  pending_entries: number;
+  unique_authors: number;
+  validated_entries: number;
+  chain_valid: boolean;
+  latest_block_hash: string;
+}
+
+export interface ChainEntry {
+  id: string;
+  content: string;
+  author: string;
+  intent: string;
+  timestamp: string;
+  type?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ChainTransaction {
+  id: string;
+  repo_url: string;
+  buyer_id: string;
+  license_model: string;
+  price: string;
+  terms: Record<string, unknown>;
+  timestamp: string;
+  block_hash?: string;
+}
+
+export interface NegotiationIntent {
+  repo_url: string;
+  intent_type: 'quote_requested' | 'offer_made' | 'counter_offer' | 'accepted' | 'rejected';
+  details: Record<string, unknown>;
+  timestamp: string;
+}
+
