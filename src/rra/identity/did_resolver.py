@@ -49,6 +49,8 @@ from eth_utils import keccak, to_checksum_address
 from eth_keys import keys
 from eth_account.messages import encode_defunct
 from eth_account import Account
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+from cryptography.exceptions import InvalidSignature
 
 
 class DIDMethod(Enum):
@@ -667,8 +669,36 @@ class DIDResolver:
         signature: bytes
     ) -> bool:
         """Verify Ed25519 signature."""
-        # TODO: Implement Ed25519 verification
-        return False
+        try:
+            public_key_bytes: Optional[bytes] = None
+
+            # Try to get the public key from available sources
+            if vm.public_key_hex:
+                public_key_bytes = bytes.fromhex(vm.public_key_hex)
+            elif vm.public_key_multibase:
+                # Decode multibase-encoded key
+                if vm.public_key_multibase.startswith("z"):
+                    # Base58btc encoding
+                    import base58
+                    key_bytes = base58.b58decode(vm.public_key_multibase[1:])
+                    # Check for multicodec prefix (0xed01 for Ed25519)
+                    if len(key_bytes) > 2 and key_bytes[:2] == bytes([0xed, 0x01]):
+                        public_key_bytes = key_bytes[2:]
+                    else:
+                        public_key_bytes = key_bytes
+                else:
+                    return False
+
+            if not public_key_bytes or len(public_key_bytes) != 32:
+                return False
+
+            # Load the Ed25519 public key and verify
+            public_key = Ed25519PublicKey.from_public_bytes(public_key_bytes)
+            public_key.verify(signature, message)
+            return True
+
+        except (InvalidSignature, ValueError, Exception):
+            return False
 
     async def authenticate(
         self,
