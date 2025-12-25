@@ -5,6 +5,7 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Search, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { ChainIndicator } from '@/components/ChainStatus';
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -66,6 +67,9 @@ export function Header() {
                 ⌘K
               </kbd>
             </Link>
+
+            {/* NatLangChain Connection Status */}
+            <ChainIndicator />
 
             {/* Wallet Connect */}
             <ConnectButton
