@@ -42,11 +42,11 @@ export function ChainStatus({ compact = false, showDetails = false }: ChainStatu
             }
           }
         } else {
-          setStatus('disconnected');
+          setStatus('error');
           setError('Chain not available');
         }
       } catch (err) {
-        setStatus('disconnected');
+        setStatus('error');
         setError('Unable to connect to NatLangChain');
       }
     };
@@ -263,9 +263,9 @@ export function ChainIndicator() {
     const checkConnection = async () => {
       try {
         const response = await fetch('/api/chain/health');
-        setStatus(response.ok ? 'connected' : 'disconnected');
+        setStatus(response.ok ? 'connected' : 'error');
       } catch {
-        setStatus('disconnected');
+        setStatus('error');
       }
     };
 

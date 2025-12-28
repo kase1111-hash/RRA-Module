@@ -206,11 +206,15 @@ def submit_entry():
     content = data.get("content", {})
     metadata = data.get("metadata", {})
 
+    # Convert content to string if it's a dict for consistency with /entry endpoint
+    content_str = json.dumps(content) if isinstance(content, dict) else str(content)
+
     entry = {
         "id": f"entry_{secrets.token_hex(8)}",
         "type": entry_type,
         "author": author,
-        "content": content,
+        "content": content_str,
+        "intent": f"{entry_type} entry",
         "metadata": metadata,
         "timestamp": datetime.now().isoformat()
     }

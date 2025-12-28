@@ -17,7 +17,7 @@ import asyncio
 from unittest.mock import MagicMock, patch, AsyncMock
 from datetime import datetime
 
-from src.rra.integration.natlangchain_client import (
+from rra.integration.natlangchain_client import (
     NatLangChainClient,
     AsyncNatLangChainClient,
     ChainEntry,
@@ -34,7 +34,7 @@ from src.rra.integration.natlangchain_client import (
 @pytest.fixture
 def mock_httpx_client():
     """Mock httpx client for unit testing."""
-    with patch('src.rra.integration.natlangchain_client.httpx') as mock_httpx:
+    with patch('rra.integration.natlangchain_client.httpx') as mock_httpx:
         mock_client = MagicMock()
         mock_httpx.Client.return_value = mock_client
         yield mock_client
@@ -61,7 +61,7 @@ class TestNatLangChainClient:
 
     def test_client_initialization(self):
         """Test client initializes with correct parameters."""
-        with patch('src.rra.integration.natlangchain_client.httpx'):
+        with patch('rra.integration.natlangchain_client.httpx'):
             client = NatLangChainClient(
                 base_url="http://test:5000",
                 agent_id="my-agent"
@@ -252,7 +252,7 @@ class TestGetChainClient:
 
     def test_get_sync_client(self):
         """Test getting sync client."""
-        with patch('src.rra.integration.natlangchain_client.httpx'):
+        with patch('rra.integration.natlangchain_client.httpx'):
             client = get_chain_client(
                 base_url="http://test:5000",
                 agent_id="test-agent",
@@ -262,7 +262,7 @@ class TestGetChainClient:
 
     def test_get_async_client(self):
         """Test getting async client."""
-        with patch('src.rra.integration.natlangchain_client.httpx'):
+        with patch('rra.integration.natlangchain_client.httpx'):
             client = get_chain_client(
                 base_url="http://test:5000",
                 agent_id="test-agent",
@@ -443,7 +443,7 @@ class TestAsyncNatLangChainClient:
     @pytest.fixture
     def mock_async_client(self):
         """Mock async httpx client."""
-        with patch('src.rra.integration.natlangchain_client.httpx') as mock_httpx:
+        with patch('rra.integration.natlangchain_client.httpx') as mock_httpx:
             mock_client = AsyncMock()
             mock_httpx.AsyncClient.return_value = mock_client
             yield mock_client
