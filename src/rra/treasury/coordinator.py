@@ -38,6 +38,7 @@ class DisputeStatus(Enum):
     """Status of a treasury dispute."""
 
     CREATED = "created"          # Initial creation
+    OPEN = "open"                # Alias for created/staking (API compatibility)
     STAKING = "staking"          # Awaiting treasury stakes
     VOTING = "voting"            # Active voting period
     MEDIATION = "mediation"      # Escalated to mediator
@@ -101,8 +102,14 @@ class Treasury:
     registered_at: datetime
     total_disputes: int = 0
     resolved_disputes: int = 0
+    total_stake: int = 0            # Total staked amount in wei
     is_active: bool = True
     metadata: Dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def created_at(self) -> datetime:
+        """Alias for registered_at for API compatibility."""
+        return self.registered_at
 
     def is_signer(self, address: str) -> bool:
         """Check if address is a signer."""
@@ -215,6 +222,11 @@ class TreasuryDispute:
         """Check if all treasuries have staked."""
         return all(p.has_staked for p in self.participants.values())
 
+    @property
+    def stakes(self) -> Dict[str, int]:
+        """Get stake amounts by treasury ID."""
+        return {tid: p.stake_amount for tid, p in self.participants.items()}
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -275,6 +287,24 @@ class TreasuryCoordinator:
         self._on_dispute_created: Optional[Callable[[TreasuryDispute], None]] = None
         self._on_voting_started: Optional[Callable[[TreasuryDispute], None]] = None
         self._on_dispute_resolved: Optional[Callable[[TreasuryDispute], None]] = None
+
+    @property
+    def treasuries(self) -> Dict[str, Treasury]:
+        """Get all registered treasuries."""
+        return self._treasuries
+
+    @property
+    def disputes(self) -> Dict[str, TreasuryDispute]:
+        """Get all disputes."""
+        return self._disputes
+
+    def list_disputes(self) -> List[TreasuryDispute]:
+        """List all disputes."""
+        return list(self._disputes.values())
+
+    def _save_state(self) -> None:
+        """Save coordinator state (placeholder for persistence)."""
+        pass
 
     # =========================================================================
     # Treasury Management

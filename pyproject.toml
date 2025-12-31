@@ -49,6 +49,9 @@ dev = [
     "black>=23.11.0",
     "flake8>=6.1.0",
     "mypy>=1.7.1",
+    # Type stubs
+    "types-PyYAML>=6.0.12",
+    "types-requests>=2.31.0",
 ]
 
 # NatLangChain ecosystem integration (optional)
@@ -90,6 +93,17 @@ python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
+ignore_missing_imports = true
+# Strict mode for core modules
+[[tool.mypy.overrides]]
+module = ["rra.exceptions", "rra.contracts.*", "rra.storage.*"]
+warn_return_any = true
+strict_optional = true
+
+# Lenient for third-party integration modules
+[[tool.mypy.overrides]]
+module = ["rra.integrations.*", "rra.integration.*"]
+ignore_errors = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -99,4 +113,7 @@ python_functions = ["test_*"]
 addopts = "-v --tb=short"
 markers = [
     "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning:websockets.legacy",
 ]
