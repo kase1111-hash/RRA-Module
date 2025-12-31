@@ -279,12 +279,12 @@ class DIDAuthenticator:
         if self.require_sybil_check or self.min_identity_score > 0:
             identity_score = await self.sybil_resistance.get_identity_score(challenge.did)
 
-            if identity_score.overall_score < self.min_identity_score:
+            if identity_score.score < self.min_identity_score:
                 return AuthResult(
                     success=False,
                     did=challenge.did,
                     identity_score=identity_score,
-                    error=f"Identity score {identity_score.overall_score:.2f} below minimum {self.min_identity_score}",
+                    error=f"Identity score {identity_score.score:.2f} below minimum {self.min_identity_score}",
                     error_code="INSUFFICIENT_SCORE",
                 )
 
@@ -457,8 +457,10 @@ class DIDAuthenticator:
         Returns:
             Bearer token string
         """
-        # Create token payload
-        payload = f"{session.id}:{session.did}:{int(session.expires_at.timestamp())}"
+        import base64
+
+        # Create token payload with pipe separator (not in DID format)
+        payload = f"{session.id}|{session.did}|{int(session.expires_at.timestamp())}"
 
         # Generate HMAC
         mac = hmac.new(
@@ -467,9 +469,10 @@ class DIDAuthenticator:
             hashlib.sha256,
         )
 
-        # Combine payload and signature
-        token = f"{payload}:{mac.hexdigest()}"
-        return secrets.token_urlsafe(8) + "." + token.replace(":", ".")
+        # Base64 encode payload to avoid separator issues
+        encoded_payload = base64.urlsafe_b64encode(payload.encode()).decode()
+        token = f"{encoded_payload}.{mac.hexdigest()}"
+        return secrets.token_urlsafe(8) + "." + token
 
     async def validate_token(self, token: str) -> AuthResult:
         """
@@ -481,24 +484,36 @@ class DIDAuthenticator:
         Returns:
             AuthResult with session if valid
         """
+        import base64
+
         try:
-            # Parse token
+            # Parse token: {random_prefix}.{base64_payload}.{mac}
             parts = token.split(".")
-            if len(parts) != 5:
+            if len(parts) != 3:
                 return AuthResult(
                     success=False,
                     error="Invalid token format",
                     error_code="INVALID_TOKEN",
                 )
 
-            # Extract components (skip random prefix)
-            session_id = parts[1]
-            did = parts[2]
-            expires_ts = int(parts[3])
-            provided_mac = parts[4]
+            # Extract and decode payload (skip random prefix)
+            encoded_payload = parts[1]
+            provided_mac = parts[2]
+
+            try:
+                payload = base64.urlsafe_b64decode(encoded_payload).decode()
+                payload_parts = payload.split("|")
+                if len(payload_parts) != 3:
+                    raise ValueError("Invalid payload structure")
+                session_id, did, expires_ts = payload_parts[0], payload_parts[1], int(payload_parts[2])
+            except (ValueError, UnicodeDecodeError) as e:
+                return AuthResult(
+                    success=False,
+                    error="Invalid token payload",
+                    error_code="INVALID_TOKEN",
+                )
 
             # Verify HMAC
-            payload = f"{session_id}:{did}:{expires_ts}"
             expected_mac = hmac.new(
                 self._hmac_secret,
                 payload.encode("utf-8"),
@@ -639,7 +654,7 @@ class DIDAuthMiddleware:
 
         # Check identity score
         if self.min_identity_score > 0 and result.identity_score:
-            if result.identity_score.overall_score < self.min_identity_score:
+            if result.identity_score.score < self.min_identity_score:
                 return AuthResult(
                     success=False,
                     did=result.did,

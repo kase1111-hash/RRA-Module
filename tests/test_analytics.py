@@ -14,11 +14,15 @@ from fastapi.testclient import TestClient
 
 import os
 
-# Set up authentication for tests
+# Set up authentication for tests and disable rate limiting
 os.environ["RRA_DEV_MODE"] = "true"
 os.environ["RRA_API_KEY"] = "test-key"
+os.environ["RRA_RATE_LIMIT_ENABLED"] = "false"
 
-from rra.api.server import app
+from rra.api.server import create_app
+
+# Create fresh app with rate limiting disabled
+app = create_app()
 from rra.api.analytics import (
     AnalyticsStore,
     AnalyticsEvent,

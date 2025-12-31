@@ -30,6 +30,7 @@ from src.rra.identity.sybil_resistance import (
     ProofOfHumanity,
     ProofType,
     TrustLevel,
+    RiskLevel,
 )
 from src.rra.auth.did_auth import (
     DIDAuthenticator,
@@ -167,7 +168,7 @@ class TestSybilResistance:
         score = await sybil.get_identity_score(did)
 
         assert isinstance(score, IdentityScore)
-        assert 0 <= score.overall_score <= 100
+        assert 0 <= score.score <= 100
         assert score.did == did
 
     @pytest.mark.asyncio
@@ -194,13 +195,13 @@ class TestSybilResistance:
         """Test ProofOfHumanity dataclass."""
         proof = ProofOfHumanity(
             proof_type=ProofType.POH_WORLDCOIN,
-            verified=True,
-            verification_time=datetime.now(timezone.utc),
-            evidence_hash="0x123...",
+            provider="worldcoin",
+            verified_at=datetime.now(timezone.utc),
             confidence=0.95,
+            metadata={"evidence_hash": "0x123..."},
         )
 
-        assert proof.verified is True
+        assert proof.is_valid() is True
         assert proof.confidence == 0.95
         assert proof.proof_type == ProofType.POH_WORLDCOIN
 
@@ -565,12 +566,13 @@ class TestDIDIntegration:
                 new_callable=AsyncMock,
                 return_value=IdentityScore(
                     did=did,
-                    overall_score=75,
+                    score=75,
+                    risk_level=RiskLevel.LOW,
+                    voting_weight=1.5,
                     proofs=[],
                     stake_score=50,
                     age_score=60,
                     activity_score=70,
-                    last_updated=datetime.now(timezone.utc),
                 ),
             ):
                 result = await authenticator.verify_challenge(
@@ -580,7 +582,7 @@ class TestDIDIntegration:
 
                 assert result.success
                 assert result.identity_score is not None
-                assert result.identity_score.overall_score == 75
+                assert result.identity_score.score == 75
 
     @pytest.mark.asyncio
     async def test_sybil_score_rejection(self):
@@ -608,12 +610,13 @@ class TestDIDIntegration:
                 new_callable=AsyncMock,
                 return_value=IdentityScore(
                     did=did,
-                    overall_score=50,
+                    score=50,
+                    risk_level=RiskLevel.MEDIUM,
+                    voting_weight=1.0,
                     proofs=[],
                     stake_score=30,
                     age_score=40,
                     activity_score=45,
-                    last_updated=datetime.now(timezone.utc),
                 ),
             ):
                 result = await authenticator.verify_challenge(
@@ -624,7 +627,7 @@ class TestDIDIntegration:
                 assert not result.success
                 assert result.error_code == "INSUFFICIENT_SCORE"
                 assert result.identity_score is not None
-                assert result.identity_score.overall_score == 50
+                assert result.identity_score.score == 50
 
 
 # =============================================================================
