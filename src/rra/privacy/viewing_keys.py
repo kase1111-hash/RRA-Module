@@ -267,16 +267,20 @@ class ViewingKeyManager:
         Returns:
             Tuple of (EncryptedEvidence, evidence_hash)
         """
-        # Serialize and bind to dispute
+        # Compute evidence hash for on-chain (deterministic, excludes random elements)
+        hash_data = {
+            "dispute_id": dispute_id,
+            "evidence": evidence,
+        }
+        evidence_hash = keccak(json.dumps(hash_data, sort_keys=True).encode())
+
+        # Serialize and bind to dispute with random timestamp for ciphertext uniqueness
         evidence_data = {
             "dispute_id": dispute_id,
             "evidence": evidence,
             "timestamp": int(os.urandom(4).hex(), 16)  # Random timestamp for uniqueness
         }
         plaintext = json.dumps(evidence_data, sort_keys=True).encode()
-
-        # Compute evidence hash for on-chain
-        evidence_hash = keccak(plaintext)
 
         # Encrypt
         encrypted = self.cipher.encrypt(plaintext, viewing_key.public_key)

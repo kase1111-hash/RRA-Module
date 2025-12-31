@@ -68,7 +68,10 @@ class TestEncryptedStorage:
 
         # Retrieve and check metadata
         _, retrieved_metadata = storage.retrieve_evidence(result.uri, viewing_key)
-        assert retrieved_metadata == metadata
+        # Retrieved metadata includes both user metadata and package-level fields
+        for key, value in metadata.items():
+            assert retrieved_metadata.get(key) == value
+        assert retrieved_metadata.get("dispute_id") == 1
 
     def test_verify_evidence_hash(self):
         """Test evidence hash verification."""
@@ -104,7 +107,9 @@ class TestEncryptedStorage:
         storage = create_storage(provider=StorageProvider.MOCK)
         viewing_key = generate_viewing_key()
 
-        with pytest.raises(ValueError, match="Not found"):
+        from rra.exceptions import StorageDownloadError
+
+        with pytest.raises(StorageDownloadError, match="Not found"):
             storage.retrieve_evidence("mock://nonexistent", viewing_key)
 
     def test_wrong_viewing_key_fails(self):

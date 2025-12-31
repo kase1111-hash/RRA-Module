@@ -135,19 +135,22 @@ class BridgedEvent:
         else:
             self.invalid_count += 1
 
-        # Check consensus
-        if self.valid_count >= self.consensus_threshold:
-            self.status = EventStatus.VERIFIED
-            self.validated_at = datetime.now()
-        elif self.invalid_count >= self.consensus_threshold:
-            self.status = EventStatus.REJECTED
-            self.validated_at = datetime.now()
-        elif (
+        # Check consensus - dispute takes precedence if there's disagreement
+        # Check for DISPUTED first when both valid and invalid attestations exist
+        if (
             self.valid_count > 0 and
             self.invalid_count > 0 and
             self.total_attestations >= self.consensus_threshold * 2
         ):
             self.status = EventStatus.DISPUTED
+            self.validated_at = datetime.now()
+        elif self.valid_count >= self.consensus_threshold and self.invalid_count == 0:
+            # Only VERIFIED if there's clear consensus with no opposing votes
+            self.status = EventStatus.VERIFIED
+            self.validated_at = datetime.now()
+        elif self.invalid_count >= self.consensus_threshold and self.valid_count == 0:
+            # Only REJECTED if there's clear consensus with no supporting votes
+            self.status = EventStatus.REJECTED
             self.validated_at = datetime.now()
 
         return True

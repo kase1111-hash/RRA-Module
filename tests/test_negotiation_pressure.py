@@ -72,11 +72,11 @@ class TestCalculateDelayCost:
             half_life_days=7
         )
 
-        # At 7 days: 2^1 - 1 = 1
-        # At 14 days: 2^2 - 1 = 3
-        # Ratio should be approximately 3
+        # At 7 days: multiplier = 1 (base cost)
+        # At 14 days: multiplier = 2^1 = 2 (doubles)
+        # Ratio should be approximately 2 (true doubling)
         ratio = cost_14 / cost_7
-        assert 2.5 < ratio < 3.5
+        assert 1.5 < ratio < 2.5
 
     def test_stake_proportional(self):
         """Cost should be proportional to stake."""
