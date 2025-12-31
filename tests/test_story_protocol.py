@@ -110,14 +110,14 @@ class TestStoryProtocolClient:
         assert story_client.ip_asset_registry is not None
         assert story_client.license_registry is not None
         assert story_client.royalty_module is not None
-        assert story_client.pil_framework is not None
+        assert story_client.pil_license_template is not None
 
     def test_contract_addresses(self, story_client):
         """Test that contract addresses are set."""
         assert "IPAssetRegistry" in story_client.addresses
         assert "LicenseRegistry" in story_client.addresses
         assert "RoyaltyModule" in story_client.addresses
-        assert "PILFramework" in story_client.addresses
+        assert "PILicenseTemplate" in story_client.addresses
 
     @patch.object(StoryProtocolClient, 'register_ip_asset')
     def test_register_ip_asset(self, mock_register, story_client):

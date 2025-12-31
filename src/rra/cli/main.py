@@ -778,5 +778,371 @@ def categorize(repo_url: str, workspace: Path):
         sys.exit(1)
 
 
+@cli.group()
+def story():
+    """
+    Story Protocol integration commands.
+
+    Register repositories as IP Assets, manage licenses, and track royalties
+    on Story Protocol's programmable IP infrastructure.
+    """
+    pass
+
+
+@story.command()
+def status():
+    """
+    Show Story Protocol deployment status and network info.
+
+    Displays contract addresses for all networks and validates connectivity.
+    """
+    from rra.contracts.story_protocol import StoryProtocolClient
+
+    console.print(Panel.fit(
+        "[bold blue]Story Protocol Status[/bold blue]",
+        border_style="blue"
+    ))
+
+    # Get deployment status
+    deployment = StoryProtocolClient.get_deployment_status()
+
+    for network, contracts in deployment.items():
+        all_deployed = all(contracts.values())
+        status_icon = "[green]✓[/green]" if all_deployed else "[yellow]⚠[/yellow]"
+        network_name = network.capitalize()
+
+        if network == "mainnet":
+            chain_info = "(Story Homer - Chain ID 1514)"
+        elif network == "testnet":
+            chain_info = "(Story Aeneid - Chain ID 1315)"
+        else:
+            chain_info = "(Local Foundry/Hardhat)"
+
+        console.print(f"\n{status_icon} [bold]{network_name}[/bold] {chain_info}")
+
+        table = Table(show_header=True, box=None, padding=(0, 2))
+        table.add_column("Contract", style="cyan", width=25)
+        table.add_column("Status", width=10)
+
+        for contract_name, is_deployed in contracts.items():
+            status_text = "[green]Ready[/green]" if is_deployed else "[red]Not Deployed[/red]"
+            table.add_row(contract_name, status_text)
+
+        console.print(table)
+
+    # Show Story Protocol mainnet addresses
+    console.print("\n[bold]Official Story Protocol Addresses (Mainnet):[/bold]")
+    console.print("  IPAssetRegistry:   0x77319B4031e6eF1250907aa00018B8B1c67a244b")
+    console.print("  LicensingModule:   0x04fbd8a2e56dd85CFD5500A4A4DfA955B9f1dE6f")
+    console.print("  PILicenseTemplate: 0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316")
+    console.print("  RoyaltyModule:     0xD2f60c40fEbccf6311f8B47c4f2Ec6b040400086")
+
+    console.print("\n[dim]Source: https://docs.story.foundation/developers/deployed-smart-contracts[/dim]")
+
+
+@story.command()
+@click.argument('repo_url')
+@click.option('--wallet', required=True, help='Owner wallet address')
+@click.option('--private-key', envvar='STORY_PRIVATE_KEY', help='Private key for signing (or set STORY_PRIVATE_KEY env var)')
+@click.option('--network', type=click.Choice(['mainnet', 'testnet', 'localhost']), default='testnet', help='Network to deploy on')
+@click.option('--rpc-url', envvar='STORY_RPC_URL', help='RPC endpoint URL (or set STORY_RPC_URL env var)')
+@click.option('--description', help='Repository description for IP Asset metadata')
+@click.option('--dry-run', is_flag=True, help='Simulate registration without executing')
+def register(repo_url: str, wallet: str, private_key: Optional[str], network: str, rpc_url: Optional[str], description: Optional[str], dry_run: bool):
+    """
+    Register a repository as an IP Asset on Story Protocol.
+
+    Creates an IP Asset entry on-chain and attaches PIL license terms
+    based on your .market.yaml configuration.
+
+    Example:
+        rra story register https://github.com/user/repo --wallet 0x123... --network testnet
+
+    Environment variables:
+        STORY_PRIVATE_KEY: Your wallet's private key
+        STORY_RPC_URL: Story Protocol RPC endpoint
+    """
+    from web3 import Web3
+    from rra.integrations.story_integration import StoryIntegrationManager
+    from rra.config.market_config import MarketConfig
+
+    console.print(Panel.fit(
+        f"[bold blue]Register IP Asset on Story Protocol[/bold blue]\n{repo_url}",
+        border_style="blue"
+    ))
+
+    # Check prerequisites
+    if not private_key and not dry_run:
+        console.print("[red]✗[/red] Private key required. Set STORY_PRIVATE_KEY env var or use --private-key")
+        console.print("  Example: export STORY_PRIVATE_KEY=0x...")
+        sys.exit(1)
+
+    # Set default RPC URLs
+    if not rpc_url:
+        if network == "mainnet":
+            rpc_url = "https://mainnet.storyrpc.io"
+        elif network == "testnet":
+            rpc_url = "https://aeneid.storyrpc.io"
+        else:
+            rpc_url = "http://localhost:8545"
+
+    console.print(f"\n[bold]Configuration:[/bold]")
+    console.print(f"  Network: [cyan]{network}[/cyan]")
+    console.print(f"  RPC URL: {rpc_url}")
+    console.print(f"  Owner:   {wallet}")
+
+    # Load market config
+    try:
+        config_path = Path(".market.yaml")
+        if config_path.exists():
+            # Parse the YAML manually to get story_protocol settings
+            import yaml
+            with open(config_path) as f:
+                raw_config = yaml.safe_load(f)
+
+            # Create a MarketConfig with the Story Protocol settings
+            defi = raw_config.get('defi_integrations', {})
+            story_config = defi.get('story_protocol', {})
+
+            if not story_config.get('enabled', False):
+                console.print("\n[yellow]⚠ Story Protocol not enabled in .market.yaml[/yellow]")
+                console.print("  Set defi_integrations.story_protocol.enabled: true")
+
+            # Build MarketConfig
+            market_config = MarketConfig(
+                target_price=raw_config.get('target_price', '0.05 ETH'),
+                floor_price=raw_config.get('floor_price', '0.02 ETH'),
+                story_protocol_enabled=story_config.get('enabled', True),
+                pil_commercial_use=story_config.get('pil_terms', {}).get('commercial_use', True),
+                pil_derivatives_allowed=story_config.get('pil_terms', {}).get('derivatives_allowed', True),
+                pil_derivatives_attribution=story_config.get('pil_terms', {}).get('derivatives_attribution', True),
+                pil_derivatives_reciprocal=story_config.get('pil_terms', {}).get('derivatives_reciprocal', False),
+                derivative_royalty_percentage=story_config.get('derivative_royalty_percentage', 0.15),
+                description=description or raw_config.get('description', f"Repository: {repo_url}"),
+            )
+
+            console.print(f"\n[bold]PIL Terms from .market.yaml:[/bold]")
+            console.print(f"  Commercial Use:   {'✓' if market_config.pil_commercial_use else '✗'}")
+            console.print(f"  Derivatives:      {'✓' if market_config.pil_derivatives_allowed else '✗'}")
+            console.print(f"  Attribution:      {'✓' if market_config.pil_derivatives_attribution else '✗'}")
+            console.print(f"  Royalty:          {(market_config.derivative_royalty_percentage or 0) * 100:.0f}%")
+
+        else:
+            console.print("\n[yellow]⚠ No .market.yaml found, using defaults[/yellow]")
+            market_config = MarketConfig(
+                target_price="0.05 ETH",
+                floor_price="0.02 ETH",
+                story_protocol_enabled=True,
+                description=description or f"Repository: {repo_url}",
+            )
+
+    except Exception as e:
+        console.print(f"[red]✗[/red] Failed to load config: {e}")
+        sys.exit(1)
+
+    if dry_run:
+        console.print("\n[yellow]DRY RUN - No transactions will be executed[/yellow]")
+        console.print("\n[bold]Would execute:[/bold]")
+        console.print("  1. Connect to Story Protocol network")
+        console.print("  2. Register IP Asset with metadata")
+        console.print("  3. Attach PIL license terms")
+        console.print("  4. Configure royalty policy")
+        console.print("  5. Update .market.yaml with IP Asset ID")
+        console.print("\n[green]✓[/green] Dry run complete - configuration valid")
+        return
+
+    # Execute registration
+    try:
+        with console.status("[bold blue]Connecting to Story Protocol...", spinner="dots"):
+            w3 = Web3(Web3.HTTPProvider(rpc_url))
+
+            if not w3.is_connected():
+                console.print(f"[red]✗[/red] Failed to connect to {rpc_url}")
+                sys.exit(1)
+
+            manager = StoryIntegrationManager(w3, network=network)
+
+        console.print(f"[green]✓[/green] Connected to Story Protocol ({network})")
+
+        with console.status("[bold blue]Registering IP Asset...", spinner="dots"):
+            result = manager.register_repository_as_ip_asset(
+                repo_url=repo_url,
+                market_config=market_config,
+                owner_address=wallet,
+                private_key=private_key,
+                repo_description=description,
+            )
+
+        if result.get("status") == "success":
+            console.print(f"\n[green]✓ IP Asset Registered Successfully![/green]")
+            console.print(f"\n[bold]Registration Details:[/bold]")
+            console.print(f"  IP Asset ID: [cyan]{result['ip_asset_id']}[/cyan]")
+            console.print(f"  TX Hash:     {result['tx_hash']}")
+            console.print(f"  Block:       {result['block_number']}")
+
+            if result.get('pil_terms_tx'):
+                console.print(f"  PIL Terms TX: {result['pil_terms_tx']}")
+
+            if result.get('royalty_tx'):
+                console.print(f"  Royalty TX:  {result['royalty_tx']}")
+
+            # Update .market.yaml
+            if config_path.exists():
+                with console.status("[bold blue]Updating .market.yaml...", spinner="dots"):
+                    with open(config_path) as f:
+                        raw_config = yaml.safe_load(f)
+
+                    if 'defi_integrations' not in raw_config:
+                        raw_config['defi_integrations'] = {}
+                    if 'story_protocol' not in raw_config['defi_integrations']:
+                        raw_config['defi_integrations']['story_protocol'] = {}
+
+                    raw_config['defi_integrations']['story_protocol']['ip_asset_id'] = result['ip_asset_id']
+
+                    with open(config_path, 'w') as f:
+                        yaml.dump(raw_config, f, default_flow_style=False, sort_keys=False)
+
+                console.print(f"[green]✓[/green] Updated .market.yaml with IP Asset ID")
+
+            # Show explorer link
+            if network == "mainnet":
+                explorer = f"https://explorer.story.foundation/ip-asset/{result['ip_asset_id']}"
+            else:
+                explorer = f"https://aeneid.storyscan.xyz/ip-asset/{result['ip_asset_id']}"
+
+            console.print(f"\n[bold]View on Explorer:[/bold]")
+            console.print(f"  {explorer}")
+
+        else:
+            console.print(f"[red]✗[/red] Registration failed: {result.get('error', 'Unknown error')}")
+            sys.exit(1)
+
+    except Exception as e:
+        console.print(f"[red]✗[/red] Registration failed: {e}")
+        sys.exit(1)
+
+
+@story.command()
+@click.argument('ip_asset_id')
+@click.option('--network', type=click.Choice(['mainnet', 'testnet', 'localhost']), default='testnet', help='Network to query')
+@click.option('--rpc-url', envvar='STORY_RPC_URL', help='RPC endpoint URL')
+def info(ip_asset_id: str, network: str, rpc_url: Optional[str]):
+    """
+    Get information about an IP Asset on Story Protocol.
+
+    Displays ownership, licensing terms, derivatives, and royalty information.
+    """
+    from web3 import Web3
+    from rra.integrations.story_integration import StoryIntegrationManager
+
+    console.print(Panel.fit(
+        f"[bold blue]IP Asset Information[/bold blue]\n{ip_asset_id}",
+        border_style="blue"
+    ))
+
+    # Set default RPC URLs
+    if not rpc_url:
+        if network == "mainnet":
+            rpc_url = "https://mainnet.storyrpc.io"
+        elif network == "testnet":
+            rpc_url = "https://aeneid.storyrpc.io"
+        else:
+            rpc_url = "http://localhost:8545"
+
+    try:
+        w3 = Web3(Web3.HTTPProvider(rpc_url))
+        manager = StoryIntegrationManager(w3, network=network)
+
+        # Get IP Asset info
+        with console.status("[bold blue]Fetching IP Asset info...", spinner="dots"):
+            asset_info = manager.story_client.get_ip_asset_info(ip_asset_id)
+
+        console.print(f"\n[bold]IP Asset Details:[/bold]")
+        console.print(f"  ID:       [cyan]{ip_asset_id}[/cyan]")
+        console.print(f"  Owner:    {asset_info.get('owner', 'Unknown')}")
+        console.print(f"  Active:   {'✓' if asset_info.get('is_active') else '✗'}")
+
+        if asset_info.get('metadata'):
+            console.print(f"\n[bold]Metadata:[/bold]")
+            for key, value in asset_info.get('metadata', {}).items():
+                console.print(f"  {key}: {value}")
+
+        # Get royalty info
+        with console.status("[bold blue]Fetching royalty info...", spinner="dots"):
+            royalty_stats = manager.get_royalty_stats(ip_asset_id)
+
+        console.print(f"\n[bold]Royalty Information:[/bold]")
+        console.print(f"  Royalty Rate:    {royalty_stats.get('royalty_percentage', 0):.1f}%")
+        console.print(f"  Total Collected: {royalty_stats.get('total_collected_eth', 0):.4f} ETH")
+
+        # Get derivatives
+        with console.status("[bold blue]Fetching derivatives...", spinner="dots"):
+            derivatives = manager.get_repository_derivatives(ip_asset_id)
+
+        console.print(f"\n[bold]Derivatives:[/bold]")
+        console.print(f"  Count: {derivatives.get('derivative_count', 0)}")
+
+        if derivatives.get('derivatives'):
+            for deriv in derivatives.get('derivatives', [])[:5]:
+                console.print(f"    • {deriv.get('id', 'Unknown')}")
+
+    except Exception as e:
+        console.print(f"[red]✗[/red] Failed to fetch info: {e}")
+        sys.exit(1)
+
+
+@story.command()
+@click.argument('ip_asset_id')
+@click.option('--network', type=click.Choice(['mainnet', 'testnet', 'localhost']), default='testnet', help='Network to query')
+@click.option('--rpc-url', envvar='STORY_RPC_URL', help='RPC endpoint URL')
+def royalties(ip_asset_id: str, network: str, rpc_url: Optional[str]):
+    """
+    Get royalty statistics for an IP Asset.
+
+    Shows total collected royalties, payment history, and derivative contributions.
+    """
+    from web3 import Web3
+    from rra.integrations.story_integration import StoryIntegrationManager
+    from datetime import datetime
+
+    console.print(Panel.fit(
+        f"[bold blue]Royalty Statistics[/bold blue]\n{ip_asset_id}",
+        border_style="blue"
+    ))
+
+    # Set default RPC URLs
+    if not rpc_url:
+        if network == "mainnet":
+            rpc_url = "https://mainnet.storyrpc.io"
+        elif network == "testnet":
+            rpc_url = "https://aeneid.storyrpc.io"
+        else:
+            rpc_url = "http://localhost:8545"
+
+    try:
+        w3 = Web3(Web3.HTTPProvider(rpc_url))
+        manager = StoryIntegrationManager(w3, network=network)
+
+        with console.status("[bold blue]Fetching royalty stats...", spinner="dots"):
+            stats = manager.get_royalty_stats(ip_asset_id)
+
+        console.print(f"\n[bold]Royalty Overview:[/bold]")
+        console.print(f"  IP Asset ID:     [cyan]{ip_asset_id}[/cyan]")
+        console.print(f"  Royalty Rate:    {stats.get('royalty_percentage', 0):.1f}%")
+        console.print(f"  Payment Token:   {stats.get('payment_token', 'ETH')}")
+
+        console.print(f"\n[bold]Earnings:[/bold]")
+        console.print(f"  Total Collected: [green]{stats.get('total_collected_eth', 0):.6f} ETH[/green]")
+        console.print(f"  Wei Amount:      {stats.get('total_collected_wei', 0)}")
+
+        if stats.get('last_payment_timestamp'):
+            last_payment = datetime.fromtimestamp(stats['last_payment_timestamp'])
+            console.print(f"  Last Payment:    {last_payment.strftime('%Y-%m-%d %H:%M:%S')}")
+
+    except Exception as e:
+        console.print(f"[red]✗[/red] Failed to fetch royalty stats: {e}")
+        sys.exit(1)
+
+
 if __name__ == '__main__':
     cli()

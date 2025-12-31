@@ -130,7 +130,7 @@ buyer_requirements:
 defi_integrations:
   # Story Protocol - Programmable IP Licensing (Phase 3)
   story_protocol:
-    enabled: false  # Set to true to enable Story Protocol integration
+    enabled: true  # Story Protocol integration is now active
     ip_asset_id: null  # Auto-populated after registration on Story Protocol
     network: "mainnet"  # Options: mainnet, testnet
 
