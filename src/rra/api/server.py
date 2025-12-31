@@ -374,6 +374,16 @@ def create_app() -> FastAPI:
 
     app.add_middleware(SecurityHeadersMiddleware)
 
+    # ==========================================================================
+    # Rate Limiting Middleware
+    # ==========================================================================
+    if os.environ.get("RRA_RATE_LIMIT_ENABLED", "true").lower() == "true":
+        try:
+            from rra.api.rate_limiter import setup_rate_limiting
+            setup_rate_limiting(app)
+        except ImportError:
+            pass  # Rate limiter not available
+
     @app.get("/")
     def root():
         """Root endpoint."""
