@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: FSL-1.1-ALv2
+# Copyright 2025 Kase Branham
 #!/usr/bin/env python3
 """
 Mock NatLangChain Server for integration testing.
