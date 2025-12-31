@@ -427,14 +427,17 @@ class BatchProcessor:
 
     def create_and_process_batch(self) -> Optional[BatchResult]:
         """Create a batch from pending disputes and process it."""
-        if not self.should_create_batch():
-            return None
+        # First try to create a new batch if needed
+        if self.should_create_batch():
+            batch = self._create_batch()
+            if batch:
+                return self.process_batch(batch.batch_id)
 
-        batch = self._create_batch()
-        if not batch:
-            return None
+        # If no new batch created, process any existing pending batch
+        if self._pending_batches:
+            return self.process_batch(self._pending_batches[0])
 
-        return self.process_batch(batch.batch_id)
+        return None
 
     def finalize_batch(self, batch_id: int) -> bool:
         """

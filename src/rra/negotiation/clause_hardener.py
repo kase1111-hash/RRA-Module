@@ -190,7 +190,7 @@ class ClauseHardener:
         HardeningRule(
             id="scope_including",
             name="Including But Not Limited To → Enumerated",
-            pattern=r'\bincluding,?\s*but\s*not\s*limited\s*to,?\b',
+            pattern=r'\binclud(?:e|es|ing),?\s*but\s*(?:are\s+)?not\s*limited\s*to,?\b',
             strategy=HardeningStrategy.ENUMERATE,
             replacement_template="including the following: {items}, and no other items unless mutually agreed in writing",
             default_values={"items": "[enumerate specific items]"},
@@ -535,7 +535,7 @@ class ClauseHardener:
             # Re-harden with custom values
             result = self.harden_clause(
                 session.original_clauses[clause_index],
-                custom_values={rule_id: custom_values for rule_id in self.rules}
+                custom_values={rule.id: custom_values for rule in self.rules}
                 if custom_values else None,
             )
             session.hardened_clauses[clause_index] = result.hardened

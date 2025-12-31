@@ -194,7 +194,12 @@ class EncryptedIPFSStorage:
         # 4. Decrypt
         decrypted = self.vk_manager.decrypt_evidence(encrypted, viewing_key)
 
-        return decrypted["evidence"], package.get("metadata", {})
+        # 5. Build metadata including package-level fields
+        metadata = package.get("metadata", {}).copy()
+        if "dispute_id" in package:
+            metadata["dispute_id"] = package["dispute_id"]
+
+        return decrypted["evidence"], metadata
 
     def verify_evidence_hash(
         self,

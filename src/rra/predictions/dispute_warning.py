@@ -25,13 +25,16 @@ from .dispute_model import DisputePredictor, DisputePrediction, DisputeType, Pre
 
 
 class WarningSeverity(Enum):
-    """Severity levels for dispute warnings."""
+    """Severity levels for dispute warnings.
 
-    INFO = "info"           # Informational, no immediate action needed
-    LOW = "low"             # Minor risk, consider reviewing
-    MEDIUM = "medium"       # Moderate risk, action recommended
-    HIGH = "high"           # High risk, action required
+    Ordered from highest to lowest severity (index 0 = most severe).
+    """
+
     CRITICAL = "critical"   # Critical risk, do not proceed without addressing
+    HIGH = "high"           # High risk, action required
+    MEDIUM = "medium"       # Moderate risk, action recommended
+    LOW = "low"             # Minor risk, consider reviewing
+    INFO = "info"           # Informational, no immediate action needed
 
 
 class WarningCategory(Enum):
@@ -167,14 +170,14 @@ class DisputeWarningGenerator:
     dispute risks and suggest mitigations before problems occur.
     """
 
-    # Severity thresholds
-    SEVERITY_THRESHOLDS = {
-        WarningSeverity.CRITICAL: 0.8,
-        WarningSeverity.HIGH: 0.6,
-        WarningSeverity.MEDIUM: 0.4,
-        WarningSeverity.LOW: 0.2,
-        WarningSeverity.INFO: 0.0,
-    }
+    # Severity thresholds (ordered from highest to lowest)
+    SEVERITY_THRESHOLDS = [
+        (WarningSeverity.CRITICAL, 0.8),
+        (WarningSeverity.HIGH, 0.6),
+        (WarningSeverity.MEDIUM, 0.4),
+        (WarningSeverity.LOW, 0.2),
+        (WarningSeverity.INFO, 0.0),
+    ]
 
     # Ambiguous terms and their risk weights
     AMBIGUOUS_TERMS = {
@@ -213,6 +216,7 @@ class DisputeWarningGenerator:
             "description": "Open-ended list creates scope ambiguity",
             "mitigation": "Use closed enumeration or explicit scope",
             "example": "Enumerate all items explicitly",
+            "pattern": r"\binclud(?:e|es|ing),?\s*but\s*(?:is\s+|are\s+)?not\s*limited\s*to\b",
         },
         "sole discretion": {
             "weight": 0.5,
@@ -362,7 +366,7 @@ class DisputeWarningGenerator:
         return WarningReport(
             contract_id=contract_id,
             warnings=sorted(warnings, key=lambda w: (
-                -list(WarningSeverity).index(w.severity),
+                list(WarningSeverity).index(w.severity),
                 -w.dispute_probability,
             )),
             overall_risk_score=overall_risk,
@@ -377,16 +381,32 @@ class DisputeWarningGenerator:
         prediction: DisputePrediction,
     ) -> List[DisputeWarning]:
         """Analyze a single clause for warnings."""
+        import re
         warnings = []
         clause_lower = clause.lower()
 
         # Check for ambiguous terms
         for term, info in self.AMBIGUOUS_TERMS.items():
-            if term in clause_lower:
+            # Use regex pattern if provided, otherwise simple string match
+            pattern = info.get("pattern")
+            if pattern:
+                match = re.search(pattern, clause_lower, re.IGNORECASE)
+                found = match is not None
+                if found:
+                    pos = match.start()
+                    matched_len = len(match.group())
+                else:
+                    pos = -1
+                    matched_len = len(term)
+            else:
+                found = term in clause_lower
+                pos = clause_lower.find(term) if found else -1
+                matched_len = len(term)
+
+            if found:
                 # Find position for context
-                pos = clause_lower.find(term)
                 start = max(0, pos - 30)
-                end = min(len(clause), pos + len(term) + 30)
+                end = min(len(clause), pos + matched_len + 30)
                 matched_text = clause[start:end]
 
                 severity = self._get_severity(info["weight"])
@@ -439,7 +459,6 @@ class DisputeWarningGenerator:
             ))
 
         # Check for undefined references
-        import re
         undefined_refs = re.findall(r'Section\s+\[?\d*[A-Z]?\]?|Schedule\s+\[?[A-Z]?\]?|Exhibit\s+\[?[A-Z]?\]?', clause)
         for ref in undefined_refs:
             if '[' in ref:
@@ -619,7 +638,7 @@ class DisputeWarningGenerator:
 
     def _get_severity(self, probability: float) -> WarningSeverity:
         """Get severity level from probability."""
-        for severity, threshold in self.SEVERITY_THRESHOLDS.items():
+        for severity, threshold in self.SEVERITY_THRESHOLDS:
             if probability >= threshold:
                 return severity
         return WarningSeverity.INFO

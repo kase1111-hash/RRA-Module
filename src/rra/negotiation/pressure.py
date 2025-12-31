@@ -209,8 +209,10 @@ def calculate_delay_cost(
     """
     Calculate exponential delay cost.
 
-    The cost follows the formula:
-    cost = stake * baseRate * (2^(days/halfLife) - 1)
+    The cost starts at 0 and ramps up linearly in the first half-life period,
+    then doubles every half_life_days thereafter:
+    - For days <= half_life: linear ramp to base cost
+    - For days > half_life: exponential growth (doubles each period)
 
     This creates exponential pressure that doubles every half_life_days.
 
@@ -228,9 +230,13 @@ def calculate_delay_cost(
 
     base_rate = base_rate_bps / 10000  # Convert basis points to decimal
 
-    # Exponential growth: 2^(days/halfLife)
-    exponent = elapsed_days / half_life_days
-    multiplier = (2 ** exponent) - 1
+    if elapsed_days <= half_life_days:
+        # Linear ramp-up in first period (from 0 to base_rate)
+        multiplier = elapsed_days / half_life_days
+    else:
+        # Exponential growth after first period (doubles each half_life)
+        periods = (elapsed_days / half_life_days) - 1
+        multiplier = 2 ** periods
 
     cost = total_stake * base_rate * multiplier
 
