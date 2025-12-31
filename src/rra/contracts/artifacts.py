@@ -4,7 +4,9 @@
 Contract Artifact Loader.
 
 Loads compiled Solidity contract artifacts (ABI + bytecode) from Foundry output.
-Contracts must be compiled first with `forge build` in the contracts/ directory.
+Falls back to pre-built ABIs in contracts/abi/ for read-only operations.
+
+For deployment, contracts must be compiled with `forge build` in contracts/.
 """
 
 import json
@@ -28,17 +30,24 @@ class ContractArtifact:
         """Check if bytecode is available for deployment."""
         return bool(self.bytecode and self.bytecode != "0x")
 
+    @property
+    def is_prebuilt(self) -> bool:
+        """Check if this is a pre-built ABI (no bytecode)."""
+        return not self.has_bytecode
+
 
 class ArtifactLoader:
     """
     Loads compiled contract artifacts from Foundry output.
 
     Foundry compiles contracts to: contracts/out/{ContractName}.sol/{ContractName}.json
+    Pre-built ABIs are in: contracts/abi/{ContractName}.json
     """
 
     # Default paths relative to project root
     DEFAULT_CONTRACTS_DIR = "contracts"
     DEFAULT_OUT_DIR = "out"
+    DEFAULT_ABI_DIR = "abi"
 
     def __init__(self, project_root: Optional[Path] = None):
         """
@@ -54,6 +63,7 @@ class ArtifactLoader:
         self.project_root = Path(project_root)
         self.contracts_dir = self.project_root / self.DEFAULT_CONTRACTS_DIR
         self.out_dir = self.contracts_dir / self.DEFAULT_OUT_DIR
+        self.abi_dir = self.contracts_dir / self.DEFAULT_ABI_DIR
 
         # Cache loaded artifacts
         self._cache: Dict[str, ContractArtifact] = {}
@@ -73,92 +83,145 @@ class ArtifactLoader:
         return Path.cwd()
 
     def is_compiled(self) -> bool:
-        """Check if contracts have been compiled."""
-        return self.out_dir.exists() and any(self.out_dir.iterdir())
-
-    def get_available_contracts(self) -> list[str]:
-        """Get list of available compiled contracts."""
+        """Check if contracts have been compiled (full bytecode available)."""
         if not self.out_dir.exists():
-            return []
-
-        contracts = []
+            return False
+        # Check if there's at least one compiled contract
         for sol_dir in self.out_dir.iterdir():
             if sol_dir.is_dir() and sol_dir.suffix == ".sol":
-                contract_name = sol_dir.stem
-                json_file = sol_dir / f"{contract_name}.json"
+                json_file = sol_dir / f"{sol_dir.stem}.json"
                 if json_file.exists():
-                    contracts.append(contract_name)
+                    return True
+        return False
+
+    def has_prebuilt_abi(self, contract_name: str) -> bool:
+        """Check if a pre-built ABI exists for a contract."""
+        return (self.abi_dir / f"{contract_name}.json").exists()
+
+    def get_available_contracts(self) -> list[str]:
+        """Get list of available contracts (compiled + pre-built)."""
+        contracts = set()
+
+        # Check compiled contracts
+        if self.out_dir.exists():
+            for sol_dir in self.out_dir.iterdir():
+                if sol_dir.is_dir() and sol_dir.suffix == ".sol":
+                    contract_name = sol_dir.stem
+                    json_file = sol_dir / f"{contract_name}.json"
+                    if json_file.exists():
+                        contracts.add(contract_name)
+
+        # Check pre-built ABIs
+        if self.abi_dir.exists():
+            for abi_file in self.abi_dir.glob("*.json"):
+                contracts.add(abi_file.stem)
 
         return sorted(contracts)
 
-    def load(self, contract_name: str) -> ContractArtifact:
+    def load(self, contract_name: str, require_bytecode: bool = False) -> ContractArtifact:
         """
-        Load a compiled contract artifact.
+        Load a contract artifact.
+
+        Tries compiled output first, falls back to pre-built ABI.
 
         Args:
             contract_name: Name of the contract (e.g., "RepoLicense")
+            require_bytecode: If True, raises error if bytecode not available
 
         Returns:
-            ContractArtifact with ABI and bytecode
+            ContractArtifact with ABI and optionally bytecode
 
         Raises:
             FileNotFoundError: If contract artifact not found
-            ValueError: If artifact is invalid
+            ValueError: If bytecode required but not available
         """
         # Check cache
         if contract_name in self._cache:
-            return self._cache[contract_name]
+            artifact = self._cache[contract_name]
+            if require_bytecode and not artifact.has_bytecode:
+                raise ValueError(
+                    f"Bytecode required for {contract_name} but only pre-built ABI available. "
+                    "Run 'forge build' in contracts/ directory."
+                )
+            return artifact
 
-        # Construct path: out/{ContractName}.sol/{ContractName}.json
+        artifact = None
+
+        # Try compiled output first (has bytecode)
         artifact_path = self.out_dir / f"{contract_name}.sol" / f"{contract_name}.json"
-
-        if not artifact_path.exists():
-            # Try alternative path formats
+        if artifact_path.exists():
+            artifact = self._load_from_path(artifact_path, contract_name)
+        else:
+            # Try alternative compiled paths
             alt_paths = [
                 self.out_dir / f"{contract_name}.json",
                 self.out_dir / contract_name / f"{contract_name}.json",
             ]
-
             for alt in alt_paths:
                 if alt.exists():
-                    artifact_path = alt
+                    artifact = self._load_from_path(alt, contract_name)
                     break
-            else:
-                available = self.get_available_contracts()
-                msg = f"Contract artifact not found: {contract_name}"
-                if available:
-                    msg += f". Available: {', '.join(available)}"
-                else:
-                    msg += ". Run 'forge build' in contracts/ directory first."
-                raise FileNotFoundError(msg)
 
-        # Load and parse artifact
-        with open(artifact_path, 'r') as f:
+        # Fall back to pre-built ABI
+        if artifact is None:
+            prebuilt_path = self.abi_dir / f"{contract_name}.json"
+            if prebuilt_path.exists():
+                artifact = self._load_from_path(prebuilt_path, contract_name)
+
+        if artifact is None:
+            available = self.get_available_contracts()
+            msg = f"Contract artifact not found: {contract_name}"
+            if available:
+                msg += f". Available: {', '.join(available)}"
+            else:
+                msg += ". Run 'forge build' in contracts/ directory."
+            raise FileNotFoundError(msg)
+
+        if require_bytecode and not artifact.has_bytecode:
+            raise ValueError(
+                f"Bytecode required for {contract_name} but only pre-built ABI available. "
+                "Run 'forge build' in contracts/ directory."
+            )
+
+        # Cache it
+        self._cache[contract_name] = artifact
+
+        return artifact
+
+    def _load_from_path(self, path: Path, contract_name: str) -> ContractArtifact:
+        """Load artifact from a specific path."""
+        with open(path, 'r') as f:
             data = json.load(f)
 
-        # Extract fields (Foundry format)
+        # Extract fields (Foundry format or pre-built format)
         abi = data.get("abi", [])
         bytecode_obj = data.get("bytecode", {})
         deployed_bytecode_obj = data.get("deployedBytecode", {})
 
         # Handle different bytecode formats
         if isinstance(bytecode_obj, dict):
-            bytecode = bytecode_obj.get("object", "0x")
+            bytecode = bytecode_obj.get("object", "")
         else:
-            bytecode = bytecode_obj or "0x"
+            bytecode = bytecode_obj or ""
 
         if isinstance(deployed_bytecode_obj, dict):
-            deployed_bytecode = deployed_bytecode_obj.get("object", "0x")
+            deployed_bytecode = deployed_bytecode_obj.get("object", "")
         else:
-            deployed_bytecode = deployed_bytecode_obj or "0x"
+            deployed_bytecode = deployed_bytecode_obj or ""
 
-        # Ensure 0x prefix
+        # Ensure 0x prefix if bytecode exists
         if bytecode and not bytecode.startswith("0x"):
             bytecode = "0x" + bytecode
         if deployed_bytecode and not deployed_bytecode.startswith("0x"):
             deployed_bytecode = "0x" + deployed_bytecode
 
-        artifact = ContractArtifact(
+        # Empty string means no bytecode
+        if bytecode == "0x":
+            bytecode = ""
+        if deployed_bytecode == "0x":
+            deployed_bytecode = ""
+
+        return ContractArtifact(
             name=contract_name,
             abi=abi,
             bytecode=bytecode,
@@ -166,18 +229,14 @@ class ArtifactLoader:
             metadata=data.get("metadata", {}),
         )
 
-        # Cache it
-        self._cache[contract_name] = artifact
-
-        return artifact
-
     def load_abi(self, contract_name: str) -> list:
         """Load just the ABI for a contract."""
         return self.load(contract_name).abi
 
     def load_bytecode(self, contract_name: str) -> str:
         """Load just the bytecode for a contract."""
-        return self.load(contract_name).bytecode
+        artifact = self.load(contract_name, require_bytecode=True)
+        return artifact.bytecode
 
     def clear_cache(self) -> None:
         """Clear the artifact cache."""
