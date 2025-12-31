@@ -6,7 +6,16 @@ const nextConfig = {
   // Image Optimization
   // =========================================================================
   images: {
-    domains: ['avatars.githubusercontent.com', 'github.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'github.com',
+      },
+    ],
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60 * 60 * 24, // 24 hours
   },
@@ -26,9 +35,6 @@ const nextConfig = {
   // =========================================================================
   // Bundle Optimization
   // =========================================================================
-
-  // Enable SWC minification (faster than Terser)
-  swcMinify: true,
 
   // Compiler optimizations
   compiler: {
