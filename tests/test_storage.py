@@ -107,7 +107,9 @@ class TestEncryptedStorage:
         storage = create_storage(provider=StorageProvider.MOCK)
         viewing_key = generate_viewing_key()
 
-        with pytest.raises(ValueError, match="Not found"):
+        from rra.exceptions import StorageDownloadError
+
+        with pytest.raises(StorageDownloadError, match="Not found"):
             storage.retrieve_evidence("mock://nonexistent", viewing_key)
 
     def test_wrong_viewing_key_fails(self):

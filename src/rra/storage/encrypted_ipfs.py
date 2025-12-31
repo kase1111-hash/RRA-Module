@@ -16,6 +16,7 @@ Supports:
 - Lit Protocol for access control (optional)
 """
 
+import logging
 import os
 import json
 import hashlib
@@ -34,6 +35,16 @@ from rra.privacy.viewing_keys import (
     ViewingKey,
     EncryptedEvidence,
 )
+from rra.exceptions import (
+    StorageError,
+    StorageUploadError,
+    StorageDownloadError,
+    EncryptionError,
+    ValidationError,
+    ConfigurationError,
+)
+
+logger = logging.getLogger(__name__)
 
 
 class StorageProvider(str, Enum):
@@ -138,29 +149,93 @@ class EncryptedIPFSStorage:
 
         Returns:
             StorageResult with URI and content hash
+
+        Raises:
+            ValidationError: If inputs are invalid
+            EncryptionError: If encryption fails
+            StorageUploadError: If upload fails
         """
-        # 1. Encrypt evidence
-        encrypted, evidence_hash = self.vk_manager.encrypt_evidence(
-            evidence, viewing_key, dispute_id
+        # Validate inputs
+        if not evidence:
+            raise ValidationError(
+                message="Evidence data is required",
+                field="evidence",
+                constraint="non-empty dictionary",
+            )
+
+        if not viewing_key:
+            raise ValidationError(
+                message="Viewing key is required for encryption",
+                field="viewing_key",
+                constraint="valid ViewingKey object",
+            )
+
+        if dispute_id < 0:
+            raise ValidationError(
+                message="Dispute ID must be a non-negative integer",
+                field="dispute_id",
+                value=dispute_id,
+                constraint="dispute_id >= 0",
+            )
+
+        logger.info(
+            f"Storing evidence for dispute {dispute_id} on {self.config.provider.value}"
         )
 
-        # 2. Serialize encrypted evidence
-        serialized = self.vk_manager.serialize_encrypted(encrypted)
+        try:
+            # 1. Encrypt evidence
+            encrypted, evidence_hash = self.vk_manager.encrypt_evidence(
+                evidence, viewing_key, dispute_id
+            )
+            logger.debug(f"Evidence encrypted, hash: {evidence_hash.hex()[:16]}...")
+        except Exception as e:
+            logger.error(f"Failed to encrypt evidence: {e}")
+            raise EncryptionError(
+                operation="encrypt",
+                reason=f"Failed to encrypt evidence for dispute {dispute_id}: {e}",
+                cause=e,
+            )
 
-        # 3. Create storage package with metadata
-        package = {
-            "version": "1.0",
-            "dispute_id": dispute_id,
-            "evidence_hash": evidence_hash.hex(),
-            "viewing_key_commitment": viewing_key.commitment.hex(),
-            "encrypted_evidence": serialized.decode(),
-            "metadata": metadata or {},
-            "created_at": datetime.utcnow().isoformat(),
-        }
-        package_bytes = json.dumps(package, sort_keys=True).encode()
+        try:
+            # 2. Serialize encrypted evidence
+            serialized = self.vk_manager.serialize_encrypted(encrypted)
+
+            # 3. Create storage package with metadata
+            package = {
+                "version": "1.0",
+                "dispute_id": dispute_id,
+                "evidence_hash": evidence_hash.hex(),
+                "viewing_key_commitment": viewing_key.commitment.hex(),
+                "encrypted_evidence": serialized.decode(),
+                "metadata": metadata or {},
+                "created_at": datetime.utcnow().isoformat(),
+            }
+            package_bytes = json.dumps(package, sort_keys=True).encode()
+            logger.debug(f"Package created, size: {len(package_bytes)} bytes")
+        except Exception as e:
+            logger.error(f"Failed to create storage package: {e}")
+            raise EncryptionError(
+                operation="encrypt",
+                reason=f"Failed to serialize encrypted evidence: {e}",
+                cause=e,
+            )
 
         # 4. Upload to storage provider
-        return self._upload(package_bytes, dispute_id)
+        try:
+            result = self._upload(package_bytes, dispute_id)
+            logger.info(
+                f"Evidence stored successfully: {result.uri} "
+                f"({result.size_bytes} bytes)"
+            )
+            return result
+        except Exception as e:
+            logger.error(f"Failed to upload evidence: {e}")
+            raise StorageUploadError(
+                provider=self.config.provider.value,
+                reason=str(e),
+                content_size=len(package_bytes),
+                cause=e,
+            )
 
     def retrieve_evidence(
         self,
@@ -178,21 +253,73 @@ class EncryptedIPFSStorage:
             Tuple of (evidence_data, metadata)
 
         Raises:
-            ValueError: If decryption fails
+            ValidationError: If URI or viewing key is invalid
+            StorageDownloadError: If download fails
+            EncryptionError: If decryption fails
         """
+        # Validate inputs
+        if not uri:
+            raise ValidationError(
+                message="Storage URI is required",
+                field="uri",
+                constraint="non-empty URI string (ipfs://... or ar://...)",
+            )
+
+        if not viewing_key:
+            raise ValidationError(
+                message="Viewing key is required for decryption",
+                field="viewing_key",
+                constraint="valid ViewingKey object",
+            )
+
+        logger.info(f"Retrieving evidence from {uri}")
+
         # 1. Download from storage
-        package_bytes = self._download(uri)
+        try:
+            package_bytes = self._download(uri)
+            logger.debug(f"Downloaded {len(package_bytes)} bytes from {uri}")
+        except Exception as e:
+            logger.error(f"Failed to download from {uri}: {e}")
+            raise StorageDownloadError(
+                uri=uri,
+                reason=str(e),
+                cause=e,
+            )
 
         # 2. Parse package
-        package = json.loads(package_bytes.decode())
+        try:
+            package = json.loads(package_bytes.decode())
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse storage package: {e}")
+            raise StorageDownloadError(
+                uri=uri,
+                reason=f"Invalid JSON in storage package: {e}",
+                cause=e,
+            )
 
-        # 3. Deserialize encrypted evidence
-        encrypted = self.vk_manager.deserialize_encrypted(
-            package["encrypted_evidence"].encode()
-        )
+        # Validate package structure
+        if "encrypted_evidence" not in package:
+            raise StorageDownloadError(
+                uri=uri,
+                reason="Storage package missing 'encrypted_evidence' field",
+            )
 
-        # 4. Decrypt
-        decrypted = self.vk_manager.decrypt_evidence(encrypted, viewing_key)
+        try:
+            # 3. Deserialize encrypted evidence
+            encrypted = self.vk_manager.deserialize_encrypted(
+                package["encrypted_evidence"].encode()
+            )
+
+            # 4. Decrypt
+            decrypted = self.vk_manager.decrypt_evidence(encrypted, viewing_key)
+            logger.debug("Evidence decrypted successfully")
+        except Exception as e:
+            logger.error(f"Failed to decrypt evidence: {e}")
+            raise EncryptionError(
+                operation="decrypt",
+                reason=f"Failed to decrypt evidence from {uri}: {e}",
+                cause=e,
+            )
 
         # 5. Build metadata including package-level fields
         metadata = package.get("metadata", {}).copy()
