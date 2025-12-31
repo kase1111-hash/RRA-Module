@@ -91,7 +91,7 @@ class ClauseScoreResponse(BaseModel):
 
 class ContractScoreRequest(BaseModel):
     """Request to score a full contract."""
-    clauses: List[str] = Field(..., min_items=1, max_items=100)
+    clauses: List[str] = Field(..., min_length=1, max_length=100)
     repo_id: Optional[str] = None
 
 
@@ -107,7 +107,7 @@ class ContractScoreResponse(BaseModel):
 
 class DisputePredictionRequest(BaseModel):
     """Request for dispute prediction."""
-    clauses: List[str] = Field(..., min_items=1, max_items=100)
+    clauses: List[str] = Field(..., min_length=1, max_length=100)
     licensee_prior_disputes: int = Field(default=0, ge=0)
     licensor_prior_disputes: int = Field(default=0, ge=0)
 

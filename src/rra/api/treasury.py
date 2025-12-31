@@ -52,9 +52,7 @@ def get_treasury_coordinator() -> TreasuryCoordinator:
     """Get or create treasury coordinator instance."""
     global _treasury_coordinator
     if _treasury_coordinator is None:
-        _treasury_coordinator = create_treasury_coordinator(
-            data_dir="data/treasury"
-        )
+        _treasury_coordinator = create_treasury_coordinator()
     return _treasury_coordinator
 
 
@@ -76,7 +74,7 @@ class TreasuryRegisterRequest(BaseModel):
     """Request to register a treasury."""
     name: str = Field(..., min_length=1, max_length=100)
     treasury_type: str = Field(default="corporate")
-    signers: List[str] = Field(..., min_items=1, max_items=20)
+    signers: List[str] = Field(..., min_length=1, max_length=20)
     signer_threshold: int = Field(default=1, ge=1)
     metadata: Optional[Dict[str, Any]] = None
 
@@ -95,7 +93,7 @@ class TreasuryResponse(BaseModel):
 class DisputeCreateRequest(BaseModel):
     """Request to create a multi-treasury dispute."""
     creator_treasury_id: str
-    involved_treasury_ids: List[str] = Field(..., min_items=1)
+    involved_treasury_ids: List[str] = Field(..., min_length=1)
     title: str = Field(..., min_length=5, max_length=200)
     description_uri: str
     is_binding: bool = Field(default=False)
