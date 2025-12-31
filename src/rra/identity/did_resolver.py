@@ -35,9 +35,11 @@ Usage:
 """
 
 import re
+import os
 import json
 import hashlib
 import asyncio
+import logging
 from enum import Enum
 from typing import Dict, List, Optional, Any, Tuple, Union
 from dataclasses import dataclass, field
@@ -45,12 +47,15 @@ from datetime import datetime
 from abc import ABC, abstractmethod
 
 import httpx
+from web3 import Web3
 from eth_utils import keccak, to_checksum_address
 from eth_keys import keys
 from eth_account.messages import encode_defunct
 from eth_account import Account
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from cryptography.exceptions import InvalidSignature
+
+logger = logging.getLogger(__name__)
 
 
 class DIDMethod(Enum):
@@ -457,7 +462,95 @@ class NLCDIDResolver(DIDMethodResolver):
 
     Format: did:nlc:<identifier>
     These DIDs are resolved against the on-chain DIDRegistry contract.
+
+    The identifier is a 64-character hex string representing a bytes32 value.
     """
+
+    # Default RPC URL for Ethereum mainnet
+    DEFAULT_RPC_URL = os.environ.get("ETH_RPC_URL", "https://eth.llamarpc.com")
+
+    # Default DID Registry contract address (to be set after deployment)
+    DEFAULT_REGISTRY_ADDRESS = os.environ.get("NLC_DID_REGISTRY_ADDRESS", "")
+
+    # DIDRegistry contract ABI (minimal for resolution)
+    REGISTRY_ABI = [
+        {
+            "inputs": [{"name": "_identifier", "type": "bytes32"}],
+            "name": "getDocument",
+            "outputs": [
+                {
+                    "components": [
+                        {"name": "identifier", "type": "bytes32"},
+                        {"name": "owner", "type": "address"},
+                        {"name": "controllers", "type": "address[]"},
+                        {"name": "createdAt", "type": "uint256"},
+                        {"name": "updatedAt", "type": "uint256"},
+                        {"name": "deactivated", "type": "bool"},
+                        {"name": "stake", "type": "uint256"},
+                        {"name": "verificationMethodCount", "type": "uint8"},
+                        {"name": "serviceCount", "type": "uint8"},
+                        {"name": "pohCount", "type": "uint8"},
+                    ],
+                    "name": "",
+                    "type": "tuple",
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function",
+        },
+        {
+            "inputs": [{"name": "_identifier", "type": "bytes32"}],
+            "name": "getVerificationMethods",
+            "outputs": [
+                {
+                    "components": [
+                        {"name": "id", "type": "bytes32"},
+                        {"name": "keyType", "type": "uint8"},
+                        {"name": "controller", "type": "address"},
+                        {"name": "publicKey", "type": "bytes"},
+                        {"name": "active", "type": "bool"},
+                        {"name": "addedAt", "type": "uint256"},
+                    ],
+                    "name": "",
+                    "type": "tuple[]",
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function",
+        },
+        {
+            "inputs": [{"name": "_identifier", "type": "bytes32"}],
+            "name": "getServices",
+            "outputs": [
+                {
+                    "components": [
+                        {"name": "id", "type": "bytes32"},
+                        {"name": "serviceType", "type": "string"},
+                        {"name": "endpoint", "type": "string"},
+                        {"name": "active", "type": "bool"},
+                    ],
+                    "name": "",
+                    "type": "tuple[]",
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function",
+        },
+        {
+            "inputs": [{"name": "_identifier", "type": "bytes32"}],
+            "name": "buildDID",
+            "outputs": [{"name": "", "type": "string"}],
+            "stateMutability": "pure",
+            "type": "function",
+        },
+    ]
+
+    # Key type mapping from contract enum to string type
+    KEY_TYPE_MAP = {
+        0: "EcdsaSecp256k1VerificationKey2019",  # EcdsaSecp256k1
+        1: "Ed25519VerificationKey2020",          # Ed25519
+        2: "X25519KeyAgreementKey2020",           # X25519
+    }
 
     def __init__(self, registry_address: Optional[str] = None, rpc_url: Optional[str] = None):
         """
@@ -467,17 +560,58 @@ class NLCDIDResolver(DIDMethodResolver):
             registry_address: Address of DIDRegistry contract
             rpc_url: RPC URL for the blockchain
         """
-        self.registry_address = registry_address
-        self.rpc_url = rpc_url
+        self.registry_address = registry_address or self.DEFAULT_REGISTRY_ADDRESS
+        self.rpc_url = rpc_url or self.DEFAULT_RPC_URL
         self._cache: Dict[str, Tuple[DIDDocument, datetime]] = {}
         self._cache_ttl = 300  # 5 minutes
+        self._w3: Optional[Web3] = None
+        self._contract = None
 
     def supports(self, did: str) -> bool:
         """Check if this is an NLC DID."""
         return did.startswith("did:nlc:")
 
+    def _get_web3(self) -> Web3:
+        """Get or create Web3 instance."""
+        if self._w3 is None:
+            self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
+        return self._w3
+
+    def _get_contract(self):
+        """Get or create contract instance."""
+        if self._contract is None and self.registry_address:
+            w3 = self._get_web3()
+            self._contract = w3.eth.contract(
+                address=to_checksum_address(self.registry_address),
+                abi=self.REGISTRY_ABI
+            )
+        return self._contract
+
+    def _identifier_to_bytes32(self, identifier: str) -> bytes:
+        """Convert hex string identifier to bytes32."""
+        # Remove 0x prefix if present
+        if identifier.startswith("0x"):
+            identifier = identifier[2:]
+
+        # Pad to 64 characters (32 bytes) if needed
+        identifier = identifier.zfill(64)
+
+        return bytes.fromhex(identifier)
+
+    def _bytes32_to_hex(self, data: bytes) -> str:
+        """Convert bytes32 to hex string."""
+        return "0x" + data.hex()
+
     async def resolve(self, did: str) -> Optional[DIDDocument]:
-        """Resolve an NLC DID from the on-chain registry."""
+        """
+        Resolve an NLC DID from the on-chain registry.
+
+        Args:
+            did: The DID to resolve (format: did:nlc:<identifier>)
+
+        Returns:
+            DIDDocument if found, None otherwise
+        """
         if not self.supports(did):
             return None
 
@@ -490,8 +624,131 @@ class NLCDIDResolver(DIDMethodResolver):
         # Extract identifier
         identifier = did.replace("did:nlc:", "")
 
-        # TODO: Implement actual on-chain resolution
-        # For now, return a mock document
+        # Check if we have a registry address configured
+        if not self.registry_address:
+            logger.warning("NLC DID Registry address not configured. Set NLC_DID_REGISTRY_ADDRESS env var.")
+            # Return a placeholder document for development
+            return self._create_placeholder_document(did, identifier)
+
+        try:
+            contract = self._get_contract()
+            if contract is None:
+                logger.error("Failed to get DID Registry contract")
+                return None
+
+            # Convert identifier to bytes32
+            identifier_bytes = self._identifier_to_bytes32(identifier)
+
+            # Fetch document from chain
+            doc_data = contract.functions.getDocument(identifier_bytes).call()
+
+            # Check if document exists (createdAt > 0)
+            if doc_data[3] == 0:  # createdAt index
+                logger.debug(f"DID not found on-chain: {did}")
+                return None
+
+            # Check if deactivated
+            if doc_data[5]:  # deactivated index
+                logger.debug(f"DID is deactivated: {did}")
+                return None
+
+            # Parse document data
+            owner = doc_data[1]
+            controllers = doc_data[2]
+            created_at = datetime.fromtimestamp(doc_data[3])
+            updated_at = datetime.fromtimestamp(doc_data[4])
+
+            # Fetch verification methods
+            vm_data = contract.functions.getVerificationMethods(identifier_bytes).call()
+            verification_methods = []
+            authentication = []
+            assertion_method = []
+            key_agreement = []
+
+            for vm in vm_data:
+                if not vm[4]:  # Skip inactive keys
+                    continue
+
+                key_id_hex = self._bytes32_to_hex(vm[0])
+                key_type_enum = vm[1]
+                controller_addr = vm[2]
+                public_key = vm[3]
+
+                # Map key type enum to string
+                key_type_str = self.KEY_TYPE_MAP.get(key_type_enum, "EcdsaSecp256k1VerificationKey2019")
+
+                vm_obj = VerificationMethod(
+                    id=f"{did}#{key_id_hex[-8:]}",  # Use last 8 chars as key fragment
+                    type=key_type_str,
+                    controller=did,
+                    public_key_hex=public_key.hex() if public_key else None,
+                    blockchain_account_id=f"eip155:1:{controller_addr}",
+                )
+                verification_methods.append(vm_obj)
+
+                # Add to appropriate relationships based on key type
+                if key_type_enum in (0, 1):  # Secp256k1 or Ed25519
+                    authentication.append(vm_obj.id)
+                    assertion_method.append(vm_obj.id)
+                if key_type_enum == 2:  # X25519 (key agreement)
+                    key_agreement.append(vm_obj.id)
+
+            # Fetch services
+            svc_data = contract.functions.getServices(identifier_bytes).call()
+            services = []
+
+            for svc in svc_data:
+                if not svc[3]:  # Skip inactive services
+                    continue
+
+                svc_id_hex = self._bytes32_to_hex(svc[0])
+                svc_type = svc[1]
+                endpoint = svc[2]
+
+                svc_obj = ServiceEndpoint(
+                    id=f"{did}#{svc_id_hex[-8:]}",
+                    type=svc_type,
+                    service_endpoint=endpoint,
+                )
+                services.append(svc_obj)
+
+            # Build DID Document
+            doc = DIDDocument(
+                id=did,
+                context=[
+                    "https://www.w3.org/ns/did/v1",
+                    "https://w3id.org/security/suites/secp256k1-2019/v1",
+                    "https://natlangchain.io/did/v1",
+                ],
+                controller=f"did:ethr:{owner}" if owner else None,
+                verification_method=verification_methods,
+                authentication=authentication,
+                assertion_method=assertion_method,
+                key_agreement=key_agreement,
+                service=services,
+                created=created_at,
+                updated=updated_at,
+                deactivated=False,
+            )
+
+            # Cache the result
+            self._cache[did] = (doc, datetime.utcnow())
+
+            logger.debug(f"Resolved DID from chain: {did}")
+            return doc
+
+        except Exception as e:
+            logger.error(f"Error resolving NLC DID {did}: {e}")
+            return None
+
+    def _create_placeholder_document(self, did: str, identifier: str) -> DIDDocument:
+        """
+        Create a placeholder document when registry is not configured.
+
+        This is used for development/testing when no registry is deployed.
+        """
+        logger.warning(f"Creating placeholder document for {did} - registry not configured")
+
         doc = DIDDocument(
             id=did,
             context=[
@@ -509,10 +766,85 @@ class NLCDIDResolver(DIDMethodResolver):
             assertion_method=[f"{did}#key-1"],
         )
 
-        # Cache
+        # Cache placeholder
         self._cache[did] = (doc, datetime.utcnow())
 
         return doc
+
+    async def register_did(
+        self,
+        public_key: bytes,
+        key_type: int = 0,
+        private_key: Optional[str] = None,
+        stake_wei: int = 10000000000000000,  # 0.01 ETH default
+    ) -> Optional[str]:
+        """
+        Register a new DID on-chain.
+
+        Args:
+            public_key: The initial public key bytes
+            key_type: Key type (0=Secp256k1, 1=Ed25519, 2=X25519)
+            private_key: Private key for signing the transaction
+            stake_wei: Stake amount in wei (minimum 0.01 ETH)
+
+        Returns:
+            The new DID string if successful, None otherwise
+        """
+        if not self.registry_address:
+            logger.error("Registry address not configured")
+            return None
+
+        if not private_key:
+            logger.error("Private key required for registration")
+            return None
+
+        try:
+            w3 = self._get_web3()
+            contract = self._get_contract()
+
+            # Get account from private key
+            account = Account.from_key(private_key)
+
+            # Build transaction
+            tx = contract.functions.registerDID(
+                public_key,
+                key_type
+            ).build_transaction({
+                'from': account.address,
+                'value': stake_wei,
+                'gas': 500000,
+                'gasPrice': w3.eth.gas_price,
+                'nonce': w3.eth.get_transaction_count(account.address),
+            })
+
+            # Sign and send
+            signed_tx = w3.eth.account.sign_transaction(tx, private_key)
+            tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+
+            # Wait for receipt
+            receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+            if receipt['status'] == 1:
+                # Parse the DIDRegistered event to get the identifier
+                # For now, construct from logs
+                for log in receipt['logs']:
+                    if len(log['topics']) >= 2:
+                        # First topic is event signature, second is indexed identifier
+                        identifier = log['topics'][1].hex()
+                        did = f"did:nlc:{identifier}"
+                        logger.info(f"Registered new DID: {did}")
+                        return did
+
+            logger.error("DID registration transaction failed")
+            return None
+
+        except Exception as e:
+            logger.error(f"Error registering DID: {e}")
+            return None
+
+    def clear_cache(self) -> None:
+        """Clear the resolution cache."""
+        self._cache.clear()
 
 
 class DIDResolver:
@@ -597,6 +929,37 @@ class DIDResolver:
             return DIDMethod(method)
         except ValueError:
             return None
+
+    def parse_did(self, did: str) -> Tuple[DIDMethod, str]:
+        """
+        Parse a DID into its method and method-specific identifier.
+
+        Args:
+            did: The DID to parse (e.g., "did:ethr:0x123...")
+
+        Returns:
+            Tuple of (DIDMethod, identifier)
+
+        Raises:
+            ValueError: If the DID format is invalid or method is unsupported
+        """
+        if not did.startswith("did:"):
+            raise ValueError(f"Invalid DID format: {did}")
+
+        parts = did.split(":")
+        if len(parts) < 3:
+            raise ValueError(f"Invalid DID format: {did}")
+
+        method_str = parts[1]
+        # Join remaining parts as identifier (handles did:ethr:mainnet:0x123)
+        identifier = ":".join(parts[2:])
+
+        try:
+            method = DIDMethod(method_str)
+        except ValueError:
+            raise ValueError(f"Unsupported DID method: {method_str}")
+
+        return method, identifier
 
     async def verify_signature(
         self,
