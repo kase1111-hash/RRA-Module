@@ -12,7 +12,7 @@ This module provides a comprehensive exception hierarchy with:
 """
 
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Type
 
 
 class ErrorCode(Enum):
@@ -264,7 +264,7 @@ class ContractNotFoundError(ContractError):
         search_paths: Optional[list] = None,
         cause: Optional[Exception] = None,
     ):
-        context = {"search_paths": search_paths} if search_paths else {}
+        context: Dict[str, Any] = {"search_paths": search_paths} if search_paths else {}
         super().__init__(
             message=f"Contract '{contract_name}' not found",
             error_code=ErrorCode.CONTRACT_NOT_FOUND,
@@ -285,7 +285,7 @@ class ContractDeploymentError(ContractError):
         tx_hash: Optional[str] = None,
         cause: Optional[Exception] = None,
     ):
-        context = {"reason": reason}
+        context: Dict[str, Any] = {"reason": reason}
         if gas_used:
             context["gas_used"] = gas_used
         if tx_hash:
@@ -399,7 +399,7 @@ class TransactionRevertedError(TransactionError):
         gas_used: Optional[int] = None,
         cause: Optional[Exception] = None,
     ):
-        context = {}
+        context: Dict[str, Any] = {}
         if revert_reason:
             context["revert_reason"] = revert_reason
         if gas_used:
@@ -474,7 +474,7 @@ class StorageUploadError(StorageError):
         content_size: Optional[int] = None,
         cause: Optional[Exception] = None,
     ):
-        context = {"reason": reason}
+        context: Dict[str, Any] = {"reason": reason}
         if content_size:
             context["content_size"] = content_size
 
@@ -497,7 +497,7 @@ class StorageDownloadError(StorageError):
         status_code: Optional[int] = None,
         cause: Optional[Exception] = None,
     ):
-        context = {"reason": reason}
+        context: Dict[str, Any] = {"reason": reason}
         if status_code:
             context["status_code"] = status_code
 
@@ -667,7 +667,7 @@ class ConnectionError(IntegrationError):
         retry_count: Optional[int] = None,
         cause: Optional[Exception] = None,
     ):
-        context = {"reason": reason}
+        context: Dict[str, Any] = {"reason": reason}
         if retry_count is not None:
             context["retry_count"] = retry_count
 
@@ -778,7 +778,7 @@ class SequencerError(BatchProcessingError):
         sequencer_status: Optional[str] = None,
         cause: Optional[Exception] = None,
     ):
-        context = {}
+        context: Dict[str, Any] = {}
         if sequencer_status:
             context["sequencer_status"] = sequencer_status
 
@@ -930,9 +930,9 @@ class NegotiationExpiredError(NegotiationError):
 
 def wrap_exception(
     exception: Exception,
-    error_class: type = RRAError,
+    error_class: Type[RRAError] = RRAError,
     message: Optional[str] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> RRAError:
     """
     Wrap an exception in an RRAError with additional context.
