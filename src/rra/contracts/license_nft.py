@@ -7,9 +7,10 @@ Provides Python interface for interacting with the RepoLicense smart contract.
 """
 
 from typing import Dict, Any, Optional
-from pathlib import Path
 from web3 import Web3
-from web3.contract import Contract
+from web3.exceptions import ContractLogicError
+
+from rra.contracts.artifacts import load_contract, ContractArtifact
 
 
 class LicenseNFTContract:
@@ -18,6 +19,8 @@ class LicenseNFTContract:
 
     Handles deployment and interaction with the licensing NFT contract.
     """
+
+    CONTRACT_NAME = "RepoLicense"
 
     def __init__(
         self,
@@ -31,13 +34,19 @@ class LicenseNFTContract:
         Args:
             web3: Web3 instance connected to blockchain
             contract_address: Deployed contract address (if already deployed)
-            contract_abi: Contract ABI (if not using default)
+            contract_abi: Contract ABI (if not using compiled artifact)
         """
         self.w3 = web3
+        self._artifact: Optional[ContractArtifact] = None
 
+        # Load ABI from compiled artifact if not provided
         if contract_abi is None:
-            # Load default ABI (simplified for this implementation)
-            contract_abi = self._get_default_abi()
+            try:
+                self._artifact = load_contract(self.CONTRACT_NAME)
+                contract_abi = self._artifact.abi
+            except FileNotFoundError:
+                # Fall back to minimal ABI for read-only operations
+                contract_abi = self._get_minimal_abi()
 
         self.abi = contract_abi
 
@@ -49,28 +58,98 @@ class LicenseNFTContract:
         else:
             self.contract = None
 
-    def deploy(self, deployer_address: str, private_key: str) -> str:
+    def deploy(
+        self,
+        deployer_address: str,
+        private_key: str,
+        registrar_address: Optional[str] = None,
+        gas_limit: int = 5000000,
+        wait_for_receipt: bool = True
+    ) -> str:
         """
         Deploy the RepoLicense contract.
 
         Args:
             deployer_address: Address deploying the contract
             private_key: Private key for signing transaction
+            registrar_address: Address of the registrar (defaults to deployer)
+            gas_limit: Gas limit for deployment transaction
+            wait_for_receipt: Whether to wait for transaction receipt
 
         Returns:
             Deployed contract address
+
+        Raises:
+            FileNotFoundError: If contract artifacts not compiled
+            ValueError: If deployment fails
         """
-        # In production, would compile Solidity and deploy
-        # For now, this is a placeholder
-        raise NotImplementedError("Contract deployment requires compilation step")
+        # Load artifact if not already loaded
+        if self._artifact is None:
+            self._artifact = load_contract(self.CONTRACT_NAME)
+
+        if not self._artifact.has_bytecode:
+            raise ValueError(
+                f"No bytecode available for {self.CONTRACT_NAME}. "
+                "Run 'forge build' in contracts/ directory."
+            )
+
+        # Use deployer as registrar if not specified
+        if registrar_address is None:
+            registrar_address = deployer_address
+
+        deployer_address = Web3.to_checksum_address(deployer_address)
+        registrar_address = Web3.to_checksum_address(registrar_address)
+
+        # Create contract factory
+        contract_factory = self.w3.eth.contract(
+            abi=self._artifact.abi,
+            bytecode=self._artifact.bytecode
+        )
+
+        # Build deployment transaction
+        # Constructor: constructor(address _registrar)
+        nonce = self.w3.eth.get_transaction_count(deployer_address)
+
+        deploy_txn = contract_factory.constructor(registrar_address).build_transaction({
+            'from': deployer_address,
+            'nonce': nonce,
+            'gas': gas_limit,
+            'gasPrice': self.w3.eth.gas_price,
+        })
+
+        # Sign and send transaction
+        signed_txn = self.w3.eth.account.sign_transaction(deploy_txn, private_key)
+        tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+
+        if wait_for_receipt:
+            # Wait for deployment
+            tx_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
+
+            if tx_receipt['status'] != 1:
+                raise ValueError(f"Contract deployment failed: {tx_hash.hex()}")
+
+            contract_address = tx_receipt['contractAddress']
+
+            # Initialize contract instance
+            self.contract = self.w3.eth.contract(
+                address=contract_address,
+                abi=self._artifact.abi
+            )
+
+            return contract_address
+        else:
+            return tx_hash.hex()
 
     def register_repository(
         self,
         repo_url: str,
         target_price_wei: int,
         floor_price_wei: int,
+        nonce: bytes,
+        signature: bytes,
         developer_address: str,
-        private_key: str
+        private_key: str,
+        gas_limit: int = 300000
     ) -> str:
         """
         Register a repository for licensing.
@@ -79,30 +158,37 @@ class LicenseNFTContract:
             repo_url: Repository URL
             target_price_wei: Target price in wei
             floor_price_wei: Floor price in wei
+            nonce: Unique nonce for replay protection
+            signature: Registrar signature authorizing registration
             developer_address: Developer's Ethereum address
             private_key: Private key for signing
+            gas_limit: Gas limit for transaction
 
         Returns:
             Transaction hash
         """
         if not self.contract:
-            raise ValueError("Contract not initialized")
+            raise ValueError("Contract not initialized. Deploy or set address first.")
+
+        developer_address = Web3.to_checksum_address(developer_address)
 
         # Build transaction
         txn = self.contract.functions.registerRepository(
             repo_url,
             target_price_wei,
-            floor_price_wei
+            floor_price_wei,
+            nonce,
+            signature
         ).build_transaction({
             'from': developer_address,
             'nonce': self.w3.eth.get_transaction_count(developer_address),
-            'gas': 2000000,
+            'gas': gas_limit,
             'gasPrice': self.w3.eth.gas_price
         })
 
         # Sign and send
         signed_txn = self.w3.eth.account.sign_transaction(txn, private_key)
-        tx_hash = self.w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+        tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
 
         return tx_hash.hex()
 
@@ -117,7 +203,8 @@ class LicenseNFTContract:
         royalty_basis_points: int,
         token_uri: str,
         payment_wei: int,
-        buyer_private_key: str
+        buyer_private_key: str,
+        gas_limit: int = 500000
     ) -> str:
         """
         Issue a new license NFT.
@@ -133,12 +220,15 @@ class LicenseNFTContract:
             token_uri: Token metadata URI
             payment_wei: Payment amount in wei
             buyer_private_key: Private key for signing transaction
+            gas_limit: Gas limit for transaction
 
         Returns:
             Transaction hash
         """
         if not self.contract:
-            raise ValueError("Contract not initialized")
+            raise ValueError("Contract not initialized. Deploy or set address first.")
+
+        licensee_address = Web3.to_checksum_address(licensee_address)
 
         # Build transaction
         txn = self.contract.functions.issueLicense(
@@ -154,13 +244,13 @@ class LicenseNFTContract:
             'from': licensee_address,
             'value': payment_wei,
             'nonce': self.w3.eth.get_transaction_count(licensee_address),
-            'gas': 3000000,
+            'gas': gas_limit,
             'gasPrice': self.w3.eth.gas_price
         })
 
         # Sign and send
         signed_txn = self.w3.eth.account.sign_transaction(txn, buyer_private_key)
-        tx_hash = self.w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+        tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
 
         return tx_hash.hex()
 
@@ -177,7 +267,10 @@ class LicenseNFTContract:
         if not self.contract:
             raise ValueError("Contract not initialized")
 
-        return self.contract.functions.isLicenseValid(token_id).call()
+        try:
+            return self.contract.functions.isLicenseValid(token_id).call()
+        except ContractLogicError:
+            return False
 
     def get_license_details(self, token_id: int) -> Dict[str, Any]:
         """
@@ -192,17 +285,43 @@ class LicenseNFTContract:
         if not self.contract:
             raise ValueError("Contract not initialized")
 
-        details = self.contract.functions.getLicenseDetails(token_id).call()
+        # Get license struct from contract
+        license_data = self.contract.functions.licenses(token_id).call()
 
         return {
-            "license_type": details[0],
-            "price": details[1],
-            "expiration_date": details[2],
-            "max_seats": details[3],
-            "allow_forks": details[4],
-            "repo_url": details[5],
-            "active": details[6],
-            "valid": details[7],
+            "license_type": license_data[0],
+            "price": license_data[1],
+            "expiration_date": license_data[2],
+            "max_seats": license_data[3],
+            "allow_forks": license_data[4],
+            "royalty_basis_points": license_data[5],
+            "repo_url": license_data[6],
+            "licensee": license_data[7],
+            "issued_at": license_data[8],
+            "active": license_data[9],
+        }
+
+    def get_repository(self, repo_url: str) -> Dict[str, Any]:
+        """
+        Get repository registration details.
+
+        Args:
+            repo_url: Repository URL
+
+        Returns:
+            Dictionary with repository details
+        """
+        if not self.contract:
+            raise ValueError("Contract not initialized")
+
+        repo_data = self.contract.functions.repositories(repo_url).call()
+
+        return {
+            "url": repo_data[0],
+            "developer": repo_data[1],
+            "target_price": repo_data[2],
+            "floor_price": repo_data[3],
+            "active": repo_data[4],
         }
 
     def get_user_licenses(self, user_address: str) -> list[int]:
@@ -218,38 +337,70 @@ class LicenseNFTContract:
         if not self.contract:
             raise ValueError("Contract not initialized")
 
-        return self.contract.functions.getLicensesByOwner(
+        return self.contract.functions.userLicenses(
             Web3.to_checksum_address(user_address)
         ).call()
 
+    def get_registrar(self) -> str:
+        """Get the registrar address."""
+        if not self.contract:
+            raise ValueError("Contract not initialized")
+
+        return self.contract.functions.registrar().call()
+
     @staticmethod
-    def _get_default_abi() -> list:
+    def _get_minimal_abi() -> list:
         """
-        Get default contract ABI.
+        Get minimal contract ABI for read-only operations.
+
+        Used when compiled artifacts are not available.
 
         Returns:
-            Contract ABI list
+            Minimal ABI list
         """
-        # Simplified ABI for key functions
-        # In production, would load from compiled contract
         return [
             {
-                "inputs": [
-                    {"name": "_repoUrl", "type": "string"},
-                    {"name": "_targetPrice", "type": "uint256"},
-                    {"name": "_floorPrice", "type": "uint256"}
-                ],
-                "name": "registerRepository",
-                "outputs": [],
-                "stateMutability": "nonpayable",
+                "inputs": [{"name": "_tokenId", "type": "uint256"}],
+                "name": "isLicenseValid",
+                "outputs": [{"name": "", "type": "bool"}],
+                "stateMutability": "view",
                 "type": "function"
             },
             {
-                "inputs": [
-                    {"name": "_tokenId", "type": "uint256"}
+                "inputs": [{"name": "", "type": "uint256"}],
+                "name": "licenses",
+                "outputs": [
+                    {"name": "licenseType", "type": "uint8"},
+                    {"name": "price", "type": "uint256"},
+                    {"name": "expirationDate", "type": "uint256"},
+                    {"name": "maxSeats", "type": "uint256"},
+                    {"name": "allowForks", "type": "bool"},
+                    {"name": "royaltyBasisPoints", "type": "uint16"},
+                    {"name": "repoUrl", "type": "string"},
+                    {"name": "licensee", "type": "address"},
+                    {"name": "issuedAt", "type": "uint256"},
+                    {"name": "active", "type": "bool"}
                 ],
-                "name": "isLicenseValid",
-                "outputs": [{"name": "", "type": "bool"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [{"name": "", "type": "string"}],
+                "name": "repositories",
+                "outputs": [
+                    {"name": "url", "type": "string"},
+                    {"name": "developer", "type": "address"},
+                    {"name": "targetPrice", "type": "uint256"},
+                    {"name": "floorPrice", "type": "uint256"},
+                    {"name": "active", "type": "bool"}
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "registrar",
+                "outputs": [{"name": "", "type": "address"}],
                 "stateMutability": "view",
                 "type": "function"
             },
