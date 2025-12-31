@@ -30,6 +30,7 @@ class TreasuryType(Enum):
     MULTISIG = "multisig"        # Multi-signature wallet
     INDIVIDUAL = "individual"    # Single-owner treasury
     PROTOCOL = "protocol"        # Protocol-owned treasury
+    CORPORATE = "corporate"      # Corporate treasury
 
 
 class DisputeStatus(Enum):
