@@ -466,11 +466,12 @@ class TestVotingAndResolution:
         """Test that quorum triggers resolution."""
         orchestrator, dispute, proposal = dispute_with_proposal
 
-        # All three parties endorse (100% > 60% quorum)
+        # First two parties endorse - with equal weights (1 ETH each),
+        # this is 66.6% > 60% quorum, so proposal is endorsed immediately
         orchestrator.cast_vote(dispute.id, proposal.id, "party_a", VoteChoice.ENDORSE)
         orchestrator.cast_vote(dispute.id, proposal.id, "party_b", VoteChoice.ENDORSE)
-        orchestrator.cast_vote(dispute.id, proposal.id, "party_c", VoteChoice.ENDORSE)
 
+        # Quorum reached after 2/3 votes, proposal status changes to ENDORSED
         assert proposal.status == ProposalStatus.ENDORSED
         assert dispute.winning_proposal_id == proposal.id
 
@@ -478,18 +479,18 @@ class TestVotingAndResolution:
         """Test resolution execution."""
         orchestrator, dispute, proposal = dispute_with_proposal
 
-        # Reach quorum
+        # Reach quorum with first two votes (66.6% > 60% quorum)
         orchestrator.cast_vote(dispute.id, proposal.id, "party_a", VoteChoice.ENDORSE)
         orchestrator.cast_vote(dispute.id, proposal.id, "party_b", VoteChoice.ENDORSE)
-        orchestrator.cast_vote(dispute.id, proposal.id, "party_c", VoteChoice.ENDORSE)
 
+        # Proposal is now endorsed, execute the resolution
         result = orchestrator.execute_resolution(dispute.id)
 
         assert result is not None
         assert result.resolved_by == "quorum"
         assert dispute.phase == DisputePhase.RESOLVED
 
-        # Check payouts
+        # Check payouts (based on payout_shares: a=50%, b=30%, c=20% of 3 ETH)
         assert result.payouts["party_a"] == Decimal("1.5")  # 50% of 3 ETH
         assert result.payouts["party_b"] == Decimal("0.9")  # 30% of 3 ETH
         assert result.payouts["party_c"] == Decimal("0.6")  # 20% of 3 ETH
@@ -548,7 +549,7 @@ class TestCoalitionFormation:
         """Test that coalition needs at least 2 members."""
         orchestrator, dispute, proposal = voting_dispute
 
-        with pytest.raises(ValueError, match="2+ members"):
+        with pytest.raises(ValueError, match=r"2\+ members"):
             orchestrator.form_coalition(
                 dispute_id=dispute.id,
                 request=CoalitionRequest(
@@ -564,7 +565,8 @@ class TestMediatorResolution:
     @pytest.fixture
     def mediation_dispute(self):
         """Create a dispute in mediation phase."""
-        orchestrator = MultiPartyOrchestrator(voting_period_days=0)
+        # Use a normal voting period so submit_proposal works
+        orchestrator = MultiPartyOrchestrator(voting_period_days=7)
         dispute = orchestrator.create_dispute(
             initiator_hash="party_a",
             party_hashes=["party_a", "party_b", "party_c"],
@@ -575,7 +577,7 @@ class TestMediatorResolution:
         orchestrator.join_dispute(dispute.id, "party_b", Decimal("1.0"))
         orchestrator.join_dispute(dispute.id, "party_c", Decimal("1.0"))
 
-        # Submit proposal to enter voting phase
+        # Submit proposal to enter voting phase (requires active voting period)
         orchestrator.submit_proposal(
             dispute_id=dispute.id,
             submission=ProposalSubmission(
@@ -590,7 +592,7 @@ class TestMediatorResolution:
             ),
         )
 
-        # Force voting deadline to pass
+        # Force voting deadline to pass for escalation to mediation
         dispute.voting_deadline = datetime.now(timezone.utc) - timedelta(hours=1)
 
         # Escalate to mediation
