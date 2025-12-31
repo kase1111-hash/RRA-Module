@@ -459,19 +459,25 @@ async def get_statistics() -> Dict[str, Any]:
     }
 
 
+class BatchAnalyzeRequest(BaseModel):
+    """Request body for batch analysis."""
+    contracts: List[List[str]] = Field(..., max_length=10)
+
+
 @router.post("/batch/analyze")
 async def batch_analyze_contracts(
-    contracts: List[List[str]] = Query(..., max_length=10),
+    request: BatchAnalyzeRequest,
 ) -> Dict[str, Any]:
     """
     Analyze multiple contracts in batch.
 
     Args:
-        contracts: List of contracts (each a list of clauses)
+        request: BatchAnalyzeRequest containing list of contracts (each a list of clauses)
 
     Returns:
         Analysis for all contracts
     """
+    contracts = request.contracts
     generator = get_warning_generator()
 
     results = []

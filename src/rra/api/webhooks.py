@@ -23,7 +23,7 @@ from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Request, HTTPException, BackgroundTasks, Header
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, Field
 
 from rra.security.webhook_auth import (
     WebhookSecurity,
@@ -126,7 +126,7 @@ _session_messages: Dict[str, List[Dict[str, Any]]] = {}
 class WebhookTriggerRequest(BaseModel):
     """Incoming webhook trigger payload."""
     message: Optional[str] = None
-    email: Optional[EmailStr] = None
+    email: Optional[str] = Field(default=None, pattern=r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
     name: Optional[str] = None
     company: Optional[str] = None
     budget: Optional[str] = None
