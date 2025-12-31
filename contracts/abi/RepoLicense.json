@@ -1,0 +1,274 @@
+{
+  "abi": [
+    {
+      "inputs": [{"name": "_registrar", "type": "address"}],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "registrar",
+      "outputs": [{"name": "", "type": "address"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"name": "", "type": "bytes32"}],
+      "name": "usedNonces",
+      "outputs": [{"name": "", "type": "bool"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"name": "", "type": "uint256"}],
+      "name": "licenses",
+      "outputs": [
+        {"name": "licenseType", "type": "uint8"},
+        {"name": "price", "type": "uint256"},
+        {"name": "expirationDate", "type": "uint256"},
+        {"name": "maxSeats", "type": "uint256"},
+        {"name": "allowForks", "type": "bool"},
+        {"name": "royaltyBasisPoints", "type": "uint16"},
+        {"name": "repoUrl", "type": "string"},
+        {"name": "licensee", "type": "address"},
+        {"name": "issuedAt", "type": "uint256"},
+        {"name": "active", "type": "bool"}
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"name": "", "type": "string"}],
+      "name": "repositories",
+      "outputs": [
+        {"name": "url", "type": "string"},
+        {"name": "developer", "type": "address"},
+        {"name": "targetPrice", "type": "uint256"},
+        {"name": "floorPrice", "type": "uint256"},
+        {"name": "active", "type": "bool"}
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"name": "", "type": "address"}, {"name": "", "type": "uint256"}],
+      "name": "userLicenses",
+      "outputs": [{"name": "", "type": "uint256"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {"name": "_repoUrl", "type": "string"},
+        {"name": "_targetPrice", "type": "uint256"},
+        {"name": "_floorPrice", "type": "uint256"},
+        {"name": "_nonce", "type": "bytes32"},
+        {"name": "_signature", "type": "bytes"}
+      ],
+      "name": "registerRepository",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [{"name": "_newRegistrar", "type": "address"}],
+      "name": "setRegistrar",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {"name": "_licensee", "type": "address"},
+        {"name": "_repoUrl", "type": "string"},
+        {"name": "_licenseType", "type": "uint8"},
+        {"name": "_duration", "type": "uint256"},
+        {"name": "_maxSeats", "type": "uint256"},
+        {"name": "_allowForks", "type": "bool"},
+        {"name": "_royaltyBasisPoints", "type": "uint16"},
+        {"name": "_tokenURI", "type": "string"}
+      ],
+      "name": "issueLicense",
+      "outputs": [{"name": "", "type": "uint256"}],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {"name": "_tokenId", "type": "uint256"},
+        {"name": "_reason", "type": "string"}
+      ],
+      "name": "revokeLicense",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {"name": "_tokenId", "type": "uint256"},
+        {"name": "_additionalDuration", "type": "uint256"}
+      ],
+      "name": "renewLicense",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [{"name": "_tokenId", "type": "uint256"}],
+      "name": "isLicenseValid",
+      "outputs": [{"name": "", "type": "bool"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"name": "_owner", "type": "address"}],
+      "name": "getLicensesByOwner",
+      "outputs": [{"name": "", "type": "uint256[]"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"name": "_tokenId", "type": "uint256"}],
+      "name": "getLicenseDetails",
+      "outputs": [
+        {"name": "licenseType", "type": "uint8"},
+        {"name": "price", "type": "uint256"},
+        {"name": "expirationDate", "type": "uint256"},
+        {"name": "maxSeats", "type": "uint256"},
+        {"name": "allowForks", "type": "bool"},
+        {"name": "repoUrl", "type": "string"},
+        {"name": "active", "type": "bool"},
+        {"name": "valid", "type": "bool"}
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {"name": "_repoUrl", "type": "string"},
+        {"name": "_newTargetPrice", "type": "uint256"},
+        {"name": "_newFloorPrice", "type": "uint256"},
+        {"name": "_active", "type": "bool"}
+      ],
+      "name": "updateRepository",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [{"name": "tokenId", "type": "uint256"}],
+      "name": "tokenURI",
+      "outputs": [{"name": "", "type": "string"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"name": "interfaceId", "type": "bytes4"}],
+      "name": "supportsInterface",
+      "outputs": [{"name": "", "type": "bool"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"name": "tokenId", "type": "uint256"}],
+      "name": "ownerOf",
+      "outputs": [{"name": "", "type": "address"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"name": "owner", "type": "address"}],
+      "name": "balanceOf",
+      "outputs": [{"name": "", "type": "uint256"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "name",
+      "outputs": [{"name": "", "type": "string"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "symbol",
+      "outputs": [{"name": "", "type": "string"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [{"name": "", "type": "address"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {"indexed": false, "name": "repoUrl", "type": "string"},
+        {"indexed": false, "name": "developer", "type": "address"},
+        {"indexed": false, "name": "targetPrice", "type": "uint256"}
+      ],
+      "name": "RepositoryRegistered",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {"indexed": true, "name": "tokenId", "type": "uint256"},
+        {"indexed": true, "name": "licensee", "type": "address"},
+        {"indexed": false, "name": "repoUrl", "type": "string"},
+        {"indexed": false, "name": "licenseType", "type": "uint8"}
+      ],
+      "name": "LicenseIssued",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {"indexed": true, "name": "tokenId", "type": "uint256"},
+        {"indexed": false, "name": "reason", "type": "string"}
+      ],
+      "name": "LicenseRevoked",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {"indexed": true, "name": "tokenId", "type": "uint256"},
+        {"indexed": false, "name": "newExpiration", "type": "uint256"}
+      ],
+      "name": "LicenseRenewed",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {"indexed": true, "name": "from", "type": "address"},
+        {"indexed": false, "name": "amount", "type": "uint256"},
+        {"indexed": true, "name": "tokenId", "type": "uint256"}
+      ],
+      "name": "PaymentReceived",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {"indexed": true, "name": "oldRegistrar", "type": "address"},
+        {"indexed": true, "name": "newRegistrar", "type": "address"}
+      ],
+      "name": "RegistrarUpdated",
+      "type": "event"
+    }
+  ],
+  "bytecode": "",
+  "deployedBytecode": "",
+  "metadata": {
+    "compiler": {"version": "0.8.20"},
+    "language": "Solidity",
+    "source": "contracts/src/RepoLicense.sol",
+    "note": "Bytecode requires compilation with Foundry: forge build"
+  }
+}

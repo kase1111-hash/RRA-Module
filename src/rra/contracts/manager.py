@@ -9,9 +9,11 @@ Manages contract deployment, configuration, and lifecycle.
 from typing import Optional, Dict, Any
 from pathlib import Path
 import json
+import os
 from web3 import Web3
 
 from rra.contracts.license_nft import LicenseNFTContract
+from rra.contracts.artifacts import is_compiled, available_contracts
 
 
 class ContractManager:
@@ -95,24 +97,49 @@ class ContractManager:
     def deploy_license_contract(
         self,
         deployer_address: str,
-        private_key: str
+        private_key: str,
+        registrar_address: Optional[str] = None
     ) -> str:
         """
         Deploy the RepoLicense contract.
 
+        Requires contracts to be compiled first with `forge build` in contracts/.
+
         Args:
             deployer_address: Address deploying the contract
             private_key: Private key for signing
+            registrar_address: Address of registrar (defaults to deployer)
 
         Returns:
             Deployed contract address
+
+        Raises:
+            ConnectionError: If not connected to blockchain
+            FileNotFoundError: If contracts not compiled
         """
         if not self.w3.is_connected():
             raise ConnectionError("Not connected to blockchain")
 
-        # Deploy contract (placeholder - requires compilation)
-        # In production: compile Solidity, deploy, return address
-        raise NotImplementedError("Contract deployment requires setup")
+        if not is_compiled():
+            raise FileNotFoundError(
+                "Contracts not compiled. Run 'forge build' in contracts/ directory first.\n"
+                "Install Foundry: curl -L https://foundry.paradigm.xyz | bash && foundryup"
+            )
+
+        # Create contract instance
+        self.license_contract = LicenseNFTContract(self.w3)
+
+        # Deploy
+        contract_address = self.license_contract.deploy(
+            deployer_address=deployer_address,
+            private_key=private_key,
+            registrar_address=registrar_address
+        )
+
+        # Save deployment
+        self.save_deployment("RepoLicense", contract_address)
+
+        return contract_address
 
     def register_repo(
         self,
