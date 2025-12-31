@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: 2025 Kase Branham
 # SPDX-License-Identifier: FSL-1.1-ALv2
+# Copyright 2025 Kase Branham
 
 """
 Tests for Multi-Party Reconciliation (Phase 6.4).
