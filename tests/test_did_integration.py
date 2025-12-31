@@ -625,3 +625,331 @@ class TestDIDIntegration:
                 assert result.error_code == "INSUFFICIENT_SCORE"
                 assert result.identity_score is not None
                 assert result.identity_score.overall_score == 50
+
+
+# =============================================================================
+# On-Chain NLC DID Resolver Tests
+# =============================================================================
+
+
+class TestNLCDIDResolverOnChain:
+    """Tests for on-chain NLC DID resolution."""
+
+    @pytest.fixture
+    def nlc_resolver(self):
+        """Create an NLC DID resolver instance."""
+        from src.rra.identity.did_resolver import NLCDIDResolver
+        return NLCDIDResolver(
+            registry_address="0x1234567890123456789012345678901234567890",
+            rpc_url="https://eth.llamarpc.com"
+        )
+
+    @pytest.fixture
+    def nlc_resolver_no_registry(self):
+        """Create an NLC DID resolver without registry address."""
+        from src.rra.identity.did_resolver import NLCDIDResolver
+        return NLCDIDResolver(registry_address="", rpc_url="https://eth.llamarpc.com")
+
+    def test_supports_nlc_did(self, nlc_resolver):
+        """Test that resolver supports did:nlc format."""
+        assert nlc_resolver.supports("did:nlc:abc123")
+        assert nlc_resolver.supports("did:nlc:0x1234567890abcdef")
+        assert not nlc_resolver.supports("did:ethr:0x123")
+        assert not nlc_resolver.supports("did:web:example.com")
+
+    def test_identifier_to_bytes32(self, nlc_resolver):
+        """Test conversion of identifier to bytes32."""
+        # Short identifier should be zero-padded
+        result = nlc_resolver._identifier_to_bytes32("abc123")
+        assert len(result) == 32
+        assert result.hex().endswith("abc123")
+
+        # With 0x prefix
+        result = nlc_resolver._identifier_to_bytes32("0xabc123")
+        assert len(result) == 32
+        assert result.hex().endswith("abc123")
+
+        # Full 64-char identifier
+        full_id = "a" * 64
+        result = nlc_resolver._identifier_to_bytes32(full_id)
+        assert len(result) == 32
+        assert result.hex() == full_id
+
+    def test_bytes32_to_hex(self, nlc_resolver):
+        """Test conversion of bytes32 to hex string."""
+        data = bytes.fromhex("abcd" * 16)
+        result = nlc_resolver._bytes32_to_hex(data)
+        assert result.startswith("0x")
+        assert result == "0x" + "abcd" * 16
+
+    def test_key_type_mapping(self, nlc_resolver):
+        """Test key type enum to string mapping."""
+        assert nlc_resolver.KEY_TYPE_MAP[0] == "EcdsaSecp256k1VerificationKey2019"
+        assert nlc_resolver.KEY_TYPE_MAP[1] == "Ed25519VerificationKey2020"
+        assert nlc_resolver.KEY_TYPE_MAP[2] == "X25519KeyAgreementKey2020"
+
+    @pytest.mark.asyncio
+    async def test_resolve_without_registry_returns_placeholder(self, nlc_resolver_no_registry):
+        """Test that resolution without registry returns placeholder document."""
+        did = "did:nlc:test_placeholder"
+        doc = await nlc_resolver_no_registry.resolve(did)
+
+        assert doc is not None
+        assert doc.id == did
+        assert len(doc.verification_method) == 1
+        assert doc.verification_method[0].type == "EcdsaSecp256k1VerificationKey2019"
+        assert doc.authentication == [f"{did}#key-1"]
+
+    @pytest.mark.asyncio
+    async def test_resolve_caches_result(self, nlc_resolver_no_registry):
+        """Test that resolution results are cached."""
+        did = "did:nlc:cache_test_nlc"
+
+        # First resolution
+        doc1 = await nlc_resolver_no_registry.resolve(did)
+        assert doc1 is not None
+
+        # Check cache
+        assert did in nlc_resolver_no_registry._cache
+
+        # Second resolution should use cache
+        doc2 = await nlc_resolver_no_registry.resolve(did)
+        assert doc2 is not None
+        assert doc1.id == doc2.id
+
+    def test_clear_cache(self, nlc_resolver_no_registry):
+        """Test cache clearing."""
+        # Add something to cache
+        nlc_resolver_no_registry._cache["did:nlc:test"] = (None, None)
+        assert len(nlc_resolver_no_registry._cache) == 1
+
+        # Clear cache
+        nlc_resolver_no_registry.clear_cache()
+        assert len(nlc_resolver_no_registry._cache) == 0
+
+    @pytest.mark.asyncio
+    async def test_resolve_on_chain_mocked(self, nlc_resolver):
+        """Test on-chain resolution with mocked contract calls."""
+        from datetime import datetime
+        from unittest.mock import MagicMock, patch
+
+        # Use hex identifier (bytes32 format)
+        did = "did:nlc:" + "ab" * 32
+
+        # Mock Web3 and contract
+        mock_contract = MagicMock()
+
+        # Mock getDocument response
+        mock_document = (
+            bytes.fromhex("0" * 64),  # identifier
+            "0x1234567890123456789012345678901234567890",  # owner
+            [],  # controllers
+            1234567890,  # createdAt (non-zero means exists)
+            1234567891,  # updatedAt
+            False,  # deactivated
+            10000000000000000,  # stake
+            1,  # verificationMethodCount
+            1,  # serviceCount
+            0,  # pohCount
+        )
+        mock_contract.functions.getDocument.return_value.call.return_value = mock_document
+
+        # Mock getVerificationMethods response
+        mock_vm = (
+            bytes.fromhex("ab" * 32),  # id
+            0,  # keyType (EcdsaSecp256k1)
+            "0x1234567890123456789012345678901234567890",  # controller
+            bytes.fromhex("04" + "ab" * 32),  # publicKey
+            True,  # active
+            1234567890,  # addedAt
+        )
+        mock_contract.functions.getVerificationMethods.return_value.call.return_value = [mock_vm]
+
+        # Mock getServices response
+        mock_svc = (
+            bytes.fromhex("cd" * 32),  # id
+            "RRAEndpoint",  # serviceType
+            "https://rra.example.com/api",  # endpoint
+            True,  # active
+        )
+        mock_contract.functions.getServices.return_value.call.return_value = [mock_svc]
+
+        with patch.object(nlc_resolver, '_get_contract', return_value=mock_contract):
+            doc = await nlc_resolver.resolve(did)
+
+        assert doc is not None
+        assert doc.id == did
+        assert len(doc.verification_method) == 1
+        assert doc.verification_method[0].type == "EcdsaSecp256k1VerificationKey2019"
+        assert len(doc.service) == 1
+        assert doc.service[0].type == "RRAEndpoint"
+        assert doc.service[0].service_endpoint == "https://rra.example.com/api"
+
+    @pytest.mark.asyncio
+    async def test_resolve_deactivated_did(self, nlc_resolver):
+        """Test that deactivated DIDs return None."""
+        from unittest.mock import MagicMock, patch
+
+        did = "did:nlc:deactivated_test"
+        mock_contract = MagicMock()
+
+        # Mock deactivated document
+        mock_document = (
+            bytes.fromhex("0" * 64),
+            "0x1234567890123456789012345678901234567890",
+            [],
+            1234567890,
+            1234567891,
+            True,  # deactivated = True
+            0,
+            0,
+            0,
+            0,
+        )
+        mock_contract.functions.getDocument.return_value.call.return_value = mock_document
+
+        with patch.object(nlc_resolver, '_get_contract', return_value=mock_contract):
+            doc = await nlc_resolver.resolve(did)
+
+        assert doc is None
+
+    @pytest.mark.asyncio
+    async def test_resolve_nonexistent_did(self, nlc_resolver):
+        """Test that non-existent DIDs return None."""
+        from unittest.mock import MagicMock, patch
+
+        did = "did:nlc:nonexistent"
+        mock_contract = MagicMock()
+
+        # Mock document with createdAt = 0 (doesn't exist)
+        mock_document = (
+            bytes.fromhex("0" * 64),
+            "0x0000000000000000000000000000000000000000",
+            [],
+            0,  # createdAt = 0 means doesn't exist
+            0,
+            False,
+            0,
+            0,
+            0,
+            0,
+        )
+        mock_contract.functions.getDocument.return_value.call.return_value = mock_document
+
+        with patch.object(nlc_resolver, '_get_contract', return_value=mock_contract):
+            doc = await nlc_resolver.resolve(did)
+
+        assert doc is None
+
+    @pytest.mark.asyncio
+    async def test_register_did_without_private_key(self, nlc_resolver):
+        """Test that registration fails without private key."""
+        result = await nlc_resolver.register_did(
+            public_key=bytes.fromhex("04" + "ab" * 32),
+            key_type=0,
+            private_key=None,
+        )
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_register_did_without_registry(self, nlc_resolver_no_registry):
+        """Test that registration fails without registry address."""
+        result = await nlc_resolver_no_registry.register_did(
+            public_key=bytes.fromhex("04" + "ab" * 32),
+            key_type=0,
+            private_key="0x" + "ab" * 32,
+        )
+        assert result is None
+
+    def test_contract_abi_structure(self, nlc_resolver):
+        """Test that contract ABI is properly structured."""
+        abi = nlc_resolver.REGISTRY_ABI
+
+        # Check required functions
+        function_names = [entry["name"] for entry in abi if entry.get("type") == "function"]
+        assert "getDocument" in function_names
+        assert "getVerificationMethods" in function_names
+        assert "getServices" in function_names
+        assert "buildDID" in function_names
+
+    @pytest.mark.asyncio
+    async def test_resolve_handles_exception(self, nlc_resolver):
+        """Test that resolution handles exceptions gracefully."""
+        from unittest.mock import MagicMock, patch
+
+        did = "did:nlc:error_test"
+        mock_contract = MagicMock()
+        mock_contract.functions.getDocument.return_value.call.side_effect = Exception("Network error")
+
+        with patch.object(nlc_resolver, '_get_contract', return_value=mock_contract):
+            doc = await nlc_resolver.resolve(did)
+
+        assert doc is None
+
+    @pytest.mark.asyncio
+    async def test_resolve_skips_inactive_verification_methods(self, nlc_resolver):
+        """Test that inactive verification methods are skipped."""
+        from unittest.mock import MagicMock, patch
+
+        # Use hex identifier (bytes32 format)
+        did = "did:nlc:" + "cd" * 32
+        mock_contract = MagicMock()
+
+        mock_document = (
+            bytes.fromhex("0" * 64),
+            "0x1234567890123456789012345678901234567890",
+            [],
+            1234567890,
+            1234567891,
+            False,
+            10000000000000000,
+            2,
+            0,
+            0,
+        )
+        mock_contract.functions.getDocument.return_value.call.return_value = mock_document
+
+        # One active, one inactive verification method
+        mock_vms = [
+            (bytes.fromhex("ab" * 32), 0, "0x1234", bytes.fromhex("04ab" * 16), True, 1234567890),
+            (bytes.fromhex("cd" * 32), 1, "0x5678", bytes.fromhex("ed01" + "cd" * 16), False, 1234567890),
+        ]
+        mock_contract.functions.getVerificationMethods.return_value.call.return_value = mock_vms
+        mock_contract.functions.getServices.return_value.call.return_value = []
+
+        with patch.object(nlc_resolver, '_get_contract', return_value=mock_contract):
+            doc = await nlc_resolver.resolve(did)
+
+        assert doc is not None
+        assert len(doc.verification_method) == 1  # Only active one
+
+    @pytest.mark.asyncio
+    async def test_did_document_context_includes_nlc(self, nlc_resolver):
+        """Test that resolved documents include NLC context."""
+        from unittest.mock import MagicMock, patch
+
+        # Use hex identifier (bytes32 format)
+        did = "did:nlc:" + "ef" * 32
+        mock_contract = MagicMock()
+
+        mock_document = (
+            bytes.fromhex("0" * 64),
+            "0x1234567890123456789012345678901234567890",
+            [],
+            1234567890,
+            1234567891,
+            False,
+            10000000000000000,
+            0,
+            0,
+            0,
+        )
+        mock_contract.functions.getDocument.return_value.call.return_value = mock_document
+        mock_contract.functions.getVerificationMethods.return_value.call.return_value = []
+        mock_contract.functions.getServices.return_value.call.return_value = []
+
+        with patch.object(nlc_resolver, '_get_contract', return_value=mock_contract):
+            doc = await nlc_resolver.resolve(did)
+
+        assert doc is not None
+        assert "https://natlangchain.io/did/v1" in doc.context
