@@ -476,10 +476,14 @@ def parse_cose_public_key(cose_key: bytes) -> Tuple[int, int]:
         x = int.from_bytes(decoded[-2], 'big')
         y = int.from_bytes(decoded[-3], 'big')
         return x, y
-    except:
+    except ImportError:
+        # cbor2 not installed, cannot parse CBOR-encoded key
         pass
+    except (KeyError, TypeError, ValueError) as e:
+        # Invalid CBOR structure or missing keys
+        raise ValueError(f"Invalid COSE public key structure: {e}") from e
 
-    raise ValueError("Unable to parse COSE public key")
+    raise ValueError("Unable to parse COSE public key: unsupported format")
 
 
 def parse_der_signature(der_sig: bytes) -> Tuple[int, int]:

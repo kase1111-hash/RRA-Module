@@ -337,8 +337,9 @@ class ReputationTracker:
                         "total_sales": metrics.total_licenses_sold,
                         "revenue_eth": metrics.total_revenue_eth,
                     })
-            except:
-                pass
+            except (json.JSONDecodeError, TypeError, KeyError, OSError):
+                # Skip corrupted or invalid reputation files
+                continue
 
         # Sort by score
         repos.sort(key=lambda x: x["score"], reverse=True)

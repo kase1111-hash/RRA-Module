@@ -16,12 +16,15 @@ Now includes:
 import os
 import re
 import json
+import logging
 from pathlib import Path
 from typing import Optional, Dict, List, Any
 from datetime import datetime
 from urllib.parse import urlparse
 import git
 from git.exc import GitCommandError
+
+logger = logging.getLogger(__name__)
 
 from rra.config.market_config import MarketConfig
 from rra.ingestion.knowledge_base import KnowledgeBase
@@ -456,8 +459,12 @@ class RepoIngester:
                         dependencies.setdefault("python", []).extend(
                             data["project"]["dependencies"]
                         )
-            except:
-                pass
+            except ImportError:
+                logger.debug("tomli not installed, skipping pyproject.toml parsing")
+            except (OSError, IOError) as e:
+                logger.warning(f"Could not read pyproject.toml: {e}")
+            except Exception as e:
+                logger.warning(f"Could not parse pyproject.toml: {e}")
 
         # JavaScript/Node: package.json
         package_json = repo_path / "package.json"
@@ -468,8 +475,10 @@ class RepoIngester:
                     deps = list(data.get("dependencies", {}).keys())
                     dev_deps = list(data.get("devDependencies", {}).keys())
                     dependencies["javascript"] = deps + dev_deps
-            except:
-                pass
+            except json.JSONDecodeError as e:
+                logger.warning(f"Invalid JSON in package.json: {e}")
+            except (OSError, IOError) as e:
+                logger.warning(f"Could not read package.json: {e}")
 
         # Rust: Cargo.toml
         cargo_toml = repo_path / "Cargo.toml"
@@ -480,8 +489,12 @@ class RepoIngester:
                     data = tomli.load(f)
                     if "dependencies" in data:
                         dependencies["rust"] = list(data["dependencies"].keys())
-            except:
-                pass
+            except ImportError:
+                logger.debug("tomli not installed, skipping Cargo.toml parsing")
+            except (OSError, IOError) as e:
+                logger.warning(f"Could not read Cargo.toml: {e}")
+            except Exception as e:
+                logger.warning(f"Could not parse Cargo.toml: {e}")
 
         return dependencies
 
@@ -533,8 +546,8 @@ class RepoIngester:
                                 'path': match.group(1) if 'flask' in framework else match.group(2),
                                 'method': match.group(1) if framework != 'flask' else 'GET'
                             })
-            except:
-                pass
+            except (OSError, IOError, UnicodeDecodeError) as e:
+                logger.debug(f"Could not read {py_file}: {e}")
 
         return endpoints
 
@@ -563,8 +576,8 @@ class RepoIngester:
                         test_stats['test_functions'] += len(
                             re.findall(r'def test_|test\(|it\(', content)
                         )
-                except:
-                    pass
+                except (OSError, IOError, UnicodeDecodeError) as e:
+                    logger.debug(f"Could not read test file {test_file}: {e}")
 
         return test_stats
 
@@ -610,8 +623,8 @@ class RepoIngester:
                     try:
                         with open(file_path, 'r', encoding='utf-8') as f:
                             stats['total_lines'] += sum(1 for _ in f)
-                    except:
-                        pass
+                    except (OSError, IOError, UnicodeDecodeError) as e:
+                        logger.debug(f"Could not count lines in {file_path}: {e}")
 
         stats['languages'] = list(stats['languages'])
         return stats
