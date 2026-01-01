@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 from rra.config.market_config import MarketConfig
 from rra.ingestion.knowledge_base import KnowledgeBase
+from rra.exceptions import ValidationError
 
 
 # Security constants
@@ -125,36 +126,59 @@ class RepoIngester:
             ValueError: If URL is invalid or potentially malicious
         """
         if not repo_url:
-            raise ValueError("Repository URL cannot be empty")
+            raise ValidationError(
+                message="Repository URL cannot be empty",
+                field="repo_url",
+                constraint="must not be empty"
+            )
 
         # Only allow HTTPS protocol
         parsed = urlparse(repo_url)
         if parsed.scheme != 'https':
-            raise ValueError("Only HTTPS GitHub URLs are allowed")
+            raise ValidationError(
+                message="Only HTTPS GitHub URLs are allowed",
+                field="repo_url",
+                value=parsed.scheme,
+                constraint="scheme must be 'https'"
+            )
 
         # Check for allowed hosts
         hostname = parsed.hostname
         if not hostname:
-            raise ValueError("Invalid URL: no hostname")
+            raise ValidationError(
+                message="Invalid URL: no hostname",
+                field="repo_url",
+                value=repo_url,
+                constraint="must have valid hostname"
+            )
 
         if not any(hostname.endswith(host) for host in ALLOWED_GIT_HOSTS):
-            raise ValueError(
-                f"Only HTTPS GitHub URLs are allowed. "
-                f"Got hostname: {hostname}"
+            raise ValidationError(
+                message=f"Only allowed git hosts are permitted. Got: {hostname}",
+                field="repo_url",
+                value=hostname,
+                constraint=f"must be one of {ALLOWED_GIT_HOSTS}"
             )
 
         # Validate path format to prevent command injection
         # Path should be /owner/repo or /owner/repo.git
         path = parsed.path.rstrip('/')
         if not re.match(r'^/[\w\-\.]+/[\w\-\.]+(?:\.git)?$', path):
-            raise ValueError(
-                f"Invalid repository path format: {path}. "
-                f"Expected format: /owner/repo"
+            raise ValidationError(
+                message=f"Invalid repository path format: {path}",
+                field="repo_url",
+                value=path,
+                constraint="must match /owner/repo format"
             )
 
         # Reject URLs with query strings or fragments (potential injection)
         if parsed.query or parsed.fragment:
-            raise ValueError("Repository URL cannot contain query strings or fragments")
+            raise ValidationError(
+                message="Repository URL cannot contain query strings or fragments",
+                field="repo_url",
+                value=repo_url,
+                constraint="must not have query or fragment"
+            )
 
     def ingest(
         self,

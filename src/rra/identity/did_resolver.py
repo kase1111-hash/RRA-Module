@@ -49,6 +49,10 @@ from abc import ABC, abstractmethod
 
 import httpx
 from web3 import Web3
+
+from rra.integration.network_resilience import (
+    RetryConfig, CircuitBreaker, CircuitBreakerConfig, calculate_delay
+)
 from eth_utils import keccak, to_checksum_address
 from eth_keys import keys
 from eth_account.messages import encode_defunct
@@ -325,26 +329,48 @@ class WebDIDResolver(DIDMethodResolver):
             return f"https://{domain}/{path}/did.json"
 
     async def resolve(self, did: str) -> Optional[DIDDocument]:
-        """Resolve a Web DID by fetching the document."""
+        """Resolve a Web DID by fetching the document with retry logic."""
         if not self.supports(did):
             return None
 
         url = self._did_to_url(did)
+        retry_config = RetryConfig(
+            max_retries=3,
+            base_delay=1.0,
+            retryable_exceptions=(httpx.TimeoutException, httpx.NetworkError)
+        )
 
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(url, timeout=self.timeout)
-                response.raise_for_status()
-                data = response.json()
+        last_exception = None
+        for attempt in range(retry_config.max_retries + 1):
+            try:
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(url, timeout=self.timeout)
+                    response.raise_for_status()
+                    data = response.json()
 
-                # Validate that the document ID matches
-                if data.get("id") != did:
-                    return None
+                    # Validate that the document ID matches
+                    if data.get("id") != did:
+                        logger.warning(f"DID document ID mismatch: expected {did}")
+                        return None
 
-                return self._parse_document(data)
+                    return self._parse_document(data)
 
-        except Exception:
-            return None
+            except (httpx.TimeoutException, httpx.NetworkError) as e:
+                last_exception = e
+                if attempt < retry_config.max_retries:
+                    delay = calculate_delay(attempt, retry_config)
+                    logger.warning(f"DID resolution retry {attempt + 1}/{retry_config.max_retries} for {did}: {e}")
+                    await asyncio.sleep(delay)
+                else:
+                    logger.error(f"DID resolution failed after {retry_config.max_retries} retries for {did}: {e}")
+            except httpx.HTTPStatusError as e:
+                logger.warning(f"HTTP error resolving DID {did}: {e.response.status_code}")
+                return None
+            except Exception as e:
+                logger.debug(f"DID resolution error for {did}: {e}")
+                return None
+
+        return None
 
     def _parse_document(self, data: Dict) -> DIDDocument:
         """Parse JSON to DIDDocument."""

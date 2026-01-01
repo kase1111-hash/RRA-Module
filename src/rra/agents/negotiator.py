@@ -17,6 +17,7 @@ from enum import Enum
 from rra.ingestion.knowledge_base import KnowledgeBase
 from rra.config.market_config import NegotiationStyle
 from rra.integration.base import BaseAgent, IntegrationMode
+from rra.exceptions import ConfigurationError
 
 
 class NegotiationPhase(str, Enum):
@@ -65,7 +66,12 @@ class NegotiatorAgent(BaseAgent):
         self.config = knowledge_base.market_config
 
         if not self.config:
-            raise ValueError("Knowledge base must have market_config to negotiate")
+            raise ConfigurationError(
+                message="Knowledge base must have market_config to negotiate",
+                config_key="market_config",
+                expected="MarketConfig instance",
+                actual="None"
+            )
 
         self.negotiation_history: List[Dict[str, Any]] = []
         self.current_phase = NegotiationPhase.INTRODUCTION

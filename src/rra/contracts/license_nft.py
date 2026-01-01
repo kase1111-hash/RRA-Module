@@ -11,6 +11,7 @@ from web3 import Web3
 from web3.exceptions import ContractLogicError
 
 from rra.contracts.artifacts import load_contract, ContractArtifact
+from rra.exceptions import ContractError, ContractDeploymentError, ErrorCode
 
 
 class LicenseNFTContract:
@@ -88,9 +89,11 @@ class LicenseNFTContract:
             self._artifact = load_contract(self.CONTRACT_NAME)
 
         if not self._artifact.has_bytecode:
-            raise ValueError(
-                f"No bytecode available for {self.CONTRACT_NAME}. "
-                "Run 'forge build' in contracts/ directory."
+            raise ContractError(
+                message=f"No bytecode available for {self.CONTRACT_NAME}. "
+                        "Run 'forge build' in contracts/ directory.",
+                error_code=ErrorCode.CONTRACT_BYTECODE_MISSING,
+                contract_name=self.CONTRACT_NAME
             )
 
         # Use deployer as registrar if not specified
@@ -126,7 +129,11 @@ class LicenseNFTContract:
             tx_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
 
             if tx_receipt['status'] != 1:
-                raise ValueError(f"Contract deployment failed: {tx_hash.hex()}")
+                raise ContractDeploymentError(
+                    contract_name=self.CONTRACT_NAME,
+                    reason="Transaction reverted",
+                    tx_hash=tx_hash.hex()
+                )
 
             contract_address = tx_receipt['contractAddress']
 
@@ -168,7 +175,11 @@ class LicenseNFTContract:
             Transaction hash
         """
         if not self.contract:
-            raise ValueError("Contract not initialized. Deploy or set address first.")
+            raise ContractError(
+                message="Contract not initialized. Deploy or set address first.",
+                error_code=ErrorCode.CONTRACT_NOT_FOUND,
+                contract_name=self.CONTRACT_NAME
+            )
 
         developer_address = Web3.to_checksum_address(developer_address)
 
@@ -226,7 +237,11 @@ class LicenseNFTContract:
             Transaction hash
         """
         if not self.contract:
-            raise ValueError("Contract not initialized. Deploy or set address first.")
+            raise ContractError(
+                message="Contract not initialized. Deploy or set address first.",
+                error_code=ErrorCode.CONTRACT_NOT_FOUND,
+                contract_name=self.CONTRACT_NAME
+            )
 
         licensee_address = Web3.to_checksum_address(licensee_address)
 
@@ -265,7 +280,11 @@ class LicenseNFTContract:
             True if license is valid and active
         """
         if not self.contract:
-            raise ValueError("Contract not initialized")
+            raise ContractError(
+                message="Contract not initialized",
+                error_code=ErrorCode.CONTRACT_NOT_FOUND,
+                contract_name=self.CONTRACT_NAME
+            )
 
         try:
             return self.contract.functions.isLicenseValid(token_id).call()
@@ -283,7 +302,11 @@ class LicenseNFTContract:
             Dictionary with license details
         """
         if not self.contract:
-            raise ValueError("Contract not initialized")
+            raise ContractError(
+                message="Contract not initialized",
+                error_code=ErrorCode.CONTRACT_NOT_FOUND,
+                contract_name=self.CONTRACT_NAME
+            )
 
         # Get license struct from contract
         license_data = self.contract.functions.licenses(token_id).call()
@@ -312,7 +335,11 @@ class LicenseNFTContract:
             Dictionary with repository details
         """
         if not self.contract:
-            raise ValueError("Contract not initialized")
+            raise ContractError(
+                message="Contract not initialized",
+                error_code=ErrorCode.CONTRACT_NOT_FOUND,
+                contract_name=self.CONTRACT_NAME
+            )
 
         repo_data = self.contract.functions.repositories(repo_url).call()
 
@@ -335,7 +362,11 @@ class LicenseNFTContract:
             List of token IDs
         """
         if not self.contract:
-            raise ValueError("Contract not initialized")
+            raise ContractError(
+                message="Contract not initialized",
+                error_code=ErrorCode.CONTRACT_NOT_FOUND,
+                contract_name=self.CONTRACT_NAME
+            )
 
         return self.contract.functions.userLicenses(
             Web3.to_checksum_address(user_address)
@@ -344,7 +375,11 @@ class LicenseNFTContract:
     def get_registrar(self) -> str:
         """Get the registrar address."""
         if not self.contract:
-            raise ValueError("Contract not initialized")
+            raise ContractError(
+                message="Contract not initialized",
+                error_code=ErrorCode.CONTRACT_NOT_FOUND,
+                contract_name=self.CONTRACT_NAME
+            )
 
         return self.contract.functions.registrar().call()
 
