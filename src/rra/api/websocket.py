@@ -25,6 +25,8 @@ from pydantic import BaseModel
 from rra.ingestion.knowledge_base import KnowledgeBase
 from rra.agents.negotiator import NegotiatorAgent
 from rra.exceptions import IntegrationError, ValidationError, ErrorCode
+from rra.status.websocket_integration import get_dreaming_ws_manager
+from rra.status.dreaming import get_dreaming_status
 
 logger = logging.getLogger(__name__)
 
@@ -210,6 +212,8 @@ async def websocket_negotiate(
                     content = data.get("payload", {}).get("content", "")
 
                     if content:
+                        dreaming = get_dreaming_status()
+
                         # Send typing indicator
                         await manager.send_message(websocket, WSMessage(
                             type="typing",
@@ -220,7 +224,9 @@ async def websocket_negotiate(
                         await asyncio.sleep(0.5)
 
                         # Get agent response
+                        dreaming.start("Processing negotiation message")
                         response = agent.respond(content)
+                        dreaming.complete("Processing negotiation message")
 
                         # Send typing done
                         await manager.send_message(websocket, WSMessage(
@@ -301,3 +307,87 @@ async def load_knowledge_base(repo_id: str) -> Optional[KnowledgeBase]:
             continue
 
     return None
+
+
+@router.websocket("/ws/dreaming")
+async def websocket_dreaming(
+    websocket: WebSocket,
+    api_key: Optional[str] = Query(None, alias="api_key"),
+):
+    """
+    WebSocket endpoint for dreaming status updates.
+
+    Provides real-time visibility into what the system is doing.
+    Updates are throttled to every 5 seconds to minimize overhead.
+
+    Message Protocol:
+    - Server sends: {"type": "dreaming", "payload": {"status": "...", "operation": "..."}}
+
+    Args:
+        websocket: WebSocket connection
+        api_key: API key for authentication (query parameter)
+    """
+    # Validate API key
+    if not _validate_ws_api_key(api_key):
+        await websocket.accept()
+        await websocket.send_json({
+            "type": "error",
+            "payload": {"message": "Unauthorized: Invalid or missing API key"}
+        })
+        await websocket.close(code=4001)
+        return
+
+    dreaming_manager = get_dreaming_ws_manager()
+    await dreaming_manager.connect(websocket)
+
+    try:
+        # Keep connection alive and listen for messages
+        while True:
+            try:
+                data = await websocket.receive_json()
+
+                # Handle ping/pong for keepalive
+                if data.get("type") == "ping":
+                    await websocket.send_json({"type": "pong"})
+
+                # Handle status request
+                elif data.get("type") == "get_status":
+                    dreaming = get_dreaming_status()
+                    await websocket.send_json({
+                        "type": "dreaming",
+                        "payload": {
+                            "status": dreaming.current_status or "Idle",
+                            "operation": dreaming.current_operation,
+                            "active_operations": dreaming.get_active_operations(),
+                            "history": [e.to_dict() for e in dreaming.get_history(10)],
+                        }
+                    })
+
+                # Handle history request
+                elif data.get("type") == "get_history":
+                    limit = data.get("payload", {}).get("limit", 10)
+                    dreaming = get_dreaming_status()
+                    await websocket.send_json({
+                        "type": "dreaming_history",
+                        "payload": {
+                            "entries": [e.to_dict() for e in dreaming.get_history(limit)],
+                        }
+                    })
+
+            except WebSocketDisconnect:
+                logger.info("Dreaming WebSocket disconnected")
+                break
+            except json.JSONDecodeError:
+                await websocket.send_json({
+                    "type": "error",
+                    "payload": {"message": "Invalid JSON"}
+                })
+            except Exception as e:
+                logger.error(f"Dreaming WebSocket error: {e}")
+                await websocket.send_json({
+                    "type": "error",
+                    "payload": {"message": str(e)}
+                })
+
+    finally:
+        dreaming_manager.disconnect(websocket)

@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 from rra.config.market_config import MarketConfig
 from rra.ingestion.knowledge_base import KnowledgeBase
 from rra.exceptions import ValidationError
+from rra.status.dreaming import get_dreaming_status
 
 
 # Security constants
@@ -199,8 +200,12 @@ class RepoIngester:
             ValueError: If repo_url is invalid
             GitCommandError: If cloning fails
         """
+        dreaming = get_dreaming_status()
+
         # Security: Validate URL before any git operations
+        dreaming.start("Validating repository URL")
         self._validate_repo_url(repo_url)
+        dreaming.complete("Validating repository URL")
 
         repo_name = self._extract_repo_name(repo_url)
         repo_path = self.workspace_dir / repo_name
@@ -211,16 +216,22 @@ class RepoIngester:
             shutil.rmtree(repo_path)
 
         if not repo_path.exists():
+            dreaming.start("Cloning repository")
             print(f"Cloning repository: {repo_url}")
             git.Repo.clone_from(repo_url, repo_path)
+            dreaming.complete("Cloning repository")
         else:
+            dreaming.start("Pulling latest changes")
             print(f"Repository already exists, pulling latest changes")
             repo = git.Repo(repo_path)
             repo.remotes.origin.pull()
+            dreaming.complete("Pulling latest changes")
 
         # Parse repository contents
+        dreaming.start("Parsing repository")
         print(f"Parsing repository: {repo_name}")
         kb = self._parse_repository(repo_path, repo_url)
+        dreaming.complete("Parsing repository")
 
         return kb
 
@@ -274,6 +285,7 @@ class RepoIngester:
         Returns:
             KnowledgeBase instance
         """
+        dreaming = get_dreaming_status()
         kb = KnowledgeBase(repo_path=repo_path, repo_url=repo_url)
 
         # Parse market configuration if exists
@@ -282,35 +294,52 @@ class RepoIngester:
             kb.market_config = MarketConfig.from_yaml(market_config_path)
 
         # Extract repository metadata
+        dreaming.start("Extracting git metadata")
         kb.metadata = self._extract_metadata(repo_path)
+        dreaming.complete("Extracting git metadata")
 
         # Parse code structure
+        dreaming.start("Analyzing code structure")
         kb.code_structure = self._parse_code_structure(repo_path)
+        dreaming.complete("Analyzing code structure")
 
         # Extract dependencies
+        dreaming.start("Extracting dependencies")
         kb.dependencies = self._extract_dependencies(repo_path)
+        dreaming.complete("Extracting dependencies")
 
         # Parse README and documentation
+        dreaming.start("Parsing documentation")
         kb.documentation = self._parse_documentation(repo_path)
+        dreaming.complete("Parsing documentation")
 
         # Extract API endpoints if present
+        dreaming.start("Extracting API endpoints")
         kb.api_endpoints = self._extract_api_endpoints(repo_path)
+        dreaming.complete("Extracting API endpoints")
 
         # Parse test suites
+        dreaming.start("Analyzing test suites")
         kb.tests = self._parse_tests(repo_path)
+        dreaming.complete("Analyzing test suites")
 
         # Calculate repository statistics
+        dreaming.start("Calculating statistics")
         kb.statistics = self._calculate_statistics(repo_path)
+        dreaming.complete("Calculating statistics")
 
         # Parse README metadata
         readme_content = kb.documentation.get("README.md", "")
         if readme_content:
+            dreaming.start("Parsing README metadata")
             print("  Parsing README metadata...")
             readme_meta = self.readme_parser.parse_from_content(readme_content)
             kb.readme_metadata = readme_meta.to_dict()
+            dreaming.complete("Parsing README metadata")
 
         # Verify code
         if self.verify_code:
+            dreaming.start("Verifying code quality")
             print("  Verifying code...")
             verification_result = self.verifier.verify(
                 repo_path=repo_path,
@@ -319,9 +348,11 @@ class RepoIngester:
             )
             kb.verification = verification_result.to_dict()
             print(f"    Verification score: {verification_result.score}/100")
+            dreaming.complete("Verifying code quality")
 
         # Categorize repository
         if self.categorize:
+            dreaming.start("Categorizing repository")
             print("  Categorizing repository...")
             category_result = self.categorizer.categorize(
                 repo_path=repo_path,
@@ -330,12 +361,15 @@ class RepoIngester:
             )
             kb.category = category_result.to_dict()
             print(f"    Category: {category_result.primary_category.value}")
+            dreaming.complete("Categorizing repository")
 
         # Generate blockchain links
         if self.generate_blockchain_links and self.owner_address:
+            dreaming.start("Generating blockchain links")
             print("  Generating blockchain links...")
             kb.blockchain_links = self._generate_blockchain_links(kb)
             print(f"    Generated {len(kb.blockchain_links.get('purchase_links', []))} purchase links")
+            dreaming.complete("Generating blockchain links")
 
         return kb
 

@@ -26,6 +26,8 @@ from rra.config.market_config import MarketConfig, create_default_config, Licens
 from rra.ingestion.repo_ingester import RepoIngester
 from rra.agents.negotiator import NegotiatorAgent
 from rra.agents.buyer import BuyerAgent
+from rra.status.dreaming import get_dreaming_status
+from rra.status.cli_integration import enable_dreaming_output, get_dreaming_summary
 
 
 console = Console()
@@ -33,13 +35,19 @@ console = Console()
 
 @click.group()
 @click.version_option(version=__version__)
-def cli():
+@click.option('--dreaming/--no-dreaming', default=True, help='Show dreaming status updates')
+@click.pass_context
+def cli(ctx, dreaming):
     """
     RRA Module - Revenant Repo Agent
 
     Transform dormant repositories into autonomous licensing agents.
     """
-    pass
+    ctx.ensure_object(dict)
+    ctx.obj['dreaming'] = dreaming
+
+    if dreaming:
+        enable_dreaming_output(console)
 
 
 @cli.command()
@@ -778,6 +786,46 @@ def categorize(repo_url: str, workspace: Path):
     except Exception as e:
         console.print(f"[red]✗[/red] Categorization failed: {e}", style="bold red")
         sys.exit(1)
+
+
+@cli.command()
+@click.option('--history', '-n', default=10, help='Number of recent entries to show')
+def dreaming(history: int):
+    """
+    Show dreaming status - what the system is doing.
+
+    Displays recent activity and the current operation status.
+    The dreaming status shows start and completion of operations,
+    updating every 5 seconds to minimize overhead.
+    """
+    dreaming_status = get_dreaming_status()
+
+    console.print(Panel.fit(
+        "[bold blue]Dreaming Status[/bold blue]",
+        border_style="blue"
+    ))
+
+    # Show current status
+    current = dreaming_status.current_status
+    if current:
+        console.print(f"\n[bold]Current:[/bold] {current}")
+    else:
+        console.print("\n[bold]Current:[/bold] [dim]Idle[/dim]")
+
+    # Show active operations
+    active = dreaming_status.get_active_operations()
+    if active:
+        console.print(f"\n[bold]Active Operations:[/bold]")
+        for op in active:
+            console.print(f"  [blue]•[/blue] {op}")
+
+    # Show history
+    console.print()
+    console.print(get_dreaming_summary(console))
+
+    # Show configuration
+    console.print(f"\n[dim]Throttle: {dreaming_status.throttle_seconds}s | "
+                  f"Enabled: {'Yes' if dreaming_status.enabled else 'No'}[/dim]")
 
 
 @cli.group()
