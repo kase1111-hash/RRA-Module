@@ -5,15 +5,21 @@ Agent Knowledge Base (AKB) for storing parsed repository information.
 
 The AKB serves as the structured knowledge store that agents use for
 reasoning about repositories during negotiations.
+
+Supports optional gzip compression for reduced disk usage.
 """
 
+import gzip
 import json
+import logging
 from pathlib import Path
 from typing import Optional, Dict, List, Any
 from datetime import datetime
 from dataclasses import dataclass, asdict, field
 
 from rra.config.market_config import MarketConfig
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -211,12 +217,13 @@ class KnowledgeBase:
 
         return context
 
-    def save(self, output_path: Optional[Path] = None) -> Path:
+    def save(self, output_path: Optional[Path] = None, compress: bool = True) -> Path:
         """
-        Save knowledge base to JSON file.
+        Save knowledge base to JSON file with optional compression.
 
         Args:
             output_path: Optional custom output path
+            compress: Whether to gzip compress the output (default: True)
 
         Returns:
             Path where the knowledge base was saved
@@ -227,7 +234,9 @@ class KnowledgeBase:
 
             # Generate filename from repo URL
             repo_name = self.repo_url.split('/')[-1].replace('.git', '')
-            output_path = kb_dir / f"{repo_name}_kb.json"
+            # Use .json.gz extension for compressed files
+            ext = ".json.gz" if compress else ".json"
+            output_path = kb_dir / f"{repo_name}_kb{ext}"
 
         # Convert to dict for JSON serialization
         data = {
@@ -250,24 +259,59 @@ class KnowledgeBase:
             "blockchain_links": self.blockchain_links,
         }
 
-        with open(output_path, 'w') as f:
-            json.dump(data, f, indent=2, default=str)
+        json_bytes = json.dumps(data, indent=2, default=str).encode('utf-8')
+        original_size = len(json_bytes)
+
+        if compress:
+            # Use gzip compression for significant space savings
+            compressed_bytes = gzip.compress(json_bytes, compresslevel=6)
+            compressed_size = len(compressed_bytes)
+            savings = 1 - (compressed_size / original_size) if original_size > 0 else 0
+
+            with open(output_path, 'wb') as f:
+                f.write(compressed_bytes)
+
+            logger.debug(
+                f"Knowledge base saved (compressed): {output_path} "
+                f"({original_size} -> {compressed_size} bytes, {savings:.1%} reduction)"
+            )
+        else:
+            with open(output_path, 'w') as f:
+                f.write(json_bytes.decode('utf-8'))
+            logger.debug(f"Knowledge base saved: {output_path} ({original_size} bytes)")
 
         return output_path
 
     @classmethod
     def load(cls, file_path: Path) -> "KnowledgeBase":
         """
-        Load knowledge base from JSON file.
+        Load knowledge base from JSON file (supports both compressed and uncompressed).
 
         Args:
-            file_path: Path to the saved knowledge base
+            file_path: Path to the saved knowledge base (.json or .json.gz)
 
         Returns:
             KnowledgeBase instance
         """
-        with open(file_path, 'r') as f:
-            data = json.load(f)
+        file_path = Path(file_path)
+
+        # Check if file is gzip compressed (by extension or magic bytes)
+        is_compressed = str(file_path).endswith('.gz')
+
+        if is_compressed:
+            with gzip.open(file_path, 'rt', encoding='utf-8') as f:
+                data = json.load(f)
+            logger.debug(f"Loaded compressed knowledge base: {file_path}")
+        else:
+            # Try reading as regular JSON first
+            try:
+                with open(file_path, 'r') as f:
+                    data = json.load(f)
+            except UnicodeDecodeError:
+                # File might be gzip without .gz extension, try decompressing
+                with gzip.open(file_path, 'rt', encoding='utf-8') as f:
+                    data = json.load(f)
+                logger.debug(f"Loaded gzip-compressed knowledge base (no .gz extension): {file_path}")
 
         # Reconstruct market config if present
         market_config = None
