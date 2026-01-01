@@ -20,6 +20,7 @@ import time
 import hashlib
 from pathlib import Path
 from unittest.mock import patch, MagicMock
+from rra.exceptions import ValidationError
 
 
 # =============================================================================
@@ -41,7 +42,7 @@ class TestCommandInjection:
         ]
 
         for url in malicious_urls:
-            with pytest.raises(ValueError, match="Only HTTPS GitHub URLs"):
+            with pytest.raises(ValidationError):
                 ingester._validate_repo_url(url)
 
     def test_reject_git_protocol_urls(self):
@@ -55,7 +56,7 @@ class TestCommandInjection:
         ]
 
         for url in malicious_urls:
-            with pytest.raises(ValueError, match="Only HTTPS GitHub URLs"):
+            with pytest.raises(ValidationError):
                 ingester._validate_repo_url(url)
 
     def test_reject_ext_protocol_command_injection(self):
@@ -69,7 +70,7 @@ class TestCommandInjection:
         ]
 
         for url in malicious_urls:
-            with pytest.raises(ValueError, match="Only HTTPS GitHub URLs"):
+            with pytest.raises(ValidationError):
                 ingester._validate_repo_url(url)
 
     def test_accept_valid_github_https_urls(self):

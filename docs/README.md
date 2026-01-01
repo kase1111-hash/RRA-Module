@@ -2,7 +2,7 @@
 
 Complete documentation for the Revenant Repo Agent Module.
 
-**Version:** 0.1.0 | **Tests:** 1,085 passing | **Security:** A- rating | **Modules:** 36+
+**Version:** 0.1.0-alpha | **Tests:** 1,085 passing | **Security:** A- rating | **Modules:** 36+
 
 ## Quick Navigation
 
