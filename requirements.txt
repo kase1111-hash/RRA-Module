@@ -13,7 +13,7 @@ uvicorn>=0.24.0
 httpx>=0.25.2
 
 # Blockchain
-web3>=6.11.3
+web3>=7.0.0  # v7 fixes websockets.legacy deprecation
 
 # Security - pinned versions to fix CVEs
 cryptography>=43.0.1  # Fixes CVE-2023-50782, CVE-2024-0727, PYSEC-2024-225, GHSA-h4gh-qq45-vh27
