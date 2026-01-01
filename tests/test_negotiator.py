@@ -9,6 +9,7 @@ from rra.agents.negotiator import NegotiatorAgent, NegotiationPhase
 from rra.agents.buyer import BuyerAgent
 from rra.ingestion.knowledge_base import KnowledgeBase
 from rra.config.market_config import MarketConfig, LicenseModel, NegotiationStyle
+from rra.exceptions import ConfigurationError
 
 
 @pytest.fixture
@@ -53,7 +54,7 @@ def test_negotiator_without_config():
         repo_url="https://github.com/test/repo.git"
     )
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConfigurationError):
         NegotiatorAgent(kb)
 
 

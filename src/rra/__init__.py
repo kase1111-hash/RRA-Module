@@ -8,7 +8,7 @@ into self-sustaining, autonomous agents capable of generating revenue
 through on-chain negotiations and licensing.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.0-alpha"
 __author__ = "RRA Contributors"
 
 from rra.config.market_config import MarketConfig

@@ -2,7 +2,7 @@
 
 Get started with the Revenant Repo Agent Module in minutes!
 
-**Version:** 0.1.0 | **Tests:** 1,085 passing | **Security:** A- rating
+**Version:** 0.1.0-alpha | **Tests:** 1,085 passing | **Security:** A- rating
 
 ## Installation
 
