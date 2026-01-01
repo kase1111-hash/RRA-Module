@@ -31,6 +31,15 @@ import urllib.error
 
 from eth_utils import keccak
 
+from rra.storage.compression import (
+    compress,
+    decompress,
+    CompressionConfig,
+    CompressionAlgorithm,
+    CompressionResult,
+    is_gzip_compressed,
+)
+
 from rra.privacy.viewing_keys import (
     ViewingKeyManager,
     ViewingKey,
@@ -93,6 +102,7 @@ class StorageConfig:
     timeout: int = 30  # seconds
     max_retries: int = 3
     pin: bool = True  # Pin content for persistence
+    compression: CompressionConfig = field(default_factory=CompressionConfig)  # Compression settings
 
 
 class EncryptedIPFSStorage:
@@ -203,7 +213,7 @@ class EncryptedIPFSStorage:
 
             # 3. Create storage package with metadata
             package = {
-                "version": "1.0",
+                "version": "1.1",  # Updated version for compression support
                 "dispute_id": dispute_id,
                 "evidence_hash": evidence_hash.hex(),
                 "viewing_key_commitment": viewing_key.commitment.hex(),
@@ -212,7 +222,20 @@ class EncryptedIPFSStorage:
                 "created_at": datetime.utcnow().isoformat(),
             }
             package_bytes = json.dumps(package, sort_keys=True).encode()
-            logger.debug(f"Package created, size: {len(package_bytes)} bytes")
+            original_size = len(package_bytes)
+            logger.debug(f"Package created, size: {original_size} bytes")
+
+            # 4. Compress package before upload
+            compressed_bytes, compression_result = compress(
+                package_bytes, self.config.compression
+            )
+
+            if compression_result.was_compressed:
+                logger.info(
+                    f"Package compressed: {original_size} -> {compression_result.compressed_size} bytes "
+                    f"({compression_result.compression_ratio:.1%} reduction)"
+                )
+                package_bytes = compressed_bytes
         except Exception as e:
             logger.error(f"Failed to create storage package: {e}")
             raise EncryptionError(
@@ -221,9 +244,12 @@ class EncryptedIPFSStorage:
                 cause=e,
             )
 
-        # 4. Upload to storage provider
+        # 5. Upload to storage provider
         try:
             result = self._upload(package_bytes, dispute_id)
+            # Add compression info to result metadata
+            if compression_result.was_compressed:
+                result.metadata["compression"] = compression_result.to_dict()
             logger.info(
                 f"Evidence stored successfully: {result.uri} "
                 f"({result.size_bytes} bytes)"
@@ -287,7 +313,19 @@ class EncryptedIPFSStorage:
                 cause=e,
             )
 
-        # 2. Parse package
+        # 2. Decompress if needed (auto-detects gzip)
+        try:
+            if is_gzip_compressed(package_bytes):
+                decompressed_bytes = decompress(package_bytes)
+                logger.debug(
+                    f"Decompressed package: {len(package_bytes)} -> {len(decompressed_bytes)} bytes"
+                )
+                package_bytes = decompressed_bytes
+        except ValueError as e:
+            logger.warning(f"Decompression failed, trying raw data: {e}")
+            # Continue with original bytes - may not be compressed
+
+        # 3. Parse package
         try:
             package = json.loads(package_bytes.decode())
         except json.JSONDecodeError as e:
@@ -306,12 +344,12 @@ class EncryptedIPFSStorage:
             )
 
         try:
-            # 3. Deserialize encrypted evidence
+            # 4. Deserialize encrypted evidence
             encrypted = self.vk_manager.deserialize_encrypted(
                 package["encrypted_evidence"].encode()
             )
 
-            # 4. Decrypt
+            # 5. Decrypt
             decrypted = self.vk_manager.decrypt_evidence(encrypted, viewing_key)
             logger.debug("Evidence decrypted successfully")
         except Exception as e:
@@ -322,7 +360,7 @@ class EncryptedIPFSStorage:
                 cause=e,
             )
 
-        # 5. Build metadata including package-level fields
+        # 6. Build metadata including package-level fields
         metadata = package.get("metadata", {}).copy()
         if "dispute_id" in package:
             metadata["dispute_id"] = package["dispute_id"]
@@ -346,6 +384,11 @@ class EncryptedIPFSStorage:
         """
         try:
             package_bytes = self._download(uri)
+
+            # Decompress if needed
+            if is_gzip_compressed(package_bytes):
+                package_bytes = decompress(package_bytes)
+
             package = json.loads(package_bytes.decode())
             stored_hash = bytes.fromhex(package["evidence_hash"])
             return stored_hash == expected_hash

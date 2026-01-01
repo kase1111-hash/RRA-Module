@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, Request, Security
 from fastapi.security import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 from pydantic import BaseModel
@@ -171,8 +172,9 @@ def validate_kb_path(kb_path: str, allowed_dir: Path = KB_BASE_DIR) -> bool:
         # Ensure it's within the allowed directory
         resolved.relative_to(allowed_dir)
 
-        # Check file extension
-        if not str(resolved).endswith('_kb.json'):
+        # Check file extension (support both .json and .json.gz)
+        path_str = str(resolved)
+        if not (path_str.endswith('_kb.json') or path_str.endswith('_kb.json.gz')):
             return False
 
         return True
@@ -327,9 +329,18 @@ def create_app() -> FastAPI:
             "X-Webhook-Signature",
             "X-Request-Timestamp",
             "X-Request-Nonce",
+            "Accept-Encoding",
         ],
-        expose_headers=["X-RateLimit-Remaining", "X-RateLimit-Reset"],
+        expose_headers=["X-RateLimit-Remaining", "X-RateLimit-Reset", "Content-Encoding"],
     )
+
+    # ==========================================================================
+    # GZip Response Compression Middleware
+    # ==========================================================================
+    # Compress responses larger than 500 bytes
+    # This reduces bandwidth for API responses, especially JSON payloads
+    app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=6)
+    logger.info("GZip response compression enabled (min_size=500, level=6)")
 
     # ==========================================================================
     # Security Headers Middleware
@@ -639,7 +650,7 @@ def create_app() -> FastAPI:
         List all ingested repositories.
 
         Returns:
-            List of knowledge bases
+            List of knowledge bases (supports both .json and .json.gz)
 
         Requires API key authentication.
         """
@@ -649,20 +660,31 @@ def create_app() -> FastAPI:
             return {"repositories": []}
 
         repositories = []
-        for kb_file in kb_dir.glob("*_kb.json"):
-            try:
-                kb = KnowledgeBase.load(kb_file)
-                repositories.append({
-                    "url": kb.repo_url,
-                    "kb_path": str(kb_file),
-                    "updated_at": kb.updated_at.isoformat(),
-                    "languages": kb.statistics.get("languages", []),
-                    "files": kb.statistics.get("code_files", 0),
-                })
-            except Exception as e:
-                # Skip corrupted knowledge bases but log the issue
-                logger.warning(f"Skipping corrupted knowledge base {kb_file}: {e}")
-                continue
+        seen_repos = set()  # Track seen repos to avoid duplicates
+
+        # Find both compressed and uncompressed knowledge bases
+        for pattern in ["*_kb.json", "*_kb.json.gz"]:
+            for kb_file in kb_dir.glob(pattern):
+                try:
+                    kb = KnowledgeBase.load(kb_file)
+
+                    # Avoid duplicates if both .json and .json.gz exist
+                    if kb.repo_url in seen_repos:
+                        continue
+                    seen_repos.add(kb.repo_url)
+
+                    repositories.append({
+                        "url": kb.repo_url,
+                        "kb_path": str(kb_file),
+                        "updated_at": kb.updated_at.isoformat(),
+                        "languages": kb.statistics.get("languages", []),
+                        "files": kb.statistics.get("code_files", 0),
+                        "compressed": str(kb_file).endswith('.gz'),
+                    })
+                except Exception as e:
+                    # Skip corrupted knowledge bases but log the issue
+                    logger.warning(f"Skipping corrupted knowledge base {kb_file}: {e}")
+                    continue
 
         return {"repositories": repositories}
 
@@ -688,7 +710,11 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=400, detail="Invalid repository name")
 
         kb_dir = Path("agent_knowledge_bases")
-        kb_file = kb_dir / f"{repo_name}_kb.json"
+
+        # Check for both compressed and uncompressed versions
+        kb_file = kb_dir / f"{repo_name}_kb.json.gz"
+        if not kb_file.exists():
+            kb_file = kb_dir / f"{repo_name}_kb.json"
 
         if not kb_file.exists():
             raise HTTPException(status_code=404, detail="Repository not found")
