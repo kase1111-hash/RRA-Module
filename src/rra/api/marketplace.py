@@ -39,6 +39,7 @@ class RepositoryListing(BaseModel):
     files: int
     stars: Optional[int] = None
     forks: Optional[int] = None
+    price_eth: Optional[float] = None  # Target price in ETH for sorting
 
 
 class MarketConfigResponse(BaseModel):
@@ -94,6 +95,16 @@ def kb_to_listing(kb: KnowledgeBase) -> RepositoryListing:
     """Convert a KnowledgeBase to a RepositoryListing."""
     parsed = parse_repo_url(kb.repo_url)
 
+    # Extract price from market_config if available
+    price_eth: Optional[float] = None
+    if kb.market_config:
+        try:
+            price_str = kb.market_config.target_price
+            # Handle formats like "0.05 ETH" or "0.05"
+            price_eth = float(price_str.replace(' ETH', '').replace('ETH', '').strip())
+        except (ValueError, AttributeError):
+            pass
+
     return RepositoryListing(
         id=generate_repo_id(kb.repo_url),
         url=kb.repo_url,
@@ -106,6 +117,7 @@ def kb_to_listing(kb: KnowledgeBase) -> RepositoryListing:
         files=kb.statistics.get('code_files', 0),
         stars=None,  # Would need GitHub API integration
         forks=None,
+        price_eth=price_eth,
     )
 
 
@@ -189,10 +201,11 @@ async def list_marketplace_repos(
     if sort_by == "popular":
         repositories.sort(key=lambda r: r.stars or 0, reverse=True)
     elif sort_by == "price_low":
-        # Would need market_config prices
-        pass
+        # Sort by price ascending, repos without price go to end
+        repositories.sort(key=lambda r: (r.price_eth is None, r.price_eth or 0))
     elif sort_by == "price_high":
-        pass
+        # Sort by price descending, repos without price go to end
+        repositories.sort(key=lambda r: (r.price_eth is None, -(r.price_eth or 0)))
     else:  # recent
         repositories.sort(key=lambda r: r.updated_at, reverse=True)
 
