@@ -12,6 +12,7 @@ Provides bidirectional communication for:
 
 import json
 import asyncio
+import logging
 import os
 import hmac
 from typing import Dict, Set, Optional
@@ -23,6 +24,9 @@ from pydantic import BaseModel
 
 from rra.ingestion.knowledge_base import KnowledgeBase
 from rra.agents.negotiator import NegotiatorAgent
+from rra.exceptions import IntegrationError, ValidationError, ErrorCode
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter(tags=["websocket"])
@@ -80,8 +84,8 @@ class ConnectionManager:
             for connection in self.active_connections[repo_id]:
                 try:
                     await connection.send_json(message.model_dump())
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(f"Failed to broadcast message to connection: {e}")
 
     def get_or_create_agent(
         self,
@@ -256,16 +260,19 @@ async def websocket_negotiate(
                     ))
 
             except WebSocketDisconnect:
+                logger.info(f"WebSocket disconnected: session={session_id}")
                 break
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
+                logger.warning(f"Invalid JSON received in WebSocket: {e}")
                 await manager.send_message(websocket, WSMessage(
                     type="error",
-                    payload={"message": "Invalid JSON"}
+                    payload={"message": "Invalid JSON", "code": ErrorCode.VALIDATION_ERROR.value}
                 ))
             except Exception as e:
+                logger.error(f"WebSocket error in session {session_id}: {e}")
                 await manager.send_message(websocket, WSMessage(
                     type="error",
-                    payload={"message": str(e)}
+                    payload={"message": str(e), "code": ErrorCode.UNKNOWN_ERROR.value}
                 ))
 
     finally:
@@ -289,7 +296,8 @@ async def load_knowledge_base(repo_id: str) -> Optional[KnowledgeBase]:
             generated_id = hashlib.sha256(normalized.encode()).hexdigest()[:12]
             if generated_id == repo_id:
                 return kb
-        except Exception:
+        except (json.JSONDecodeError, KeyError, OSError) as e:
+            logger.debug(f"Could not load knowledge base {kb_file}: {e}")
             continue
 
     return None

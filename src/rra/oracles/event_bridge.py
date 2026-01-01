@@ -19,8 +19,15 @@ import json
 import hashlib
 import secrets
 import asyncio
+import logging
 import aiohttp
 from abc import ABC, abstractmethod
+
+from rra.integration.network_resilience import (
+    RetryConfig, CircuitBreaker, CircuitBreakerConfig, calculate_delay
+)
+
+logger = logging.getLogger(__name__)
 
 
 class EventSource(Enum):
@@ -198,33 +205,51 @@ class APIEventFetcher(EventFetcher):
         self.headers = headers or {}
 
     async def fetch(self, uri: str, json_path: Optional[str] = None, **kwargs) -> EventData:
-        """Fetch data from API endpoint."""
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                uri,
-                headers=self.headers,
-                timeout=aiohttp.ClientTimeout(total=self.timeout),
-            ) as response:
-                response.raise_for_status()
-                data = await response.json()
+        """Fetch data from API endpoint with retry logic."""
+        retry_config = RetryConfig(
+            max_retries=3,
+            base_delay=1.0,
+            retryable_exceptions=(aiohttp.ClientError, asyncio.TimeoutError)
+        )
 
-                # Extract specific path if provided
-                if json_path:
-                    data = self._extract_json_path(data, json_path)
+        last_exception = None
+        for attempt in range(retry_config.max_retries + 1):
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(
+                        uri,
+                        headers=self.headers,
+                        timeout=aiohttp.ClientTimeout(total=self.timeout),
+                    ) as response:
+                        response.raise_for_status()
+                        data = await response.json()
 
-                # Calculate hash
-                data_hash = hashlib.sha256(
-                    json.dumps(data, sort_keys=True).encode()
-                ).hexdigest()
+                        # Extract specific path if provided
+                        if json_path:
+                            data = self._extract_json_path(data, json_path)
 
-                return EventData(
-                    source=EventSource.API,
-                    source_uri=uri,
-                    raw_data=data,
-                    data_hash=data_hash,
-                    fetched_at=datetime.now(),
-                    metadata={"json_path": json_path} if json_path else {},
-                )
+                        # Calculate hash
+                        data_hash = hashlib.sha256(
+                            json.dumps(data, sort_keys=True).encode()
+                        ).hexdigest()
+
+                        return EventData(
+                            source=EventSource.API,
+                            source_uri=uri,
+                            raw_data=data,
+                            data_hash=data_hash,
+                            fetched_at=datetime.now(),
+                            metadata={"json_path": json_path} if json_path else {},
+                        )
+            except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+                last_exception = e
+                if attempt < retry_config.max_retries:
+                    delay = calculate_delay(attempt, retry_config)
+                    logger.warning(f"API fetch retry {attempt + 1}/{retry_config.max_retries} for {uri}: {e}")
+                    await asyncio.sleep(delay)
+                else:
+                    logger.error(f"API fetch failed after {retry_config.max_retries} retries for {uri}: {e}")
+                    raise
 
     def _extract_json_path(self, data: Any, path: str) -> Any:
         """Extract data using simple dot notation path."""

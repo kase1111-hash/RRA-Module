@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from rra.integrations.superfluid import SuperfluidManager, StreamStatus, StreamingLicense
+from rra.exceptions import ValidationError, ErrorCode
 
 logger = logging.getLogger(__name__)
 
@@ -191,7 +192,12 @@ class StreamAccessController:
         license = self.sf.get_license(license_id)
 
         if not license:
-            raise ValueError(f"License not found: {license_id}")
+            raise ValidationError(
+                message=f"License not found: {license_id}",
+                field="license_id",
+                value=license_id,
+                constraint="must exist in SuperfluidManager"
+            )
 
         grant = AccessGrant(
             license_id=license_id,
