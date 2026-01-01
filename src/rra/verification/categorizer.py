@@ -10,11 +10,14 @@ Classifies repositories into categories based on:
 - README content
 """
 
+import logging
 import re
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Set
 from dataclasses import dataclass, field
 from enum import Enum
+
+logger = logging.getLogger(__name__)
 
 
 class CodeCategory(str, Enum):
@@ -355,7 +358,8 @@ class CodeCategorizer:
                     all_files.append(f)
                     if len(all_files) > 1000:
                         break
-        except Exception:
+        except Exception as e:
+            logger.debug(f"Error scanning repository files: {e}")
             return scores, technologies
 
         file_names = {f.name for f in all_files}
@@ -504,7 +508,8 @@ class CodeCategorizer:
                     sample_files.append(f)
                     if len(sample_files) >= 20:
                         break
-        except Exception:
+        except Exception as e:
+            logger.debug(f"Error collecting sample files: {e}")
             return scores
 
         for file_path in sample_files:
@@ -516,8 +521,8 @@ class CodeCategorizer:
                         for pattern in patterns["patterns"]:
                             if re.search(pattern, content, re.IGNORECASE):
                                 scores[category] += 0.3
-            except Exception:
-                pass
+            except (OSError, UnicodeDecodeError) as e:
+                logger.debug(f"Could not read {file_path} for pattern analysis: {e}")
 
         return scores
 
@@ -534,8 +539,8 @@ class CodeCategorizer:
                         line.strip() for line in f
                         if line.strip() and not line.startswith('#')
                     ]
-            except Exception:
-                pass
+            except (OSError, UnicodeDecodeError) as e:
+                logger.debug(f"Could not read requirements.txt: {e}")
 
         # Node.js package.json
         pkg_file = repo_path / "package.json"
@@ -546,8 +551,8 @@ class CodeCategorizer:
                     data = json.load(f)
                     deps["javascript"] = list(data.get("dependencies", {}).keys())
                     deps["javascript"].extend(data.get("devDependencies", {}).keys())
-            except Exception:
-                pass
+            except (OSError, json.JSONDecodeError) as e:
+                logger.debug(f"Could not parse package.json: {e}")
 
         return deps
 
@@ -598,8 +603,8 @@ class CodeCategorizer:
                         return SubCategory.NFT
                     if any(kw in content for kw in ["vote", "proposal", "governance"]):
                         return SubCategory.DAO
-            except Exception:
-                pass
+            except (OSError, UnicodeDecodeError) as e:
+                logger.debug(f"Could not analyze Solidity files for subcategory: {e}")
 
         elif primary_category == CodeCategory.DEVOPS:
             if (repo_path / ".github" / "workflows").exists():

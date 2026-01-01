@@ -349,7 +349,8 @@ class EncryptedIPFSStorage:
             package = json.loads(package_bytes.decode())
             stored_hash = bytes.fromhex(package["evidence_hash"])
             return stored_hash == expected_hash
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Evidence verification failed for {uri}: {e}")
             return False
 
     def _upload(self, data: bytes, dispute_id: int) -> StorageResult:

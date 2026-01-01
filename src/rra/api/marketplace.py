@@ -11,11 +11,14 @@ Provides REST API endpoints for:
 """
 
 import hashlib
+import logging
 from typing import Optional, List, Dict, Any
 from pathlib import Path
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Query, Depends
+
+logger = logging.getLogger(__name__)
 from pydantic import BaseModel
 
 from rra.api.auth import verify_api_key, optional_api_key
@@ -200,7 +203,8 @@ async def list_marketplace_repos(
 
             repositories.append(listing)
 
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Failed to load knowledge base {kb_file}: {e}")
             continue
 
     # Sort
@@ -249,7 +253,8 @@ async def get_featured_repos(
         try:
             kb = KnowledgeBase.load(kb_file)
             repositories.append(kb_to_listing(kb))
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Failed to load featured KB {kb_file}: {e}")
             continue
 
     # Sort by files (as proxy for quality) and return top 6
@@ -274,7 +279,8 @@ async def get_categories(
             try:
                 kb = KnowledgeBase.load(kb_file)
                 categories.update(kb.statistics.get('languages', []))
-            except Exception:
+            except Exception as e:
+                logger.debug(f"Failed to extract categories from {kb_file}: {e}")
                 continue
 
     return sorted(list(categories))
@@ -325,7 +331,8 @@ async def get_agent_details(
                         "total_revenue": "0 ETH",
                     },
                 )
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Failed to load agent details from {kb_file}: {e}")
             continue
 
     raise HTTPException(status_code=404, detail="Repository not found")
