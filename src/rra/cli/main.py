@@ -10,6 +10,7 @@ Provides commands for:
 - Managing agents
 """
 
+import json
 import sys
 from pathlib import Path
 from typing import Optional
@@ -300,8 +301,9 @@ def list(workspace: Path):
             updated = kb.updated_at.strftime('%Y-%m-%d')
 
             table.add_row(repo_name, str(files), languages, updated)
-        except:
-            pass
+        except (json.JSONDecodeError, KeyError, AttributeError, OSError) as e:
+            # Skip corrupted or invalid knowledge base files
+            console.print(f"[dim]Skipping {kb_file.name}: {e}[/dim]")
 
     console.print(table)
 

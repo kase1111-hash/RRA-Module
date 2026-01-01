@@ -327,7 +327,8 @@ I can meet you at {context['pricing']['floor_price']}.
 
 This is the best I can offer while maintaining the quality and support you deserve."""
 
-        except:
+        except (ValueError, TypeError, AttributeError):
+            # Price parsing failed, fall through to fallback response
             pass
 
         # Fallback if parsing fails
