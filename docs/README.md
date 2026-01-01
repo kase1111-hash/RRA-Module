@@ -2,11 +2,14 @@
 
 Complete documentation for the Revenant Repo Agent Module.
 
+**Version:** 0.1.0 | **Tests:** 1,085 passing | **Security:** A- rating | **Modules:** 36+
+
 ## Quick Navigation
 
 ### Getting Started
 - **[Main README](../README.md)** - Project overview and architecture
 - **[Quick Start Guide](../QUICKSTART.md)** - Get up and running in minutes
+- **[Specification](../SPECIFICATION.md)** - Complete technical specification
 - **[Contributing Guide](../CONTRIBUTING.md)** - How to contribute to the project
 
 ### Core Documentation
@@ -17,61 +20,133 @@ Complete documentation for the Revenant Repo Agent Module.
 - **[Blockchain Licensing](BLOCKCHAIN-LICENSING.md)** - Complete blockchain monetization integration guide
 
 #### Integration Guides
-- **[NatLangChain Integration](INTEGRATION.md)** - Ecosystem integration and deployment modes
+- **[NatLangChain Integration](NATLANGCHAIN_INTEGRATION.md)** - Agent-OS, synth-mind, boundary-daemon integration
 - **[Story Protocol Integration](STORY-PROTOCOL-INTEGRATION.md)** - Programmable IP licensing with Story Protocol
-- **[DeFi Integration Guide](DEFI-INTEGRATION.md)** - Complete DeFi protocol integrations (Superfluid, IPFi, Yield Tokens)
+- **[DeFi Integration Guide](DEFI-INTEGRATION.md)** - Superfluid streaming, IPFi lending, yield tokens, fractional IP
+- **[Mobile SDK Guide](MOBILE_SDK.md)** - iOS and Android integration
 
 #### Project Status
 - **[Roadmap](../ROADMAP.md)** - Viral distribution strategy and product roadmap
-- **[Testing Results](TESTING-RESULTS.md)** - Test suite results (290 tests passing)
+- **[Testing Results](TESTING-RESULTS.md)** - Test suite results (1,085 tests passing)
 - **[Security Audit](SECURITY-AUDIT.md)** - Security audit report (Score: A-)
 - **[Monitoring Guide](MONITORING.md)** - Production monitoring and alerting setup
 
+### Security & Privacy
+- **[Security Audit](SECURITY-AUDIT.md)** - Comprehensive security audit (Score: A-)
+- **[Cryptographic Security Audit](../CRYPTOGRAPHIC-SECURITY-AUDIT-2025-12-20.md)** - Crypto primitives audit
+- **[Penetration Test Report](../PENTEST-REPORT-2025-12-20.md)** - Security penetration testing
+- **[Security Remediation Guide](SECURITY-REMEDIATION-GUIDE.md)** - Issue resolution guide
+- **[Security Pentest Report](SECURITY-PENTEST-REPORT.md)** - Detailed penetration testing findings
+- **[Hardware Authentication](HARDWARE-AUTHENTICATION.md)** - FIDO2/WebAuthn with ZK proofs (Phase 5)
+- **[Transaction Security](TRANSACTION-SECURITY.md)** - Two-step verification with timeout (Phase 5)
+- **[Dispute Membership Circuit](Dispute-Membership-Circuit.md)** - ZK identity proofs and privacy infrastructure
+
+### Advanced Features
+- **[Licensing Reconciliation](Licensing-Reconciliation-Module-update.md)** - Multi-party dispute resolution
+- **[Audit Comparison Summary](../AUDIT-COMPARISON-SUMMARY.md)** - Security audit comparisons
+- **[Crypto Findings Reference](../CRYPTO-FINDINGS-QUICK-REFERENCE.md)** - Quick reference for crypto findings
+
 ### User Information
 - **[Buyer Beware](../Buyer-Beware.md)** - Important notice for marketplace users
+- **[FAQ](../FAQ.md)** - Frequently asked questions
 
 ### Strategy & Planning
-- **[Risk Mitigation](../Risk-mitigation.md)** - Legal, technical, financial, and operational risk mitigation strategies
-- **[NatLangChain Roadmap](../NatLangChain-roadmap.md)** - Long-term roadmap for conflict-compression infrastructure
+- **[Risk Mitigation](../Risk-mitigation.md)** - Legal, technical, financial, and operational risk mitigation
+- **[NatLangChain Roadmap](../NatLangChain-roadmap.md)** - Long-term conflict-compression infrastructure
+- **[NCIP-016 Draft](../NCIP-016-DRAFT.md)** - Anti-capture mechanisms & market fairness
+- **[Security Report](../SECURITY_REPORT.md)** - Overall security report
 
-#### Security & Privacy (Phase 5)
-- **[Hardware Authentication](HARDWARE-AUTHENTICATION.md)** - FIDO2/WebAuthn hardware-backed authentication with ZK proofs
-- **[Transaction Security](TRANSACTION-SECURITY.md)** - Two-step verification with timeout and price commitment
-- **[Dispute Membership Circuit](Dispute-Membership-Circuit.md)** - ZK identity proofs, viewing keys, and privacy infrastructure for ILRM disputes
-
-### Examples
+### Examples & SDKs
 - **[Examples Directory](../examples/README.md)** - Code examples and demonstrations
+- **[SDKs Directory](../sdks/README.md)** - SDK documentation
+- **[Marketplace](../marketplace/README.md)** - Marketplace frontend documentation
+- **[Circuits](../circuits/README.md)** - ZK circuit documentation
+- **[Contracts](../contracts/README.md)** - Smart contract documentation
 
 ## Documentation Structure
 
 ```
 RRA-Module/
-├── README.md                    # Main project overview
-├── QUICKSTART.md               # Quick start guide
-├── CONTRIBUTING.md             # Contributing guidelines
-├── LICENSE.md                  # License text
-├── LICENSING.md                # License compliance guide
-├── ROADMAP.md                  # Product roadmap
-├── SPECIFICATION.md            # Complete technical specification
-├── Buyer-Beware.md            # Marketplace user notice
-├── Risk-mitigation.md         # Risk mitigation strategies
-├── NatLangChain-roadmap.md    # Long-term NatLangChain roadmap
+├── README.md                              # Main project overview
+├── QUICKSTART.md                          # Quick start guide
+├── SPECIFICATION.md                       # Complete technical specification
+├── CONTRIBUTING.md                        # Contributing guidelines
+├── CODE_OF_CONDUCT.md                     # Community guidelines
 │
-├── docs/                       # Detailed documentation
-│   ├── README.md              # This file
-│   ├── BLOCKCHAIN-LICENSING.md # Blockchain integration
-│   ├── INTEGRATION.md          # NatLangChain integration
-│   ├── STORY-PROTOCOL-INTEGRATION.md # Story Protocol guide
-│   ├── DEFI-INTEGRATION.md     # DeFi integration guide
-│   ├── TESTING-RESULTS.md      # Test results (290+ tests)
-│   ├── SECURITY-AUDIT.md       # Security audit report
-│   ├── MONITORING.md           # Monitoring and alerting guide
-│   ├── HARDWARE-AUTHENTICATION.md # FIDO2/WebAuthn (Phase 5)
-│   ├── TRANSACTION-SECURITY.md # Two-step verification (Phase 5)
-│   └── Dispute-Membership-Circuit.md  # ZK identity proofs
+├── LICENSE.md                             # FSL-1.1-ALv2 license text
+├── LICENSING.md                           # License compliance guide
 │
-└── examples/                   # Example code
-    └── README.md              # Examples guide
+├── ROADMAP.md                             # Product roadmap
+├── NatLangChain-roadmap.md               # Long-term NatLangChain roadmap
+├── Risk-mitigation.md                     # Risk mitigation strategies
+├── NCIP-016-DRAFT.md                      # Anti-capture mechanisms
+│
+├── FAQ.md                                 # Frequently asked questions
+├── Buyer-Beware.md                        # Marketplace user notice
+├── Founding-Contributor-Pledge.md         # Ethical commitments
+│
+├── SECURITY_REPORT.md                     # Overall security report
+├── SECURITY-AUDIT-REPORT.md              # Detailed audit findings
+├── PENTEST-REPORT-2025-12-20.md          # Penetration testing report
+├── CRYPTOGRAPHIC-SECURITY-AUDIT-2025-12-20.md  # Crypto audit
+├── AUDIT-COMPARISON-SUMMARY.md            # Audit comparisons
+├── CRYPTO-FINDINGS-QUICK-REFERENCE.md     # Crypto quick reference
+│
+├── docs/                                  # Detailed documentation
+│   ├── README.md                          # This file
+│   ├── BLOCKCHAIN-LICENSING.md            # Blockchain monetization
+│   ├── NATLANGCHAIN_INTEGRATION.md        # NatLangChain ecosystem
+│   ├── INTEGRATION.md                     # Ecosystem integration modes
+│   ├── STORY-PROTOCOL-INTEGRATION.md      # Story Protocol guide
+│   ├── DEFI-INTEGRATION.md                # DeFi integration guide
+│   ├── MOBILE_SDK.md                      # Mobile SDK documentation
+│   ├── TESTING-RESULTS.md                 # Test results (1,085 tests)
+│   ├── SECURITY-AUDIT.md                  # Security audit (Score: A-)
+│   ├── SECURITY-PENTEST-REPORT.md         # Pentest findings
+│   ├── SECURITY-REMEDIATION-GUIDE.md      # Remediation guide
+│   ├── MONITORING.md                      # Monitoring and alerting
+│   ├── HARDWARE-AUTHENTICATION.md         # FIDO2/WebAuthn (Phase 5)
+│   ├── TRANSACTION-SECURITY.md            # Two-step verification
+│   ├── Dispute-Membership-Circuit.md      # ZK identity proofs
+│   └── Licensing-Reconciliation-Module-update.md  # Dispute resolution
+│
+├── src/rra/                               # Source code (36+ modules)
+│   ├── agents/                            # Negotiator/Buyer agents
+│   ├── api/                               # FastAPI server, webhooks
+│   ├── auth/                              # FIDO2, DID, delegation
+│   ├── bundling/                          # Multi-repo bundling
+│   ├── chains/                            # Multi-chain support
+│   ├── cli/                               # Command-line interface
+│   ├── config/                            # Configuration management
+│   ├── contracts/                         # Smart contract interfaces
+│   ├── crypto/                            # Cryptographic primitives
+│   ├── defi/                              # Yield tokens, lending
+│   ├── governance/                        # DAO, treasury voting
+│   ├── identity/                          # Sybil resistance
+│   ├── ingestion/                         # Repo ingestion
+│   ├── integration/                       # NatLangChain integration
+│   ├── integrations/                      # External protocols
+│   ├── l3/                                # L3 batch processing
+│   ├── legal/                             # Jurisdiction, compliance
+│   ├── negotiation/                       # Clause hardening
+│   ├── oracles/                           # Event bridging
+│   ├── pricing/                           # Adaptive pricing
+│   ├── privacy/                           # Privacy features
+│   ├── reconciliation/                    # Dispute resolution
+│   ├── reputation/                        # Reputation tracking
+│   ├── rwa/                               # Real-world assets
+│   ├── security/                          # Security features
+│   ├── services/                          # Deep links, etc.
+│   ├── transaction/                       # Transaction safeguards
+│   ├── treasury/                          # Treasury coordination
+│   └── verification/                      # Code verification
+│
+├── contracts/                             # Solidity smart contracts
+├── circuits/                              # ZK circuits (Circom)
+├── marketplace/                           # Next.js marketplace UI
+├── sdks/                                  # Mobile SDKs
+├── examples/                              # Code examples
+└── tests/                                 # Test suite (40+ files)
 ```
 
 ## Topic Index
@@ -83,56 +158,74 @@ RRA-Module/
 - [Smart Contract Architecture](BLOCKCHAIN-LICENSING.md#smart-contract-architecture)
 - [License NFT Structure](BLOCKCHAIN-LICENSING.md#the-license-nft-structure)
 - [Revenue Distribution](BLOCKCHAIN-LICENSING.md#revenue-flow)
+- [Multi-chain Support](../README.md#blockchain-layer) - Ethereum, Polygon, Arbitrum, Base, Optimism
 
 #### AI Agents & Negotiation
 - [Negotiation Agent](../README.md#2-licensing-as-a-service-laas)
 - [Buyer Agent Interface](../README.md#b-buyer-agent-interface)
 - [Agent Workflow](BLOCKCHAIN-LICENSING.md#example-negotiation)
+- [Clause Hardening](Licensing-Reconciliation-Module-update.md) - AI-powered clause improvement
+- [Negotiation Pressure](../README.md#advanced-processing-layer) - Counter-proposal caps, delay costs
 
 #### Licensing & Legal
 - [FSL-1.1-ALv2 License](../LICENSE.md)
 - [SPDX Headers](../LICENSING.md#file-headers)
 - [License Verification](../LICENSING.md#verifying-license-compliance)
 - [Programmable IP Licenses](STORY-PROTOCOL-INTEGRATION.md#2-programmable-ip-licenses-pil)
+- [Jurisdiction Detection](../README.md#governance--legal-layer) - Automatic jurisdiction compliance
+- [RWA Tokenization](../README.md#governance--legal-layer) - Real-world asset support
 
 #### DeFi Integration
-- [Story Protocol](STORY-PROTOCOL-INTEGRATION.md)
+- [Story Protocol](STORY-PROTOCOL-INTEGRATION.md) - Programmable IP licensing
 - [Superfluid Streaming](DEFI-INTEGRATION.md#2-superfluid---streaming-payments)
-- [IPFi Lending](DEFI-INTEGRATION.md#3-ipfi-lending-nftfi-style)
-- [Fractional IP Ownership](DEFI-INTEGRATION.md#4-fractional-ip-ownership)
-- [Yield-Bearing License Tokens](DEFI-INTEGRATION.md#5-yield-bearing-license-tokens)
+- [IPFi Lending](DEFI-INTEGRATION.md#3-ipfi-lending-nftfi-style) - NFTfi-style collateralized loans
+- [Fractional IP Ownership](DEFI-INTEGRATION.md#4-fractional-ip-ownership) - ERC-20 fractionalization
+- [Yield-Bearing License Tokens](DEFI-INTEGRATION.md#5-yield-bearing-license-tokens) - Staking pools
+- [Adaptive Pricing](../README.md#defi--finance-layer) - Demand-based pricing engine
 
 #### Security
-- [Security Audit Report](SECURITY-AUDIT.md)
-- [Cryptographic Practices](SECURITY-AUDIT.md#4-cryptographic-practices--strong)
+- [Security Audit Report](SECURITY-AUDIT.md) - Comprehensive audit (Score: A-)
+- [Cryptographic Security](../CRYPTOGRAPHIC-SECURITY-AUDIT-2025-12-20.md) - Crypto primitives
+- [Penetration Testing](../PENTEST-REPORT-2025-12-20.md) - Security testing results
 - [SSRF Protection](SECURITY-AUDIT.md#6-ssrf-protection--comprehensive)
 - [Rate Limiting](SECURITY-AUDIT.md#7-rate-limiting--implemented)
+- [Secret Management](../README.md#security--privacy-layer) - Secure secrets handling
 
 #### Hardware Authentication (Phase 5)
 - [FIDO2/WebAuthn Overview](HARDWARE-AUTHENTICATION.md)
 - [P256 Signature Verification](HARDWARE-AUTHENTICATION.md#p256verifiersol)
 - [Scoped Delegation](HARDWARE-AUTHENTICATION.md#scopeddelegationsol)
 - [Anonymous Group Membership](HARDWARE-AUTHENTICATION.md#hardwareidentitygroupsol)
-- [Authentication Flows](HARDWARE-AUTHENTICATION.md#authentication-flows)
+- [DID Authentication](../README.md#security--privacy-layer) - Decentralized identity
 
 #### Transaction Security (Phase 5)
 - [Two-Step Verification](TRANSACTION-SECURITY.md)
 - [Price Commitment](TRANSACTION-SECURITY.md#pricecommitment)
 - [Safeguard Levels](TRANSACTION-SECURITY.md#safeguard-levels)
 - [Timeout and Auto-Cancel](TRANSACTION-SECURITY.md#timeout-flow-auto-cancel)
-- [Rate Limiting](TRANSACTION-SECURITY.md#rate-limiting)
 
 #### Privacy & Zero-Knowledge Infrastructure
 - [Dispute Membership Circuit](Dispute-Membership-Circuit.md)
 - [ZK Identity Proofs (Circom)](Dispute-Membership-Circuit.md#1-refined-dispute-membership-circuit-circom-implementation)
 - [Viewing Key Infrastructure](Dispute-Membership-Circuit.md#2-viewing-key-infrastructure-selective-de-anonymization)
 - [Inference Attack Prevention](Dispute-Membership-Circuit.md#3-addressing-inference-attack-risks)
-- [Threshold Decryption for Compliance](Dispute-Membership-Circuit.md#4-legal-compliance-threshold-decryption-for-master-key)
+- [Threshold Decryption](Dispute-Membership-Circuit.md#4-legal-compliance-threshold-decryption-for-master-key)
+- [Shamir Secret Sharing](../README.md#security--privacy-layer) - Threshold key escrow
+- [Pedersen Commitments](../README.md#security--privacy-layer) - ZK proofs
+
+#### Advanced Processing
+- [L3 Batch Processing](../README.md#advanced-processing-layer) - High-throughput dispute resolution
+- [Sequencer](../README.md#advanced-processing-layer) - Sub-second finality
+- [Multi-party Reconciliation](Licensing-Reconciliation-Module-update.md) - N-party disputes
+- [DAO Governance](../README.md#governance--legal-layer) - Treasury voting
+- [Reputation System](../README.md#advanced-processing-layer) - Weighted voting power
 
 #### Ecosystem Integration
-- [NatLangChain Integration](INTEGRATION.md)
-- [Standalone vs Integrated Mode](INTEGRATION.md#integration-modes)
-- [Component Architecture](INTEGRATION.md#integration-components)
+- [NatLangChain Integration](NATLANGCHAIN_INTEGRATION.md) - Full ecosystem
+- [Agent-OS Runtime](NATLANGCHAIN_INTEGRATION.md) - Agent execution environment
+- [synth-mind LLM](NATLANGCHAIN_INTEGRATION.md) - LLM integration
+- [boundary-daemon](NATLANGCHAIN_INTEGRATION.md) - Permissions management
+- [Network Resilience](../README.md#integration-layer) - Auto-retry with exponential backoff
 
 #### Strategy & Risk Management
 - [Risk Mitigation Overview](../Risk-mitigation.md)
@@ -141,7 +234,7 @@ RRA-Module/
 - [Financial/Market Risk](../Risk-mitigation.md#3-financial--market-risk-mitigation)
 - [Operational Risk](../Risk-mitigation.md#4-operational--reputational-risk-mitigation)
 - [NatLangChain Vision](../NatLangChain-roadmap.md)
-- [Conflict Compression Phases](../NatLangChain-roadmap.md#phase-1-core-stabilization--economic-proof-2026)
+- [Anti-capture Mechanisms](../NCIP-016-DRAFT.md) - Market fairness
 
 ### By Use Case
 

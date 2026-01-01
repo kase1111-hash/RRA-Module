@@ -1,15 +1,24 @@
-NatLangChain: Revenant Repo Agent Module (RRA Module)
+# NatLangChain: Revenant Repo Agent Module (RRA Module)
+
+[![Tests](https://img.shields.io/badge/tests-1085%20passing-brightgreen)](tests/)
+[![Security](https://img.shields.io/badge/security-A--rating-blue)](docs/SECURITY-AUDIT.md)
+[![License](https://img.shields.io/badge/license-FSL--1.1--ALv2-orange)](LICENSE.md)
+[![Python](https://img.shields.io/badge/python-3.9+-blue)](pyproject.toml)
 
 The RRA‑Module repository is a Python/Smart‑contract powered extension for the NatLangChain framework that turns a static GitHub repo into an autonomous agent which:
 
-✔ Ingests a repo’s source code
+✔ Ingests a repo's source code
 ✔ Parses and vectorizes knowledge about the repo
 ✔ Wraps that knowledge into an agent/LLM workflow
 ✔ Enables automated on‑chain licensing/negotiation transactions
 ✔ Interfaces with blockchain smart contracts (e.g., ERC‑721/ETH)
 ✔ Maintains a negotiation agent that can interact with buyer agents
+✔ Supports multi-chain deployments (Ethereum, Polygon, Arbitrum, Base, Optimism)
+✔ Provides L3 batch processing for high-throughput dispute resolution
+✔ Integrates DeFi features (yield tokens, IP lending, fractional ownership)
+✔ Includes comprehensive security with FIDO2/WebAuthn hardware authentication
 
-So the code itself implements a modular pipeline transforming repos into living AI agents with monetization features.
+This modular pipeline transforms repos into living AI agents with monetization features.
 
 Module Overview
 The Revenant Repo Agent Module (RRA) is a transformative extension for NatLangChain designed to resurrect dormant or unmanaged GitHub repositories, converting them into self-sustaining, autonomous agents capable of generating revenue through on-chain negotiations and licensing. By leveraging AI-driven ingestion, negotiation, and blockchain entitlements, RRA minimizes developer involvement while maximizing the economic potential of "zombie" codebases. This module empowers developers worldwide to monetize their intellectual property effortlessly, fostering a decentralized, value-driven code economy.
@@ -152,29 +161,123 @@ Iteration: Update .market.yaml or code for instant agent refreshes.
 
 The RRA Module reimagines GitHub as a vibrant marketplace for autonomous code assets, turning neglected repositories into perpetual revenue engines. By democratizing access to developer expertise, it cultivates a global, on-chain economy where code quality directly correlates with economic reward. With zero marketing required and full automation, RRA positions NatLangChain as the premier platform for AI-orchestrated software monetization.
 
-**Potential Extensions:** Multi-repo bundling, AI-driven code enhancements, or integration with DeFi for yield-bearing licenses.
+## Module Architecture
+
+The RRA Module consists of **36+ specialized modules** organized into a layered architecture:
+
+### Core Layer
+| Module | Purpose |
+|--------|---------|
+| `rra.config` | Market configuration (.market.yaml) parsing |
+| `rra.ingestion` | Repository cloning, parsing, knowledge base generation |
+| `rra.agents` | Negotiator and Buyer agent implementations |
+| `rra.exceptions` | Comprehensive exception hierarchy with error codes |
+
+### Blockchain Layer
+| Module | Purpose |
+|--------|---------|
+| `rra.contracts` | Smart contract interfaces (License NFT, Manager) |
+| `rra.chains` | Multi-chain support (Ethereum, Polygon, Arbitrum, Base, Optimism) |
+| `rra.oracles` | Event bridging and real-world data validators |
+| `rra.transaction` | Two-step verification with timeout and price commitment |
+
+### Security & Privacy Layer
+| Module | Purpose |
+|--------|---------|
+| `rra.auth` | FIDO2/WebAuthn, DID authentication, scoped delegation |
+| `rra.security` | Webhook auth, API keys, rate limiting, secrets management |
+| `rra.crypto` | Shamir secret sharing, Pedersen commitments, viewing keys |
+| `rra.privacy` | Identity management, batch queue, inference attack prevention |
+
+### DeFi & Finance Layer
+| Module | Purpose |
+|--------|---------|
+| `rra.defi` | Yield tokens, IPFi lending, fractional IP ownership |
+| `rra.pricing` | Adaptive pricing engine with demand-based strategies |
+| `rra.bundling` | Multi-repo bundling with discount strategies |
+
+### Governance & Legal Layer
+| Module | Purpose |
+|--------|---------|
+| `rra.governance` | DAO management, treasury voting, reputation-weighted voting |
+| `rra.legal` | Jurisdiction detection, compliance rules, RWA wrappers |
+| `rra.rwa` | Real-world asset tokenization and compliance |
+
+### Platform Layer
+| Module | Purpose |
+|--------|---------|
+| `rra.api` | FastAPI server, webhooks, analytics, widget, streaming |
+| `rra.cli` | Command-line interface with 10+ commands |
+| `rra.verification` | Code verification, categorization, blockchain links |
+| `rra.services` | Deep links, fork detection |
+
+### Advanced Processing Layer
+| Module | Purpose |
+|--------|---------|
+| `rra.l3` | L3 rollup batch processing and sequencer |
+| `rra.reconciliation` | Multi-party dispute orchestration, voting systems |
+| `rra.negotiation` | Clause hardening, pressure tactics, counter-proposal caps |
+| `rra.analytics` | Entropy scoring, term analysis, pattern detection |
+| `rra.reputation` | Reputation tracking, weighted voting power |
+| `rra.treasury` | Multi-treasury coordination |
+
+### Integration Layer
+| Module | Purpose |
+|--------|---------|
+| `rra.integration` | NatLangChain ecosystem (Agent-OS, synth-mind, boundary-daemon) |
+| `rra.integrations` | External protocols (Superfluid, Story Protocol, GitHub) |
+| `rra.identity` | Sybil resistance mechanisms |
+
+## Key Statistics
+
+- **~60,000+ lines** of Python code
+- **36+ modules** with specialized functionality
+- **1,085 tests** across 40+ test files
+- **Multi-chain support** for 5+ EVM networks
+- **Security Score: A-** based on comprehensive audit
 
 ## Documentation
 
 For detailed documentation, see:
-- **[Quick Start Guide](QUICKSTART.md)** - Get up and running quickly
+
+### Getting Started
+- **[Quick Start Guide](QUICKSTART.md)** - Installation and basic usage
 - **[Full Documentation](docs/README.md)** - Complete documentation index
-- **[Specification](SPECIFICATION.md)** - Complete technical specification and implementation status
-- **[Blockchain Licensing](docs/BLOCKCHAIN-LICENSING.md)** - Automated monetization guide
-- **[NatLangChain Integration](docs/INTEGRATION.md)** - Ecosystem integration
+- **[Specification](SPECIFICATION.md)** - Technical specification and implementation status
+
+### Integration Guides
+- **[NatLangChain Integration](docs/NATLANGCHAIN_INTEGRATION.md)** - Ecosystem integration
 - **[Story Protocol Integration](docs/STORY-PROTOCOL-INTEGRATION.md)** - Programmable IP licensing
-- **[DeFi Integration](docs/DEFI-INTEGRATION.md)** - DeFi protocol feasibility
-- **[Roadmap](ROADMAP.md)** - Product roadmap and strategy
-- **[NatLangChain Roadmap](NatLangChain-roadmap.md)** - Long-term vision and conflict-compression infrastructure
-- **[Risk Mitigation](Risk-mitigation.md)** - Legal, technical, and operational risk strategies
+- **[DeFi Integration](docs/DEFI-INTEGRATION.md)** - Superfluid, IPFi lending, yield tokens
+- **[Blockchain Licensing](docs/BLOCKCHAIN-LICENSING.md)** - Automated monetization guide
+- **[Mobile SDK](docs/MOBILE_SDK.md)** - iOS and Android integration
+
+### Security & Privacy
 - **[Security Audit](docs/SECURITY-AUDIT.md)** - Security audit report (Score: A-)
-- **[Hardware Authentication](docs/HARDWARE-AUTHENTICATION.md)** - FIDO2/WebAuthn with ZK proofs (Phase 5)
-- **[Transaction Security](docs/TRANSACTION-SECURITY.md)** - Two-step verification with timeout (Phase 5)
+- **[Cryptographic Security Audit](CRYPTOGRAPHIC-SECURITY-AUDIT-2025-12-20.md)** - Crypto primitives audit
+- **[Penetration Test Report](PENTEST-REPORT-2025-12-20.md)** - Security penetration testing
+- **[Hardware Authentication](docs/HARDWARE-AUTHENTICATION.md)** - FIDO2/WebAuthn with ZK proofs
+- **[Transaction Security](docs/TRANSACTION-SECURITY.md)** - Two-step verification with timeout
+- **[Security Remediation Guide](docs/SECURITY-REMEDIATION-GUIDE.md)** - Issue resolution guide
+
+### Advanced Features
+- **[Dispute Membership Circuit](docs/Dispute-Membership-Circuit.md)** - ZK identity proofs and privacy
+- **[Licensing Reconciliation](docs/Licensing-Reconciliation-Module-update.md)** - Multi-party dispute resolution
+- **[Monitoring Guide](docs/MONITORING.md)** - Production monitoring and alerting
+- **[Testing Results](docs/TESTING-RESULTS.md)** - Test coverage (1,085 tests)
+
+### Strategy & Planning
+- **[Roadmap](ROADMAP.md)** - Product roadmap and viral distribution strategy
+- **[NatLangChain Roadmap](NatLangChain-roadmap.md)** - Long-term vision and conflict-compression
+- **[Risk Mitigation](Risk-mitigation.md)** - Legal, technical, and operational risk strategies
+- **[NCIP-016 Draft](NCIP-016-DRAFT.md)** - Anti-capture mechanisms & market fairness
+
+### Community
 - **[Contributing](CONTRIBUTING.md)** - How to contribute
 - **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community guidelines
 - **[FAQ](FAQ.md)** - Challenges and resilience analysis
 - **[Founding Contributor Pledge](Founding-Contributor-Pledge.md)** - Ethical commitments
-- **[NCIP-016 Draft](NCIP-016-DRAFT.md)** - Anti-capture mechanisms & market fairness
+- **[Buyer Beware](Buyer-Beware.md)** - Important notice for marketplace users
 
 ## License
 
