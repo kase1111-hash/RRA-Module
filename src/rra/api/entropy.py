@@ -15,7 +15,7 @@ These endpoints power the LEO Dashboard and can be used by
 upstream contracts for on-chain entropy queries.
 """
 
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, cast
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Query
@@ -451,7 +451,7 @@ async def batch_score_clauses(
             "level": result.level.value,
         })
 
-    avg_entropy = sum(r["entropy_score"] for r in results) / len(results)
+    avg_entropy = sum(cast(float, r["entropy_score"]) for r in results) / len(results)
 
     return {
         "count": len(results),

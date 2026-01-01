@@ -308,6 +308,8 @@ async def add_pool_revenue(
     try:
         staking_manager.add_pool_revenue(pool_id, request.amount)
         pool = staking_manager.get_pool(pool_id)
+        if pool is None:
+            raise HTTPException(status_code=404, detail=f"Pool {pool_id} not found")
 
         return PoolResponse(
             pool_id=pool.pool_id,
@@ -478,6 +480,8 @@ async def claim_yield(
 
         claimed = staking_manager.claim_yield(stake_id)
         updated_stake = staking_manager.get_stake(stake_id)
+        if updated_stake is None:
+            raise HTTPException(status_code=404, detail="Stake not found after claim")
 
         return ClaimYieldResponse(
             stake_id=stake_id,
