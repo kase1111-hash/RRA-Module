@@ -11,10 +11,13 @@ Extracts structured information from README files including:
 - Requirements and dependencies
 """
 
+import logging
 import re
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -128,7 +131,8 @@ class ReadmeParser:
 
         try:
             content = readme_path.read_text(encoding='utf-8', errors='ignore')
-        except Exception:
+        except OSError as e:
+            logger.debug(f"Could not read README at {readme_path}: {e}")
             return ReadmeMetadata()
 
         is_rst = readme_path.suffix.lower() == '.rst'

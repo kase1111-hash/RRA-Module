@@ -15,6 +15,7 @@ Supports use cases:
 - Landing pages (embedded forms)
 """
 
+import logging
 import uuid
 import json
 import asyncio
@@ -23,6 +24,8 @@ from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Request, HTTPException, BackgroundTasks, Header
+
+logger = logging.getLogger(__name__)
 from pydantic import BaseModel, Field
 
 from rra.security.webhook_auth import (
@@ -239,7 +242,8 @@ async def load_knowledge_base(agent_id: str) -> Optional[KnowledgeBase]:
             generated_id = hashlib.sha256(normalized.encode()).hexdigest()[:12]
             if generated_id == agent_id:
                 return kb
-        except Exception:
+        except Exception as e:
+            logger.debug(f"Failed to load KB {kb_file} when searching for agent: {e}")
             continue
 
     return None
@@ -357,9 +361,9 @@ async def send_callback(callback_url: str, data: dict) -> None:
                 json=data,
                 timeout=10.0,
             )
-    except Exception:
+    except Exception as e:
         # Log error but don't fail the webhook
-        pass
+        logger.warning(f"Webhook callback to {callback_url} failed: {e}")
 
 
 # Endpoints
@@ -405,7 +409,8 @@ async def webhook_trigger(
     try:
         payload_dict = await request.json()
         payload = WebhookTriggerRequest(**payload_dict)
-    except Exception:
+    except (json.JSONDecodeError, ValueError, TypeError) as e:
+        logger.debug(f"Invalid webhook payload: {e}")
         raise HTTPException(400, "Invalid request payload")
 
     # Check if agent has registered webhook credentials

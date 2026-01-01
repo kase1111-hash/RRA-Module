@@ -11,12 +11,15 @@ Controls repository access based on streaming payment status:
 """
 
 import asyncio
+import logging
 from typing import Optional, Dict, Any, List, Callable
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 from enum import Enum
 
 from rra.integrations.superfluid import SuperfluidManager, StreamStatus, StreamingLicense
+
+logger = logging.getLogger(__name__)
 
 
 class AccessLevel(Enum):
@@ -233,8 +236,8 @@ class StreamAccessController:
         for callback in self._revocation_callbacks:
             try:
                 callback(license_id, license.buyer_address)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Revocation callback failed for license {license_id}: {e}")
 
         return True
 
@@ -269,8 +272,8 @@ class StreamAccessController:
 
             except asyncio.CancelledError:
                 break
-            except Exception:
-                # Log error but continue monitoring
+            except Exception as e:
+                logger.error(f"Stream monitor error: {e}")
                 await asyncio.sleep(self.check_interval_seconds)
 
     def get_active_grants(self) -> List[AccessGrant]:
