@@ -1,0 +1,136 @@
+# =============================================================================
+# Docker ignore file for RRA-Module
+# Excludes files not needed in container builds
+# =============================================================================
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# GitHub
+.github/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# Testing
+.pytest_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+.hypothesis/
+*.cover
+coverage.xml
+nosetests.xml
+*.log
+
+# Type checking
+.mypy_cache/
+
+# Documentation
+docs/_build/
+site/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Local development
+.env.local
+.env.*.local
+*.local.yml
+*.local.yaml
+deployments/
+
+# Contract build artifacts (keep only ABI)
+contracts/out/
+contracts/cache/
+contracts/lib/
+contracts/broadcast/
+
+# Foundry
+contracts/foundry.toml
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Data and cache (mounted as volumes in production)
+data/
+cache/
+*.db
+*.sqlite3
+
+# Secrets (never include in container)
+*.pem
+*.key
+*.crt
+secrets/
+.secrets/
+credentials.json
+
+# README and docs (not needed at runtime)
+README.md
+CHANGELOG.md
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+SECURITY.md
+docs/
+
+# CI/CD configs
+.travis.yml
+.circleci/
+azure-pipelines.yml
+Jenkinsfile
+Makefile
+
+# Docker files for sub-builds
+docker-compose*.yml
+docker-compose*.yaml
+!docker-compose.yml
