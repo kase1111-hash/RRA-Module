@@ -1,0 +1,40 @@
+# =============================================================================
+# Docker Compose Production Overrides for RRA-Module
+# =============================================================================
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# This file overrides development settings for production deployment.
+# =============================================================================
+
+services:
+  api:
+    build:
+      target: production
+    environment:
+      - RRA_DEV_MODE=false
+      - RRA_LOG_LEVEL=INFO
+    volumes:
+      # Remove source mount for production
+      - rra-data:/app/data
+      - rra-cache:/app/cache
+      - rra-logs:/app/logs
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

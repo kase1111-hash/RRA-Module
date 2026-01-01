@@ -175,6 +175,15 @@ class Proposal:
     payout_shares: List[int] = field(default_factory=list)  # Basis points
     executed: bool = False
     votes: Dict[str, VoteChoice] = field(default_factory=dict)
+    status: ProposalStatus = ProposalStatus.PENDING
+    stake_approved: int = 0         # Stake weight for approval
+    stake_rejected: int = 0         # Stake weight for rejection
+    stake_abstained: int = 0        # Stake weight for abstention
+
+    @property
+    def treasury_id(self) -> str:
+        """Alias for proposer_treasury for API compatibility."""
+        return self.proposer_treasury
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
@@ -213,6 +222,7 @@ class TreasuryDispute:
     total_escrow: int = 0
     winning_proposal: Optional[int] = None
     is_binding: bool = False        # Advisory vs binding
+    mediator: Optional[str] = None  # Mediator address if escalated
     participants: Dict[str, TreasuryParticipant] = field(default_factory=dict)
     proposals: List[Proposal] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -826,6 +836,15 @@ class TreasuryCoordinator:
 
         dispute.status = DisputeStatus.MEDIATION
         return True
+
+    def escalate_to_mediation(
+        self,
+        dispute_id: str,
+        treasury_id: str,
+        requester_address: str,
+    ) -> bool:
+        """Alias for request_mediation for API compatibility."""
+        return self.request_mediation(dispute_id, treasury_id, requester_address)
 
     def mediator_resolve(
         self,

@@ -15,7 +15,7 @@ Provides comprehensive analytics and insights for:
 import json
 import os
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, cast
 from pathlib import Path
 from collections import defaultdict
 from enum import Enum
@@ -192,7 +192,7 @@ class AnalyticsStore:
 
     def get_unique_agents(self) -> List[str]:
         """Get list of unique agent IDs."""
-        return list(set(e.get("agent_id") for e in self._events if e.get("agent_id")))
+        return [str(agent_id) for agent_id in set(e.get("agent_id") for e in self._events if e.get("agent_id"))]
 
 
 # Global analytics store instance
@@ -265,7 +265,7 @@ async def get_analytics_overview(
     events = _analytics_store.get_events(start_time=start_time, end_time=end_time)
 
     # Count by event type
-    event_counts = defaultdict(int)
+    event_counts: Dict[str, int] = defaultdict(int)
     for event in events:
         event_counts[event.get("event_type", "unknown")] += 1
 
@@ -321,7 +321,7 @@ async def get_agent_analytics(
     )
 
     # Count by event type
-    event_counts = defaultdict(int)
+    event_counts: Dict[str, int] = defaultdict(int)
     for event in events:
         event_counts[event.get("event_type", "unknown")] += 1
 
@@ -451,7 +451,7 @@ async def get_revenue_analytics(
 
     top_agents = sorted(
         [{"agent_id": k, "revenue_eth": v} for k, v in agent_revenue.items()],
-        key=lambda x: x["revenue_eth"],
+        key=lambda x: float(cast(float, x["revenue_eth"])),
         reverse=True,
     )[:10]
 
@@ -511,7 +511,7 @@ async def get_timeseries_data(
     # Convert to sorted list
     data_points = sorted(
         [{"time": k, "count": v} for k, v in buckets.items()],
-        key=lambda x: x["time"],
+        key=lambda x: str(cast(str, x["time"])),
     )
 
     return {

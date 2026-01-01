@@ -1,0 +1,142 @@
+# =============================================================================
+# Docker Compose for RRA-Module
+# Local development and production deployment configurations
+# =============================================================================
+#
+# Usage:
+#   Development:  docker compose up --build
+#   Production:   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#   Testing:      docker compose run --rm api pytest tests/
+#
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # RRA API Server
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: rra-api
+    ports:
+      - "${RRA_PORT:-8000}:8000"
+    environment:
+      # Application settings
+      - RRA_HOST=0.0.0.0
+      - RRA_PORT=8000
+      - RRA_DEV_MODE=${RRA_DEV_MODE:-true}
+      - RRA_API_KEY=${RRA_API_KEY:-dev-api-key}
+      # Blockchain settings (optional)
+      - WEB3_PROVIDER_URL=${WEB3_PROVIDER_URL:-}
+      - PRIVATE_KEY=${PRIVATE_KEY:-}
+      # IPFS settings (optional)
+      - IPFS_API_URL=${IPFS_API_URL:-}
+      - IPFS_GATEWAY_URL=${IPFS_GATEWAY_URL:-}
+    volumes:
+      # Mount source for hot reload in development
+      - ./src:/app/src:ro
+      - ./tests:/app/tests:ro
+      # Persistent data
+      - rra-data:/app/data
+      - rra-cache:/app/cache
+      - rra-logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - rra-network
+
+  # ---------------------------------------------------------------------------
+  # Redis (optional - for rate limiting and caching)
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: rra-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - rra-network
+    profiles:
+      - with-redis
+
+  # ---------------------------------------------------------------------------
+  # Local Ethereum Node (optional - for testing)
+  # Uses Anvil from Foundry for local blockchain
+  # ---------------------------------------------------------------------------
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:latest
+    container_name: rra-anvil
+    entrypoint: ["anvil", "--host", "0.0.0.0", "--port", "8545"]
+    ports:
+      - "${ANVIL_PORT:-8545}:8545"
+    healthcheck:
+      test: ["CMD", "cast", "chain-id", "--rpc-url", "http://localhost:8545"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - rra-network
+    profiles:
+      - with-blockchain
+
+  # ---------------------------------------------------------------------------
+  # IPFS Node (optional - for decentralized storage)
+  # ---------------------------------------------------------------------------
+  ipfs:
+    image: ipfs/kubo:latest
+    container_name: rra-ipfs
+    ports:
+      - "${IPFS_API_PORT:-5001}:5001"
+      - "${IPFS_GATEWAY_PORT:-8080}:8080"
+      - "${IPFS_SWARM_PORT:-4001}:4001"
+    volumes:
+      - ipfs-data:/data/ipfs
+      - ipfs-staging:/export
+    environment:
+      - IPFS_PROFILE=server
+    restart: unless-stopped
+    networks:
+      - rra-network
+    profiles:
+      - with-ipfs
+
+# -----------------------------------------------------------------------------
+# Networks
+# -----------------------------------------------------------------------------
+networks:
+  rra-network:
+    driver: bridge
+    name: rra-network
+
+# -----------------------------------------------------------------------------
+# Volumes
+# -----------------------------------------------------------------------------
+volumes:
+  rra-data:
+    name: rra-data
+  rra-cache:
+    name: rra-cache
+  rra-logs:
+    name: rra-logs
+  redis-data:
+    name: rra-redis-data
+  ipfs-data:
+    name: rra-ipfs-data
+  ipfs-staging:
+    name: rra-ipfs-staging

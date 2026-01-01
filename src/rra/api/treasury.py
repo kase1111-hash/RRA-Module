@@ -532,6 +532,9 @@ async def stake_for_dispute(request: StakeRequest) -> StakeResponse:
         raise HTTPException(400, "Failed to stake")
 
     dispute = coordinator.get_dispute(request.dispute_id)
+    if dispute is None:
+        raise HTTPException(404, f"Dispute {request.dispute_id} not found")
+
     treasury_stake = dispute.stakes.get(request.treasury_id, 0)
 
     return StakeResponse(
@@ -592,14 +595,20 @@ async def create_proposal(request: ProposalCreateRequest) -> ProposalResponse:
     except ValueError:
         raise HTTPException(400, f"Invalid proposal type: {request.proposal_type}")
 
+    # Convert payout_shares dict to list if provided, otherwise empty list
+    payout_shares_list: List[int] = []
+    if request.payout_shares:
+        # payout_shares is Dict[str, int] - convert values to list
+        payout_shares_list = list(request.payout_shares.values())
+
     proposal = coordinator.create_proposal(
         dispute_id=request.dispute_id,
         treasury_id=request.treasury_id,
         proposal_type=proposal_type,
         title=request.title,
         description=request.description,
-        ipfs_uri=request.ipfs_uri,
-        payout_shares=request.payout_shares,
+        ipfs_uri=request.ipfs_uri or "",
+        payout_shares=payout_shares_list,
         proposer_address=request.proposer_address,
     )
 
@@ -607,7 +616,7 @@ async def create_proposal(request: ProposalCreateRequest) -> ProposalResponse:
         raise HTTPException(400, "Failed to create proposal")
 
     return ProposalResponse(
-        proposal_id=proposal.proposal_id,
+        proposal_id=str(proposal.proposal_id),
         dispute_id=proposal.dispute_id,
         treasury_id=proposal.treasury_id,
         proposal_type=proposal.proposal_type.value,
@@ -642,7 +651,7 @@ async def list_proposals(
     if not dispute:
         raise HTTPException(404, f"Dispute not found: {dispute_id}")
 
-    proposals = list(dispute.proposals.values())
+    proposals = list(dispute.proposals)
 
     if status:
         try:
@@ -667,9 +676,16 @@ async def get_proposal(proposal_id: str) -> Dict[str, Any]:
     """
     coordinator = get_treasury_coordinator()
 
+    # proposal_id is expected to be an int in the actual model
+    try:
+        pid = int(proposal_id)
+    except ValueError:
+        raise HTTPException(400, f"Invalid proposal ID: {proposal_id}")
+
     for dispute in coordinator.disputes.values():
-        if proposal_id in dispute.proposals:
-            return dispute.proposals[proposal_id].to_dict()
+        for proposal in dispute.proposals:
+            if proposal.proposal_id == pid:
+                return proposal.to_dict()
 
     raise HTTPException(404, f"Proposal not found: {proposal_id}")
 
@@ -698,9 +714,15 @@ async def cast_vote(request: VoteRequest) -> VoteResponse:
     except ValueError:
         raise HTTPException(400, f"Invalid choice: {request.choice}")
 
+    # Convert proposal_id to int for coordinator
+    try:
+        pid = int(request.proposal_id) if isinstance(request.proposal_id, str) else request.proposal_id
+    except ValueError:
+        raise HTTPException(400, f"Invalid proposal ID: {request.proposal_id}")
+
     success = coordinator.vote(
         dispute_id=request.dispute_id,
-        proposal_id=request.proposal_id,
+        proposal_id=pid,
         treasury_id=request.treasury_id,
         choice=choice,
         voter_address=request.voter_address,
@@ -710,6 +732,9 @@ async def cast_vote(request: VoteRequest) -> VoteResponse:
         raise HTTPException(400, "Failed to cast vote")
 
     dispute = coordinator.get_dispute(request.dispute_id)
+    if dispute is None:
+        raise HTTPException(404, f"Dispute not found: {request.dispute_id}")
+
     stake = dispute.stakes.get(request.treasury_id, 0)
 
     return VoteResponse(
@@ -734,24 +759,32 @@ async def get_votes(proposal_id: str) -> Dict[str, Any]:
     """
     coordinator = get_treasury_coordinator()
 
-    for dispute in coordinator.disputes.values():
-        if proposal_id in dispute.proposals:
-            proposal = dispute.proposals[proposal_id]
+    # Convert proposal_id to int
+    try:
+        pid = int(proposal_id)
+    except ValueError:
+        raise HTTPException(400, f"Invalid proposal ID: {proposal_id}")
 
-            return {
-                "proposal_id": proposal_id,
-                "total_stake": dispute.total_stake,
-                "stake_approved": proposal.stake_approved,
-                "stake_rejected": proposal.stake_rejected,
-                "stake_abstained": proposal.stake_abstained,
-                "votes_by_treasury": {
-                    tid: v.to_dict() for tid, v in proposal.votes.items()
-                },
-                "approval_percentage": (
-                    round(proposal.stake_approved / dispute.total_stake * 100, 2)
-                    if dispute.total_stake > 0 else 0
-                ),
-            }
+    for dispute in coordinator.disputes.values():
+        for proposal in dispute.proposals:
+            if proposal.proposal_id == pid:
+                # votes is Dict[str, VoteChoice], need to convert
+                votes_dict = {
+                    tid: {"choice": v.value} for tid, v in proposal.votes.items()
+                }
+
+                return {
+                    "proposal_id": proposal_id,
+                    "total_stake": dispute.total_stake,
+                    "stake_approved": proposal.stake_approved,
+                    "stake_rejected": proposal.stake_rejected,
+                    "stake_abstained": proposal.stake_abstained,
+                    "votes_by_treasury": votes_dict,
+                    "approval_percentage": (
+                        round(proposal.stake_approved / dispute.total_stake * 100, 2)
+                        if dispute.total_stake > 0 else 0
+                    ),
+                }
 
     raise HTTPException(404, f"Proposal not found: {proposal_id}")
 
@@ -818,17 +851,19 @@ async def escalate_to_mediation(
     if treasury_id not in dispute.involved_treasuries and treasury_id != dispute.creator_treasury:
         raise HTTPException(403, "Treasury not involved in dispute")
 
-    success = coordinator.escalate_to_mediation(dispute_id, mediator_address)
+    success = coordinator.escalate_to_mediation(dispute_id, treasury_id, mediator_address)
 
     if not success:
         raise HTTPException(400, "Cannot escalate to mediation")
 
-    dispute = coordinator.get_dispute(dispute_id)
+    updated_dispute = coordinator.get_dispute(dispute_id)
+    if updated_dispute is None:
+        raise HTTPException(404, f"Dispute not found after escalation: {dispute_id}")
 
     return {
         "dispute_id": dispute_id,
-        "status": dispute.status.value,
-        "mediator": dispute.mediator,
+        "status": updated_dispute.status.value,
+        "mediator": updated_dispute.mediator,
         "message": "Dispute escalated to mediation",
     }
 

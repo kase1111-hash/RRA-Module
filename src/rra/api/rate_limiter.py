@@ -17,7 +17,7 @@ import hashlib
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Dict, Optional, Tuple, Callable, Any
+from typing import Dict, Optional, Tuple, Callable, Any, cast
 from enum import Enum
 from functools import wraps
 
@@ -200,7 +200,7 @@ class RedisBackend(RateLimitBackend):
         pipe.expire(redis_key, window)
 
         results = await pipe.execute()
-        return results[2]  # zcard result
+        return int(results[2])  # zcard result
 
 
 class TokenBucketLimiter:
@@ -290,6 +290,7 @@ class RateLimiter:
         self.config = config or RateLimitConfig.from_env()
 
         # Initialize backend
+        self.backend: RateLimitBackend
         if self.config.use_redis and self.config.redis_url:
             self.backend = RedisBackend(self.config.redis_url)
         else:
@@ -429,10 +430,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.rate_limiter = rate_limiter or RateLimiter()
         self._enabled = os.environ.get("RRA_RATE_LIMIT_ENABLED", "true").lower() == "true"
 
-    async def dispatch(self, request: Request, call_next) -> Response:
+    async def dispatch(self, request: Request, call_next: Callable[[Request], Any]) -> Response:
         """Check rate limit and process request."""
         if not self._enabled:
-            return await call_next(request)
+            return cast(Response, await call_next(request))
 
         allowed, headers = await self.rate_limiter.check_rate_limit(request)
 
@@ -451,7 +452,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return response
 
         # Process request
-        response = await call_next(request)
+        response = cast(Response, await call_next(request))
 
         # Add rate limit headers to successful responses
         for key, value in headers.items():

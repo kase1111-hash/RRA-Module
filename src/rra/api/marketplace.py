@@ -105,12 +105,16 @@ def kb_to_listing(kb: KnowledgeBase) -> RepositoryListing:
         except (ValueError, AttributeError):
             pass
 
+    # Handle description - get_summary() may return dict or string
+    summary = kb.get_summary()
+    description = summary.get('description', 'No description') if isinstance(summary, dict) else str(summary)
+
     return RepositoryListing(
         id=generate_repo_id(kb.repo_url),
         url=kb.repo_url,
         name=parsed['name'],
         owner=parsed['owner'],
-        description=kb.get_summary().get('description', 'No description'),
+        description=description,
         kb_path=str(kb.kb_path) if hasattr(kb, 'kb_path') else '',
         updated_at=kb.updated_at.isoformat() if hasattr(kb, 'updated_at') else datetime.now().isoformat(),
         languages=kb.statistics.get('languages', []),
@@ -123,13 +127,15 @@ def kb_to_listing(kb: KnowledgeBase) -> RepositoryListing:
 
 def market_config_to_response(config: MarketConfig) -> MarketConfigResponse:
     """Convert a MarketConfig to response model."""
+    # Use license_model as identifier since MarketConfig doesn't have separate identifier
+    license_id = config.license_model.value if hasattr(config.license_model, 'value') else str(config.license_model)
     return MarketConfigResponse(
-        license_identifier=config.license_identifier,
-        license_model=config.license_model.value if hasattr(config.license_model, 'value') else str(config.license_model),
+        license_identifier=license_id,
+        license_model=license_id,
         target_price=config.target_price,
         floor_price=config.floor_price,
         negotiation_style=config.negotiation_style.value if hasattr(config, 'negotiation_style') and hasattr(config.negotiation_style, 'value') else None,
-        features=config.features if hasattr(config, 'features') else [],
+        features=config.features or [] if hasattr(config, 'features') else [],
         developer_wallet=config.developer_wallet if hasattr(config, 'developer_wallet') else None,
         copyright_holder=config.copyright_holder if hasattr(config, 'copyright_holder') else None,
     )
