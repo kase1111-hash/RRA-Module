@@ -2,6 +2,8 @@
 
 Get started with the Revenant Repo Agent Module in minutes!
 
+**Version:** 0.1.0 | **Tests:** 1,085 passing | **Security:** A- rating
+
 ## Installation
 
 ```bash
@@ -164,23 +166,102 @@ curl http://localhost:8000/api/repositories
 ### CLI Commands
 
 ```bash
-# Initialize repository
-rra init <path> [options]
+# Initialize repository with .market.yaml
+rra init <path> [--target-price=0.05 ETH] [--floor-price=0.02 ETH]
+                 [--license-model=per-seat] [--negotiation-style=concise]
+                 [--wallet=0x...]
 
-# Ingest repository
+# Ingest repository and generate knowledge base
 rra ingest <repo-url> [--workspace=./cloned_repos] [--force]
+                      [--verify/--no-verify] [--categorize/--no-categorize]
+                      [--wallet=0x...] [--network=testnet]
 
-# Manage agents
+# Manage negotiation agents
 rra agent <kb-path> [--interactive] [--simulate]
 
-# List repositories
+# List all ingested repositories
 rra list [--workspace=./agent_knowledge_bases]
 
 # Show repository info
 rra info <kb-path>
 
-# Show example configuration
+# Show example .market.yaml configuration
 rra example
+
+# Generate shareable deep links
+rra links <repo-url> [--format=table|json|markdown] [--register]
+
+# Resolve a repository ID to its URL
+rra resolve <repo-id>
+
+# Verify repository code quality
+rra verify <repo-url> [--skip-tests] [--skip-security] [--workspace=./cloned_repos]
+
+# Generate blockchain purchase links
+rra purchase-link <repo-url> --wallet=0x... [--network=testnet]
+                             [--standard-price=0.05] [--premium-price=0.15]
+                             [--enterprise-price=0.50] [--format=table|json|markdown]
+
+# Categorize a repository
+rra categorize <repo-url> [--workspace=./cloned_repos]
+
+# Story Protocol commands
+rra story status                    # Show deployment status
+rra story register <repo-url>       # Register as IP Asset
+rra story info <ip-asset-id>        # Get IP Asset info
+rra story royalties <ip-asset-id>   # Get royalty statistics
+```
+
+## Advanced Usage
+
+### Code Verification
+
+Verify repository code quality before ingestion:
+
+```bash
+rra verify https://github.com/user/repo.git
+```
+
+This runs:
+- Test suite detection and execution
+- Linting and code quality checks
+- Security vulnerability scanning
+- Build/installation verification
+- README alignment checking
+
+### Story Protocol Registration
+
+Register your repository as an IP Asset on Story Protocol:
+
+```bash
+# Set environment variables
+export STORY_PRIVATE_KEY=0x...
+export STORY_RPC_URL=https://aeneid.storyrpc.io
+
+# Register IP Asset (with dry run first)
+rra story register https://github.com/user/repo.git \
+    --wallet 0x... --network testnet --dry-run
+
+# Execute registration
+rra story register https://github.com/user/repo.git \
+    --wallet 0x... --network testnet
+```
+
+### Deep Links and Embedding
+
+Generate shareable links for your repository:
+
+```bash
+# Generate all link formats
+rra links https://github.com/user/repo.git --register
+
+# Output includes:
+# - Agent page URL
+# - Direct chat URL
+# - License tier URLs
+# - QR code URL
+# - README badge markdown
+# - Embed script HTML
 ```
 
 ## Next Steps
@@ -189,12 +270,15 @@ rra example
 - Check out [examples](examples/README.md) for more use cases
 - Review [blockchain licensing guide](docs/BLOCKCHAIN-LICENSING.md) for monetization
 - Explore [Story Protocol integration](docs/STORY-PROTOCOL-INTEGRATION.md) for programmable IP
+- See [DeFi integration](docs/DEFI-INTEGRATION.md) for yield tokens and lending
+- Review [security audit](docs/SECURITY-AUDIT.md) for security best practices
 - See [full documentation index](docs/README.md) for all guides
 
 ## Getting Help
 
 - CLI help: `rra --help`
 - Command help: `rra <command> --help`
+- Story Protocol: `rra story --help`
 - Issues: https://github.com/kase1111-hash/RRA-Module/issues
 - Documentation: [docs/README.md](docs/README.md)
 
