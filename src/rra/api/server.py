@@ -12,6 +12,7 @@ Provides REST API endpoints for:
 - WebSocket real-time chat (NEW)
 """
 
+import logging
 import re
 import os
 import secrets
@@ -20,6 +21,8 @@ from typing import Optional, Dict, Any, Callable
 from pathlib import Path
 from datetime import datetime, timedelta
 from functools import wraps
+
+logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, Request, Security
 from fastapi.security import APIKeyHeader
@@ -69,6 +72,7 @@ def verify_api_key(api_key: str = Security(API_KEY_HEADER)) -> bool:
         HTTPException: If key is invalid
     """
     if not api_key:
+        logger.warning("API request rejected: missing API key")
         raise HTTPException(
             status_code=401,
             detail="Missing API key",
@@ -79,12 +83,15 @@ def verify_api_key(api_key: str = Security(API_KEY_HEADER)) -> bool:
 
     # Allow bypass in development with specific env var
     if os.environ.get("RRA_ENV") == "development" and os.environ.get("RRA_DEV_AUTH_BYPASS") == "true":
+        logger.debug("API key verification bypassed in development mode")
         return True
 
     # If no keys configured in production, require setup
     if not valid_keys:
         if os.environ.get("RRA_ENV") == "development":
+            logger.debug("No API keys configured, allowing in development mode")
             return True  # Allow in development if no keys configured
+        logger.error("API authentication not configured in production")
         raise HTTPException(
             status_code=500,
             detail="API authentication not configured",
@@ -93,8 +100,10 @@ def verify_api_key(api_key: str = Security(API_KEY_HEADER)) -> bool:
     # Constant-time comparison to prevent timing attacks
     for valid_key in valid_keys:
         if hmac.compare_digest(api_key, valid_key):
+            logger.debug("API key verified successfully")
             return True
 
+    logger.warning("API request rejected: invalid API key")
     raise HTTPException(
         status_code=401,
         detail="Invalid API key",
@@ -262,6 +271,8 @@ active_sessions: Dict[str, SessionData] = {}
 def cleanup_expired_sessions() -> None:
     """Remove expired sessions."""
     expired = [sid for sid, data in active_sessions.items() if data.is_expired()]
+    if expired:
+        logger.info(f"Cleaning up {len(expired)} expired sessions")
     for sid in expired:
         del active_sessions[sid]
 
@@ -381,8 +392,9 @@ def create_app() -> FastAPI:
         try:
             from rra.api.rate_limiter import setup_rate_limiting
             setup_rate_limiting(app)
+            logger.info("Rate limiting enabled")
         except ImportError:
-            pass  # Rate limiter not available
+            logger.warning("Rate limiter module not available, running without rate limiting")
 
     @app.get("/")
     def root():
@@ -466,6 +478,7 @@ def create_app() -> FastAPI:
 
         Requires API key authentication.
         """
+        logger.info(f"Ingesting repository: {request.repo_url}")
         try:
             ingester = RepoIngester()
             kb = ingester.ingest(request.repo_url, force_refresh=request.force_refresh)
@@ -476,6 +489,7 @@ def create_app() -> FastAPI:
             # Get summary
             context = kb.get_negotiation_context()
 
+            logger.info(f"Repository ingested successfully: {request.repo_url} -> {kb_path}")
             return IngestResponse(
                 status="success",
                 repo_url=request.repo_url,
@@ -485,6 +499,7 @@ def create_app() -> FastAPI:
 
         except Exception as e:
             # Sanitize error message to prevent information disclosure
+            logger.error(f"Repository ingestion failed for {request.repo_url}: {e}")
             raise HTTPException(status_code=500, detail=sanitize_error_message(e))
 
     @app.post("/api/negotiate/start", response_model=NegotiationResponse)
@@ -498,12 +513,14 @@ def create_app() -> FastAPI:
         Creates a negotiation agent and returns its introduction.
         Requires API key authentication.
         """
+        logger.info(f"Starting negotiation for KB: {request.kb_path}")
         try:
             # Cleanup expired sessions periodically
             cleanup_expired_sessions()
 
             # Security: Validate kb_path to prevent path traversal
             if not validate_kb_path(request.kb_path):
+                logger.warning(f"Invalid knowledge base path rejected: {request.kb_path}")
                 raise HTTPException(
                     status_code=400,
                     detail="Invalid knowledge base path"
@@ -524,6 +541,7 @@ def create_app() -> FastAPI:
             # Store session with expiry tracking
             active_sessions[session_id] = SessionData(negotiator)
 
+            logger.info(f"Negotiation session started: {session_id} for {kb.repo_url}")
             return NegotiationResponse(
                 message=intro,
                 phase=negotiator.current_phase.value,
@@ -533,6 +551,7 @@ def create_app() -> FastAPI:
         except HTTPException:
             raise
         except Exception as e:
+            logger.error(f"Failed to start negotiation for {request.kb_path}: {e}")
             raise HTTPException(status_code=500, detail=sanitize_error_message(e))
 
     @app.post("/api/negotiate/message", response_model=NegotiationResponse)
@@ -554,12 +573,14 @@ def create_app() -> FastAPI:
         Requires API key authentication.
         """
         if session_id not in active_sessions:
+            logger.warning(f"Message sent to unknown session: {session_id[:8]}...")
             raise HTTPException(status_code=404, detail="Session not found")
 
         session = active_sessions[session_id]
 
         # Check if session has expired
         if session.is_expired():
+            logger.info(f"Expired session accessed: {session_id[:8]}...")
             del active_sessions[session_id]
             raise HTTPException(status_code=401, detail="Session expired")
 
@@ -570,6 +591,7 @@ def create_app() -> FastAPI:
             negotiator = session.agent
             response = negotiator.respond(message)
 
+            logger.debug(f"Message processed for session {session_id[:8]}..., phase: {negotiator.current_phase.value}")
             return NegotiationResponse(
                 message=response,
                 phase=negotiator.current_phase.value,
@@ -579,6 +601,7 @@ def create_app() -> FastAPI:
         except HTTPException:
             raise
         except Exception as e:
+            logger.error(f"Message processing failed for session {session_id[:8]}...: {e}")
             raise HTTPException(status_code=500, detail=sanitize_error_message(e))
 
     @app.get("/api/negotiate/summary/{session_id}")
@@ -636,8 +659,9 @@ def create_app() -> FastAPI:
                     "languages": kb.statistics.get("languages", []),
                     "files": kb.statistics.get("code_files", 0),
                 })
-            except Exception:
-                # Silently skip corrupted knowledge bases
+            except Exception as e:
+                # Skip corrupted knowledge bases but log the issue
+                logger.warning(f"Skipping corrupted knowledge base {kb_file}: {e}")
                 continue
 
         return {"repositories": repositories}
@@ -660,6 +684,7 @@ def create_app() -> FastAPI:
         """
         # Validate repo_name to prevent path traversal
         if not validate_repo_name(repo_name):
+            logger.warning(f"Invalid repository name rejected: {repo_name}")
             raise HTTPException(status_code=400, detail="Invalid repository name")
 
         kb_dir = Path("agent_knowledge_bases")
@@ -682,6 +707,7 @@ def create_app() -> FastAPI:
         except HTTPException:
             raise
         except Exception as e:
+            logger.error(f"Failed to get repository info for {repo_name}: {e}")
             raise HTTPException(status_code=500, detail=sanitize_error_message(e))
 
     @app.post("/api/verify")
@@ -743,9 +769,10 @@ def create_app() -> FastAPI:
         app.include_router(warnings_router)
         app.include_router(treasury_router)
         app.include_router(verification_router)
-    except ImportError:
+        logger.info("All API routers loaded successfully")
+    except ImportError as e:
         # Routers not available in minimal install
-        pass
+        logger.warning(f"Some API routers not available: {e}")
 
     return app
 

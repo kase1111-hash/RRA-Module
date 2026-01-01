@@ -24,6 +24,8 @@ Compatible with:
 - Android Biometric
 """
 
+import binascii
+import logging
 import os
 import json
 import hashlib
@@ -36,6 +38,8 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.backends import default_backend
 from eth_utils import keccak
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -375,7 +379,8 @@ class WebAuthnClient:
                 received_challenge = base64.urlsafe_b64decode(challenge_b64 + "==")
                 if received_challenge != expected_challenge:
                     return False, "Challenge mismatch"
-            except Exception:
+            except (binascii.Error, ValueError) as e:
+                logger.warning(f"Invalid challenge encoding: {e}")
                 return False, "Invalid challenge encoding"
 
         # Verify P-256 signature
@@ -555,8 +560,8 @@ def verify_p256_signature(
         return True
     except InvalidSignature:
         return False
-    except Exception as e:
-        print(f"Verification error: {e}")
+    except (TypeError, ValueError) as e:
+        logger.error(f"P-256 signature verification error: {e}")
         return False
 
 
