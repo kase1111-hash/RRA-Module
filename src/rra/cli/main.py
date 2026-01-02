@@ -243,18 +243,18 @@ def ingest(
                     # Show test output/errors
                     if check["name"] == "tests":
                         if details.get("error"):
-                            console.print(f"      [dim]Test output:[/dim]")
-                            # Show full error output, limited to 2000 chars
-                            error_text = details["error"][:2000]
-                            for line in error_text.split("\n")[:50]:
+                            console.print("      [dim]Test output (showing end where failures appear):[/dim]")
+                            # Show END of error output (that's where pytest shows failures)
+                            error_text = details["error"]
+                            if len(error_text) > 3000:
+                                error_text = "... (earlier output truncated)\n" + error_text[-3000:]
+                            for line in error_text.split("\n")[-60:]:
                                 if line.strip():
                                     console.print(f"        {line}")
-                            if len(details["error"]) > 2000:
-                                console.print(f"        [dim]... (truncated, {len(details['error'])} chars total)[/dim]")
                         if details.get("output"):
-                            console.print(f"      [dim]Test output:[/dim]")
-                            output_text = details["output"][:1000]
-                            for line in output_text.split("\n")[:30]:
+                            console.print("      [dim]Test output:[/dim]")
+                            output_text = details["output"][-1500:]  # Show end
+                            for line in output_text.split("\n")[-40:]:
                                 if line.strip():
                                     console.print(f"        {line}")
                         if details.get("warning"):
@@ -264,7 +264,7 @@ def ingest(
                     # Show linting details
                     elif check["name"] == "linting":
                         if details.get("output"):
-                            console.print(f"      [dim]Linting output:[/dim]")
+                            console.print("      [dim]Linting output:[/dim]")
                             output_text = details["output"][:1500]
                             for line in output_text.split("\n")[:40]:
                                 if line.strip():
@@ -272,13 +272,13 @@ def ingest(
                         if details.get("issues"):
                             console.print(f"      [dim]Total issues: {details['issues']}[/dim]")
                         if details.get("has_config"):
-                            console.print(f"      [dim]Lint config found: Yes[/dim]")
+                            console.print("      [dim]Lint config found: Yes[/dim]")
 
                     # Show security details
                     elif check["name"] == "security":
                         console.print(f"      [dim]Files scanned: {details.get('files_scanned', 0)}[/dim]")
                         if details.get("issues"):
-                            console.print(f"      [yellow]Issues found:[/yellow]")
+                            console.print("      [yellow]Issues found:[/yellow]")
                             for issue in details.get("issues", [])[:10]:
                                 console.print(f"        [{issue.get('category')}] {issue.get('file')}")
                         if details.get("issues_by_category"):
@@ -294,11 +294,11 @@ def ingest(
                     # Show README alignment details
                     elif check["name"] == "readme_alignment":
                         if details.get("verified_claims"):
-                            console.print(f"      [green]Verified claims:[/green]")
+                            console.print("      [green]Verified claims:[/green]")
                             for claim in details["verified_claims"][:5]:
                                 console.print(f"        ✓ {claim.get('claim', claim)[:60]}")
                         if details.get("unverified_claims"):
-                            console.print(f"      [yellow]Unverified claims:[/yellow]")
+                            console.print("      [yellow]Unverified claims:[/yellow]")
                             for claim in details["unverified_claims"][:5]:
                                 console.print(f"        ? {claim.get('claim', claim)[:60]}")
 

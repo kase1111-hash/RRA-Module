@@ -294,15 +294,30 @@ class CodeVerifier:
         languages = self._detect_languages(repo_path)
         test_result = self._run_tests(repo_path, languages)
 
+        # Get summary info if available
+        summary = test_result.get("summary", {})
+        passed = summary.get("passed", 0)
+        failed = summary.get("failed", 0)
+        errors = summary.get("errors", 0)
+
         if test_result["success"]:
+            # Build detailed message with actual counts
+            if passed > 0:
+                msg = f"Tests passed: {passed} passed"
+                if summary.get("skipped"):
+                    msg += f", {summary['skipped']} skipped"
+            else:
+                msg = f"Tests passed ({len(test_files)} files, ~{test_count} cases)"
+
             return CheckResult(
                 name="tests",
                 status=VerificationStatus.PASSED,
-                message=f"Tests passed ({len(test_files)} files, ~{test_count} cases)",
+                message=msg,
                 details={
                     "test_files": len(test_files),
                     "test_count": test_count,
-                    "output": test_result.get("output", "")[:500],
+                    "output": test_result.get("output", "")[-2000:],  # Show end of output
+                    "summary": summary,
                 },
             )
         elif test_result.get("timeout"):
@@ -314,7 +329,7 @@ class CodeVerifier:
                 details={
                     "test_files": len(test_files),
                     "test_count": test_count,
-                    "warning": "Test suite too large or slow; consider using --skip-tests",
+                    "warning": "Test suite too large or slow; consider using --skip-tests or --timeout",
                 },
             )
         elif test_result.get("dependency_error"):
@@ -327,17 +342,27 @@ class CodeVerifier:
                     "test_files": len(test_files),
                     "test_count": test_count,
                     "warning": "Install dependencies to run tests; verification based on test structure",
+                    "error": test_result.get("error", "")[-2000:],
                 },
             )
         else:
+            # Build informative failure message
+            if passed > 0 or failed > 0:
+                msg = f"Tests: {passed} passed, {failed} failed, {errors} errors"
+            else:
+                error_preview = test_result.get("error", "Unknown error")
+                # Get last line that looks like an error summary
+                msg = f"Tests failed: {error_preview[:100]}"
+
             return CheckResult(
                 name="tests",
                 status=VerificationStatus.FAILED,
-                message=f"Tests failed: {test_result.get('error', 'Unknown error')[:100]}",
+                message=msg,
                 details={
                     "test_files": len(test_files),
                     "test_count": test_count,
-                    "error": test_result.get("error", ""),
+                    "error": test_result.get("error", "")[-3000:],  # Show end of output
+                    "summary": summary,
                 },
             )
 
@@ -750,6 +775,36 @@ class CodeVerifier:
 
         return {"success": True, "skipped": True}  # No test runner found
 
+    def _parse_pytest_summary(self, output: str) -> Dict[str, Any]:
+        """Parse pytest output to extract pass/fail counts from summary line."""
+        # Look for pytest summary line like: "1126 passed, 5 failed, 2 errors in 300.5s"
+        # Or: "===== 1126 passed in 300.5s ====="
+        summary_patterns = [
+            r"(\d+)\s+passed",
+            r"(\d+)\s+failed",
+            r"(\d+)\s+error",
+            r"(\d+)\s+skipped",
+            r"(\d+)\s+warning",
+        ]
+
+        result = {"passed": 0, "failed": 0, "errors": 0, "skipped": 0, "warnings": 0}
+
+        # Search the last 2000 chars where summary appears
+        search_text = output[-2000:] if len(output) > 2000 else output
+
+        for key, pattern in [
+            ("passed", r"(\d+)\s+passed"),
+            ("failed", r"(\d+)\s+failed"),
+            ("errors", r"(\d+)\s+error"),
+            ("skipped", r"(\d+)\s+skipped"),
+            ("warnings", r"(\d+)\s+warning"),
+        ]:
+            match = re.search(pattern, search_text)
+            if match:
+                result[key] = int(match.group(1))
+
+        return result
+
     def _run_tests_in_isolated_env(self, repo_path: Path) -> Dict[str, Any]:
         """Run tests using the isolated virtual environment."""
         if not self._isolated_env:
@@ -767,27 +822,48 @@ class CodeVerifier:
                 env={**self._isolated_env.activate_env, "CI": "true"},
             )
 
+            full_output = result.stdout + result.stderr
+
+            # Parse pytest summary to get actual pass/fail counts
+            summary = self._parse_pytest_summary(full_output)
+
+            # Determine success based on actual test results, not just return code
+            # Tests pass if: passed > 0 AND failed == 0 AND errors == 0
+            if summary["passed"] > 0 and summary["failed"] == 0 and summary["errors"] == 0:
+                return {
+                    "success": True,
+                    "output": full_output,
+                    "summary": summary,
+                }
+
             if result.returncode == 0:
-                return {"success": True, "output": result.stdout}
-            else:
-                error_output = result.stderr or result.stdout
-                # Check if failure is due to missing dependencies
-                dependency_errors = [
-                    "ModuleNotFoundError",
-                    "ImportError",
-                    "No module named",
-                    "cannot import name",
-                ]
-                if any(err in error_output for err in dependency_errors):
-                    return {
-                        "success": False,
-                        "dependency_error": True,
-                        "error": error_output,
-                    }
+                return {"success": True, "output": full_output, "summary": summary}
+
+            # Check if failure is due to missing dependencies
+            dependency_errors = [
+                "ModuleNotFoundError",
+                "ImportError",
+                "No module named",
+                "cannot import name",
+            ]
+            if any(err in full_output for err in dependency_errors):
                 return {
                     "success": False,
-                    "error": error_output,
+                    "dependency_error": True,
+                    "error": full_output,
+                    "summary": summary,
                 }
+
+            # Include summary info in the error
+            error_msg = full_output
+            if summary["passed"] > 0 or summary["failed"] > 0:
+                error_msg = f"Tests: {summary['passed']} passed, {summary['failed']} failed, {summary['errors']} errors\n\n{full_output}"
+
+            return {
+                "success": False,
+                "error": error_msg,
+                "summary": summary,
+            }
         except subprocess.TimeoutExpired:
             return {"success": False, "timeout": True, "error": "Test execution timed out"}
         except Exception as e:
