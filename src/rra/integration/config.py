@@ -85,6 +85,63 @@ class IntegrationConfig(BaseModel):
         description="Agent-OS runtime environment: local, distributed, cloud"
     )
 
+    # Boundary-Daemon settings
+    enable_boundary_daemon: bool = Field(
+        default=True,
+        description="Enable boundary-daemon integration for access control"
+    )
+
+    boundary_daemon_socket: Optional[str] = Field(
+        default=None,
+        description="Unix socket path for boundary-daemon connection"
+    )
+
+    boundary_daemon_url: Optional[str] = Field(
+        default=None,
+        description="HTTP URL for boundary-daemon connection"
+    )
+
+    boundary_mode: str = Field(
+        default="restricted",
+        description="Initial boundary mode: open, restricted, trusted, airgap, coldroom, lockdown"
+    )
+
+    # Boundary-SIEM settings
+    enable_boundary_siem: bool = Field(
+        default=False,
+        description="Enable Boundary-SIEM integration for security monitoring"
+    )
+
+    siem_host: str = Field(
+        default="localhost",
+        description="Boundary-SIEM host address"
+    )
+
+    siem_port: int = Field(
+        default=8514,
+        description="Boundary-SIEM port"
+    )
+
+    siem_protocol: str = Field(
+        default="json_http",
+        description="SIEM protocol: json_http, cef_udp, cef_tcp, syslog_udp, syslog_tcp"
+    )
+
+    siem_api_key: Optional[str] = Field(
+        default=None,
+        description="API key for Boundary-SIEM authentication"
+    )
+
+    siem_tls_enabled: bool = Field(
+        default=False,
+        description="Enable TLS for SIEM connection"
+    )
+
+    siem_min_severity: str = Field(
+        default="info",
+        description="Minimum event severity to forward to SIEM"
+    )
+
     # Fallback behavior
     fallback_to_standalone: bool = Field(
         default=True,
