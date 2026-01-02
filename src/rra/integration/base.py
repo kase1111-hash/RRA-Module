@@ -15,6 +15,7 @@ from datetime import datetime
 
 class IntegrationMode(str, Enum):
     """Operating mode for RRA agents."""
+
     STANDALONE = "standalone"  # No ecosystem integration
     INTEGRATED = "integrated"  # Full NatLangChain ecosystem integration
     HYBRID = "hybrid"  # Selective integration based on available components
@@ -31,6 +32,7 @@ def get_integration_mode() -> IntegrationMode:
     try:
         # Try importing common base - if available, we're in integrated mode
         import natlangchain.common  # type: ignore
+
         return IntegrationMode.INTEGRATED
     except ImportError:
         pass
@@ -141,6 +143,7 @@ class BaseAgent(ABC):
     def _generate_agent_id(self) -> str:
         """Generate a unique agent ID."""
         from uuid import uuid4
+
         return f"rra-{uuid4().hex[:12]}"
 
     def _initialize_integrations(self) -> None:
@@ -148,18 +151,21 @@ class BaseAgent(ABC):
         # Import integration modules dynamically
         try:
             from rra.integration.memory import get_state_manager
+
             self.state_manager = get_state_manager(self.agent_id)
         except (ImportError, Exception):
             pass
 
         try:
             from rra.integration.mediator import get_message_router
+
             self.message_router = get_message_router(self.agent_id)
         except (ImportError, Exception):
             pass
 
         try:
             from rra.integration.intent_log import get_intent_logger
+
             self.intent_logger = get_intent_logger(self.agent_id)
         except (ImportError, Exception):
             pass
@@ -249,5 +255,5 @@ class BaseAgent(ABC):
                 "state_persistence": self.state_manager is not None,
                 "message_routing": self.message_router is not None,
                 "intent_logging": self.intent_logger is not None,
-            }
+            },
         }

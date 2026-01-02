@@ -46,7 +46,7 @@ class DeepLinkService:
             base_url: Base URL for generated links (default: https://natlangchain.io)
             mappings_path: Path to store repo ID mappings (default: agent_knowledge_bases/repo_mappings.json)
         """
-        self.base_url = (base_url or self.DEFAULT_BASE_URL).rstrip('/')
+        self.base_url = (base_url or self.DEFAULT_BASE_URL).rstrip("/")
         self.mappings_path = mappings_path or Path("agent_knowledge_bases/repo_mappings.json")
         self._mappings: Dict[str, Dict[str, Any]] = {}
         self._load_mappings()
@@ -55,7 +55,7 @@ class DeepLinkService:
         """Load repo ID mappings from file."""
         if self.mappings_path.exists():
             try:
-                with open(self.mappings_path, 'r') as f:
+                with open(self.mappings_path, "r") as f:
                     self._mappings = json.load(f)
             except (json.JSONDecodeError, IOError):
                 self._mappings = {}
@@ -63,7 +63,7 @@ class DeepLinkService:
     def _save_mappings(self) -> None:
         """Save repo ID mappings to file."""
         self.mappings_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.mappings_path, 'w') as f:
+        with open(self.mappings_path, "w") as f:
             json.dump(self._mappings, f, indent=2, default=str)
 
     def generate_repo_id(self, repo_url: str) -> str:
@@ -82,7 +82,7 @@ class DeepLinkService:
         Returns:
             12-character hex ID
         """
-        normalized = repo_url.lower().strip().rstrip('.git').rstrip('/')
+        normalized = repo_url.lower().strip().rstrip(".git").rstrip("/")
         return hashlib.sha256(normalized.encode()).hexdigest()[:12]
 
     def register_repo(self, repo_url: str, metadata: Optional[Dict[str, Any]] = None) -> str:
@@ -99,10 +99,10 @@ class DeepLinkService:
         repo_id = self.generate_repo_id(repo_url)
 
         self._mappings[repo_id] = {
-            'repo_url': repo_url,
-            'created_at': datetime.utcnow().isoformat(),
-            'agent_active': True,
-            **(metadata or {})
+            "repo_url": repo_url,
+            "created_at": datetime.utcnow().isoformat(),
+            "agent_active": True,
+            **(metadata or {}),
         }
 
         self._save_mappings()
@@ -171,7 +171,7 @@ class DeepLinkService:
         Returns:
             Full search URL
         """
-        params = {'q': query, **filters}
+        params = {"q": query, **filters}
         return f"{self.base_url}/search?{urlencode(params)}"
 
     def get_category_url(self, category: str) -> str:
@@ -199,10 +199,7 @@ class DeepLinkService:
         return f"{self.base_url}/user/{quote(username)}"
 
     def generate_badge_markdown(
-        self,
-        repo_url: str,
-        style: str = "flat",
-        label: str = "License This Repo"
+        self, repo_url: str, style: str = "flat", label: str = "License This Repo"
     ) -> str:
         """
         Generate a README badge in Markdown format.
@@ -221,10 +218,7 @@ class DeepLinkService:
         return f"[![{label}]({badge_url})]({agent_url})"
 
     def generate_badge_html(
-        self,
-        repo_url: str,
-        style: str = "flat",
-        label: str = "License This Repo"
+        self, repo_url: str, style: str = "flat", label: str = "License This Repo"
     ) -> str:
         """
         Generate a README badge in HTML format.
@@ -252,9 +246,9 @@ class DeepLinkService:
             JavaScript embed code
         """
         repo_id = self.generate_repo_id(repo_url)
-        return f'''<!-- RRA Negotiation Widget -->
+        return f"""<!-- RRA Negotiation Widget -->
 <div id="rra-widget-{repo_id}"></div>
-<script src="{self.base_url}/embed.js" data-repo-id="{repo_id}"></script>'''
+<script src="{self.base_url}/embed.js" data-repo-id="{repo_id}"></script>"""
 
     def generate_qr_code_url(self, repo_url: str, size: int = 200) -> str:
         """
@@ -300,17 +294,17 @@ class DeepLinkService:
         repo_id = self.generate_repo_id(repo_url)
 
         return {
-            'repo_id': repo_id,
-            'agent_page': self.get_agent_url(repo_url),
-            'chat_direct': self.get_chat_url(repo_url),
-            'license_individual': self.get_license_url(repo_url, 'individual'),
-            'license_team': self.get_license_url(repo_url, 'team'),
-            'license_enterprise': self.get_license_url(repo_url, 'enterprise'),
-            'qr_code': self.generate_qr_code_url(repo_url),
-            'qr_code_svg': self.generate_qr_code_svg(repo_url),
-            'badge_markdown': self.generate_badge_markdown(repo_url),
-            'badge_html': self.generate_badge_html(repo_url),
-            'embed_script': self.generate_embed_script(repo_url),
+            "repo_id": repo_id,
+            "agent_page": self.get_agent_url(repo_url),
+            "chat_direct": self.get_chat_url(repo_url),
+            "license_individual": self.get_license_url(repo_url, "individual"),
+            "license_team": self.get_license_url(repo_url, "team"),
+            "license_enterprise": self.get_license_url(repo_url, "enterprise"),
+            "qr_code": self.generate_qr_code_url(repo_url),
+            "qr_code_svg": self.generate_qr_code_svg(repo_url),
+            "badge_markdown": self.generate_badge_markdown(repo_url),
+            "badge_html": self.generate_badge_html(repo_url),
+            "embed_script": self.generate_embed_script(repo_url),
         }
 
     def get_stats(self) -> Dict[str, Any]:
@@ -320,9 +314,9 @@ class DeepLinkService:
         Returns:
             Dictionary with stats
         """
-        active = sum(1 for m in self._mappings.values() if m.get('agent_active', True))
+        active = sum(1 for m in self._mappings.values() if m.get("agent_active", True))
         return {
-            'total_registered': len(self._mappings),
-            'active_agents': active,
-            'inactive_agents': len(self._mappings) - active,
+            "total_registered": len(self._mappings),
+            "active_agents": active,
+            "inactive_agents": len(self._mappings) - active,
         }

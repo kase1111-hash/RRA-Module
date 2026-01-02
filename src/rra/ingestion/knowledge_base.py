@@ -90,12 +90,14 @@ class KnowledgeBase:
         ]
 
         if self.market_config:
-            lines.extend([
-                f"License Model: {self.market_config.license_model.value}",
-                f"Target Price: {self.market_config.target_price}",
-                f"Floor Price: {self.market_config.floor_price}",
-                "",
-            ])
+            lines.extend(
+                [
+                    f"License Model: {self.market_config.license_model.value}",
+                    f"Target Price: {self.market_config.target_price}",
+                    f"Floor Price: {self.market_config.floor_price}",
+                    "",
+                ]
+            )
 
         if self.statistics:
             lines.append("=== Statistics ===")
@@ -103,7 +105,7 @@ class KnowledgeBase:
             lines.append(f"Code Files: {self.statistics.get('code_files', 0)}")
             lines.append(f"Total Lines: {self.statistics.get('total_lines', 0)}")
 
-            languages = self.statistics.get('languages', [])
+            languages = self.statistics.get("languages", [])
             if languages:
                 lines.append(f"Languages: {', '.join(languages)}")
             lines.append("")
@@ -143,18 +145,20 @@ class KnowledgeBase:
             lines.append("")
             lines.append("=== Category ===")
             lines.append(f"Primary: {self.category.get('primary_category', 'unknown')}")
-            if self.category.get('subcategory'):
+            if self.category.get("subcategory"):
                 lines.append(f"Subcategory: {self.category.get('subcategory')}")
-            if self.category.get('tags'):
+            if self.category.get("tags"):
                 lines.append(f"Tags: {', '.join(self.category.get('tags', [])[:5])}")
 
         if self.blockchain_links:
             lines.append("")
             lines.append("=== Marketplace ===")
-            if self.blockchain_links.get('ip_asset_id'):
+            if self.blockchain_links.get("ip_asset_id"):
                 lines.append(f"IP Asset ID: {self.blockchain_links.get('ip_asset_id')}")
-            if self.blockchain_links.get('purchase_links'):
-                lines.append(f"Purchase Links: {len(self.blockchain_links.get('purchase_links', []))} tiers available")
+            if self.blockchain_links.get("purchase_links"):
+                lines.append(
+                    f"Purchase Links: {len(self.blockchain_links.get('purchase_links', []))} tiers available"
+                )
 
         return "\n".join(lines)
 
@@ -186,9 +190,9 @@ class KnowledgeBase:
         # Technical details
         if self.statistics:
             context["technical_details"] = {
-                "languages": self.statistics.get('languages', []),
-                "lines_of_code": self.statistics.get('total_lines', 0),
-                "file_count": self.statistics.get('code_files', 0),
+                "languages": self.statistics.get("languages", []),
+                "lines_of_code": self.statistics.get("total_lines", 0),
+                "file_count": self.statistics.get("code_files", 0),
             }
 
         # Value propositions based on repository characteristics
@@ -197,17 +201,17 @@ class KnowledgeBase:
                 f"Production-ready API with {len(self.api_endpoints)} endpoints"
             )
 
-        if self.tests.get('test_files', 0) > 0:
+        if self.tests.get("test_files", 0) > 0:
             context["value_propositions"].append(
                 f"Well-tested with {self.tests['test_functions']} test cases"
             )
 
-        if self.metadata.get('total_commits', 0) > 100:
+        if self.metadata.get("total_commits", 0) > 100:
             context["value_propositions"].append(
                 f"Mature codebase with {self.metadata['total_commits']} commits"
             )
 
-        if len(self.statistics.get('languages', [])) > 1:
+        if len(self.statistics.get("languages", [])) > 1:
             context["strengths"].append("Multi-language support")
 
         if self.dependencies:
@@ -233,7 +237,7 @@ class KnowledgeBase:
             kb_dir.mkdir(exist_ok=True)
 
             # Generate filename from repo URL
-            repo_name = self.repo_url.split('/')[-1].replace('.git', '')
+            repo_name = self.repo_url.split("/")[-1].replace(".git", "")
             # Use .json.gz extension for compressed files
             ext = ".json.gz" if compress else ".json"
             output_path = kb_dir / f"{repo_name}_kb{ext}"
@@ -259,7 +263,7 @@ class KnowledgeBase:
             "blockchain_links": self.blockchain_links,
         }
 
-        json_bytes = json.dumps(data, indent=2, default=str).encode('utf-8')
+        json_bytes = json.dumps(data, indent=2, default=str).encode("utf-8")
         original_size = len(json_bytes)
 
         if compress:
@@ -268,7 +272,7 @@ class KnowledgeBase:
             compressed_size = len(compressed_bytes)
             savings = 1 - (compressed_size / original_size) if original_size > 0 else 0
 
-            with open(output_path, 'wb') as f:
+            with open(output_path, "wb") as f:
                 f.write(compressed_bytes)
 
             logger.debug(
@@ -276,8 +280,8 @@ class KnowledgeBase:
                 f"({original_size} -> {compressed_size} bytes, {savings:.1%} reduction)"
             )
         else:
-            with open(output_path, 'w') as f:
-                f.write(json_bytes.decode('utf-8'))
+            with open(output_path, "w") as f:
+                f.write(json_bytes.decode("utf-8"))
             logger.debug(f"Knowledge base saved: {output_path} ({original_size} bytes)")
 
         return output_path
@@ -296,22 +300,24 @@ class KnowledgeBase:
         file_path = Path(file_path)
 
         # Check if file is gzip compressed (by extension or magic bytes)
-        is_compressed = str(file_path).endswith('.gz')
+        is_compressed = str(file_path).endswith(".gz")
 
         if is_compressed:
-            with gzip.open(file_path, 'rt', encoding='utf-8') as f:
+            with gzip.open(file_path, "rt", encoding="utf-8") as f:
                 data = json.load(f)
             logger.debug(f"Loaded compressed knowledge base: {file_path}")
         else:
             # Try reading as regular JSON first
             try:
-                with open(file_path, 'r') as f:
+                with open(file_path, "r") as f:
                     data = json.load(f)
             except UnicodeDecodeError:
                 # File might be gzip without .gz extension, try decompressing
-                with gzip.open(file_path, 'rt', encoding='utf-8') as f:
+                with gzip.open(file_path, "rt", encoding="utf-8") as f:
                     data = json.load(f)
-                logger.debug(f"Loaded gzip-compressed knowledge base (no .gz extension): {file_path}")
+                logger.debug(
+                    f"Loaded gzip-compressed knowledge base (no .gz extension): {file_path}"
+                )
 
         # Reconstruct market config if present
         market_config = None

@@ -4,4 +4,4 @@
 
 from rra.integrations.superfluid import SuperfluidManager
 
-__all__ = ['SuperfluidManager']
+__all__ = ["SuperfluidManager"]

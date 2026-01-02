@@ -51,7 +51,10 @@ import httpx
 from web3 import Web3
 
 from rra.integration.network_resilience import (
-    RetryConfig, CircuitBreaker, CircuitBreakerConfig, calculate_delay
+    RetryConfig,
+    CircuitBreaker,
+    CircuitBreakerConfig,
+    calculate_delay,
 )
 from eth_utils import keccak, to_checksum_address
 from eth_keys import keys
@@ -65,10 +68,11 @@ logger = logging.getLogger(__name__)
 
 class DIDMethod(Enum):
     """Supported DID methods."""
-    WEB = "web"       # did:web:example.com
-    ETHR = "ethr"     # did:ethr:0x123...
-    KEY = "key"       # did:key:z6Mk...
-    NLC = "nlc"       # did:nlc:abc123 (NatLangChain native)
+
+    WEB = "web"  # did:web:example.com
+    ETHR = "ethr"  # did:ethr:0x123...
+    KEY = "key"  # did:key:z6Mk...
+    NLC = "nlc"  # did:nlc:abc123 (NatLangChain native)
 
 
 @dataclass
@@ -78,9 +82,10 @@ class VerificationMethod:
 
     Represents a public key or other verification material.
     """
-    id: str                          # e.g., "did:ethr:0x123...#key-1"
-    type: str                        # e.g., "EcdsaSecp256k1VerificationKey2019"
-    controller: str                  # DID that controls this key
+
+    id: str  # e.g., "did:ethr:0x123...#key-1"
+    type: str  # e.g., "EcdsaSecp256k1VerificationKey2019"
+    controller: str  # DID that controls this key
     public_key_hex: Optional[str] = None
     public_key_jwk: Optional[Dict] = None
     public_key_multibase: Optional[str] = None
@@ -107,9 +112,10 @@ class VerificationMethod:
 @dataclass
 class ServiceEndpoint:
     """Service endpoint in a DID Document."""
-    id: str                          # e.g., "did:ethr:0x123...#messaging"
-    type: str                        # e.g., "MessagingService"
-    service_endpoint: str            # URL or other endpoint
+
+    id: str  # e.g., "did:ethr:0x123...#messaging"
+    type: str  # e.g., "MessagingService"
+    service_endpoint: str  # URL or other endpoint
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to DID Document format."""
@@ -128,7 +134,8 @@ class DIDDocument:
     Contains identity information, verification methods,
     authentication methods, and service endpoints.
     """
-    id: str                                              # The DID
+
+    id: str  # The DID
     context: List[str] = field(default_factory=lambda: ["https://www.w3.org/ns/did/v1"])
     controller: Optional[str] = None
     verification_method: List[VerificationMethod] = field(default_factory=list)
@@ -337,7 +344,7 @@ class WebDIDResolver(DIDMethodResolver):
         retry_config = RetryConfig(
             max_retries=3,
             base_delay=1.0,
-            retryable_exceptions=(httpx.TimeoutException, httpx.NetworkError)
+            retryable_exceptions=(httpx.TimeoutException, httpx.NetworkError),
         )
 
         last_exception = None
@@ -359,10 +366,14 @@ class WebDIDResolver(DIDMethodResolver):
                 last_exception = e
                 if attempt < retry_config.max_retries:
                     delay = calculate_delay(attempt, retry_config)
-                    logger.warning(f"DID resolution retry {attempt + 1}/{retry_config.max_retries} for {did}: {e}")
+                    logger.warning(
+                        f"DID resolution retry {attempt + 1}/{retry_config.max_retries} for {did}: {e}"
+                    )
                     await asyncio.sleep(delay)
                 else:
-                    logger.error(f"DID resolution failed after {retry_config.max_retries} retries for {did}: {e}")
+                    logger.error(
+                        f"DID resolution failed after {retry_config.max_retries} retries for {did}: {e}"
+                    )
             except httpx.HTTPStatusError as e:
                 logger.warning(f"HTTP error resolving DID {did}: {e.response.status_code}")
                 return None
@@ -422,8 +433,8 @@ class KeyDIDResolver(DIDMethodResolver):
     """
 
     # Multicodec prefixes
-    ED25519_PREFIX = bytes([0xed, 0x01])
-    SECP256K1_PREFIX = bytes([0xe7, 0x01])
+    ED25519_PREFIX = bytes([0xED, 0x01])
+    SECP256K1_PREFIX = bytes([0xE7, 0x01])
 
     def supports(self, did: str) -> bool:
         """Check if this is a key DID."""
@@ -434,6 +445,7 @@ class KeyDIDResolver(DIDMethodResolver):
         if encoded.startswith("z"):
             # Base58btc encoding
             import base58
+
             return base58.b58decode(encoded[1:])
         raise ValueError(f"Unsupported multibase encoding: {encoded[0]}")
 
@@ -575,8 +587,8 @@ class NLCDIDResolver(DIDMethodResolver):
     # Key type mapping from contract enum to string type
     KEY_TYPE_MAP = {
         0: "EcdsaSecp256k1VerificationKey2019",  # EcdsaSecp256k1
-        1: "Ed25519VerificationKey2020",          # Ed25519
-        2: "X25519KeyAgreementKey2020",           # X25519
+        1: "Ed25519VerificationKey2020",  # Ed25519
+        2: "X25519KeyAgreementKey2020",  # X25519
     }
 
     def __init__(self, registry_address: Optional[str] = None, rpc_url: Optional[str] = None):
@@ -609,8 +621,7 @@ class NLCDIDResolver(DIDMethodResolver):
         if self._contract is None and self.registry_address:
             w3 = self._get_web3()
             self._contract = w3.eth.contract(
-                address=to_checksum_address(self.registry_address),
-                abi=self.REGISTRY_ABI
+                address=to_checksum_address(self.registry_address), abi=self.REGISTRY_ABI
             )
         return self._contract
 
@@ -653,7 +664,9 @@ class NLCDIDResolver(DIDMethodResolver):
 
         # Check if we have a registry address configured
         if not self.registry_address:
-            logger.warning("NLC DID Registry address not configured. Set NLC_DID_REGISTRY_ADDRESS env var.")
+            logger.warning(
+                "NLC DID Registry address not configured. Set NLC_DID_REGISTRY_ADDRESS env var."
+            )
             # Return a placeholder document for development
             return self._create_placeholder_document(did, identifier)
 
@@ -702,7 +715,9 @@ class NLCDIDResolver(DIDMethodResolver):
                 public_key = vm[3]
 
                 # Map key type enum to string
-                key_type_str = self.KEY_TYPE_MAP.get(key_type_enum, "EcdsaSecp256k1VerificationKey2019")
+                key_type_str = self.KEY_TYPE_MAP.get(
+                    key_type_enum, "EcdsaSecp256k1VerificationKey2019"
+                )
 
                 vm_obj = VerificationMethod(
                     id=f"{did}#{key_id_hex[-8:]}",  # Use last 8 chars as key fragment
@@ -833,16 +848,15 @@ class NLCDIDResolver(DIDMethodResolver):
             account = Account.from_key(private_key)
 
             # Build transaction
-            tx = contract.functions.registerDID(
-                public_key,
-                key_type
-            ).build_transaction({
-                'from': account.address,
-                'value': stake_wei,
-                'gas': 500000,
-                'gasPrice': w3.eth.gas_price,
-                'nonce': w3.eth.get_transaction_count(account.address),
-            })
+            tx = contract.functions.registerDID(public_key, key_type).build_transaction(
+                {
+                    "from": account.address,
+                    "value": stake_wei,
+                    "gas": 500000,
+                    "gasPrice": w3.eth.gas_price,
+                    "nonce": w3.eth.get_transaction_count(account.address),
+                }
+            )
 
             # Sign and send
             signed_tx = w3.eth.account.sign_transaction(tx, private_key)
@@ -851,13 +865,13 @@ class NLCDIDResolver(DIDMethodResolver):
             # Wait for receipt
             receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
 
-            if receipt['status'] == 1:
+            if receipt["status"] == 1:
                 # Parse the DIDRegistered event to get the identifier
                 # For now, construct from logs
-                for log in receipt['logs']:
-                    if len(log['topics']) >= 2:
+                for log in receipt["logs"]:
+                    if len(log["topics"]) >= 2:
                         # First topic is event signature, second is indexed identifier
-                        identifier = log['topics'][1].hex()
+                        identifier = log["topics"][1].hex()
                         did = f"did:nlc:{identifier}"
                         logger.info(f"Registered new DID: {did}")
                         return did
@@ -881,11 +895,7 @@ class DIDResolver:
     Aggregates method-specific resolvers and provides a unified interface.
     """
 
-    def __init__(
-        self,
-        rpc_url: Optional[str] = None,
-        registry_address: Optional[str] = None
-    ):
+    def __init__(self, rpc_url: Optional[str] = None, registry_address: Optional[str] = None):
         """
         Initialize the resolver with method-specific resolvers.
 
@@ -939,7 +949,7 @@ class DIDResolver:
     def _validate_did_format(self, did: str) -> bool:
         """Validate DID format according to W3C spec."""
         # Basic pattern: did:<method>:<method-specific-id>
-        pattern = r'^did:[a-z0-9]+:[a-zA-Z0-9._:%-]+$'
+        pattern = r"^did:[a-z0-9]+:[a-zA-Z0-9._:%-]+$"
         return bool(re.match(pattern, did))
 
     def get_method(self, did: str) -> Optional[DIDMethod]:
@@ -993,7 +1003,7 @@ class DIDResolver:
         did: str,
         message: bytes,
         signature: bytes,
-        verification_method_id: Optional[str] = None
+        verification_method_id: Optional[str] = None,
     ) -> bool:
         """
         Verify a signature against a DID's verification method.
@@ -1031,12 +1041,7 @@ class DIDResolver:
         except Exception:
             return False
 
-    def _verify_secp256k1(
-        self,
-        vm: VerificationMethod,
-        message: bytes,
-        signature: bytes
-    ) -> bool:
+    def _verify_secp256k1(self, vm: VerificationMethod, message: bytes, signature: bytes) -> bool:
         """Verify secp256k1 signature."""
         # For blockchain account ID (Ethereum)
         if vm.blockchain_account_id:
@@ -1052,12 +1057,7 @@ class DIDResolver:
 
         return False
 
-    def _verify_ed25519(
-        self,
-        vm: VerificationMethod,
-        message: bytes,
-        signature: bytes
-    ) -> bool:
+    def _verify_ed25519(self, vm: VerificationMethod, message: bytes, signature: bytes) -> bool:
         """Verify Ed25519 signature."""
         try:
             public_key_bytes: Optional[bytes] = None
@@ -1070,9 +1070,10 @@ class DIDResolver:
                 if vm.public_key_multibase.startswith("z"):
                     # Base58btc encoding
                     import base58
+
                     key_bytes = base58.b58decode(vm.public_key_multibase[1:])
                     # Check for multicodec prefix (0xed01 for Ed25519)
-                    if len(key_bytes) > 2 and key_bytes[:2] == bytes([0xed, 0x01]):
+                    if len(key_bytes) > 2 and key_bytes[:2] == bytes([0xED, 0x01]):
                         public_key_bytes = key_bytes[2:]
                     else:
                         public_key_bytes = key_bytes
@@ -1090,12 +1091,7 @@ class DIDResolver:
         except (InvalidSignature, ValueError, Exception):
             return False
 
-    async def authenticate(
-        self,
-        did: str,
-        challenge: bytes,
-        response: bytes
-    ) -> bool:
+    async def authenticate(self, did: str, challenge: bytes, response: bytes) -> bool:
         """
         Authenticate a DID by verifying a challenge-response.
 

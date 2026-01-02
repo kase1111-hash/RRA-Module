@@ -34,8 +34,10 @@ FORK_DATA_PATH = Path(os.environ.get("RRA_FORK_DATA_PATH", "data/forks.json"))
 # Models
 # =============================================================================
 
+
 class ForkInfo(BaseModel):
     """Information about a detected fork."""
+
     parent_repo: str
     parent_url: str
     fork_repo: str
@@ -50,6 +52,7 @@ class ForkInfo(BaseModel):
 
 class ForkEvent(BaseModel):
     """GitHub fork event payload."""
+
     action: str = "created"
     repository: Dict[str, Any]
     forkee: Dict[str, Any]
@@ -59,6 +62,7 @@ class ForkEvent(BaseModel):
 # =============================================================================
 # GitHub Webhook Handler
 # =============================================================================
+
 
 class GitHubWebhookHandler:
     """Handle GitHub webhooks for fork detection."""
@@ -78,22 +82,17 @@ class GitHubWebhookHandler:
         """Load fork data from storage."""
         if FORK_DATA_PATH.exists():
             try:
-                with open(FORK_DATA_PATH, 'r') as f:
+                with open(FORK_DATA_PATH, "r") as f:
                     data = json.load(f)
-                    self._forks = {
-                        k: ForkInfo(**v) for k, v in data.items()
-                    }
+                    self._forks = {k: ForkInfo(**v) for k, v in data.items()}
             except (json.JSONDecodeError, IOError):
                 self._forks = {}
 
     def _save_forks(self) -> None:
         """Save fork data to storage."""
         FORK_DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
-        with open(FORK_DATA_PATH, 'w') as f:
-            json.dump(
-                {k: v.model_dump() for k, v in self._forks.items()},
-                f, indent=2, default=str
-            )
+        with open(FORK_DATA_PATH, "w") as f:
+            json.dump({k: v.model_dump() for k, v in self._forks.items()}, f, indent=2, default=str)
 
     def verify_signature(self, payload: bytes, signature: str) -> bool:
         """
@@ -112,11 +111,7 @@ class GitHubWebhookHandler:
         if not signature or not signature.startswith("sha256="):
             return False
 
-        expected = hmac.new(
-            self.secret.encode(),
-            payload,
-            hashlib.sha256
-        ).hexdigest()
+        expected = hmac.new(self.secret.encode(), payload, hashlib.sha256).hexdigest()
 
         return hmac.compare_digest(f"sha256={expected}", signature)
 
@@ -130,16 +125,16 @@ class GitHubWebhookHandler:
         Returns:
             ForkInfo with extracted fork details
         """
-        repo_data = event.get('repository', {})
-        fork_data = event.get('forkee', {})
+        repo_data = event.get("repository", {})
+        fork_data = event.get("forkee", {})
 
         fork_info = ForkInfo(
-            parent_repo=repo_data.get('full_name', ''),
-            parent_url=repo_data.get('html_url', ''),
-            fork_repo=fork_data.get('full_name', ''),
-            fork_url=fork_data.get('html_url', ''),
-            fork_owner=fork_data.get('owner', {}).get('login', ''),
-            forked_at=fork_data.get('created_at', datetime.utcnow().isoformat()),
+            parent_repo=repo_data.get("full_name", ""),
+            parent_url=repo_data.get("html_url", ""),
+            fork_repo=fork_data.get("full_name", ""),
+            fork_url=fork_data.get("html_url", ""),
+            fork_owner=fork_data.get("owner", {}).get("login", ""),
+            forked_at=fork_data.get("created_at", datetime.utcnow().isoformat()),
         )
 
         # Store fork info
@@ -155,10 +150,7 @@ class GitHubWebhookHandler:
 
     def get_forks_for_parent(self, parent_repo: str) -> List[ForkInfo]:
         """Get all forks for a parent repository."""
-        return [
-            fork for fork in self._forks.values()
-            if fork.parent_repo == parent_repo
-        ]
+        return [fork for fork in self._forks.values() if fork.parent_repo == parent_repo]
 
     def get_all_forks(self) -> List[ForkInfo]:
         """Get all detected forks."""
@@ -187,6 +179,7 @@ class GitHubWebhookHandler:
 # =============================================================================
 # Fork Notifier
 # =============================================================================
+
 
 class ForkNotifier:
     """Notify fork owners about derivative registration requirements."""
@@ -343,6 +336,7 @@ Or visit: https://natlangchain.io/register-derivative/{ip_asset_id}
 # Fork Tracker
 # =============================================================================
 
+
 class ForkTracker:
     """Track forks and build derivative trees."""
 
@@ -383,34 +377,37 @@ class ForkTracker:
                 "registered_derivatives": len(registered),
                 "pending_registration": len(unregistered),
                 "notification_rate": (
-                    sum(1 for f in forks if f.notified) / len(forks)
-                    if forks else 0
+                    sum(1 for f in forks if f.notified) / len(forks) if forks else 0
                 ),
             },
         }
 
         # Add registered derivatives
         for fork in registered:
-            tree["derivatives"].append({
-                "repo": fork.fork_repo,
-                "url": fork.fork_url,
-                "owner": fork.fork_owner,
-                "forked_at": fork.forked_at,
-                "ip_asset_id": fork.derivative_ip_asset_id,
-                "type": "registered_derivative",
-            })
-
-        # Add unregistered if requested
-        if include_unregistered:
-            for fork in unregistered:
-                tree["derivatives"].append({
+            tree["derivatives"].append(
+                {
                     "repo": fork.fork_repo,
                     "url": fork.fork_url,
                     "owner": fork.fork_owner,
                     "forked_at": fork.forked_at,
-                    "notified": fork.notified,
-                    "type": "unregistered_fork",
-                })
+                    "ip_asset_id": fork.derivative_ip_asset_id,
+                    "type": "registered_derivative",
+                }
+            )
+
+        # Add unregistered if requested
+        if include_unregistered:
+            for fork in unregistered:
+                tree["derivatives"].append(
+                    {
+                        "repo": fork.fork_repo,
+                        "url": fork.fork_url,
+                        "owner": fork.fork_owner,
+                        "forked_at": fork.forked_at,
+                        "notified": fork.notified,
+                        "type": "unregistered_fork",
+                    }
+                )
 
         return tree
 
@@ -424,7 +421,8 @@ class ForkTracker:
             "total_registered": sum(1 for f in all_forks if f.registered_as_derivative),
             "registration_rate": (
                 sum(1 for f in all_forks if f.registered_as_derivative) / len(all_forks)
-                if all_forks else 0
+                if all_forks
+                else 0
             ),
             "unique_parent_repos": len(set(f.parent_repo for f in all_forks)),
         }
@@ -433,6 +431,7 @@ class ForkTracker:
 # =============================================================================
 # RRA Registration Checker
 # =============================================================================
+
 
 class RRARegistrationChecker:
     """Check if repositories are registered with RRA."""
@@ -447,7 +446,7 @@ class RRARegistrationChecker:
         """Load registration data."""
         if self.registrations_path.exists():
             try:
-                with open(self.registrations_path, 'r') as f:
+                with open(self.registrations_path, "r") as f:
                     self._registrations = json.load(f)
             except (json.JSONDecodeError, IOError):
                 self._registrations = {}
@@ -455,7 +454,7 @@ class RRARegistrationChecker:
     def _save_registrations(self) -> None:
         """Save registration data."""
         self.registrations_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.registrations_path, 'w') as f:
+        with open(self.registrations_path, "w") as f:
             json.dump(self._registrations, f, indent=2, default=str)
 
     def is_registered(self, repo: str) -> bool:

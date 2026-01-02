@@ -23,6 +23,7 @@ from enum import Enum
 try:
     from web3 import Web3
     from web3.contract import Contract
+
     HAS_WEB3 = True
 except ImportError:
     HAS_WEB3 = False
@@ -32,6 +33,7 @@ except ImportError:
 
 class StreamStatus(Enum):
     """Status of a Superfluid stream."""
+
     PENDING = "pending"
     ACTIVE = "active"
     PAUSED = "paused"
@@ -41,6 +43,7 @@ class StreamStatus(Enum):
 
 class SupportedNetwork(Enum):
     """Networks with Superfluid support."""
+
     POLYGON = "polygon"
     POLYGON_MUMBAI = "polygon-mumbai"
     ARBITRUM = "arbitrum"
@@ -52,6 +55,7 @@ class SupportedNetwork(Enum):
 @dataclass
 class StreamingLicense:
     """Represents a streaming license subscription."""
+
     license_id: str
     repo_id: str
     buyer_address: str
@@ -69,19 +73,19 @@ class StreamingLicense:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         data = asdict(self)
-        data['status'] = self.status.value
-        data['start_time'] = self.start_time.isoformat()
+        data["status"] = self.status.value
+        data["start_time"] = self.start_time.isoformat()
         if self.stop_time:
-            data['stop_time'] = self.stop_time.isoformat()
+            data["stop_time"] = self.stop_time.isoformat()
         return data
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'StreamingLicense':
+    def from_dict(cls, data: Dict[str, Any]) -> "StreamingLicense":
         """Create from dictionary."""
-        data['status'] = StreamStatus(data['status'])
-        data['start_time'] = datetime.fromisoformat(data['start_time'])
-        if data.get('stop_time'):
-            data['stop_time'] = datetime.fromisoformat(data['stop_time'])
+        data["status"] = StreamStatus(data["status"])
+        data["start_time"] = datetime.fromisoformat(data["start_time"])
+        if data.get("stop_time"):
+            data["stop_time"] = datetime.fromisoformat(data["stop_time"])
         return cls(**data)
 
 
@@ -94,7 +98,7 @@ SUPERFLUID_ADDRESSES = {
             "USDCx": "0xCAa7349CEA390F89641fe306D93591f87595dc1F",
             "DAIx": "0x1305F6B6Df9Dc47159D12Eb7aC2804d4A33173c2",
             "WETHx": "0x27e1e4E6BC79D93032abef01025811B7E4727e85",
-        }
+        },
     },
     SupportedNetwork.POLYGON_MUMBAI: {
         "host": "0xEB796bdb90fFA0f28255275e16936D25d3418603",
@@ -102,14 +106,14 @@ SUPERFLUID_ADDRESSES = {
         "tokens": {
             "fUSDCx": "0x42bb40bF79730451B11f6De1CbA222F17b87Afd7",
             "fDAIx": "0x5D8B4C2554aeB7e86F387B4d6c00Ac33499Ed01f",
-        }
+        },
     },
     SupportedNetwork.ARBITRUM: {
         "host": "0xCf8Acb4eF033efF16E8080aed4c7D5B9285D2192",
         "cfa": "0x731FdBB12944973B500518aea61942381d7e240D",
         "tokens": {
             "USDCx": "0x7BE4c6B5C8C77c13EBEB10DAFC46c0c7Dc11D54b",
-        }
+        },
     },
 }
 
@@ -130,7 +134,7 @@ class SuperfluidManager:
 
     def __init__(
         self,
-        w3: Optional['Web3'] = None,
+        w3: Optional["Web3"] = None,
         network: SupportedNetwork = SupportedNetwork.POLYGON,
         storage_path: Optional[Path] = None,
     ):
@@ -158,7 +162,7 @@ class SuperfluidManager:
         """Load licenses from storage."""
         if self.storage_path.exists():
             try:
-                with open(self.storage_path, 'r') as f:
+                with open(self.storage_path, "r") as f:
                     data = json.load(f)
                     for license_id, license_data in data.items():
                         self._licenses[license_id] = StreamingLicense.from_dict(license_data)
@@ -168,11 +172,8 @@ class SuperfluidManager:
     def _save_licenses(self) -> None:
         """Save licenses to storage."""
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
-        data = {
-            license_id: license.to_dict()
-            for license_id, license in self._licenses.items()
-        }
-        with open(self.storage_path, 'w') as f:
+        data = {license_id: license.to_dict() for license_id, license in self._licenses.items()}
+        with open(self.storage_path, "w") as f:
             json.dump(data, f, indent=2)
 
     def calculate_flow_rate(self, monthly_usd: float, decimals: int = 18) -> int:
@@ -187,7 +188,7 @@ class SuperfluidManager:
             Flow rate in wei per second
         """
         per_second = monthly_usd / self.SECONDS_PER_MONTH
-        return int(per_second * (10 ** decimals))
+        return int(per_second * (10**decimals))
 
     def calculate_monthly_from_flow_rate(self, flow_rate: int, decimals: int = 18) -> float:
         """
@@ -200,7 +201,7 @@ class SuperfluidManager:
         Returns:
             Monthly cost in token units
         """
-        per_second = flow_rate / (10 ** decimals)
+        per_second = flow_rate / (10**decimals)
         return per_second * self.SECONDS_PER_MONTH
 
     def get_supported_tokens(self) -> List[str]:
@@ -345,7 +346,7 @@ class SuperfluidManager:
 
         # Calculate time since start
         elapsed = (datetime.utcnow() - license.start_time).total_seconds()
-        total_paid = (license.flow_rate * elapsed) / (10 ** 18)
+        total_paid = (license.flow_rate * elapsed) / (10**18)
 
         result = {
             "license_id": license_id,
@@ -360,8 +361,8 @@ class SuperfluidManager:
 
         if license.status == StreamStatus.STOPPED and license.stop_time:
             grace_remaining = (
-                license.grace_period_seconds -
-                (datetime.utcnow() - license.stop_time).total_seconds()
+                license.grace_period_seconds
+                - (datetime.utcnow() - license.stop_time).total_seconds()
             )
             result["grace_period_remaining"] = max(0, int(grace_remaining))
             result["will_revoke_at"] = (
@@ -423,24 +424,17 @@ class SuperfluidManager:
 
     def get_licenses_for_repo(self, repo_id: str) -> List[StreamingLicense]:
         """Get all licenses for a repository."""
-        return [
-            license for license in self._licenses.values()
-            if license.repo_id == repo_id
-        ]
+        return [license for license in self._licenses.values() if license.repo_id == repo_id]
 
     def get_licenses_for_buyer(self, buyer_address: str) -> List[StreamingLicense]:
         """Get all licenses for a buyer."""
         buyer = buyer_address.lower()
-        return [
-            license for license in self._licenses.values()
-            if license.buyer_address == buyer
-        ]
+        return [license for license in self._licenses.values() if license.buyer_address == buyer]
 
     def get_active_licenses(self) -> List[StreamingLicense]:
         """Get all active streaming licenses."""
         return [
-            license for license in self._licenses.values()
-            if license.status == StreamStatus.ACTIVE
+            license for license in self._licenses.values() if license.status == StreamStatus.ACTIVE
         ]
 
     def get_stats(self) -> Dict[str, Any]:
@@ -450,9 +444,7 @@ class SuperfluidManager:
         revoked = len([l for l in self._licenses.values() if l.status == StreamStatus.REVOKED])
 
         total_monthly_revenue = sum(
-            l.monthly_cost_usd
-            for l in self._licenses.values()
-            if l.status == StreamStatus.ACTIVE
+            l.monthly_cost_usd for l in self._licenses.values() if l.status == StreamStatus.ACTIVE
         )
 
         return {
@@ -465,10 +457,7 @@ class SuperfluidManager:
         }
 
     def generate_stream_proposal(
-        self,
-        repo_name: str,
-        monthly_price: float,
-        token: str = "USDCx"
+        self, repo_name: str, monthly_price: float, token: str = "USDCx"
     ) -> str:
         """
         Generate a negotiation proposal for streaming subscription.

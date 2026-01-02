@@ -28,10 +28,11 @@ from datetime import datetime, timedelta
 
 class SafeguardLevel(str, Enum):
     """Transaction safeguard levels based on risk."""
-    LOW = "low"           # Small transactions, quick confirm
-    MEDIUM = "medium"     # Standard transactions, single confirm
-    HIGH = "high"         # Large transactions, double confirm
-    CRITICAL = "critical" # Very large, requires explicit amount typing
+
+    LOW = "low"  # Small transactions, quick confirm
+    MEDIUM = "medium"  # Standard transactions, single confirm
+    HIGH = "high"  # Large transactions, double confirm
+    CRITICAL = "critical"  # Very large, requires explicit amount typing
 
 
 @dataclass
@@ -39,6 +40,7 @@ class PriceValidation:
     """
     Price validation result with warnings and display formatting.
     """
+
     is_valid: bool
     normalized_price: float
     currency: str
@@ -77,7 +79,7 @@ class TransactionSafeguards:
 
     # Supported currencies and their approximate USD rates
     CURRENCY_RATES = {
-        "ETH": 2000,   # Approximate ETH/USD
+        "ETH": 2000,  # Approximate ETH/USD
         "USDC": 1,
         "USDT": 1,
         "DAI": 1,
@@ -92,9 +94,7 @@ class TransactionSafeguards:
     MAX_TRANSACTIONS_PER_HOUR = 10
 
     def __init__(
-        self,
-        custom_rates: Optional[Dict[str, float]] = None,
-        enable_rate_limiting: bool = True
+        self, custom_rates: Optional[Dict[str, float]] = None, enable_rate_limiting: bool = True
     ):
         """
         Initialize safeguards.
@@ -115,7 +115,7 @@ class TransactionSafeguards:
         price_str: str,
         floor_price: Optional[str] = None,
         target_price: Optional[str] = None,
-        context: Optional[str] = None
+        context: Optional[str] = None,
     ) -> PriceValidation:
         """
         Validate and analyze a price string.
@@ -141,7 +141,7 @@ class TransactionSafeguards:
                 currency="UNKNOWN",
                 display_string="Invalid price",
                 errors=[f"Cannot parse price: '{price_str}'"],
-                safeguard_level=SafeguardLevel.CRITICAL
+                safeguard_level=SafeguardLevel.CRITICAL,
             )
 
         amount, currency = parsed
@@ -222,7 +222,7 @@ class TransactionSafeguards:
             errors=errors,
             safeguard_level=safeguard_level,
             requires_explicit_confirmation=requires_explicit,
-            confirmation_prompt=confirmation_prompt
+            confirmation_prompt=confirmation_prompt,
         )
 
     def check_rate_limit(self, buyer_id: str) -> Tuple[bool, str]:
@@ -242,10 +242,7 @@ class TransactionSafeguards:
         hour_ago = now - timedelta(hours=1)
 
         # Cleanup old timestamps
-        self.transaction_timestamps = [
-            ts for ts in self.transaction_timestamps
-            if ts > hour_ago
-        ]
+        self.transaction_timestamps = [ts for ts in self.transaction_timestamps if ts > hour_ago]
 
         if len(self.transaction_timestamps) >= self.MAX_TRANSACTIONS_PER_HOUR:
             oldest = min(self.transaction_timestamps)
@@ -262,9 +259,7 @@ class TransactionSafeguards:
         self.transaction_timestamps.append(datetime.utcnow())
 
     def format_confirmation_screen(
-        self,
-        transaction_data: Dict[str, Any],
-        time_remaining: int
+        self, transaction_data: Dict[str, Any], time_remaining: int
     ) -> str:
         """
         Generate a formatted confirmation screen.
@@ -306,16 +301,18 @@ class TransactionSafeguards:
                 lines.append(f"    ! {w}")
             lines.append("")
 
-        lines.extend([
-            f"  Time remaining: {time_str}",
-            "",
-            "  This transaction is FINAL and cannot be undone.",
-            "",
-            "=" * 50,
-            "  Type 'CONFIRM' to proceed",
-            "  Type 'CANCEL' to abort",
-            "=" * 50,
-        ])
+        lines.extend(
+            [
+                f"  Time remaining: {time_str}",
+                "",
+                "  This transaction is FINAL and cannot be undone.",
+                "",
+                "=" * 50,
+                "  Type 'CONFIRM' to proceed",
+                "  Type 'CANCEL' to abort",
+                "=" * 50,
+            ]
+        )
 
         return "\n".join(lines)
 
@@ -328,8 +325,8 @@ class TransactionSafeguards:
 
         # Handle formats: "0.5 ETH", "$100", "100 USD", "0.5ETH"
         patterns = [
-            r'^([\d,]+\.?\d*)\s*([A-Za-z$]+)$',  # 0.5 ETH, 100USD
-            r'^([A-Za-z$]+)\s*([\d,]+\.?\d*)$',   # $100, ETH 0.5
+            r"^([\d,]+\.?\d*)\s*([A-Za-z$]+)$",  # 0.5 ETH, 100USD
+            r"^([A-Za-z$]+)\s*([\d,]+\.?\d*)$",  # $100, ETH 0.5
         ]
 
         for pattern in patterns:
@@ -369,12 +366,7 @@ class TransactionSafeguards:
         else:
             return SafeguardLevel.CRITICAL
 
-    def _format_display(
-        self,
-        amount: float,
-        currency: str,
-        usd_value: float
-    ) -> str:
+    def _format_display(self, amount: float, currency: str, usd_value: float) -> str:
         """Format price for clear display."""
         # Format amount based on currency
         if currency in ["ETH"]:
@@ -398,7 +390,7 @@ class TransactionSafeguards:
         currency: str,
         level: SafeguardLevel,
         warnings: List[str],
-        context: Optional[str]
+        context: Optional[str],
     ) -> str:
         """Generate appropriate confirmation prompt."""
         base = f"You are about to pay {amount} {currency}"
@@ -416,10 +408,7 @@ class TransactionSafeguards:
         elif level == SafeguardLevel.MEDIUM:
             base += "\n\nPlease review and click CONFIRM to proceed."
         elif level == SafeguardLevel.HIGH:
-            base += (
-                f"\n\nThis is a HIGH VALUE transaction."
-                f"\n\nType 'CONFIRM' to proceed."
-            )
+            base += f"\n\nThis is a HIGH VALUE transaction." f"\n\nType 'CONFIRM' to proceed."
         else:  # CRITICAL
             base += (
                 f"\n\nThis is a VERY HIGH VALUE transaction."
@@ -429,11 +418,7 @@ class TransactionSafeguards:
         return base
 
     def verify_explicit_confirmation(
-        self,
-        user_input: str,
-        expected_amount: float,
-        expected_currency: str,
-        level: SafeguardLevel
+        self, user_input: str, expected_amount: float, expected_currency: str, level: SafeguardLevel
     ) -> Tuple[bool, str]:
         """
         Verify user's explicit confirmation input.
@@ -475,4 +460,7 @@ class TransactionSafeguards:
             elif user_input == "CANCEL":
                 return False, "Transaction cancelled by user"
             else:
-                return False, f"Please type the exact amount '{expected_amount} {expected_currency}' to confirm"
+                return (
+                    False,
+                    f"Please type the exact amount '{expected_amount} {expected_currency}' to confirm",
+                )

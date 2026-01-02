@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field, field_validator
 
 class LicenseModel(str, Enum):
     """Supported license models for code monetization."""
+
     PER_SEAT = "per-seat"
     SUBSCRIPTION = "subscription"
     ONE_TIME = "one-time"
@@ -25,6 +26,7 @@ class LicenseModel(str, Enum):
 
 class NegotiationStyle(str, Enum):
     """Negotiation styles for the agent."""
+
     CONCISE = "concise"
     PERSUASIVE = "persuasive"
     STRICT = "strict"
@@ -33,6 +35,7 @@ class NegotiationStyle(str, Enum):
 
 class UpdateFrequency(str, Enum):
     """Update frequency for repo monitoring."""
+
     DAILY = "daily"
     WEEKLY = "weekly"
     MONTHLY = "monthly"
@@ -48,130 +51,98 @@ class MarketConfig(BaseModel):
     """
 
     license_model: LicenseModel = Field(
-        default=LicenseModel.PER_SEAT,
-        description="Licensing model for the codebase"
+        default=LicenseModel.PER_SEAT, description="Licensing model for the codebase"
     )
 
     target_price: str = Field(
-        ...,
-        description="Suggested starting price (e.g., '0.05 ETH', '50 USDC')"
+        ..., description="Suggested starting price (e.g., '0.05 ETH', '50 USDC')"
     )
 
-    floor_price: str = Field(
-        ...,
-        description="Minimum acceptable price"
-    )
+    floor_price: str = Field(..., description="Minimum acceptable price")
 
     negotiation_style: NegotiationStyle = Field(
-        default=NegotiationStyle.CONCISE,
-        description="Negotiation approach for the agent"
+        default=NegotiationStyle.CONCISE, description="Negotiation approach for the agent"
     )
 
     allow_custom_fork_rights: bool = Field(
-        default=False,
-        description="Allow buyers to negotiate custom forking permissions"
+        default=False, description="Allow buyers to negotiate custom forking permissions"
     )
 
     update_frequency: UpdateFrequency = Field(
-        default=UpdateFrequency.WEEKLY,
-        description="How often to poll for repo updates"
+        default=UpdateFrequency.WEEKLY, description="How often to poll for repo updates"
     )
 
     sandbox_tests: Optional[str] = Field(
-        default=None,
-        description="Path to verification scripts for code quality proofs"
+        default=None, description="Path to verification scripts for code quality proofs"
     )
 
     description: Optional[str] = Field(
-        default=None,
-        description="Human-readable description of the codebase's value proposition"
+        default=None, description="Human-readable description of the codebase's value proposition"
     )
 
     features: Optional[list[str]] = Field(
         default_factory=list,
-        description="Key features or capabilities to highlight in negotiations"
+        description="Key features or capabilities to highlight in negotiations",
     )
 
     min_license_duration: Optional[str] = Field(
-        default=None,
-        description="Minimum license duration (e.g., '1 month', '1 year')"
+        default=None, description="Minimum license duration (e.g., '1 month', '1 year')"
     )
 
     max_seats: Optional[int] = Field(
-        default=None,
-        description="Maximum seats for per-seat licensing"
+        default=None, description="Maximum seats for per-seat licensing"
     )
 
-    auto_renewal: bool = Field(
-        default=False,
-        description="Enable automatic license renewal"
-    )
+    auto_renewal: bool = Field(default=False, description="Enable automatic license renewal")
 
     royalty_on_derivatives: Optional[float] = Field(
-        default=None,
-        ge=0.0,
-        le=1.0,
-        description="Royalty percentage on derivative works (0.0-1.0)"
+        default=None, ge=0.0, le=1.0, description="Royalty percentage on derivative works (0.0-1.0)"
     )
 
     developer_wallet: Optional[str] = Field(
-        default=None,
-        description="Ethereum wallet address for receiving payments"
+        default=None, description="Ethereum wallet address for receiving payments"
     )
 
     # Story Protocol Integration
     story_protocol_enabled: bool = Field(
-        default=False,
-        description="Enable Story Protocol for programmable IP licensing"
+        default=False, description="Enable Story Protocol for programmable IP licensing"
     )
 
     ip_asset_id: Optional[str] = Field(
-        default=None,
-        description="Story Protocol IP Asset ID (auto-generated on registration)"
+        default=None, description="Story Protocol IP Asset ID (auto-generated on registration)"
     )
 
-    pil_commercial_use: bool = Field(
-        default=True,
-        description="Allow commercial use in PIL terms"
-    )
+    pil_commercial_use: bool = Field(default=True, description="Allow commercial use in PIL terms")
 
     pil_derivatives_allowed: bool = Field(
-        default=True,
-        description="Allow derivative works in PIL terms"
+        default=True, description="Allow derivative works in PIL terms"
     )
 
     pil_derivatives_attribution: bool = Field(
-        default=True,
-        description="Require attribution for derivatives in PIL terms"
+        default=True, description="Require attribution for derivatives in PIL terms"
     )
 
     pil_derivatives_reciprocal: bool = Field(
-        default=False,
-        description="Require reciprocal licensing for derivatives (copyleft)"
+        default=False, description="Require reciprocal licensing for derivatives (copyleft)"
     )
 
     derivative_royalty_percentage: Optional[float] = Field(
         default=None,
         ge=0.0,
         le=1.0,
-        description="Royalty percentage for derivatives via Story Protocol (0.0-1.0)"
+        description="Royalty percentage for derivatives via Story Protocol (0.0-1.0)",
     )
 
-    metadata: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="Additional custom metadata"
-    )
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional custom metadata")
 
-    @field_validator('target_price', 'floor_price')
+    @field_validator("target_price", "floor_price")
     @classmethod
     def validate_price_format(cls, v: str) -> str:
         """Validate that prices are in acceptable format."""
         # Basic validation - should contain amount and currency
         parts = v.strip().split()
         if len(parts) != 2:
-            raise ValueError(
-                f"Price must be in format '<amount> <currency>' (e.g., '0.05 ETH')"
-            )
+            raise ValueError(f"Price must be in format '<amount> <currency>' (e.g., '0.05 ETH')")
 
         try:
             amount = float(parts[0])
@@ -200,7 +171,7 @@ class MarketConfig(BaseModel):
         if not file_path.exists():
             raise FileNotFoundError(f"Market config not found: {file_path}")
 
-        with open(file_path, 'r') as f:
+        with open(file_path, "r") as f:
             data = yaml.safe_load(f)
 
         if not data:
@@ -215,14 +186,14 @@ class MarketConfig(BaseModel):
         Args:
             file_path: Path where to save the configuration
         """
-        data = self.model_dump(exclude_none=True, mode='json')
+        data = self.model_dump(exclude_none=True, mode="json")
 
         # Convert enum values to strings for clean YAML serialization
         for key, value in data.items():
             if isinstance(value, Enum):
                 data[key] = value.value
 
-        with open(file_path, 'w') as f:
+        with open(file_path, "w") as f:
             yaml.dump(data, f, default_flow_style=False, sort_keys=False)
 
     def to_contract_params(self) -> Dict[str, Any]:
@@ -263,7 +234,9 @@ class MarketConfig(BaseModel):
         Returns:
             Dictionary of PIL terms for Story Protocol
         """
-        royalty_percentage = self.derivative_royalty_percentage or self.royalty_on_derivatives or 0.0
+        royalty_percentage = (
+            self.derivative_royalty_percentage or self.royalty_on_derivatives or 0.0
+        )
 
         return {
             "commercial_use": self.pil_commercial_use,

@@ -18,134 +18,103 @@ class IntegrationConfig(BaseModel):
 
     # Mode settings
     auto_detect_mode: bool = Field(
-        default=True,
-        description="Automatically detect and use available integrations"
+        default=True, description="Automatically detect and use available integrations"
     )
 
     force_standalone: bool = Field(
-        default=False,
-        description="Force standalone mode even if integrations are available"
+        default=False, description="Force standalone mode even if integrations are available"
     )
 
     # Component-specific settings
     enable_memory_vault: bool = Field(
-        default=True,
-        description="Enable memory-vault integration for state persistence"
+        default=True, description="Enable memory-vault integration for state persistence"
     )
 
     enable_value_ledger: bool = Field(
-        default=True,
-        description="Enable value-ledger integration for transaction tracking"
+        default=True, description="Enable value-ledger integration for transaction tracking"
     )
 
     enable_mediator_node: bool = Field(
-        default=True,
-        description="Enable mediator-node integration for message routing"
+        default=True, description="Enable mediator-node integration for message routing"
     )
 
     enable_intent_log: bool = Field(
-        default=True,
-        description="Enable IntentLog integration for decision auditing"
+        default=True, description="Enable IntentLog integration for decision auditing"
     )
 
     enable_agent_os: bool = Field(
-        default=True,
-        description="Enable Agent-OS integration for runtime management"
+        default=True, description="Enable Agent-OS integration for runtime management"
     )
 
     enable_synth_mind: bool = Field(
-        default=True,
-        description="Enable synth-mind integration for LLM capabilities"
+        default=True, description="Enable synth-mind integration for LLM capabilities"
     )
 
     # Connection settings
     memory_vault_url: Optional[str] = Field(
-        default=None,
-        description="URL for memory-vault service"
+        default=None, description="URL for memory-vault service"
     )
 
     value_ledger_url: Optional[str] = Field(
-        default=None,
-        description="URL for value-ledger service"
+        default=None, description="URL for value-ledger service"
     )
 
     mediator_node_url: Optional[str] = Field(
-        default=None,
-        description="URL for mediator-node service"
+        default=None, description="URL for mediator-node service"
     )
 
-    intent_log_url: Optional[str] = Field(
-        default=None,
-        description="URL for IntentLog service"
-    )
+    intent_log_url: Optional[str] = Field(default=None, description="URL for IntentLog service")
 
     # Agent-OS settings
     agent_os_runtime: str = Field(
-        default="local",
-        description="Agent-OS runtime environment: local, distributed, cloud"
+        default="local", description="Agent-OS runtime environment: local, distributed, cloud"
     )
 
     # Boundary-Daemon settings
     enable_boundary_daemon: bool = Field(
-        default=True,
-        description="Enable boundary-daemon integration for access control"
+        default=True, description="Enable boundary-daemon integration for access control"
     )
 
     boundary_daemon_socket: Optional[str] = Field(
-        default=None,
-        description="Unix socket path for boundary-daemon connection"
+        default=None, description="Unix socket path for boundary-daemon connection"
     )
 
     boundary_daemon_url: Optional[str] = Field(
-        default=None,
-        description="HTTP URL for boundary-daemon connection"
+        default=None, description="HTTP URL for boundary-daemon connection"
     )
 
     boundary_mode: str = Field(
         default="restricted",
-        description="Initial boundary mode: open, restricted, trusted, airgap, coldroom, lockdown"
+        description="Initial boundary mode: open, restricted, trusted, airgap, coldroom, lockdown",
     )
 
     # Boundary-SIEM settings
     enable_boundary_siem: bool = Field(
-        default=False,
-        description="Enable Boundary-SIEM integration for security monitoring"
+        default=False, description="Enable Boundary-SIEM integration for security monitoring"
     )
 
-    siem_host: str = Field(
-        default="localhost",
-        description="Boundary-SIEM host address"
-    )
+    siem_host: str = Field(default="localhost", description="Boundary-SIEM host address")
 
-    siem_port: int = Field(
-        default=8514,
-        description="Boundary-SIEM port"
-    )
+    siem_port: int = Field(default=8514, description="Boundary-SIEM port")
 
     siem_protocol: str = Field(
         default="json_http",
-        description="SIEM protocol: json_http, cef_udp, cef_tcp, syslog_udp, syslog_tcp"
+        description="SIEM protocol: json_http, cef_udp, cef_tcp, syslog_udp, syslog_tcp",
     )
 
     siem_api_key: Optional[str] = Field(
-        default=None,
-        description="API key for Boundary-SIEM authentication"
+        default=None, description="API key for Boundary-SIEM authentication"
     )
 
-    siem_tls_enabled: bool = Field(
-        default=False,
-        description="Enable TLS for SIEM connection"
-    )
+    siem_tls_enabled: bool = Field(default=False, description="Enable TLS for SIEM connection")
 
     siem_min_severity: str = Field(
-        default="info",
-        description="Minimum event severity to forward to SIEM"
+        default="info", description="Minimum event severity to forward to SIEM"
     )
 
     # Fallback behavior
     fallback_to_standalone: bool = Field(
-        default=True,
-        description="Fall back to standalone mode if integrations fail"
+        default=True, description="Fall back to standalone mode if integrations fail"
     )
 
     @classmethod
@@ -162,7 +131,7 @@ class IntegrationConfig(BaseModel):
         if not file_path.exists():
             return cls()
 
-        with open(file_path, 'r') as f:
+        with open(file_path, "r") as f:
             data = yaml.safe_load(f)
 
         return cls(**data)
@@ -174,9 +143,9 @@ class IntegrationConfig(BaseModel):
         Args:
             file_path: Path where to save config
         """
-        data = self.model_dump(exclude_none=True, mode='json')
+        data = self.model_dump(exclude_none=True, mode="json")
 
-        with open(file_path, 'w') as f:
+        with open(file_path, "w") as f:
             yaml.dump(data, f, default_flow_style=False, sort_keys=False)
 
 

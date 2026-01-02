@@ -36,7 +36,7 @@ from rra.status.dreaming import get_dreaming_status
 MAX_FILES = 10000  # Maximum files to process per repository
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB max file size
 MAX_COMMITS_TO_COUNT = 10000  # Maximum commits to count
-ALLOWED_GIT_HOSTS = ['github.com', 'gitlab.com', 'bitbucket.org']
+ALLOWED_GIT_HOSTS = ["github.com", "gitlab.com", "bitbucket.org"]
 
 
 class RepoIngester:
@@ -88,6 +88,7 @@ class RepoIngester:
         """Lazy-load the code verifier."""
         if self._verifier is None:
             from rra.verification.verifier import CodeVerifier
+
             self._verifier = CodeVerifier()
         return self._verifier
 
@@ -96,6 +97,7 @@ class RepoIngester:
         """Lazy-load the code categorizer."""
         if self._categorizer is None:
             from rra.verification.categorizer import CodeCategorizer
+
             self._categorizer = CodeCategorizer()
         return self._categorizer
 
@@ -104,6 +106,7 @@ class RepoIngester:
         """Lazy-load the README parser."""
         if self._readme_parser is None:
             from rra.verification.readme_parser import ReadmeParser
+
             self._readme_parser = ReadmeParser()
         return self._readme_parser
 
@@ -112,6 +115,7 @@ class RepoIngester:
         """Lazy-load the blockchain link generator."""
         if self._link_generator is None:
             from rra.verification.blockchain_link import BlockchainLinkGenerator, NetworkType
+
             network_type = NetworkType(self.network)
             self._link_generator = BlockchainLinkGenerator(network=network_type)
         return self._link_generator
@@ -130,17 +134,17 @@ class RepoIngester:
             raise ValidationError(
                 message="Repository URL cannot be empty",
                 field="repo_url",
-                constraint="must not be empty"
+                constraint="must not be empty",
             )
 
         # Only allow HTTPS protocol
         parsed = urlparse(repo_url)
-        if parsed.scheme != 'https':
+        if parsed.scheme != "https":
             raise ValidationError(
                 message="Only HTTPS GitHub URLs are allowed",
                 field="repo_url",
                 value=parsed.scheme,
-                constraint="scheme must be 'https'"
+                constraint="scheme must be 'https'",
             )
 
         # Check for allowed hosts
@@ -150,7 +154,7 @@ class RepoIngester:
                 message="Invalid URL: no hostname",
                 field="repo_url",
                 value=repo_url,
-                constraint="must have valid hostname"
+                constraint="must have valid hostname",
             )
 
         if not any(hostname.endswith(host) for host in ALLOWED_GIT_HOSTS):
@@ -158,18 +162,18 @@ class RepoIngester:
                 message=f"Only allowed git hosts are permitted. Got: {hostname}",
                 field="repo_url",
                 value=hostname,
-                constraint=f"must be one of {ALLOWED_GIT_HOSTS}"
+                constraint=f"must be one of {ALLOWED_GIT_HOSTS}",
             )
 
         # Validate path format to prevent command injection
         # Path should be /owner/repo or /owner/repo.git
-        path = parsed.path.rstrip('/')
-        if not re.match(r'^/[\w\-\.]+/[\w\-\.]+(?:\.git)?$', path):
+        path = parsed.path.rstrip("/")
+        if not re.match(r"^/[\w\-\.]+/[\w\-\.]+(?:\.git)?$", path):
             raise ValidationError(
                 message=f"Invalid repository path format: {path}",
                 field="repo_url",
                 value=path,
-                constraint="must match /owner/repo format"
+                constraint="must match /owner/repo format",
             )
 
         # Reject URLs with query strings or fragments (potential injection)
@@ -178,14 +182,10 @@ class RepoIngester:
                 message="Repository URL cannot contain query strings or fragments",
                 field="repo_url",
                 value=repo_url,
-                constraint="must not have query or fragment"
+                constraint="must not have query or fragment",
             )
 
-    def ingest(
-        self,
-        repo_url: str,
-        force_refresh: bool = False
-    ) -> KnowledgeBase:
+    def ingest(self, repo_url: str, force_refresh: bool = False) -> KnowledgeBase:
         """
         Ingest a repository and generate its knowledge base.
 
@@ -213,6 +213,7 @@ class RepoIngester:
         # Clone or update repository
         if force_refresh and repo_path.exists():
             import shutil
+
             shutil.rmtree(repo_path)
 
         if not repo_path.exists():
@@ -267,7 +268,7 @@ class RepoIngester:
             Repository name (owner_reponame format)
         """
         # Remove .git suffix and extract owner/repo
-        match = re.search(r'github\.com[:/]([^/]+)/([^/]+?)(?:\.git)?$', repo_url)
+        match = re.search(r"github\.com[:/]([^/]+)/([^/]+?)(?:\.git)?$", repo_url)
         if not match:
             raise ValueError(f"Invalid GitHub repository URL: {repo_url}")
 
@@ -368,7 +369,9 @@ class RepoIngester:
             dreaming.start("Generating blockchain links")
             print("  Generating blockchain links...")
             kb.blockchain_links = self._generate_blockchain_links(kb)
-            print(f"    Generated {len(kb.blockchain_links.get('purchase_links', []))} purchase links")
+            print(
+                f"    Generated {len(kb.blockchain_links.get('purchase_links', []))} purchase links"
+            )
             dreaming.complete("Generating blockchain links")
 
         return kb
@@ -452,7 +455,9 @@ class RepoIngester:
 
             metadata = {
                 "last_commit_sha": latest_commit.hexsha,
-                "last_commit_date": datetime.fromtimestamp(latest_commit.committed_date).isoformat(),
+                "last_commit_date": datetime.fromtimestamp(
+                    latest_commit.committed_date
+                ).isoformat(),
                 "last_commit_message": latest_commit.message.strip(),
                 "author": str(latest_commit.author),
                 "branch": repo.active_branch.name,
@@ -474,9 +479,18 @@ class RepoIngester:
         Returns a dictionary mapping file extensions to file paths.
         """
         structure = {}
-        ignore_dirs = {'.git', '__pycache__', 'node_modules', 'venv', 'env', '.venv', 'dist', 'build'}
+        ignore_dirs = {
+            ".git",
+            "__pycache__",
+            "node_modules",
+            "venv",
+            "env",
+            ".venv",
+            "dist",
+            "build",
+        }
 
-        for file_path in repo_path.rglob('*'):
+        for file_path in repo_path.rglob("*"):
             if file_path.is_file():
                 # Skip files in ignored directories
                 if any(ignored in file_path.parts for ignored in ignore_dirs):
@@ -502,8 +516,7 @@ class RepoIngester:
         if req_file.exists():
             with open(req_file) as f:
                 dependencies["python"] = [
-                    line.strip() for line in f
-                    if line.strip() and not line.startswith('#')
+                    line.strip() for line in f if line.strip() and not line.startswith("#")
                 ]
 
         # Python: pyproject.toml
@@ -511,7 +524,8 @@ class RepoIngester:
         if pyproject.exists():
             try:
                 import tomli
-                with open(pyproject, 'rb') as f:
+
+                with open(pyproject, "rb") as f:
                     data = tomli.load(f)
                     if "project" in data and "dependencies" in data["project"]:
                         dependencies.setdefault("python", []).extend(
@@ -543,7 +557,8 @@ class RepoIngester:
         if cargo_toml.exists():
             try:
                 import tomli
-                with open(cargo_toml, 'rb') as f:
+
+                with open(cargo_toml, "rb") as f:
                     data = tomli.load(f)
                     if "dependencies" in data:
                         dependencies["rust"] = list(data["dependencies"].keys())
@@ -567,7 +582,7 @@ class RepoIngester:
             file_path = repo_path / doc_file
             if file_path.exists():
                 try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
+                    with open(file_path, "r", encoding="utf-8") as f:
                         docs[doc_file] = f.read()
                 except Exception as e:
                     print(f"Warning: Could not read {doc_file}: {e}")
@@ -585,25 +600,29 @@ class RepoIngester:
 
         # Patterns for common frameworks
         patterns = {
-            'flask': r'@app\.route\(["\']([^"\']+)["\']',
-            'fastapi': r'@app\.(get|post|put|delete|patch)\(["\']([^"\']+)["\']',
-            'express': r'app\.(get|post|put|delete|patch)\(["\']([^"\']+)["\']',
+            "flask": r'@app\.route\(["\']([^"\']+)["\']',
+            "fastapi": r'@app\.(get|post|put|delete|patch)\(["\']([^"\']+)["\']',
+            "express": r'app\.(get|post|put|delete|patch)\(["\']([^"\']+)["\']',
         }
 
-        for py_file in repo_path.rglob('*.py'):
+        for py_file in repo_path.rglob("*.py"):
             try:
-                with open(py_file, 'r', encoding='utf-8') as f:
+                with open(py_file, "r", encoding="utf-8") as f:
                     content = f.read()
 
                     for framework, pattern in patterns.items():
                         matches = re.finditer(pattern, content)
                         for match in matches:
-                            endpoints.append({
-                                'file': str(py_file.relative_to(repo_path)),
-                                'framework': framework,
-                                'path': match.group(1) if 'flask' in framework else match.group(2),
-                                'method': match.group(1) if framework != 'flask' else 'GET'
-                            })
+                            endpoints.append(
+                                {
+                                    "file": str(py_file.relative_to(repo_path)),
+                                    "framework": framework,
+                                    "path": (
+                                        match.group(1) if "flask" in framework else match.group(2)
+                                    ),
+                                    "method": match.group(1) if framework != "flask" else "GET",
+                                }
+                            )
             except (OSError, IOError, UnicodeDecodeError) as e:
                 logger.debug(f"Could not read {py_file}: {e}")
 
@@ -616,23 +635,23 @@ class RepoIngester:
         Returns statistics about test coverage.
         """
         test_stats = {
-            'test_files': 0,
-            'test_functions': 0,
+            "test_files": 0,
+            "test_functions": 0,
         }
 
-        test_patterns = ['test_*.py', '*_test.py', 'test*.js', '*.test.js', '*.spec.js']
+        test_patterns = ["test_*.py", "*_test.py", "test*.js", "*.test.js", "*.spec.js"]
 
         for pattern in test_patterns:
             for test_file in repo_path.rglob(pattern):
-                test_stats['test_files'] += 1
+                test_stats["test_files"] += 1
 
                 try:
-                    with open(test_file, 'r', encoding='utf-8') as f:
+                    with open(test_file, "r", encoding="utf-8") as f:
                         content = f.read()
 
                         # Count test functions (simplified)
-                        test_stats['test_functions'] += len(
-                            re.findall(r'def test_|test\(|it\(', content)
+                        test_stats["test_functions"] += len(
+                            re.findall(r"def test_|test\(|it\(", content)
                         )
                 except (OSError, IOError, UnicodeDecodeError) as e:
                     logger.debug(f"Could not read test file {test_file}: {e}")
@@ -642,47 +661,56 @@ class RepoIngester:
     def _calculate_statistics(self, repo_path: Path) -> Dict[str, Any]:
         """Calculate repository statistics."""
         stats = {
-            'total_files': 0,
-            'total_lines': 0,
-            'code_files': 0,
-            'languages': set(),
+            "total_files": 0,
+            "total_lines": 0,
+            "code_files": 0,
+            "languages": set(),
         }
 
         # Language detection based on extensions
         language_map = {
-            '.py': 'Python',
-            '.js': 'JavaScript',
-            '.ts': 'TypeScript',
-            '.rs': 'Rust',
-            '.go': 'Go',
-            '.java': 'Java',
-            '.cpp': 'C++',
-            '.c': 'C',
-            '.rb': 'Ruby',
-            '.php': 'PHP',
+            ".py": "Python",
+            ".js": "JavaScript",
+            ".ts": "TypeScript",
+            ".rs": "Rust",
+            ".go": "Go",
+            ".java": "Java",
+            ".cpp": "C++",
+            ".c": "C",
+            ".rb": "Ruby",
+            ".php": "PHP",
         }
 
-        ignore_dirs = {'.git', '__pycache__', 'node_modules', 'venv', 'env', '.venv', 'dist', 'build'}
+        ignore_dirs = {
+            ".git",
+            "__pycache__",
+            "node_modules",
+            "venv",
+            "env",
+            ".venv",
+            "dist",
+            "build",
+        }
 
-        for file_path in repo_path.rglob('*'):
+        for file_path in repo_path.rglob("*"):
             if file_path.is_file():
                 # Skip ignored directories
                 if any(ignored in file_path.parts for ignored in ignore_dirs):
                     continue
 
-                stats['total_files'] += 1
+                stats["total_files"] += 1
 
                 ext = file_path.suffix
                 if ext in language_map:
-                    stats['code_files'] += 1
-                    stats['languages'].add(language_map[ext])
+                    stats["code_files"] += 1
+                    stats["languages"].add(language_map[ext])
 
                     # Count lines
                     try:
-                        with open(file_path, 'r', encoding='utf-8') as f:
-                            stats['total_lines'] += sum(1 for _ in f)
+                        with open(file_path, "r", encoding="utf-8") as f:
+                            stats["total_lines"] += sum(1 for _ in f)
                     except (OSError, IOError, UnicodeDecodeError) as e:
                         logger.debug(f"Could not count lines in {file_path}: {e}")
 
-        stats['languages'] = list(stats['languages'])
+        stats["languages"] = list(stats["languages"])
         return stats

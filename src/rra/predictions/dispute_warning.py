@@ -31,24 +31,24 @@ class WarningSeverity(Enum):
     Ordered from highest to lowest severity (index 0 = most severe).
     """
 
-    CRITICAL = "critical"   # Critical risk, do not proceed without addressing
-    HIGH = "high"           # High risk, action required
-    MEDIUM = "medium"       # Moderate risk, action recommended
-    LOW = "low"             # Minor risk, consider reviewing
-    INFO = "info"           # Informational, no immediate action needed
+    CRITICAL = "critical"  # Critical risk, do not proceed without addressing
+    HIGH = "high"  # High risk, action required
+    MEDIUM = "medium"  # Moderate risk, action recommended
+    LOW = "low"  # Minor risk, consider reviewing
+    INFO = "info"  # Informational, no immediate action needed
 
 
 class WarningCategory(Enum):
     """Categories of dispute warnings."""
 
-    AMBIGUITY = "ambiguity"           # Ambiguous language
+    AMBIGUITY = "ambiguity"  # Ambiguous language
     MISSING_CLAUSE = "missing_clause"  # Required clause missing
-    HIGH_ENTROPY = "high_entropy"      # High entropy score
-    PATTERN_MATCH = "pattern_match"    # Matches historical dispute pattern
-    IMBALANCE = "imbalance"           # Unfair/imbalanced terms
-    COMPLEXITY = "complexity"          # Excessive complexity
-    CONTRADICTION = "contradiction"    # Contradictory terms
-    UNDEFINED = "undefined"           # Undefined terms/references
+    HIGH_ENTROPY = "high_entropy"  # High entropy score
+    PATTERN_MATCH = "pattern_match"  # Matches historical dispute pattern
+    IMBALANCE = "imbalance"  # Unfair/imbalanced terms
+    COMPLEXITY = "complexity"  # Excessive complexity
+    CONTRADICTION = "contradiction"  # Contradictory terms
+    UNDEFINED = "undefined"  # Undefined terms/references
 
 
 @dataclass
@@ -57,11 +57,11 @@ class Mitigation:
 
     id: str
     description: str
-    action: str                       # Specific action to take
-    impact: float                     # Estimated risk reduction (0-1)
-    effort: str                       # "low", "medium", "high"
+    action: str  # Specific action to take
+    impact: float  # Estimated risk reduction (0-1)
+    effort: str  # "low", "medium", "high"
     template_id: Optional[str] = None  # Reference to hardened template
-    example: Optional[str] = None      # Example of mitigated language
+    example: Optional[str] = None  # Example of mitigated language
 
 
 @dataclass
@@ -73,11 +73,11 @@ class DisputeWarning:
     category: WarningCategory
     title: str
     description: str
-    location: str                     # Where in the contract (clause number/text)
-    matched_text: Optional[str]       # The problematic text
-    dispute_probability: float        # Probability this leads to dispute
+    location: str  # Where in the contract (clause number/text)
+    matched_text: Optional[str]  # The problematic text
+    dispute_probability: float  # Probability this leads to dispute
     dispute_types: List[DisputeType]  # Types of disputes this could cause
-    mitigations: List[Mitigation]     # Suggested fixes
+    mitigations: List[Mitigation]  # Suggested fixes
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     acknowledged: bool = False
     resolved: bool = False
@@ -119,8 +119,8 @@ class WarningReport:
 
     contract_id: str
     warnings: List[DisputeWarning]
-    overall_risk_score: float         # 0-1, aggregate risk
-    dispute_probability: float        # Overall dispute probability
+    overall_risk_score: float  # 0-1, aggregate risk
+    dispute_probability: float  # Overall dispute probability
     prediction: DisputePrediction
     generated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -366,10 +366,13 @@ class DisputeWarningGenerator:
 
         return WarningReport(
             contract_id=contract_id,
-            warnings=sorted(warnings, key=lambda w: (
-                list(WarningSeverity).index(w.severity),
-                -w.dispute_probability,
-            )),
+            warnings=sorted(
+                warnings,
+                key=lambda w: (
+                    list(WarningSeverity).index(w.severity),
+                    -w.dispute_probability,
+                ),
+            ),
             overall_risk_score=overall_risk,
             dispute_probability=prediction.dispute_probability,
             prediction=prediction,
@@ -383,6 +386,7 @@ class DisputeWarningGenerator:
     ) -> List[DisputeWarning]:
         """Analyze a single clause for warnings."""
         import re
+
         warnings = []
         clause_lower = clause.lower()
 
@@ -438,51 +442,57 @@ class DisputeWarningGenerator:
         # Check for high complexity
         word_count = len(clause.split())
         if word_count > 200:
-            warnings.append(DisputeWarning(
-                id=self._generate_warning_id(clause_num, "complexity"),
-                severity=WarningSeverity.MEDIUM,
-                category=WarningCategory.COMPLEXITY,
-                title="Excessive Clause Length",
-                description=f"Clause has {word_count} words, making it difficult to understand",
-                location=f"Clause {clause_num}",
-                matched_text=None,
-                dispute_probability=0.3,
-                dispute_types=[DisputeType.SCOPE],
-                mitigations=[
-                    Mitigation(
-                        id="mit_split_clause",
-                        description="Break into multiple focused clauses",
-                        action="Split this clause into 2-3 shorter clauses",
-                        impact=0.2,
-                        effort="medium",
-                    )
-                ],
-            ))
-
-        # Check for undefined references
-        undefined_refs = re.findall(r'Section\s+\[?\d*[A-Z]?\]?|Schedule\s+\[?[A-Z]?\]?|Exhibit\s+\[?[A-Z]?\]?', clause)
-        for ref in undefined_refs:
-            if '[' in ref:
-                warnings.append(DisputeWarning(
-                    id=self._generate_warning_id(clause_num, f"undef_{ref}"),
-                    severity=WarningSeverity.HIGH,
-                    category=WarningCategory.UNDEFINED,
-                    title="Undefined Reference",
-                    description=f"Reference '{ref}' appears to be a placeholder",
+            warnings.append(
+                DisputeWarning(
+                    id=self._generate_warning_id(clause_num, "complexity"),
+                    severity=WarningSeverity.MEDIUM,
+                    category=WarningCategory.COMPLEXITY,
+                    title="Excessive Clause Length",
+                    description=f"Clause has {word_count} words, making it difficult to understand",
                     location=f"Clause {clause_num}",
-                    matched_text=ref,
-                    dispute_probability=0.5,
+                    matched_text=None,
+                    dispute_probability=0.3,
                     dispute_types=[DisputeType.SCOPE],
                     mitigations=[
                         Mitigation(
-                            id="mit_define_ref",
-                            description="Complete the reference",
-                            action=f"Replace '{ref}' with actual section/schedule number",
-                            impact=0.5,
-                            effort="low",
+                            id="mit_split_clause",
+                            description="Break into multiple focused clauses",
+                            action="Split this clause into 2-3 shorter clauses",
+                            impact=0.2,
+                            effort="medium",
                         )
                     ],
-                ))
+                )
+            )
+
+        # Check for undefined references
+        undefined_refs = re.findall(
+            r"Section\s+\[?\d*[A-Z]?\]?|Schedule\s+\[?[A-Z]?\]?|Exhibit\s+\[?[A-Z]?\]?", clause
+        )
+        for ref in undefined_refs:
+            if "[" in ref:
+                warnings.append(
+                    DisputeWarning(
+                        id=self._generate_warning_id(clause_num, f"undef_{ref}"),
+                        severity=WarningSeverity.HIGH,
+                        category=WarningCategory.UNDEFINED,
+                        title="Undefined Reference",
+                        description=f"Reference '{ref}' appears to be a placeholder",
+                        location=f"Clause {clause_num}",
+                        matched_text=ref,
+                        dispute_probability=0.5,
+                        dispute_types=[DisputeType.SCOPE],
+                        mitigations=[
+                            Mitigation(
+                                id="mit_define_ref",
+                                description="Complete the reference",
+                                action=f"Replace '{ref}' with actual section/schedule number",
+                                impact=0.5,
+                                effort="low",
+                            )
+                        ],
+                    )
+                )
 
         return warnings
 
@@ -498,8 +508,17 @@ class DisputeWarningGenerator:
         required = self.REQUIRED_CLAUSES.get(license_type, self.REQUIRED_CLAUSES["commercial"])
 
         clause_indicators = {
-            "dispute_resolution": ["arbitration", "mediation", "dispute resolution", "jurisdiction"],
-            "liability_limitation": ["limitation of liability", "limit liability", "cap on liability"],
+            "dispute_resolution": [
+                "arbitration",
+                "mediation",
+                "dispute resolution",
+                "jurisdiction",
+            ],
+            "liability_limitation": [
+                "limitation of liability",
+                "limit liability",
+                "cap on liability",
+            ],
             "termination": ["termination", "terminate", "cancellation"],
             "warranty": ["warranty", "disclaim", "as is", "as-is"],
             "indemnification": ["indemnif", "hold harmless"],
@@ -516,33 +535,36 @@ class DisputeWarningGenerator:
 
             if not found:
                 severity = self._get_severity(weight)
-                warnings.append(DisputeWarning(
-                    id=self._generate_warning_id(0, f"missing_{clause_id}"),
-                    severity=severity,
-                    category=WarningCategory.MISSING_CLAUSE,
-                    title=f"Missing: {clause_name}",
-                    description=f"No {clause_name} clause detected in the contract",
-                    location="Contract-wide",
-                    matched_text=None,
-                    dispute_probability=weight,
-                    dispute_types=self._get_dispute_types_for_clause(clause_id),
-                    mitigations=[
-                        Mitigation(
-                            id=f"mit_add_{clause_id}",
-                            description=f"Add a {clause_name} clause",
-                            action=f"Include a standard {clause_name} provision",
-                            impact=weight * 0.7,
-                            effort="medium",
-                            template_id=f"template_{clause_id}",
-                        )
-                    ],
-                ))
+                warnings.append(
+                    DisputeWarning(
+                        id=self._generate_warning_id(0, f"missing_{clause_id}"),
+                        severity=severity,
+                        category=WarningCategory.MISSING_CLAUSE,
+                        title=f"Missing: {clause_name}",
+                        description=f"No {clause_name} clause detected in the contract",
+                        location="Contract-wide",
+                        matched_text=None,
+                        dispute_probability=weight,
+                        dispute_types=self._get_dispute_types_for_clause(clause_id),
+                        mitigations=[
+                            Mitigation(
+                                id=f"mit_add_{clause_id}",
+                                description=f"Add a {clause_name} clause",
+                                action=f"Include a standard {clause_name} provision",
+                                impact=weight * 0.7,
+                                effort="medium",
+                                template_id=f"template_{clause_id}",
+                            )
+                        ],
+                    )
+                )
 
         return warnings
 
     def _check_patterns(self, clauses: List[str]) -> List[DisputeWarning]:
         """Check for historical dispute patterns."""
         import re
+
         warnings = []
         all_text = " ".join(clauses)
 
@@ -550,26 +572,28 @@ class DisputeWarningGenerator:
             matches = re.findall(pattern_info["pattern"], all_text, re.IGNORECASE)
             if matches:
                 severity = self._get_severity(pattern_info["weight"])
-                warnings.append(DisputeWarning(
-                    id=self._generate_warning_id(0, f"pattern_{pattern_info['title'][:10]}"),
-                    severity=severity,
-                    category=pattern_info["category"],
-                    title=pattern_info["title"],
-                    description=pattern_info["description"],
-                    location="Pattern detected",
-                    matched_text=matches[0] if matches else None,
-                    dispute_probability=pattern_info["weight"],
-                    dispute_types=pattern_info["dispute_types"],
-                    mitigations=[
-                        Mitigation(
-                            id=f"mit_pattern_{pattern_info['title'][:10]}",
-                            description="Review and clarify this language",
-                            action="Consider revising to reduce dispute risk",
-                            impact=pattern_info["weight"] * 0.5,
-                            effort="medium",
-                        )
-                    ],
-                ))
+                warnings.append(
+                    DisputeWarning(
+                        id=self._generate_warning_id(0, f"pattern_{pattern_info['title'][:10]}"),
+                        severity=severity,
+                        category=pattern_info["category"],
+                        title=pattern_info["title"],
+                        description=pattern_info["description"],
+                        location="Pattern detected",
+                        matched_text=matches[0] if matches else None,
+                        dispute_probability=pattern_info["weight"],
+                        dispute_types=pattern_info["dispute_types"],
+                        mitigations=[
+                            Mitigation(
+                                id=f"mit_pattern_{pattern_info['title'][:10]}",
+                                description="Review and clarify this language",
+                                action="Consider revising to reduce dispute risk",
+                                impact=pattern_info["weight"] * 0.5,
+                                effort="medium",
+                            )
+                        ],
+                    )
+                )
 
         return warnings
 
@@ -583,57 +607,61 @@ class DisputeWarningGenerator:
         # High overall probability warning
         if prediction.dispute_probability > 0.5:
             severity = self._get_severity(prediction.dispute_probability)
-            warnings.append(DisputeWarning(
-                id=self._generate_warning_id(0, "high_overall_risk"),
-                severity=severity,
-                category=WarningCategory.HIGH_ENTROPY,
-                title="High Overall Dispute Risk",
-                description=f"Contract has {prediction.dispute_probability:.0%} probability of dispute",
-                location="Contract-wide",
-                matched_text=None,
-                dispute_probability=prediction.dispute_probability,
-                dispute_types=list(prediction.type_probabilities.keys())[:3],
-                mitigations=[
-                    Mitigation(
-                        id="mit_professional_review",
-                        description="Seek professional legal review",
-                        action="Have the contract reviewed by legal counsel",
-                        impact=0.3,
-                        effort="high",
-                    ),
-                    Mitigation(
-                        id="mit_use_hardened",
-                        description="Use hardened clause templates",
-                        action="Replace high-risk clauses with pre-vetted templates",
-                        impact=0.4,
-                        effort="medium",
-                    ),
-                ],
-            ))
+            warnings.append(
+                DisputeWarning(
+                    id=self._generate_warning_id(0, "high_overall_risk"),
+                    severity=severity,
+                    category=WarningCategory.HIGH_ENTROPY,
+                    title="High Overall Dispute Risk",
+                    description=f"Contract has {prediction.dispute_probability:.0%} probability of dispute",
+                    location="Contract-wide",
+                    matched_text=None,
+                    dispute_probability=prediction.dispute_probability,
+                    dispute_types=list(prediction.type_probabilities.keys())[:3],
+                    mitigations=[
+                        Mitigation(
+                            id="mit_professional_review",
+                            description="Seek professional legal review",
+                            action="Have the contract reviewed by legal counsel",
+                            impact=0.3,
+                            effort="high",
+                        ),
+                        Mitigation(
+                            id="mit_use_hardened",
+                            description="Use hardened clause templates",
+                            action="Replace high-risk clauses with pre-vetted templates",
+                            impact=0.4,
+                            effort="medium",
+                        ),
+                    ],
+                )
+            )
 
         # Warnings from risk factors
         for factor, weight in prediction.top_risk_factors[:3]:
             if weight > 0.4:
-                warnings.append(DisputeWarning(
-                    id=self._generate_warning_id(0, f"risk_{factor[:15]}"),
-                    severity=self._get_severity(weight),
-                    category=WarningCategory.HIGH_ENTROPY,
-                    title=f"Risk Factor: {factor}",
-                    description=f"This factor contributes significantly to dispute risk",
-                    location="Model prediction",
-                    matched_text=None,
-                    dispute_probability=weight,
-                    dispute_types=[DisputeType.SCOPE],
-                    mitigations=[
-                        Mitigation(
-                            id=f"mit_risk_{factor[:10]}",
-                            description="Address this risk factor",
-                            action=self._get_action_for_factor(factor),
-                            impact=weight * 0.5,
-                            effort="medium",
-                        )
-                    ],
-                ))
+                warnings.append(
+                    DisputeWarning(
+                        id=self._generate_warning_id(0, f"risk_{factor[:15]}"),
+                        severity=self._get_severity(weight),
+                        category=WarningCategory.HIGH_ENTROPY,
+                        title=f"Risk Factor: {factor}",
+                        description=f"This factor contributes significantly to dispute risk",
+                        location="Model prediction",
+                        matched_text=None,
+                        dispute_probability=weight,
+                        dispute_types=[DisputeType.SCOPE],
+                        mitigations=[
+                            Mitigation(
+                                id=f"mit_risk_{factor[:10]}",
+                                description="Address this risk factor",
+                                action=self._get_action_for_factor(factor),
+                                impact=weight * 0.5,
+                                effort="medium",
+                            )
+                        ],
+                    )
+                )
 
         return warnings
 
@@ -699,12 +727,11 @@ class DisputeWarningGenerator:
         }
 
         warning_risk = sum(
-            w.dispute_probability * severity_weights[w.severity]
-            for w in warnings
+            w.dispute_probability * severity_weights[w.severity] for w in warnings
         ) / max(len(warnings), 1)
 
         # Combine with prediction
-        overall = (prediction.dispute_probability * 0.6 + warning_risk * 0.4)
+        overall = prediction.dispute_probability * 0.6 + warning_risk * 0.4
 
         return min(overall, 1.0)
 

@@ -23,6 +23,7 @@ from collections import deque
 
 class PricingStrategy(Enum):
     """Available pricing strategies."""
+
     FIXED = "fixed"  # No adaptation
     DEMAND_BASED = "demand_based"  # Adjust based on demand
     CONVERSION_OPTIMIZED = "conversion_optimized"  # Optimize for conversions
@@ -35,6 +36,7 @@ class PricingStrategy(Enum):
 @dataclass
 class PriceSignal:
     """A signal that influences pricing."""
+
     signal_type: str
     value: float
     weight: float = 1.0
@@ -45,6 +47,7 @@ class PriceSignal:
 @dataclass
 class PricingMetrics:
     """Metrics used for pricing decisions."""
+
     views_24h: int = 0
     views_7d: int = 0
     negotiations_24h: int = 0
@@ -62,6 +65,7 @@ class PricingMetrics:
 @dataclass
 class PriceRecommendation:
     """A pricing recommendation from the adaptive system."""
+
     recommended_price: float
     confidence: float  # 0-1
     reasoning: str
@@ -121,14 +125,14 @@ class AdaptivePricingEngine:
             try:
                 signals_file = self.storage_path / "signals.json"
                 if signals_file.exists():
-                    with open(signals_file, 'r') as f:
+                    with open(signals_file, "r") as f:
                         data = json.load(f)
                         for s in data:
                             self._signals.append(PriceSignal(**s))
 
                 history_file = self.storage_path / "history.json"
                 if history_file.exists():
-                    with open(history_file, 'r') as f:
+                    with open(history_file, "r") as f:
                         self._price_history = json.load(f)
             except (json.JSONDecodeError, IOError):
                 pass
@@ -138,11 +142,11 @@ class AdaptivePricingEngine:
         self.storage_path.mkdir(parents=True, exist_ok=True)
 
         signals_file = self.storage_path / "signals.json"
-        with open(signals_file, 'w') as f:
+        with open(signals_file, "w") as f:
             json.dump([s.__dict__ for s in self._signals], f, indent=2, default=str)
 
         history_file = self.storage_path / "history.json"
-        with open(history_file, 'w') as f:
+        with open(history_file, "w") as f:
             json.dump(self._price_history, f, indent=2, default=str)
 
     def record_signal(self, signal: PriceSignal) -> None:
@@ -157,50 +161,57 @@ class AdaptivePricingEngine:
 
     def record_view(self) -> None:
         """Record a page view signal."""
-        self.record_signal(PriceSignal(
-            signal_type="view",
-            value=1.0,
-            weight=0.1,
-        ))
+        self.record_signal(
+            PriceSignal(
+                signal_type="view",
+                value=1.0,
+                weight=0.1,
+            )
+        )
 
     def record_negotiation_start(self) -> None:
         """Record a negotiation start signal."""
-        self.record_signal(PriceSignal(
-            signal_type="negotiation_start",
-            value=1.0,
-            weight=0.5,
-        ))
+        self.record_signal(
+            PriceSignal(
+                signal_type="negotiation_start",
+                value=1.0,
+                weight=0.5,
+            )
+        )
 
     def record_negotiation_complete(
-        self,
-        final_price: float,
-        rounds: int,
-        discount_percent: float
+        self, final_price: float, rounds: int, discount_percent: float
     ) -> None:
         """Record a completed negotiation."""
-        self.record_signal(PriceSignal(
-            signal_type="negotiation_complete",
-            value=final_price,
-            weight=1.0,
-            metadata={
-                "rounds": rounds,
-                "discount_percent": discount_percent,
-            }
-        ))
+        self.record_signal(
+            PriceSignal(
+                signal_type="negotiation_complete",
+                value=final_price,
+                weight=1.0,
+                metadata={
+                    "rounds": rounds,
+                    "discount_percent": discount_percent,
+                },
+            )
+        )
 
     def record_sale(self, sale_price: float) -> None:
         """Record a sale signal."""
-        self.record_signal(PriceSignal(
-            signal_type="sale",
-            value=sale_price,
-            weight=2.0,
-        ))
+        self.record_signal(
+            PriceSignal(
+                signal_type="sale",
+                value=sale_price,
+                weight=2.0,
+            )
+        )
 
-        self._price_history.append({
-            "price": sale_price,
-            "timestamp": datetime.utcnow().isoformat(),
-            "base_price": self.base_price,
-        })
+        self._price_history.append(
+            {
+                "price": sale_price,
+                "timestamp": datetime.utcnow().isoformat(),
+                "base_price": self.base_price,
+            }
+        )
         self._save_data()
 
     def get_metrics(self) -> PricingMetrics:
@@ -267,10 +278,7 @@ class AdaptivePricingEngine:
             Adjustment factor (e.g., 1.1 = 10% increase)
         """
         # Views to negotiation conversion
-        view_to_neg = (
-            metrics.negotiations_7d / metrics.views_7d
-            if metrics.views_7d > 0 else 0
-        )
+        view_to_neg = metrics.negotiations_7d / metrics.views_7d if metrics.views_7d > 0 else 0
 
         # High demand indicators
         if metrics.views_24h > 50 and view_to_neg > 0.1:
@@ -384,7 +392,7 @@ class AdaptivePricingEngine:
         # Conversion factor
         if self.strategy in [
             PricingStrategy.CONVERSION_OPTIMIZED,
-            PricingStrategy.REVENUE_MAXIMIZED
+            PricingStrategy.REVENUE_MAXIMIZED,
         ]:
             conv_factor = self._calculate_conversion_factor(metrics)
             if conv_factor != 1.0:
@@ -465,10 +473,7 @@ class AdaptivePricingEngine:
             List of historical prices
         """
         cutoff = datetime.utcnow() - timedelta(days=days)
-        return [
-            p for p in self._price_history
-            if datetime.fromisoformat(p["timestamp"]) >= cutoff
-        ]
+        return [p for p in self._price_history if datetime.fromisoformat(p["timestamp"]) >= cutoff]
 
     def simulate_price(
         self,
@@ -492,11 +497,8 @@ class AdaptivePricingEngine:
         elasticity = -1.5  # Typical for software
 
         # Estimated conversion change
-        conv_rate_base = (
-            metrics.conversions_7d / metrics.views_7d
-            if metrics.views_7d > 0 else 0.02
-        )
-        conv_rate_new = conv_rate_base * (price_ratio ** elasticity)
+        conv_rate_base = metrics.conversions_7d / metrics.views_7d if metrics.views_7d > 0 else 0.02
+        conv_rate_new = conv_rate_base * (price_ratio**elasticity)
         conv_rate_new = max(0.001, min(0.5, conv_rate_new))
 
         expected_conversions = expected_views * conv_rate_new
@@ -508,16 +510,18 @@ class AdaptivePricingEngine:
             "expected_conversion_rate": round(conv_rate_new * 100, 2),
             "expected_conversions": round(expected_conversions, 1),
             "expected_revenue": round(expected_revenue, 2),
-            "revenue_vs_base": round(
-                expected_revenue / (expected_views * conv_rate_base * self.base_price) - 1,
-                2
-            ) if conv_rate_base > 0 else 0,
+            "revenue_vs_base": (
+                round(expected_revenue / (expected_views * conv_rate_base * self.base_price) - 1, 2)
+                if conv_rate_base > 0
+                else 0
+            ),
         }
 
 
 # =============================================================================
 # Factory Function
 # =============================================================================
+
 
 def create_pricing_engine(
     base_price: float,

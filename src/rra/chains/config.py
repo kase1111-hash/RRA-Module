@@ -19,6 +19,7 @@ from enum import Enum
 
 class ChainId(Enum):
     """Supported chain IDs."""
+
     # Mainnets
     ETHEREUM_MAINNET = 1
     POLYGON_MAINNET = 137
@@ -43,6 +44,7 @@ class ChainId(Enum):
 @dataclass
 class ChainConfig:
     """Configuration for a blockchain network."""
+
     chain_id: int
     name: str
     display_name: str
@@ -94,7 +96,6 @@ CHAIN_CONFIGS: Dict[int, ChainConfig] = {
             "RoyaltyModule": "0x3C27b2D7d30131D4b58C3584FD7c86e3358744de",
         },
     ),
-
     # Ethereum Sepolia (Testnet) - Primary development network
     ChainId.ETHEREUM_SEPOLIA.value: ChainConfig(
         chain_id=11155111,
@@ -116,13 +117,14 @@ CHAIN_CONFIGS: Dict[int, ChainConfig] = {
             "PILFramework": "0x000000000000000000000000000000000000dEaD",
         },
     ),
-
     # Arbitrum Sepolia (Testnet) - L2 development
     ChainId.ARBITRUM_SEPOLIA.value: ChainConfig(
         chain_id=421614,
         name="arbitrum-sepolia",
         display_name="Arbitrum Sepolia",
-        rpc_url=os.environ.get("ARBITRUM_SEPOLIA_RPC_URL", "https://sepolia-rollup.arbitrum.io/rpc"),
+        rpc_url=os.environ.get(
+            "ARBITRUM_SEPOLIA_RPC_URL", "https://sepolia-rollup.arbitrum.io/rpc"
+        ),
         explorer_url="https://sepolia.arbiscan.io",
         native_currency="ETH",
         is_testnet=True,
@@ -131,7 +133,6 @@ CHAIN_CONFIGS: Dict[int, ChainConfig] = {
         license_nft_address="0x000000000000000000000000000000000000dEaD",
         license_manager_address="0x000000000000000000000000000000000000dEaD",
     ),
-
     # Optimism Sepolia (Testnet) - L2 development
     ChainId.OPTIMISM_SEPOLIA.value: ChainConfig(
         chain_id=11155420,
@@ -146,7 +147,6 @@ CHAIN_CONFIGS: Dict[int, ChainConfig] = {
         license_nft_address="0x000000000000000000000000000000000000dEaD",
         license_manager_address="0x000000000000000000000000000000000000dEaD",
     ),
-
     # Base Sepolia (Testnet) - L2 development
     ChainId.BASE_SEPOLIA.value: ChainConfig(
         chain_id=84532,
@@ -161,7 +161,6 @@ CHAIN_CONFIGS: Dict[int, ChainConfig] = {
         license_nft_address="0x000000000000000000000000000000000000dEaD",
         license_manager_address="0x000000000000000000000000000000000000dEaD",
     ),
-
     # Polygon Mainnet
     ChainId.POLYGON_MAINNET.value: ChainConfig(
         chain_id=137,
@@ -180,7 +179,6 @@ CHAIN_CONFIGS: Dict[int, ChainConfig] = {
             "SuperTokenFactory": "0x2C90719f25B10Fc5646c82DA3240C76Fa5BcCF34",
         },
     ),
-
     # Polygon Mumbai (Testnet)
     ChainId.POLYGON_MUMBAI.value: ChainConfig(
         chain_id=80001,
@@ -198,7 +196,6 @@ CHAIN_CONFIGS: Dict[int, ChainConfig] = {
             "SuperTokenFactory": "0x200657E2f123761f499a725A5C1B7E6b3C8f8e49",
         },
     ),
-
     # Arbitrum One
     ChainId.ARBITRUM_ONE.value: ChainConfig(
         chain_id=42161,
@@ -217,7 +214,6 @@ CHAIN_CONFIGS: Dict[int, ChainConfig] = {
             "SuperTokenFactory": "0x1C21Ead77fd45C84a4c916Db7A6635D0C6FF09D6",
         },
     ),
-
     # Arbitrum Goerli (Testnet)
     ChainId.ARBITRUM_GOERLI.value: ChainConfig(
         chain_id=421613,
@@ -230,7 +226,6 @@ CHAIN_CONFIGS: Dict[int, ChainConfig] = {
         is_l2=True,
         avg_block_time=0.25,
     ),
-
     # Base Mainnet
     ChainId.BASE_MAINNET.value: ChainConfig(
         chain_id=8453,
@@ -248,7 +243,6 @@ CHAIN_CONFIGS: Dict[int, ChainConfig] = {
             "SuperTokenFactory": "0xe20B9a38E0c96F61d1bA6b42a61512c56Fea5b03",
         },
     ),
-
     # Optimism Mainnet
     ChainId.OPTIMISM_MAINNET.value: ChainConfig(
         chain_id=10,
@@ -272,6 +266,7 @@ CHAIN_CONFIGS: Dict[int, ChainConfig] = {
 # =============================================================================
 # Chain Manager
 # =============================================================================
+
 
 class ChainManager:
     """
@@ -376,17 +371,9 @@ class ChainManager:
             return self.get_chain(ChainId.ETHEREUM_MAINNET.value)
 
         # Sort by max gas price (lower is better)
-        return min(
-            l2_chains,
-            key=lambda c: c.max_gas_price_gwei or float('inf')
-        )
+        return min(l2_chains, key=lambda c: c.max_gas_price_gwei or float("inf"))
 
-    def register_contract(
-        self,
-        chain_id: int,
-        contract_name: str,
-        address: str
-    ) -> None:
+    def register_contract(self, chain_id: int, contract_name: str, address: str) -> None:
         """
         Register a deployed contract address.
 
@@ -399,11 +386,7 @@ class ChainManager:
             self._deployed_contracts[chain_id] = {}
         self._deployed_contracts[chain_id][contract_name] = address
 
-    def get_contract_address(
-        self,
-        chain_id: int,
-        contract_name: str
-    ) -> Optional[str]:
+    def get_contract_address(self, chain_id: int, contract_name: str) -> Optional[str]:
         """
         Get a deployed contract address.
 
@@ -447,10 +430,7 @@ class ChainManager:
             return self.get_chain(ChainId.POLYGON_MAINNET.value)
 
     def estimate_gas_cost_usd(
-        self,
-        chain_id: int,
-        gas_units: int,
-        native_price_usd: float
+        self, chain_id: int, gas_units: int, native_price_usd: float
     ) -> float:
         """
         Estimate gas cost in USD.

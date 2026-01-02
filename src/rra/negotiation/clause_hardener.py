@@ -32,20 +32,20 @@ from ..analytics.clause_patterns import (
 class HardeningLevel(Enum):
     """Level of hardening to apply."""
 
-    MINIMAL = "minimal"       # Only fix critical ambiguities
-    MODERATE = "moderate"     # Fix common dispute triggers
+    MINIMAL = "minimal"  # Only fix critical ambiguities
+    MODERATE = "moderate"  # Fix common dispute triggers
     AGGRESSIVE = "aggressive"  # Full hardening, may change meaning
 
 
 class HardeningStrategy(Enum):
     """Strategies for hardening clauses."""
 
-    QUANTIFY = "quantify"           # Add specific numbers/timeframes
-    DEFINE = "define"               # Add definitions for ambiguous terms
-    ENUMERATE = "enumerate"         # Replace open lists with closed lists
-    REFERENCE = "reference"         # Add external references/standards
+    QUANTIFY = "quantify"  # Add specific numbers/timeframes
+    DEFINE = "define"  # Add definitions for ambiguous terms
+    ENUMERATE = "enumerate"  # Replace open lists with closed lists
+    REFERENCE = "reference"  # Add external references/standards
     PROCEDURALIZE = "proceduralize"  # Add specific procedures
-    BOUND = "bound"                 # Add upper/lower bounds
+    BOUND = "bound"  # Add upper/lower bounds
 
 
 @dataclass
@@ -54,13 +54,13 @@ class HardeningRule:
 
     id: str
     name: str
-    pattern: str                    # Regex pattern to match
+    pattern: str  # Regex pattern to match
     strategy: HardeningStrategy
-    replacement_template: str       # Template with {placeholders}
+    replacement_template: str  # Template with {placeholders}
     default_values: Dict[str, str] = field(default_factory=dict)
-    priority: int = 0               # Higher = apply first
+    priority: int = 0  # Higher = apply first
     categories: List[ClauseCategory] = field(default_factory=list)
-    risk_reduction: float = 0.0     # Estimated dispute risk reduction
+    risk_reduction: float = 0.0  # Estimated dispute risk reduction
 
     def apply(self, text: str, values: Optional[Dict[str, str]] = None) -> str:
         """Apply this rule to text."""
@@ -127,7 +127,7 @@ class ClauseHardener:
         HardeningRule(
             id="time_reasonable",
             name="Reasonable Time → Specific Days",
-            pattern=r'\b(within a )?reasonable (time|period)\b',
+            pattern=r"\b(within a )?reasonable (time|period)\b",
             strategy=HardeningStrategy.QUANTIFY,
             replacement_template="within {days} calendar days",
             default_values={"days": "30"},
@@ -137,7 +137,7 @@ class ClauseHardener:
         HardeningRule(
             id="time_promptly",
             name="Promptly → Specific Days",
-            pattern=r'\bpromptly\b',
+            pattern=r"\bpromptly\b",
             strategy=HardeningStrategy.QUANTIFY,
             replacement_template="within {days} business days",
             default_values={"days": "5"},
@@ -147,7 +147,7 @@ class ClauseHardener:
         HardeningRule(
             id="time_timely",
             name="Timely → Specific Days",
-            pattern=r'\b(in a )?timely (manner|fashion)\b',
+            pattern=r"\b(in a )?timely (manner|fashion)\b",
             strategy=HardeningStrategy.QUANTIFY,
             replacement_template="within {days} calendar days",
             default_values={"days": "14"},
@@ -157,19 +157,18 @@ class ClauseHardener:
         HardeningRule(
             id="time_soon",
             name="As Soon As Practicable → Specific",
-            pattern=r'\bas soon as (reasonably )?practicable\b',
+            pattern=r"\bas soon as (reasonably )?practicable\b",
             strategy=HardeningStrategy.QUANTIFY,
             replacement_template="within {days} business days, or if impracticable, with written notice explaining the delay",
             default_values={"days": "10"},
             priority=10,
             risk_reduction=0.40,
         ),
-
         # Effort-related ambiguities
         HardeningRule(
             id="effort_best",
             name="Best Efforts → Commercially Reasonable",
-            pattern=r'\bbest efforts?\b',
+            pattern=r"\bbest efforts?\b",
             strategy=HardeningStrategy.DEFINE,
             replacement_template="commercially reasonable efforts (meaning efforts consistent with industry standard practices, {specifics})",
             default_values={"specifics": "without requiring expenditure of more than {amount}"},
@@ -179,19 +178,18 @@ class ClauseHardener:
         HardeningRule(
             id="effort_reasonable",
             name="Reasonable Efforts Definition",
-            pattern=r'\breasonable efforts?\b(?!\s*\()',
+            pattern=r"\breasonable efforts?\b(?!\s*\()",
             strategy=HardeningStrategy.DEFINE,
             replacement_template="reasonable efforts (as defined in Section {section})",
             default_values={"section": "1.X"},
             priority=7,
             risk_reduction=0.30,
         ),
-
         # Scope ambiguities
         HardeningRule(
             id="scope_including",
             name="Including But Not Limited To → Enumerated",
-            pattern=r'\binclud(?:e|es|ing),?\s*but\s*(?:are\s+)?not\s*limited\s*to,?\b',
+            pattern=r"\binclud(?:e|es|ing),?\s*but\s*(?:are\s+)?not\s*limited\s*to,?\b",
             strategy=HardeningStrategy.ENUMERATE,
             replacement_template="including the following: {items}, and no other items unless mutually agreed in writing",
             default_values={"items": "[enumerate specific items]"},
@@ -201,7 +199,7 @@ class ClauseHardener:
         HardeningRule(
             id="scope_related",
             name="And Related → Specifically Defined",
-            pattern=r'\band\s+related\s+(services?|materials?|works?|items?)\b',
+            pattern=r"\band\s+related\s+(services?|materials?|works?|items?)\b",
             strategy=HardeningStrategy.DEFINE,
             replacement_template="and {type} specifically listed in Schedule {schedule}",
             default_values={"type": "related items", "schedule": "A"},
@@ -211,41 +209,43 @@ class ClauseHardener:
         HardeningRule(
             id="scope_derivative",
             name="Derivative Works Definition",
-            pattern=r'\bderivative\s+works?\b(?!\s*\()',
+            pattern=r"\bderivative\s+works?\b(?!\s*\()",
             strategy=HardeningStrategy.DEFINE,
             replacement_template="derivative works (meaning works that {definition})",
-            default_values={"definition": "incorporate more than 10% of the original code by line count or functionality"},
+            default_values={
+                "definition": "incorporate more than 10% of the original code by line count or functionality"
+            },
             priority=7,
             risk_reduction=0.35,
         ),
-
         # Materiality thresholds
         HardeningRule(
             id="material_breach",
             name="Material Breach → Defined Threshold",
-            pattern=r'\bmaterial\s+breach\b(?!\s*\()',
+            pattern=r"\bmaterial\s+breach\b(?!\s*\()",
             strategy=HardeningStrategy.BOUND,
             replacement_template="material breach (meaning a breach that {threshold})",
-            default_values={"threshold": "results in damages exceeding ${amount} or prevents the non-breaching party from receiving the substantial benefit of this Agreement"},
+            default_values={
+                "threshold": "results in damages exceeding ${amount} or prevents the non-breaching party from receiving the substantial benefit of this Agreement"
+            },
             priority=9,
             risk_reduction=0.55,
         ),
         HardeningRule(
             id="material_change",
             name="Material Change → Percentage Bound",
-            pattern=r'\bmaterial\s+change\b(?!\s*\()',
+            pattern=r"\bmaterial\s+change\b(?!\s*\()",
             strategy=HardeningStrategy.BOUND,
             replacement_template="material change (meaning a change that affects more than {percentage}% of {scope})",
             default_values={"percentage": "20", "scope": "the functionality or value"},
             priority=8,
             risk_reduction=0.40,
         ),
-
         # Notice requirements
         HardeningRule(
             id="notice_reasonable",
             name="Reasonable Notice → Specific Period",
-            pattern=r'\b(with\s+)?reasonable\s+(prior\s+)?notice\b',
+            pattern=r"\b(with\s+)?reasonable\s+(prior\s+)?notice\b",
             strategy=HardeningStrategy.QUANTIFY,
             replacement_template="with at least {days} days' prior written notice delivered to {address}",
             default_values={"days": "30", "address": "the address specified in Section [X]"},
@@ -255,41 +255,45 @@ class ClauseHardener:
         HardeningRule(
             id="notice_written",
             name="Written Notice Method",
-            pattern=r'\bwritten\s+notice\b(?!\s*(sent|delivered|via))',
+            pattern=r"\bwritten\s+notice\b(?!\s*(sent|delivered|via))",
             strategy=HardeningStrategy.PROCEDURALIZE,
             replacement_template="written notice sent via {method}",
-            default_values={"method": "registered mail, courier with tracking, or email with read receipt confirmation"},
+            default_values={
+                "method": "registered mail, courier with tracking, or email with read receipt confirmation"
+            },
             priority=6,
             risk_reduction=0.25,
         ),
-
         # Financial terms
         HardeningRule(
             id="fin_fair_market",
             name="Fair Market Value → Valuation Method",
-            pattern=r'\bfair\s+market\s+value\b(?!\s*(as\s+determined|calculated))',
+            pattern=r"\bfair\s+market\s+value\b(?!\s*(as\s+determined|calculated))",
             strategy=HardeningStrategy.PROCEDURALIZE,
             replacement_template="fair market value as determined by {method}",
-            default_values={"method": "an independent third-party appraiser mutually agreed upon by the parties, or if no agreement within 10 days, appointed by [arbitration body]"},
+            default_values={
+                "method": "an independent third-party appraiser mutually agreed upon by the parties, or if no agreement within 10 days, appointed by [arbitration body]"
+            },
             priority=9,
             risk_reduction=0.50,
         ),
         HardeningRule(
             id="fin_reasonable_comp",
             name="Reasonable Compensation → Formula",
-            pattern=r'\breasonable\s+compensation\b',
+            pattern=r"\breasonable\s+compensation\b",
             strategy=HardeningStrategy.QUANTIFY,
             replacement_template="compensation calculated as {formula}",
-            default_values={"formula": "[base rate] multiplied by [usage metric] as specified in Schedule B"},
+            default_values={
+                "formula": "[base rate] multiplied by [usage metric] as specified in Schedule B"
+            },
             priority=8,
             risk_reduction=0.45,
         ),
-
         # Subjective standards
         HardeningRule(
             id="subj_satisfaction",
             name="To Satisfaction → Objective Standard",
-            pattern=r'\bto\s+(the\s+)?(reasonable\s+)?satisfaction\s+of\b',
+            pattern=r"\bto\s+(the\s+)?(reasonable\s+)?satisfaction\s+of\b",
             strategy=HardeningStrategy.REFERENCE,
             replacement_template="meeting the acceptance criteria specified in {reference}",
             default_values={"reference": "Schedule C"},
@@ -299,22 +303,23 @@ class ClauseHardener:
         HardeningRule(
             id="subj_discretion",
             name="Sole Discretion → Bounded Discretion",
-            pattern=r'\b(in\s+)?(its?\s+)?sole\s+(and\s+absolute\s+)?discretion\b',
+            pattern=r"\b(in\s+)?(its?\s+)?sole\s+(and\s+absolute\s+)?discretion\b",
             strategy=HardeningStrategy.BOUND,
             replacement_template="in its reasonable discretion, exercised in good faith and not arbitrarily withheld",
             default_values={},
             priority=6,
             risk_reduction=0.35,
         ),
-
         # Termination
         HardeningRule(
             id="term_cause",
             name="For Cause → Enumerated Causes",
-            pattern=r'\bfor\s+cause\b(?!\s*\()',
+            pattern=r"\bfor\s+cause\b(?!\s*\()",
             strategy=HardeningStrategy.ENUMERATE,
             replacement_template="for cause (meaning {causes})",
-            default_values={"causes": "material breach that remains uncured after 30 days' written notice, bankruptcy, or assignment without consent"},
+            default_values={
+                "causes": "material breach that remains uncured after 30 days' written notice, bankruptcy, or assignment without consent"
+            },
             priority=8,
             risk_reduction=0.45,
         ),
@@ -399,14 +404,16 @@ class ClauseHardener:
             new_text = rule.apply(hardened, values)
 
             if new_text != hardened:
-                changes.append({
-                    "rule_id": rule.id,
-                    "rule_name": rule.name,
-                    "strategy": rule.strategy.value,
-                    "before": self._extract_match(hardened, rule.pattern),
-                    "after": self._extract_replacement(new_text, hardened, rule.pattern),
-                    "risk_reduction": rule.risk_reduction,
-                })
+                changes.append(
+                    {
+                        "rule_id": rule.id,
+                        "rule_name": rule.name,
+                        "strategy": rule.strategy.value,
+                        "before": self._extract_match(hardened, rule.pattern),
+                        "after": self._extract_replacement(new_text, hardened, rule.pattern),
+                        "risk_reduction": rule.risk_reduction,
+                    }
+                )
                 rules_applied.append(rule.id)
                 hardened = new_text
 
@@ -454,10 +461,7 @@ class ClauseHardener:
         Returns:
             List of HardeningResults
         """
-        return [
-            self.harden_clause(clause, level, custom_values)
-            for clause in clauses
-        ]
+        return [self.harden_clause(clause, level, custom_values) for clause in clauses]
 
     def create_session(
         self,
@@ -473,6 +477,7 @@ class ClauseHardener:
             New HardeningSession
         """
         import secrets
+
         session_id = secrets.token_urlsafe(12)
 
         session = HardeningSession(
@@ -536,8 +541,9 @@ class ClauseHardener:
             # Re-harden with custom values
             result = self.harden_clause(
                 session.original_clauses[clause_index],
-                custom_values={rule.id: custom_values for rule in self.rules}
-                if custom_values else None,
+                custom_values=(
+                    {rule.id: custom_values for rule in self.rules} if custom_values else None
+                ),
             )
             session.hardened_clauses[clause_index] = result.hardened
 
@@ -579,16 +585,18 @@ class ClauseHardener:
         for rule in self.rules:
             if re.search(rule.pattern, clause, re.IGNORECASE):
                 match = re.search(rule.pattern, clause, re.IGNORECASE)
-                suggestions.append({
-                    "rule_id": rule.id,
-                    "rule_name": rule.name,
-                    "strategy": rule.strategy.value,
-                    "matched_text": match.group() if match else "",
-                    "replacement_template": rule.replacement_template,
-                    "default_values": rule.default_values,
-                    "required_values": self._extract_placeholders(rule.replacement_template),
-                    "risk_reduction": rule.risk_reduction,
-                })
+                suggestions.append(
+                    {
+                        "rule_id": rule.id,
+                        "rule_name": rule.name,
+                        "strategy": rule.strategy.value,
+                        "matched_text": match.group() if match else "",
+                        "replacement_template": rule.replacement_template,
+                        "default_values": rule.default_values,
+                        "required_values": self._extract_placeholders(rule.replacement_template),
+                        "risk_reduction": rule.risk_reduction,
+                    }
+                )
 
         return suggestions
 
@@ -616,8 +624,17 @@ class ClauseHardener:
 
         removed = original_tokens - hardened_tokens
         important_terms = {
-            "shall", "must", "will", "may", "right", "obligation",
-            "license", "grant", "terminate", "indemnify", "warrant",
+            "shall",
+            "must",
+            "will",
+            "may",
+            "right",
+            "obligation",
+            "license",
+            "grant",
+            "terminate",
+            "indemnify",
+            "warrant",
         }
         removed_important = removed & important_terms
         if removed_important:
@@ -631,17 +648,19 @@ class ClauseHardener:
         if len_ratio < 0.5:
             warnings.append("Clause significantly shortened. Verify no critical content was lost.")
         elif len_ratio > 3.0:
-            warnings.append("Clause significantly expanded. Consider if this adds unnecessary complexity.")
+            warnings.append(
+                "Clause significantly expanded. Consider if this adds unnecessary complexity."
+            )
 
         # Check for unfilled placeholders
-        placeholders = re.findall(r'\{[^}]+\}', hardened)
+        placeholders = re.findall(r"\{[^}]+\}", hardened)
         if placeholders:
             issues.append(f"Unfilled placeholders: {', '.join(placeholders)}")
 
         # Check for undefined references
-        references = re.findall(r'Section\s+\[?[A-Z0-9.]+\]?|Schedule\s+\[?[A-Z]\]?', hardened)
+        references = re.findall(r"Section\s+\[?[A-Z0-9.]+\]?|Schedule\s+\[?[A-Z]\]?", hardened)
         for ref in references:
-            if '[' in ref:
+            if "[" in ref:
                 issues.append(f"Undefined reference: {ref}")
 
         return {
@@ -687,13 +706,13 @@ class ClauseHardener:
             candidate = new_text[start:end]
             if not re.search(pattern, candidate, re.IGNORECASE):
                 # We've gone past the replacement
-                return new_text[start:end - 1] if end > start else candidate
+                return new_text[start : end - 1] if end > start else candidate
 
         return new_text[start:]
 
     def _extract_placeholders(self, template: str) -> List[str]:
         """Extract placeholder names from a template."""
-        return re.findall(r'\{(\w+)\}', template)
+        return re.findall(r"\{(\w+)\}", template)
 
 
 class HardeningPipeline:
@@ -750,8 +769,7 @@ class HardeningPipeline:
 
         if self.auto_validate:
             self._validations[contract_id] = [
-                self.hardener.validate_hardening(r.original, r.hardened)
-                for r in results
+                self.hardener.validate_hardening(r.original, r.hardened) for r in results
             ]
 
         return results
@@ -790,9 +808,7 @@ class HardeningPipeline:
         if self.require_review:
             pending = self.get_pending_review(contract_id)
             if pending:
-                raise ValueError(
-                    f"Review required for clauses: {pending}"
-                )
+                raise ValueError(f"Review required for clauses: {pending}")
 
         results = self._pipeline_results[contract_id]
         return [r.hardened for r in results]
@@ -816,13 +832,10 @@ class HardeningPipeline:
             "total_risk_after": total_risk_after,
             "risk_reduction_percent": (
                 (total_risk_before - total_risk_after) / total_risk_before * 100
-                if total_risk_before > 0 else 0
+                if total_risk_before > 0
+                else 0
             ),
-            "rules_applied": list(set(
-                rule for r in results for rule in r.rules_applied
-            )),
-            "validation_issues": sum(
-                len(v.get("issues", [])) for v in validations
-            ),
+            "rules_applied": list(set(rule for r in results for rule in r.rules_applied)),
+            "validation_issues": sum(len(v.get("issues", [])) for v in validations),
             "pending_review": len(self.get_pending_review(contract_id)),
         }

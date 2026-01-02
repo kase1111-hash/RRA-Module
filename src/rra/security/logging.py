@@ -79,6 +79,7 @@ class SecurityEventType(Enum):
 
 class SecurityEventSeverity(Enum):
     """Severity levels for security events."""
+
     DEBUG = "debug"
     INFO = "info"
     WARNING = "warning"
@@ -101,7 +102,7 @@ class SecurityLogger:
         logger_name: str = "rra.security",
         log_file: Optional[Path] = None,
         console_output: bool = True,
-        min_level: SecurityEventSeverity = SecurityEventSeverity.INFO
+        min_level: SecurityEventSeverity = SecurityEventSeverity.INFO,
     ):
         """
         Initialize security logger.
@@ -122,7 +123,7 @@ class SecurityLogger:
         self.logger.handlers.clear()
 
         # JSON formatter
-        formatter = logging.Formatter('%(message)s')
+        formatter = logging.Formatter("%(message)s")
 
         if log_file:
             log_file.parent.mkdir(parents=True, exist_ok=True)
@@ -167,7 +168,7 @@ class SecurityLogger:
         agent_id: Optional[str] = None,
         request_id: Optional[str] = None,
         details: Optional[Dict[str, Any]] = None,
-        tags: Optional[list] = None
+        tags: Optional[list] = None,
     ) -> Dict[str, Any]:
         """
         Log a structured security event.
@@ -221,11 +222,7 @@ class SecurityLogger:
     # Convenience methods for common events
 
     def auth_success(
-        self,
-        user_id: str,
-        source_ip: Optional[str] = None,
-        method: str = "api_key",
-        **kwargs
+        self, user_id: str, source_ip: Optional[str] = None, method: str = "api_key", **kwargs
     ) -> Dict[str, Any]:
         """Log successful authentication."""
         return self.log_event(
@@ -235,15 +232,11 @@ class SecurityLogger:
             user_id=user_id,
             source_ip=source_ip,
             details={"method": method},
-            **kwargs
+            **kwargs,
         )
 
     def auth_failure(
-        self,
-        reason: str,
-        source_ip: Optional[str] = None,
-        user_id: Optional[str] = None,
-        **kwargs
+        self, reason: str, source_ip: Optional[str] = None, user_id: Optional[str] = None, **kwargs
     ) -> Dict[str, Any]:
         """Log failed authentication."""
         return self.log_event(
@@ -253,7 +246,7 @@ class SecurityLogger:
             source_ip=source_ip,
             user_id=user_id,
             details={"reason": reason},
-            **kwargs
+            **kwargs,
         )
 
     def rate_limit_exceeded(
@@ -262,7 +255,7 @@ class SecurityLogger:
         source_ip: Optional[str] = None,
         limit: int = 100,
         window_minutes: int = 60,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """Log rate limit exceeded."""
         return self.log_event(
@@ -272,14 +265,11 @@ class SecurityLogger:
             agent_id=agent_id,
             source_ip=source_ip,
             details={"limit": limit, "window_minutes": window_minutes},
-            **kwargs
+            **kwargs,
         )
 
     def webhook_signature_invalid(
-        self,
-        agent_id: str,
-        source_ip: Optional[str] = None,
-        **kwargs
+        self, agent_id: str, source_ip: Optional[str] = None, **kwargs
     ) -> Dict[str, Any]:
         """Log invalid webhook signature."""
         return self.log_event(
@@ -289,15 +279,11 @@ class SecurityLogger:
             agent_id=agent_id,
             source_ip=source_ip,
             tags=["webhook", "security"],
-            **kwargs
+            **kwargs,
         )
 
     def ssrf_blocked(
-        self,
-        url: str,
-        reason: str,
-        source_ip: Optional[str] = None,
-        **kwargs
+        self, url: str, reason: str, source_ip: Optional[str] = None, **kwargs
     ) -> Dict[str, Any]:
         """Log blocked SSRF attempt."""
         return self.log_event(
@@ -307,15 +293,11 @@ class SecurityLogger:
             source_ip=source_ip,
             details={"blocked_url": url, "reason": reason},
             tags=["ssrf", "security"],
-            **kwargs
+            **kwargs,
         )
 
     def injection_blocked(
-        self,
-        attack_type: str,
-        input_value: str,
-        source_ip: Optional[str] = None,
-        **kwargs
+        self, attack_type: str, input_value: str, source_ip: Optional[str] = None, **kwargs
     ) -> Dict[str, Any]:
         """Log blocked injection attempt."""
         # Truncate potentially malicious input
@@ -328,15 +310,11 @@ class SecurityLogger:
             source_ip=source_ip,
             details={"attack_type": attack_type, "input_preview": safe_input},
             tags=["injection", "security"],
-            **kwargs
+            **kwargs,
         )
 
     def suspicious_activity(
-        self,
-        pattern: str,
-        source_ip: Optional[str] = None,
-        user_id: Optional[str] = None,
-        **kwargs
+        self, pattern: str, source_ip: Optional[str] = None, user_id: Optional[str] = None, **kwargs
     ) -> Dict[str, Any]:
         """Log suspicious activity detection."""
         return self.log_event(
@@ -347,7 +325,7 @@ class SecurityLogger:
             user_id=user_id,
             details={"pattern": pattern},
             tags=["suspicious", "security", "alert"],
-            **kwargs
+            **kwargs,
         )
 
     def contract_event(
@@ -355,7 +333,7 @@ class SecurityLogger:
         event_type: SecurityEventType,
         token_id: Optional[str] = None,
         transaction_hash: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """Log blockchain contract event."""
         return self.log_event(
@@ -367,7 +345,7 @@ class SecurityLogger:
                 "transaction_hash": transaction_hash,
             },
             tags=["blockchain", "contract"],
-            **kwargs
+            **kwargs,
         )
 
 

@@ -25,8 +25,11 @@ router = APIRouter(prefix="/api/verify", tags=["verification"])
 # Request/Response Models
 class VerifyRequest(BaseModel):
     """Request to verify a repository."""
+
     repo_url: str = Field(..., description="GitHub repository URL to verify")
-    owner_address: Optional[str] = Field(None, description="Owner's Ethereum address for blockchain registration")
+    owner_address: Optional[str] = Field(
+        None, description="Owner's Ethereum address for blockchain registration"
+    )
     network: str = Field("testnet", description="Blockchain network (mainnet, testnet, localhost)")
     skip_tests: bool = Field(False, description="Skip running actual tests")
     skip_security: bool = Field(False, description="Skip security scanning")
@@ -34,6 +37,7 @@ class VerifyRequest(BaseModel):
 
 class CheckResult(BaseModel):
     """Result of a single verification check."""
+
     name: str
     status: str
     message: str
@@ -42,6 +46,7 @@ class CheckResult(BaseModel):
 
 class VerificationResponse(BaseModel):
     """Response from code verification."""
+
     repo_url: str
     overall_status: str
     score: float
@@ -51,6 +56,7 @@ class VerificationResponse(BaseModel):
 
 class CategoryResponse(BaseModel):
     """Response from repository categorization."""
+
     primary_category: str
     subcategory: Optional[str] = None
     confidence: float
@@ -61,6 +67,7 @@ class CategoryResponse(BaseModel):
 
 class ReadmeMetadataResponse(BaseModel):
     """Response from README parsing."""
+
     title: str
     description: str
     short_description: str
@@ -72,6 +79,7 @@ class ReadmeMetadataResponse(BaseModel):
 
 class PurchaseLinkResponse(BaseModel):
     """Purchase link for a license tier."""
+
     url: str
     network: str
     tier: str
@@ -81,6 +89,7 @@ class PurchaseLinkResponse(BaseModel):
 
 class MarketplaceListingResponse(BaseModel):
     """Complete marketplace listing."""
+
     repo_url: str
     repo_name: str
     description: str
@@ -94,6 +103,7 @@ class MarketplaceListingResponse(BaseModel):
 
 class FullVerificationResponse(BaseModel):
     """Complete verification response with all data."""
+
     verification: VerificationResponse
     category: CategoryResponse
     readme: ReadmeMetadataResponse
@@ -148,7 +158,9 @@ async def verify_repository(
         # Build response
         verification = VerificationResponse(
             repo_url=kb.repo_url,
-            overall_status=kb.verification.get("overall_status", "unknown") if kb.verification else "unknown",
+            overall_status=(
+                kb.verification.get("overall_status", "unknown") if kb.verification else "unknown"
+            ),
             score=kb.verification.get("score", 0.0) if kb.verification else 0.0,
             checks=[
                 CheckResult(**check)
@@ -158,7 +170,9 @@ async def verify_repository(
         )
 
         category = CategoryResponse(
-            primary_category=kb.category.get("primary_category", "other") if kb.category else "other",
+            primary_category=(
+                kb.category.get("primary_category", "other") if kb.category else "other"
+            ),
             subcategory=kb.category.get("subcategory") if kb.category else None,
             confidence=kb.category.get("confidence", 0.0) if kb.category else 0.0,
             tags=kb.category.get("tags", []) if kb.category else [],
@@ -169,11 +183,17 @@ async def verify_repository(
         readme = ReadmeMetadataResponse(
             title=kb.readme_metadata.get("title", "") if kb.readme_metadata else "",
             description=kb.readme_metadata.get("description", "") if kb.readme_metadata else "",
-            short_description=kb.readme_metadata.get("short_description", "") if kb.readme_metadata else "",
+            short_description=(
+                kb.readme_metadata.get("short_description", "") if kb.readme_metadata else ""
+            ),
             features=kb.readme_metadata.get("features", []) if kb.readme_metadata else [],
             technologies=kb.readme_metadata.get("technologies", []) if kb.readme_metadata else [],
-            has_examples=kb.readme_metadata.get("has_examples", False) if kb.readme_metadata else False,
-            has_api_docs=kb.readme_metadata.get("has_api_docs", False) if kb.readme_metadata else False,
+            has_examples=(
+                kb.readme_metadata.get("has_examples", False) if kb.readme_metadata else False
+            ),
+            has_api_docs=(
+                kb.readme_metadata.get("has_api_docs", False) if kb.readme_metadata else False
+            ),
         )
 
         marketplace = None
@@ -242,7 +262,11 @@ async def get_verification_status(
                 verification=VerificationResponse(**value["verification"]),
                 category=CategoryResponse(**value["category"]),
                 readme=ReadmeMetadataResponse(**value["readme"]),
-                marketplace=MarketplaceListingResponse(**value["marketplace"]) if value["marketplace"] else None,
+                marketplace=(
+                    MarketplaceListingResponse(**value["marketplace"])
+                    if value["marketplace"]
+                    else None
+                ),
             )
 
     raise HTTPException(status_code=404, detail="Verification not found")
@@ -392,7 +416,9 @@ async def categorize_repository(
         kb = ingester.ingest(repo_url)
 
         return CategoryResponse(
-            primary_category=kb.category.get("primary_category", "other") if kb.category else "other",
+            primary_category=(
+                kb.category.get("primary_category", "other") if kb.category else "other"
+            ),
             subcategory=kb.category.get("subcategory") if kb.category else None,
             confidence=kb.category.get("confidence", 0.0) if kb.category else 0.0,
             tags=kb.category.get("tags", []) if kb.category else [],

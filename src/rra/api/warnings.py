@@ -62,8 +62,10 @@ def get_term_analyzer() -> TermAnalyzer:
 # Request/Response Models
 # =============================================================================
 
+
 class WarningRequest(BaseModel):
     """Request to generate warnings for a contract."""
+
     clauses: List[str] = Field(..., min_length=1, max_length=100)
     contract_id: Optional[str] = None
     license_type: str = Field(default="commercial", pattern="^(commercial|saas|open_source)$")
@@ -73,6 +75,7 @@ class WarningRequest(BaseModel):
 
 class WarningResponse(BaseModel):
     """Response with warning report."""
+
     contract_id: str
     overall_risk_score: float
     dispute_probability: float
@@ -84,12 +87,14 @@ class WarningResponse(BaseModel):
 
 class TermAnalysisRequest(BaseModel):
     """Request to analyze terms in a contract."""
+
     clauses: List[str] = Field(..., min_length=1, max_length=100)
     contract_id: Optional[str] = None
 
 
 class TermAnalysisResponse(BaseModel):
     """Response with term analysis."""
+
     contract_id: str
     summary: Dict[str, Any]
     risk_distribution: Dict[str, int]
@@ -101,12 +106,14 @@ class TermAnalysisResponse(BaseModel):
 
 class SingleTermRequest(BaseModel):
     """Request to analyze a single term."""
+
     term: str = Field(..., min_length=1, max_length=100)
     context: Optional[str] = None
 
 
 class SingleTermResponse(BaseModel):
     """Response with single term analysis."""
+
     term: str
     normalized_form: str
     category: str
@@ -119,23 +126,27 @@ class SingleTermResponse(BaseModel):
 
 class HighEntropyRequest(BaseModel):
     """Request to find high-entropy terms."""
+
     clauses: List[str] = Field(..., min_length=1, max_length=100)
     threshold: float = Field(default=0.6, ge=0.0, le=1.0)
 
 
 class WarningAcknowledgeRequest(BaseModel):
     """Request to acknowledge a warning."""
+
     warning_id: str
 
 
 class WarningResolveRequest(BaseModel):
     """Request to resolve a warning."""
+
     warning_id: str
     resolution_notes: Optional[str] = None
 
 
 class HealthResponse(BaseModel):
     """API health check response."""
+
     status: str
     version: str
     warning_history_count: int
@@ -145,6 +156,7 @@ class HealthResponse(BaseModel):
 # =============================================================================
 # Endpoints
 # =============================================================================
+
 
 @router.get("/health", response_model=HealthResponse)
 async def health_check() -> HealthResponse:
@@ -431,28 +443,20 @@ async def get_statistics() -> Dict[str, Any]:
     severity_counts = {}
     for severity in WarningSeverity:
         severity_counts[severity.value] = sum(
-            1 for w in generator._warning_history.values()
-            if w.severity == severity
+            1 for w in generator._warning_history.values() if w.severity == severity
         )
 
     # Count by category
     category_counts = {}
     for category in WarningCategory:
         category_counts[category.value] = sum(
-            1 for w in generator._warning_history.values()
-            if w.category == category
+            1 for w in generator._warning_history.values() if w.category == category
         )
 
     return {
         "total_warnings_generated": len(generator._warning_history),
-        "acknowledged_count": sum(
-            1 for w in generator._warning_history.values()
-            if w.acknowledged
-        ),
-        "resolved_count": sum(
-            1 for w in generator._warning_history.values()
-            if w.resolved
-        ),
+        "acknowledged_count": sum(1 for w in generator._warning_history.values() if w.acknowledged),
+        "resolved_count": sum(1 for w in generator._warning_history.values() if w.resolved),
         "severity_distribution": severity_counts,
         "category_distribution": category_counts,
         "known_terms": len(analyzer.TERM_DATABASE),
@@ -462,6 +466,7 @@ async def get_statistics() -> Dict[str, Any]:
 
 class BatchAnalyzeRequest(BaseModel):
     """Request body for batch analysis."""
+
     contracts: List[List[str]] = Field(..., max_length=10)
 
 
@@ -484,13 +489,15 @@ async def batch_analyze_contracts(
     results = []
     for i, clauses in enumerate(contracts):
         report = generator.generate_warnings(clauses)
-        results.append({
-            "contract_index": i,
-            "overall_risk": round(report.overall_risk_score, 4),
-            "dispute_probability": round(report.dispute_probability, 4),
-            "warning_count": report.total_count,
-            "critical_count": report.critical_count,
-        })
+        results.append(
+            {
+                "contract_index": i,
+                "overall_risk": round(report.overall_risk_score, 4),
+                "dispute_probability": round(report.dispute_probability, 4),
+                "warning_count": report.total_count,
+                "critical_count": report.critical_count,
+            }
+        )
 
     avg_risk = sum(r["overall_risk"] for r in results) / len(results)
     avg_prob = sum(r["dispute_probability"] for r in results) / len(results)

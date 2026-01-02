@@ -20,6 +20,7 @@ from abc import ABC, abstractmethod
 
 class ModelProvider(Enum):
     """Supported LLM providers."""
+
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     LOCAL = "local"
@@ -28,6 +29,7 @@ class ModelProvider(Enum):
 
 class ModelCapability(Enum):
     """Model capabilities."""
+
     CHAT = "chat"
     COMPLETION = "completion"
     EMBEDDING = "embedding"
@@ -38,6 +40,7 @@ class ModelCapability(Enum):
 
 class RequestPriority(Enum):
     """Priority levels for LLM requests."""
+
     LOW = 1
     NORMAL = 2
     HIGH = 3
@@ -47,6 +50,7 @@ class RequestPriority(Enum):
 @dataclass
 class ModelConfig:
     """Configuration for an LLM model."""
+
     model_id: str
     provider: ModelProvider
     model_name: str
@@ -91,6 +95,7 @@ class ModelConfig:
 @dataclass
 class LLMRequest:
     """An LLM inference request."""
+
     request_id: str
     model_id: Optional[str]  # None = auto-select
     messages: List[Dict[str, str]]
@@ -118,6 +123,7 @@ class LLMRequest:
 @dataclass
 class LLMResponse:
     """Response from LLM inference."""
+
     request_id: str
     model_id: str
     content: str
@@ -145,11 +151,7 @@ class LLMProvider(ABC):
 
     @abstractmethod
     async def complete(
-        self,
-        model_name: str,
-        messages: List[Dict[str, str]],
-        max_tokens: int,
-        temperature: float
+        self, model_name: str, messages: List[Dict[str, str]], max_tokens: int, temperature: float
     ) -> tuple[str, int, str]:
         """
         Complete a chat request.
@@ -161,11 +163,7 @@ class LLMProvider(ABC):
 
     @abstractmethod
     async def stream(
-        self,
-        model_name: str,
-        messages: List[Dict[str, str]],
-        max_tokens: int,
-        temperature: float
+        self, model_name: str, messages: List[Dict[str, str]], max_tokens: int, temperature: float
     ) -> AsyncIterator[str]:
         """Stream a chat response."""
         pass
@@ -175,11 +173,7 @@ class MockLLMProvider(LLMProvider):
     """Mock LLM provider for testing."""
 
     async def complete(
-        self,
-        model_name: str,
-        messages: List[Dict[str, str]],
-        max_tokens: int,
-        temperature: float
+        self, model_name: str, messages: List[Dict[str, str]], max_tokens: int, temperature: float
     ) -> tuple[str, int, str]:
         # Simulate response
         last_message = messages[-1]["content"] if messages else ""
@@ -187,11 +181,7 @@ class MockLLMProvider(LLMProvider):
         return response, len(response.split()), "stop"
 
     async def stream(
-        self,
-        model_name: str,
-        messages: List[Dict[str, str]],
-        max_tokens: int,
-        temperature: float
+        self, model_name: str, messages: List[Dict[str, str]], max_tokens: int, temperature: float
     ) -> AsyncIterator[str]:
         response = "This is a streaming mock response."
         for word in response.split():
@@ -202,6 +192,7 @@ class MockLLMProvider(LLMProvider):
 @dataclass
 class RateLimitState:
     """Tracks rate limit state for a model."""
+
     model_id: str
     requests_this_minute: int = 0
     minute_start: datetime = field(default_factory=datetime.now)
@@ -255,49 +246,55 @@ class SynthMindRouter:
     def _register_default_models(self) -> None:
         """Register default model configurations."""
         # GPT-4 style model
-        self.register_model(ModelConfig(
-            model_id="gpt4",
-            provider=ModelProvider.OPENAI,
-            model_name="gpt-4",
-            capabilities=[
-                ModelCapability.CHAT,
-                ModelCapability.CODE,
-                ModelCapability.REASONING,
-                ModelCapability.FUNCTION_CALLING,
-            ],
-            max_tokens=8192,
-            cost_per_1k_tokens=0.03,
-            priority=3,
-        ))
+        self.register_model(
+            ModelConfig(
+                model_id="gpt4",
+                provider=ModelProvider.OPENAI,
+                model_name="gpt-4",
+                capabilities=[
+                    ModelCapability.CHAT,
+                    ModelCapability.CODE,
+                    ModelCapability.REASONING,
+                    ModelCapability.FUNCTION_CALLING,
+                ],
+                max_tokens=8192,
+                cost_per_1k_tokens=0.03,
+                priority=3,
+            )
+        )
 
         # Claude style model
-        self.register_model(ModelConfig(
-            model_id="claude",
-            provider=ModelProvider.ANTHROPIC,
-            model_name="claude-3-opus",
-            capabilities=[
-                ModelCapability.CHAT,
-                ModelCapability.CODE,
-                ModelCapability.REASONING,
-            ],
-            max_tokens=4096,
-            cost_per_1k_tokens=0.015,
-            priority=2,
-        ))
+        self.register_model(
+            ModelConfig(
+                model_id="claude",
+                provider=ModelProvider.ANTHROPIC,
+                model_name="claude-3-opus",
+                capabilities=[
+                    ModelCapability.CHAT,
+                    ModelCapability.CODE,
+                    ModelCapability.REASONING,
+                ],
+                max_tokens=4096,
+                cost_per_1k_tokens=0.015,
+                priority=2,
+            )
+        )
 
         # Local/mock model
-        self.register_model(ModelConfig(
-            model_id="local",
-            provider=ModelProvider.LOCAL,
-            model_name="mock-model",
-            capabilities=[
-                ModelCapability.CHAT,
-                ModelCapability.COMPLETION,
-            ],
-            max_tokens=2048,
-            cost_per_1k_tokens=0.0,
-            priority=1,
-        ))
+        self.register_model(
+            ModelConfig(
+                model_id="local",
+                provider=ModelProvider.LOCAL,
+                model_name="mock-model",
+                capabilities=[
+                    ModelCapability.CHAT,
+                    ModelCapability.COMPLETION,
+                ],
+                max_tokens=2048,
+                cost_per_1k_tokens=0.0,
+                priority=1,
+            )
+        )
 
     # =========================================================================
     # Model Management
@@ -318,9 +315,7 @@ class SynthMindRouter:
         return self.models.get(model_id)
 
     def list_models(
-        self,
-        enabled_only: bool = True,
-        capability: Optional[ModelCapability] = None
+        self, enabled_only: bool = True, capability: Optional[ModelCapability] = None
     ) -> List[ModelConfig]:
         """List available models."""
         models = list(self.models.values())
@@ -337,7 +332,7 @@ class SynthMindRouter:
         self,
         required_capabilities: List[ModelCapability],
         preferred_model: Optional[str] = None,
-        max_cost: Optional[float] = None
+        max_cost: Optional[float] = None,
     ) -> Optional[ModelConfig]:
         """
         Select the best model for a request.
@@ -392,7 +387,7 @@ class SynthMindRouter:
         temperature: Optional[float] = None,
         required_capabilities: Optional[List[ModelCapability]] = None,
         priority: RequestPriority = RequestPriority.NORMAL,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> LLMResponse:
         """
         Complete a chat request.
@@ -451,7 +446,7 @@ class SynthMindRouter:
         messages: List[Dict[str, str]],
         model_id: Optional[str] = None,
         max_tokens: Optional[int] = None,
-        temperature: Optional[float] = None
+        temperature: Optional[float] = None,
     ) -> AsyncIterator[str]:
         """Stream a chat response."""
         required_caps = [ModelCapability.CHAT]
@@ -473,22 +468,19 @@ class SynthMindRouter:
             yield chunk
 
     def _log_request(
-        self,
-        request_id: str,
-        model_id: str,
-        tokens: int,
-        latency_ms: float,
-        cost: float
+        self, request_id: str, model_id: str, tokens: int, latency_ms: float, cost: float
     ) -> None:
         """Log a request for analytics."""
-        self.request_history.append({
-            "request_id": request_id,
-            "model_id": model_id,
-            "tokens": tokens,
-            "latency_ms": latency_ms,
-            "cost": cost,
-            "timestamp": datetime.now().isoformat(),
-        })
+        self.request_history.append(
+            {
+                "request_id": request_id,
+                "model_id": model_id,
+                "tokens": tokens,
+                "latency_ms": latency_ms,
+                "cost": cost,
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
 
         # Keep last 1000 requests
         if len(self.request_history) > 1000:
@@ -503,7 +495,7 @@ class SynthMindRouter:
         context: str,
         buyer_message: str,
         agent_personality: str = "professional",
-        price_range: Optional[tuple[float, float]] = None
+        price_range: Optional[tuple[float, float]] = None,
     ) -> str:
         """Generate a negotiation response for RRA agents."""
         system_prompt = f"""You are a license negotiation agent with a {agent_personality} personality.
@@ -529,9 +521,7 @@ Respond professionally and aim to reach a mutually beneficial agreement."""
         return response.content
 
     async def analyze_code_value(
-        self,
-        code_summary: str,
-        metrics: Dict[str, Any]
+        self, code_summary: str, metrics: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Analyze code to determine licensing value."""
         prompt = f"""Analyze this code repository and estimate its licensing value.
@@ -572,8 +562,11 @@ Format as JSON."""
 
     def get_usage_stats(self) -> Dict[str, Any]:
         """Get LLM usage statistics."""
-        recent = [r for r in self.request_history
-                  if datetime.fromisoformat(r["timestamp"]) > datetime.now() - timedelta(hours=24)]
+        recent = [
+            r
+            for r in self.request_history
+            if datetime.fromisoformat(r["timestamp"]) > datetime.now() - timedelta(hours=24)
+        ]
 
         total_cost = sum(r["cost"] for r in recent)
         total_tokens = sum(r["tokens"] for r in recent)
@@ -626,7 +619,9 @@ Format as JSON."""
             with open(state_file) as f:
                 state = json.load(f)
 
-            self.models = {mid: ModelConfig.from_dict(m) for mid, m in state.get("models", {}).items()}
+            self.models = {
+                mid: ModelConfig.from_dict(m) for mid, m in state.get("models", {}).items()
+            }
 
             # Initialize rate limits
             for model_id in self.models:

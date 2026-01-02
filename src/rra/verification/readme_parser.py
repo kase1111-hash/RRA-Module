@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ReadmeMetadata:
     """Structured metadata extracted from a README file."""
+
     title: str = ""
     description: str = ""
     short_description: str = ""  # One-line summary
@@ -67,49 +68,49 @@ class ReadmeParser:
 
     # Common section headers for README files
     SECTION_PATTERNS = {
-        "description": r'(?:description|about|overview|introduction)',
-        "features": r'(?:features|capabilities|highlights|what.*does)',
-        "installation": r'(?:installation|install|setup|getting started|quick start)',
-        "usage": r'(?:usage|how to use|examples?|getting started)',
-        "requirements": r'(?:requirements|prerequisites|dependencies)',
-        "configuration": r'(?:configuration|config|settings|options)',
-        "api": r'(?:api|reference|documentation)',
-        "contributing": r'(?:contributing|contribution|development)',
-        "license": r'(?:license|licensing)',
-        "changelog": r'(?:changelog|changes|history|release notes)',
+        "description": r"(?:description|about|overview|introduction)",
+        "features": r"(?:features|capabilities|highlights|what.*does)",
+        "installation": r"(?:installation|install|setup|getting started|quick start)",
+        "usage": r"(?:usage|how to use|examples?|getting started)",
+        "requirements": r"(?:requirements|prerequisites|dependencies)",
+        "configuration": r"(?:configuration|config|settings|options)",
+        "api": r"(?:api|reference|documentation)",
+        "contributing": r"(?:contributing|contribution|development)",
+        "license": r"(?:license|licensing)",
+        "changelog": r"(?:changelog|changes|history|release notes)",
     }
 
     # Technology/framework detection patterns
     TECHNOLOGY_PATTERNS = [
-        (r'\bpython\b', "Python"),
-        (r'\bjavascript\b|\bjs\b', "JavaScript"),
-        (r'\btypescript\b|\bts\b', "TypeScript"),
-        (r'\breact\b', "React"),
-        (r'\bvue\b', "Vue.js"),
-        (r'\bangular\b', "Angular"),
-        (r'\bnode\.?js\b', "Node.js"),
-        (r'\brust\b', "Rust"),
-        (r'\bgo\b|\bgolang\b', "Go"),
-        (r'\bjava\b', "Java"),
-        (r'\bdocker\b', "Docker"),
-        (r'\bkubernetes\b|\bk8s\b', "Kubernetes"),
-        (r'\bfastapi\b', "FastAPI"),
-        (r'\bflask\b', "Flask"),
-        (r'\bdjango\b', "Django"),
-        (r'\bexpress\b', "Express.js"),
-        (r'\bnext\.?js\b', "Next.js"),
-        (r'\bpostgres(?:ql)?\b', "PostgreSQL"),
-        (r'\bmongodb\b', "MongoDB"),
-        (r'\bredis\b', "Redis"),
-        (r'\bgraphql\b', "GraphQL"),
-        (r'\brest\s*api\b', "REST API"),
-        (r'\bwebsocket\b', "WebSocket"),
-        (r'\baws\b', "AWS"),
-        (r'\bgcp\b', "GCP"),
-        (r'\bazure\b', "Azure"),
-        (r'\bterraform\b', "Terraform"),
-        (r'\bweb3\b|\bblockchain\b', "Blockchain"),
-        (r'\bethereum\b|\bsolidity\b', "Ethereum"),
+        (r"\bpython\b", "Python"),
+        (r"\bjavascript\b|\bjs\b", "JavaScript"),
+        (r"\btypescript\b|\bts\b", "TypeScript"),
+        (r"\breact\b", "React"),
+        (r"\bvue\b", "Vue.js"),
+        (r"\bangular\b", "Angular"),
+        (r"\bnode\.?js\b", "Node.js"),
+        (r"\brust\b", "Rust"),
+        (r"\bgo\b|\bgolang\b", "Go"),
+        (r"\bjava\b", "Java"),
+        (r"\bdocker\b", "Docker"),
+        (r"\bkubernetes\b|\bk8s\b", "Kubernetes"),
+        (r"\bfastapi\b", "FastAPI"),
+        (r"\bflask\b", "Flask"),
+        (r"\bdjango\b", "Django"),
+        (r"\bexpress\b", "Express.js"),
+        (r"\bnext\.?js\b", "Next.js"),
+        (r"\bpostgres(?:ql)?\b", "PostgreSQL"),
+        (r"\bmongodb\b", "MongoDB"),
+        (r"\bredis\b", "Redis"),
+        (r"\bgraphql\b", "GraphQL"),
+        (r"\brest\s*api\b", "REST API"),
+        (r"\bwebsocket\b", "WebSocket"),
+        (r"\baws\b", "AWS"),
+        (r"\bgcp\b", "GCP"),
+        (r"\bazure\b", "Azure"),
+        (r"\bterraform\b", "Terraform"),
+        (r"\bweb3\b|\bblockchain\b", "Blockchain"),
+        (r"\bethereum\b|\bsolidity\b", "Ethereum"),
     ]
 
     def __init__(self):
@@ -130,12 +131,12 @@ class ReadmeParser:
             return ReadmeMetadata()
 
         try:
-            content = readme_path.read_text(encoding='utf-8', errors='ignore')
+            content = readme_path.read_text(encoding="utf-8", errors="ignore")
         except OSError as e:
             logger.debug(f"Could not read README at {readme_path}: {e}")
             return ReadmeMetadata()
 
-        is_rst = readme_path.suffix.lower() == '.rst'
+        is_rst = readme_path.suffix.lower() == ".rst"
 
         metadata = ReadmeMetadata()
 
@@ -176,8 +177,8 @@ class ReadmeParser:
         metadata.license_mentioned = self._detect_license(content)
 
         # Check for examples and API docs
-        metadata.has_examples = bool(re.search(r'```|example|usage', content, re.IGNORECASE))
-        metadata.has_api_docs = bool(re.search(r'api|endpoint|reference', content, re.IGNORECASE))
+        metadata.has_examples = bool(re.search(r"```|example|usage", content, re.IGNORECASE))
+        metadata.has_api_docs = bool(re.search(r"api|endpoint|reference", content, re.IGNORECASE))
 
         return metadata
 
@@ -193,7 +194,7 @@ class ReadmeParser:
             ReadmeMetadata with extracted information
         """
         # Create a temporary path-like for format detection
-        is_rst = filename.lower().endswith('.rst')
+        is_rst = filename.lower().endswith(".rst")
 
         metadata = ReadmeMetadata()
 
@@ -234,8 +235,8 @@ class ReadmeParser:
         metadata.license_mentioned = self._detect_license(content)
 
         # Check for examples and API docs
-        metadata.has_examples = bool(re.search(r'```|example|usage', content, re.IGNORECASE))
-        metadata.has_api_docs = bool(re.search(r'api|endpoint|reference', content, re.IGNORECASE))
+        metadata.has_examples = bool(re.search(r"```|example|usage", content, re.IGNORECASE))
+        metadata.has_api_docs = bool(re.search(r"api|endpoint|reference", content, re.IGNORECASE))
 
         return metadata
 
@@ -243,18 +244,18 @@ class ReadmeParser:
         """Extract the title from README content."""
         if is_rst:
             # RST format: title with underline
-            match = re.match(r'^([^\n]+)\n[=]+\n', content)
+            match = re.match(r"^([^\n]+)\n[=]+\n", content)
             if match:
                 return match.group(1).strip()
         else:
             # Markdown format: # Title
-            match = re.match(r'^#\s+(.+?)(?:\n|$)', content)
+            match = re.match(r"^#\s+(.+?)(?:\n|$)", content)
             if match:
                 return match.group(1).strip()
 
             # Alternative: first line if it looks like a title
-            first_line = content.split('\n')[0].strip()
-            if first_line and not first_line.startswith(('!', '[', '<', '-', '*')):
+            first_line = content.split("\n")[0].strip()
+            if first_line and not first_line.startswith(("!", "[", "<", "-", "*")):
                 return first_line[:100]
 
         return ""
@@ -264,50 +265,50 @@ class ReadmeParser:
         # Remove badges and initial title
         if is_rst:
             # Remove RST title
-            content = re.sub(r'^[^\n]+\n[=]+\n', '', content)
+            content = re.sub(r"^[^\n]+\n[=]+\n", "", content)
         else:
             # Remove markdown title
-            content = re.sub(r'^#\s+.+?\n', '', content)
+            content = re.sub(r"^#\s+.+?\n", "", content)
 
         # Remove badge lines
-        content = re.sub(r'^\[!\[.+?\]\(.+?\)\]\(.+?\)\s*$', '', content, flags=re.MULTILINE)
-        content = re.sub(r'^\!\[.+?\]\(.+?\)\s*$', '', content, flags=re.MULTILINE)
+        content = re.sub(r"^\[!\[.+?\]\(.+?\)\]\(.+?\)\s*$", "", content, flags=re.MULTILINE)
+        content = re.sub(r"^\!\[.+?\]\(.+?\)\s*$", "", content, flags=re.MULTILINE)
 
         # Find the first paragraph(s) before any section header
         paragraphs = []
-        lines = content.strip().split('\n')
+        lines = content.strip().split("\n")
 
         in_paragraph = False
         current_para = []
 
         for line in lines:
             # Stop at section headers
-            if re.match(r'^#{1,3}\s+', line) or (is_rst and re.match(r'^[=\-~]+$', line)):
+            if re.match(r"^#{1,3}\s+", line) or (is_rst and re.match(r"^[=\-~]+$", line)):
                 break
 
             # Skip empty lines between paragraphs
             if not line.strip():
                 if current_para:
-                    paragraphs.append(' '.join(current_para))
+                    paragraphs.append(" ".join(current_para))
                     current_para = []
                 continue
 
             # Skip code blocks
-            if line.strip().startswith('```'):
+            if line.strip().startswith("```"):
                 in_paragraph = not in_paragraph
                 continue
 
             if not in_paragraph:
                 # Skip list items for description
-                if re.match(r'^[-*]\s+', line):
+                if re.match(r"^[-*]\s+", line):
                     continue
                 current_para.append(line.strip())
 
         if current_para:
-            paragraphs.append(' '.join(current_para))
+            paragraphs.append(" ".join(current_para))
 
         # Return first few paragraphs
-        description = '\n\n'.join(paragraphs[:3])
+        description = "\n\n".join(paragraphs[:3])
         return description[:2000]  # Limit length
 
     def _create_short_description(self, description: str) -> str:
@@ -316,7 +317,7 @@ class ReadmeParser:
             return ""
 
         # Get first sentence
-        first_sentence = re.split(r'[.!?]\s', description)[0]
+        first_sentence = re.split(r"[.!?]\s", description)[0]
 
         # Clean up and limit length
         short = first_sentence.strip()
@@ -331,10 +332,10 @@ class ReadmeParser:
 
         if is_rst:
             # RST section pattern
-            section_pattern = r'^([^\n]+)\n([=\-~]+)\n([\s\S]*?)(?=\n[^\n]+\n[=\-~]+\n|$)'
+            section_pattern = r"^([^\n]+)\n([=\-~]+)\n([\s\S]*?)(?=\n[^\n]+\n[=\-~]+\n|$)"
         else:
             # Markdown section pattern
-            section_pattern = r'^(#{1,3})\s+([^\n]+)\n([\s\S]*?)(?=\n#{1,3}\s+|$)'
+            section_pattern = r"^(#{1,3})\s+([^\n]+)\n([\s\S]*?)(?=\n#{1,3}\s+|$)"
 
         matches = re.finditer(section_pattern, content, re.MULTILINE)
 
@@ -366,16 +367,16 @@ class ReadmeParser:
         if not features_content:
             # Try to find features in the main content
             features_match = re.search(
-                r'(?:features?|capabilities|highlights)[:\s]*\n((?:[-*]\s+.+\n?)+)',
+                r"(?:features?|capabilities|highlights)[:\s]*\n((?:[-*]\s+.+\n?)+)",
                 content,
-                re.IGNORECASE
+                re.IGNORECASE,
             )
             if features_match:
                 features_content = features_match.group(1)
 
         if features_content:
             # Extract list items
-            list_items = re.findall(r'^[-*]\s+(.+)$', features_content, re.MULTILINE)
+            list_items = re.findall(r"^[-*]\s+(.+)$", features_content, re.MULTILINE)
             features.extend([item.strip() for item in list_items[:20]])
 
         return features
@@ -388,14 +389,14 @@ class ReadmeParser:
         req_content = sections.get("requirements", "")
         if req_content:
             # Extract list items
-            list_items = re.findall(r'^[-*]\s+(.+)$', req_content, re.MULTILINE)
+            list_items = re.findall(r"^[-*]\s+(.+)$", req_content, re.MULTILINE)
             requirements.extend([item.strip() for item in list_items[:20]])
 
         # Also look for version requirements
         version_matches = re.findall(
-            r'(?:requires?|needs?|depends on)\s+([A-Za-z]+)\s*(?:>=?|<=?|==?)\s*(\d+\.?\d*)',
+            r"(?:requires?|needs?|depends on)\s+([A-Za-z]+)\s*(?:>=?|<=?|==?)\s*(\d+\.?\d*)",
             content,
-            re.IGNORECASE
+            re.IGNORECASE,
         )
         for pkg, version in version_matches:
             requirements.append(f"{pkg} >= {version}")
@@ -407,7 +408,7 @@ class ReadmeParser:
         badges = []
 
         # Match markdown badge pattern: [![alt](img_url)](link_url)
-        badge_pattern = r'\[!\[([^\]]*)\]\(([^)]+)\)\]\(([^)]+)\)'
+        badge_pattern = r"\[!\[([^\]]*)\]\(([^)]+)\)\]\(([^)]+)\)"
         matches = re.finditer(badge_pattern, content)
 
         for match in matches:
@@ -428,12 +429,14 @@ class ReadmeParser:
             elif "version" in alt_text.lower():
                 badge_type = "version"
 
-            badges.append({
-                "type": badge_type,
-                "alt": alt_text,
-                "image": img_url,
-                "link": link_url,
-            })
+            badges.append(
+                {
+                    "type": badge_type,
+                    "alt": alt_text,
+                    "image": img_url,
+                    "link": link_url,
+                }
+            )
 
         return badges[:10]  # Limit
 
@@ -442,7 +445,7 @@ class ReadmeParser:
         links = {}
 
         # Match markdown links: [text](url)
-        link_pattern = r'\[([^\]]+)\]\(([^)]+)\)'
+        link_pattern = r"\[([^\]]+)\]\(([^)]+)\)"
         matches = re.finditer(link_pattern, content)
 
         for match in matches:
@@ -450,7 +453,7 @@ class ReadmeParser:
             url = match.group(2)
 
             # Skip badge images
-            if url.startswith('https://img.') or url.endswith(('.svg', '.png', '.jpg')):
+            if url.startswith("https://img.") or url.endswith((".svg", ".png", ".jpg")):
                 continue
 
             # Categorize links
@@ -483,12 +486,12 @@ class ReadmeParser:
     def _detect_license(self, content: str) -> Optional[str]:
         """Detect license type mentioned in README."""
         license_patterns = {
-            "MIT": r'\bMIT\s+License\b',
-            "Apache-2.0": r'\bApache\s+(?:License\s+)?2\.0\b',
-            "GPL-3.0": r'\bGPL(?:-3\.0)?\b',
-            "BSD-3-Clause": r'\bBSD\s+3-Clause\b',
-            "ISC": r'\bISC\s+License\b',
-            "FSL-1.1-ALv2": r'\bFSL-1\.1-ALv2\b',
+            "MIT": r"\bMIT\s+License\b",
+            "Apache-2.0": r"\bApache\s+(?:License\s+)?2\.0\b",
+            "GPL-3.0": r"\bGPL(?:-3\.0)?\b",
+            "BSD-3-Clause": r"\bBSD\s+3-Clause\b",
+            "ISC": r"\bISC\s+License\b",
+            "FSL-1.1-ALv2": r"\bFSL-1\.1-ALv2\b",
         }
 
         for license_name, pattern in license_patterns.items():

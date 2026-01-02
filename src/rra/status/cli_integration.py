@@ -170,9 +170,7 @@ def create_status_callback(console: Optional[Console] = None):
             else:
                 console.print(f"[green]Completed:[/green] {entry.operation}")
         elif entry.status_type == StatusType.ERROR:
-            console.print(
-                f"[red]Error:[/red] {entry.operation} - {entry.details or 'Unknown'}"
-            )
+            console.print(f"[red]Error:[/red] {entry.operation} - {entry.details or 'Unknown'}")
         else:
             console.print(f"[cyan]{entry.operation}[/cyan]")
 

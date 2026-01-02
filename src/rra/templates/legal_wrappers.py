@@ -20,6 +20,7 @@ import re
 
 class TemplateType(Enum):
     """Types of legal wrapper templates."""
+
     LICENSE_GRANT = "license_grant"
     ASSIGNMENT = "assignment"
     GOVERNING_LAW = "governing_law"
@@ -42,19 +43,21 @@ class TemplateType(Enum):
 
 class LanguageCode(Enum):
     """Language codes for templates."""
-    EN = "en"       # English
-    DE = "de"       # German
-    FR = "fr"       # French
-    ES = "es"       # Spanish
-    IT = "it"       # Italian
-    JA = "ja"       # Japanese
-    ZH = "zh"       # Chinese
-    PT = "pt"       # Portuguese
+
+    EN = "en"  # English
+    DE = "de"  # German
+    FR = "fr"  # French
+    ES = "es"  # Spanish
+    IT = "it"  # Italian
+    JA = "ja"  # Japanese
+    ZH = "zh"  # Chinese
+    PT = "pt"  # Portuguese
 
 
 @dataclass
 class TemplateVariable:
     """A variable placeholder in a template."""
+
     name: str
     description: str
     required: bool = True
@@ -66,17 +69,18 @@ class TemplateVariable:
 @dataclass
 class LegalTemplate:
     """A legal wrapper template."""
+
     template_id: str
     template_type: TemplateType
-    jurisdiction: str              # ISO 3166-1 alpha-2 or "INT"
+    jurisdiction: str  # ISO 3166-1 alpha-2 or "INT"
     language: LanguageCode
-    
+
     title: str
     content: str
-    
+
     variables: List[TemplateVariable] = field(default_factory=list)
     required_for: List[str] = field(default_factory=list)  # Transaction types
-    
+
     # Metadata
     version: str = "1.0"
     effective_date: datetime = field(default_factory=datetime.utcnow)
@@ -88,6 +92,7 @@ class LegalTemplate:
 @dataclass
 class RenderedClause:
     """A rendered legal clause with variables filled in."""
+
     template_id: str
     template_type: TemplateType
     jurisdiction: str
@@ -100,20 +105,20 @@ class RenderedClause:
 class LegalTemplateLibrary:
     """
     Library of legal wrapper templates.
-    
+
     Provides jurisdiction-specific templates that can be combined
     to create complete legal wrappers for IP licensing transactions.
     """
-    
+
     def __init__(self):
         self._templates: Dict[str, LegalTemplate] = {}
         self._initialize_default_templates()
-    
+
     def _initialize_default_templates(self):
         """Initialize default legal templates."""
-        
+
         # ============ Governing Law Templates ============
-        
+
         # US Delaware
         self._templates["gov_law_us_de"] = LegalTemplate(
             template_id="gov_law_us_de",
@@ -139,7 +144,7 @@ of this Agreement.
             variables=[],
             required_for=["us_transactions", "delaware_entities"],
         )
-        
+
         # UK
         self._templates["gov_law_gb"] = LegalTemplate(
             template_id="gov_law_gb",
@@ -163,7 +168,7 @@ subject matter or formation.
             variables=[],
             required_for=["uk_transactions"],
         )
-        
+
         # Singapore
         self._templates["gov_law_sg"] = LegalTemplate(
             template_id="gov_law_sg",
@@ -184,7 +189,7 @@ to and finally resolved by the Courts of the Republic of Singapore.
             variables=[],
             required_for=["singapore_transactions"],
         )
-        
+
         # International
         self._templates["gov_law_int"] = LegalTemplate(
             template_id="gov_law_int",
@@ -213,9 +218,9 @@ The United Nations Convention on Contracts for the International Sale of Goods
             ],
             required_for=["cross_border_transactions"],
         )
-        
+
         # ============ Dispute Resolution Templates ============
-        
+
         # ICC Arbitration
         self._templates["disp_arb_icc"] = LegalTemplate(
             template_id="disp_arb_icc",
@@ -266,7 +271,7 @@ intellectual property rights or confidential information.
             ],
             required_for=["international_transactions"],
         )
-        
+
         # AAA Arbitration (US)
         self._templates["disp_arb_aaa"] = LegalTemplate(
             template_id="disp_arb_aaa",
@@ -310,7 +315,7 @@ IN ANY ACTION OR PROCEEDING ARISING OUT OF OR RELATING TO THIS AGREEMENT.
             ],
             required_for=["us_transactions"],
         )
-        
+
         # SIAC Arbitration (Singapore)
         self._templates["disp_arb_siac"] = LegalTemplate(
             template_id="disp_arb_siac",
@@ -345,9 +350,9 @@ The language of the arbitration shall be English.
             ],
             required_for=["singapore_transactions", "asia_pacific_transactions"],
         )
-        
+
         # ============ License Grant Templates ============
-        
+
         self._templates["license_grant_exclusive"] = LegalTemplate(
             template_id="license_grant_exclusive",
             template_type=TemplateType.LICENSE_GRANT,
@@ -414,7 +419,7 @@ as defined herein.
             ],
             required_for=["exclusive_license"],
         )
-        
+
         self._templates["license_grant_nonexclusive"] = LegalTemplate(
             template_id="license_grant_nonexclusive",
             template_type=TemplateType.LICENSE_GRANT,
@@ -478,9 +483,9 @@ periods unless either party provides written notice of non-renewal at least
             ],
             required_for=["non_exclusive_license"],
         )
-        
+
         # ============ Smart Contract Integration ============
-        
+
         self._templates["smart_contract_integration"] = LegalTemplate(
             template_id="smart_contract_integration",
             template_type=TemplateType.SMART_CONTRACT,
@@ -543,9 +548,9 @@ SMART CONTRACT INTEGRATION
             ],
             required_for=["tokenized_license", "smart_contract"],
         )
-        
+
         # ============ Data Protection (GDPR) ============
-        
+
         self._templates["data_protection_gdpr"] = LegalTemplate(
             template_id="data_protection_gdpr",
             template_type=TemplateType.DATA_PROTECTION,
@@ -597,9 +602,9 @@ DATA PROTECTION
             ],
             required_for=["eu_transactions", "gdpr_required"],
         )
-        
+
         # ============ Tax Withholding ============
-        
+
         self._templates["tax_withholding_us"] = LegalTemplate(
             template_id="tax_withholding_us",
             template_type=TemplateType.TAX_PROVISIONS,
@@ -638,9 +643,9 @@ TAX PROVISIONS
             variables=[],
             required_for=["us_transactions", "cross_border_royalties"],
         )
-        
+
         # ============ AML/KYC ============
-        
+
         self._templates["aml_kyc"] = LegalTemplate(
             template_id="aml_kyc",
             template_type=TemplateType.ANTI_MONEY_LAUNDERING,
@@ -683,45 +688,36 @@ ANTI-MONEY LAUNDERING AND KNOW YOUR CUSTOMER
             variables=[],
             required_for=["all_transactions"],
         )
-    
+
     def get_template(self, template_id: str) -> Optional[LegalTemplate]:
         """Get a template by ID."""
         return self._templates.get(template_id)
-    
-    def get_templates_by_type(
-        self,
-        template_type: TemplateType
-    ) -> List[LegalTemplate]:
+
+    def get_templates_by_type(self, template_type: TemplateType) -> List[LegalTemplate]:
         """Get all templates of a specific type."""
         return [t for t in self._templates.values() if t.template_type == template_type]
-    
-    def get_templates_by_jurisdiction(
-        self,
-        jurisdiction: str
-    ) -> List[LegalTemplate]:
+
+    def get_templates_by_jurisdiction(self, jurisdiction: str) -> List[LegalTemplate]:
         """Get all templates for a specific jurisdiction."""
         return [
-            t for t in self._templates.values()
+            t
+            for t in self._templates.values()
             if t.jurisdiction == jurisdiction or t.jurisdiction == "INT"
         ]
-    
-    def render_template(
-        self,
-        template_id: str,
-        variables: Dict[str, str]
-    ) -> RenderedClause:
+
+    def render_template(self, template_id: str, variables: Dict[str, str]) -> RenderedClause:
         """Render a template with the provided variables."""
         template = self.get_template(template_id)
         if not template:
             raise ValueError(f"Template {template_id} not found")
-        
+
         content = template.content
-        
+
         # Validate and substitute variables
         for var in template.variables:
             if var.name in variables:
                 value = variables[var.name]
-                
+
                 # Validate if pattern provided
                 if var.validation_pattern:
                     if not re.match(var.validation_pattern, value):
@@ -729,13 +725,13 @@ ANTI-MONEY LAUNDERING AND KNOW YOUR CUSTOMER
                             f"Variable '{var.name}' value '{value}' does not match "
                             f"pattern '{var.validation_pattern}'"
                         )
-                
+
                 content = content.replace(f"{{{var.name}}}", value)
             elif var.required and not var.default_value:
                 raise ValueError(f"Required variable '{var.name}' not provided")
             elif var.default_value:
                 content = content.replace(f"{{{var.name}}}", var.default_value)
-        
+
         return RenderedClause(
             template_id=template_id,
             template_type=template.template_type,
@@ -744,27 +740,25 @@ ANTI-MONEY LAUNDERING AND KNOW YOUR CUSTOMER
             title=template.title,
             content=content,
         )
-    
+
     def build_wrapper(
-        self,
-        jurisdiction: str,
-        template_types: List[TemplateType],
-        variables: Dict[str, str]
+        self, jurisdiction: str, template_types: List[TemplateType], variables: Dict[str, str]
     ) -> List[RenderedClause]:
         """Build a complete legal wrapper from multiple templates."""
         clauses = []
-        
+
         for template_type in template_types:
             # Find best template for jurisdiction and type
             templates = [
-                t for t in self._templates.values()
-                if t.template_type == template_type and 
-                   (t.jurisdiction == jurisdiction or t.jurisdiction == "INT")
+                t
+                for t in self._templates.values()
+                if t.template_type == template_type
+                and (t.jurisdiction == jurisdiction or t.jurisdiction == "INT")
             ]
-            
+
             # Prefer jurisdiction-specific over international
             templates.sort(key=lambda t: 0 if t.jurisdiction == jurisdiction else 1)
-            
+
             if templates:
                 template = templates[0]
                 try:
@@ -773,13 +767,13 @@ ANTI-MONEY LAUNDERING AND KNOW YOUR CUSTOMER
                 except ValueError as e:
                     # Skip if required variables missing
                     pass
-        
+
         return clauses
-    
+
     def register_template(self, template: LegalTemplate):
         """Register a new template."""
         self._templates[template.template_id] = template
-    
+
     def list_templates(self) -> List[LegalTemplate]:
         """List all registered templates."""
         return list(self._templates.values())

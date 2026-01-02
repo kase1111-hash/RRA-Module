@@ -41,8 +41,10 @@ ANALYTICS_DATA_PATH = Path(os.environ.get("RRA_ANALYTICS_PATH", "data/analytics"
 # Models
 # =============================================================================
 
+
 class TimeRange(str, Enum):
     """Time range for analytics queries."""
+
     HOUR = "hour"
     DAY = "day"
     WEEK = "week"
@@ -54,6 +56,7 @@ class TimeRange(str, Enum):
 
 class MetricType(str, Enum):
     """Types of metrics tracked."""
+
     PAGE_VIEW = "page_view"
     NEGOTIATION_START = "negotiation_start"
     NEGOTIATION_MESSAGE = "negotiation_message"
@@ -68,6 +71,7 @@ class MetricType(str, Enum):
 
 class AnalyticsEvent(BaseModel):
     """Single analytics event."""
+
     event_type: MetricType
     agent_id: str
     timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
@@ -79,6 +83,7 @@ class AnalyticsEvent(BaseModel):
 
 class AgentMetrics(BaseModel):
     """Aggregated metrics for an agent."""
+
     agent_id: str
     period: str
     total_views: int = 0
@@ -98,6 +103,7 @@ class AgentMetrics(BaseModel):
 
 class RevenueMetrics(BaseModel):
     """Revenue-specific metrics."""
+
     period: str
     total_revenue_eth: float = 0.0
     total_revenue_usd: float = 0.0
@@ -110,6 +116,7 @@ class RevenueMetrics(BaseModel):
 
 class FunnelMetrics(BaseModel):
     """Negotiation funnel metrics."""
+
     period: str
     views: int = 0
     negotiations_started: int = 0
@@ -125,6 +132,7 @@ class FunnelMetrics(BaseModel):
 # =============================================================================
 # Analytics Storage
 # =============================================================================
+
 
 class AnalyticsStore:
     """Persistent storage for analytics events."""
@@ -145,14 +153,14 @@ class AnalyticsStore:
         events_file = self._get_events_file()
         if events_file.exists():
             try:
-                with open(events_file, 'r') as f:
+                with open(events_file, "r") as f:
                     self._events = json.load(f)
             except (json.JSONDecodeError, IOError):
                 self._events = []
 
     def _save_events(self) -> None:
         """Save events to storage."""
-        with open(self._get_events_file(), 'w') as f:
+        with open(self._get_events_file(), "w") as f:
             json.dump(self._events, f, indent=2, default=str)
 
     def record_event(self, event: AnalyticsEvent) -> None:
@@ -178,21 +186,22 @@ class AnalyticsStore:
 
         if start_time:
             events = [
-                e for e in events
-                if datetime.fromisoformat(e.get("timestamp", "")) >= start_time
+                e for e in events if datetime.fromisoformat(e.get("timestamp", "")) >= start_time
             ]
 
         if end_time:
             events = [
-                e for e in events
-                if datetime.fromisoformat(e.get("timestamp", "")) <= end_time
+                e for e in events if datetime.fromisoformat(e.get("timestamp", "")) <= end_time
             ]
 
         return events
 
     def get_unique_agents(self) -> List[str]:
         """Get list of unique agent IDs."""
-        return [str(agent_id) for agent_id in set(e.get("agent_id") for e in self._events if e.get("agent_id"))]
+        return [
+            str(agent_id)
+            for agent_id in set(e.get("agent_id") for e in self._events if e.get("agent_id"))
+        ]
 
 
 # Global analytics store instance
@@ -202,6 +211,7 @@ _analytics_store = AnalyticsStore()
 # =============================================================================
 # Helper Functions
 # =============================================================================
+
 
 def get_time_range_bounds(time_range: TimeRange) -> tuple[datetime, datetime]:
     """Get start and end datetime for a time range."""
@@ -237,6 +247,7 @@ def calculate_rate(numerator: int, denominator: int) -> float:
 # API Endpoints
 # =============================================================================
 
+
 @router.post("/event")
 async def record_analytics_event(
     event: AnalyticsEvent,
@@ -270,7 +281,9 @@ async def get_analytics_overview(
         event_counts[event.get("event_type", "unknown")] += 1
 
     # Calculate revenue
-    purchase_events = [e for e in events if e.get("event_type") == MetricType.LICENSE_PURCHASE.value]
+    purchase_events = [
+        e for e in events if e.get("event_type") == MetricType.LICENSE_PURCHASE.value
+    ]
     total_revenue = sum(e.get("value", 0) or 0 for e in purchase_events)
 
     # Unique agents and sessions
@@ -326,20 +339,26 @@ async def get_agent_analytics(
         event_counts[event.get("event_type", "unknown")] += 1
 
     # Unique visitors
-    unique_visitors = len(set(
-        e.get("session_id") or e.get("user_id")
-        for e in events
-        if e.get("event_type") == MetricType.PAGE_VIEW.value
-    ))
+    unique_visitors = len(
+        set(
+            e.get("session_id") or e.get("user_id")
+            for e in events
+            if e.get("event_type") == MetricType.PAGE_VIEW.value
+        )
+    )
 
     # Revenue calculation
-    purchase_events = [e for e in events if e.get("event_type") == MetricType.LICENSE_PURCHASE.value]
+    purchase_events = [
+        e for e in events if e.get("event_type") == MetricType.LICENSE_PURCHASE.value
+    ]
     total_revenue = sum(e.get("value", 0) or 0 for e in purchase_events)
 
     # Message count
     message_events = [
-        e for e in events
-        if e.get("event_type") in [MetricType.NEGOTIATION_MESSAGE.value, MetricType.WIDGET_MESSAGE.value]
+        e
+        for e in events
+        if e.get("event_type")
+        in [MetricType.NEGOTIATION_MESSAGE.value, MetricType.WIDGET_MESSAGE.value]
     ]
 
     negotiations_started = event_counts.get(MetricType.NEGOTIATION_START.value, 0)
@@ -386,19 +405,21 @@ async def get_funnel_analytics(
 
     # Count funnel stages
     views = len([e for e in events if e.get("event_type") == MetricType.PAGE_VIEW.value])
-    negotiations_started = len([e for e in events if e.get("event_type") == MetricType.NEGOTIATION_START.value])
-    negotiations_completed = len([e for e in events if e.get("event_type") == MetricType.NEGOTIATION_COMPLETE.value])
+    negotiations_started = len(
+        [e for e in events if e.get("event_type") == MetricType.NEGOTIATION_START.value]
+    )
+    negotiations_completed = len(
+        [e for e in events if e.get("event_type") == MetricType.NEGOTIATION_COMPLETE.value]
+    )
     purchases = len([e for e in events if e.get("event_type") == MetricType.LICENSE_PURCHASE.value])
 
     # Offers made/accepted from metadata
-    offers_made = len([
-        e for e in events
-        if (e.get("metadata") or {}).get("action") == "offer_made"
-    ])
-    offers_accepted = len([
-        e for e in events
-        if (e.get("metadata") or {}).get("action") == "offer_accepted"
-    ])
+    offers_made = len(
+        [e for e in events if (e.get("metadata") or {}).get("action") == "offer_made"]
+    )
+    offers_accepted = len(
+        [e for e in events if (e.get("metadata") or {}).get("action") == "offer_accepted"]
+    )
 
     return FunnelMetrics(
         period=time_range.value,
@@ -409,7 +430,9 @@ async def get_funnel_analytics(
         purchases_completed=purchases,
         view_to_negotiation_rate=calculate_rate(negotiations_started, views),
         negotiation_to_offer_rate=calculate_rate(negotiations_completed, negotiations_started),
-        offer_to_purchase_rate=calculate_rate(purchases, negotiations_completed) if negotiations_completed else 0,
+        offer_to_purchase_rate=(
+            calculate_rate(purchases, negotiations_completed) if negotiations_completed else 0
+        ),
         overall_conversion_rate=calculate_rate(purchases, views),
     )
 
@@ -540,12 +563,14 @@ async def list_agents_with_metrics(
     events = _analytics_store.get_events(start_time=start_time, end_time=end_time)
 
     # Aggregate metrics by agent
-    agent_metrics: Dict[str, Dict[str, Any]] = defaultdict(lambda: {
-        "views": 0,
-        "negotiations": 0,
-        "licenses": 0,
-        "revenue": 0.0,
-    })
+    agent_metrics: Dict[str, Dict[str, Any]] = defaultdict(
+        lambda: {
+            "views": 0,
+            "negotiations": 0,
+            "licenses": 0,
+            "revenue": 0.0,
+        }
+    )
 
     for event in events:
         agent_id = event.get("agent_id")
@@ -649,7 +674,7 @@ async def get_dashboard_html() -> HTMLResponse:
 
     Provides a visual dashboard for viewing analytics.
     """
-    html = '''
+    html = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1028,13 +1053,14 @@ async def get_dashboard_html() -> HTMLResponse:
     </script>
 </body>
 </html>
-'''
+"""
     return HTMLResponse(content=html)
 
 
 # =============================================================================
 # Helper function to get the analytics store
 # =============================================================================
+
 
 def get_analytics_store() -> AnalyticsStore:
     """Get the global analytics store instance."""

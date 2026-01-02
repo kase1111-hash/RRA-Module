@@ -22,6 +22,7 @@ import logging
 
 try:
     import httpx
+
     HAS_HTTPX = True
 except ImportError:
     HAS_HTTPX = False
@@ -50,6 +51,7 @@ FALLBACK_CHAIN_URLS = [
 @dataclass
 class ChainEntry:
     """Represents an entry on the NatLangChain."""
+
     content: str
     author: str
     intent: str
@@ -63,6 +65,7 @@ class ChainEntry:
 @dataclass
 class ChainHealth:
     """Chain health status."""
+
     status: str
     service: str
     blocks: int
@@ -112,7 +115,7 @@ class NatLangChainClient:
         if not HAS_HTTPX:
             raise ImportError("httpx is required for NatLangChainClient")
 
-        self.base_url = base_url.rstrip('/')
+        self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.agent_id = agent_id
         self._client = httpx.Client(timeout=timeout)
@@ -129,17 +132,18 @@ class NatLangChainClient:
         )
         self.circuit_breaker = CircuitBreaker(
             "natlangchain",
-            circuit_config or CircuitBreakerConfig(
+            circuit_config
+            or CircuitBreakerConfig(
                 failure_threshold=5,
                 success_threshold=2,
                 timeout=60.0,
-            )
+            ),
         )
         self._queue = RequestQueue(queue_dir=".natlangchain_queue") if enable_resilience else None
 
     def __del__(self):
         """Close HTTP client on cleanup."""
-        if hasattr(self, '_client'):
+        if hasattr(self, "_client"):
             self._client.close()
 
     def _get_current_url(self) -> str:
@@ -164,11 +168,7 @@ class NatLangChainClient:
             logger.info(f"Reset to primary URL: {self.base_url}")
 
     def _execute_with_resilience(
-        self,
-        method: str,
-        url: str,
-        queue_key: Optional[str] = None,
-        **kwargs
+        self, method: str, url: str, queue_key: Optional[str] = None, **kwargs
     ) -> httpx.Response:
         """
         Execute HTTP request with retry and circuit breaker.
@@ -194,12 +194,8 @@ class NatLangChainClient:
         if not self.circuit_breaker.allow_request():
             if queue_key and self._queue:
                 import uuid
-                self._queue.enqueue(
-                    str(uuid.uuid4()),
-                    f"_{method}_request",
-                    (url,),
-                    kwargs
-                )
+
+                self._queue.enqueue(str(uuid.uuid4()), f"_{method}_request", (url,), kwargs)
             raise CircuitOpenError("natlangchain", self.circuit_breaker.config.timeout)
 
         last_error = None
@@ -216,7 +212,7 @@ class NatLangChainClient:
                     raise httpx.HTTPStatusError(
                         f"Retryable status: {response.status_code}",
                         request=response.request,
-                        response=response
+                        response=response,
                     )
 
                 self.circuit_breaker.record_success()
@@ -245,6 +241,7 @@ class NatLangChainClient:
         # All retries exhausted
         if queue_key and self._queue:
             import uuid
+
             self._queue.enqueue(str(uuid.uuid4()), f"_{method}_request", (url,), kwargs)
             logger.info(f"Request queued for later: {queue_key}")
 
@@ -270,9 +267,7 @@ class NatLangChainClient:
         """
         try:
             response = self._execute_with_resilience(
-                "get",
-                f"{self.base_url}/health",
-                queue_key=None  # Don't queue health checks
+                "get", f"{self.base_url}/health", queue_key=None  # Don't queue health checks
             )
             if response.status_code == 200:
                 data = response.json()
@@ -281,7 +276,7 @@ class NatLangChainClient:
                     service=data.get("service", "NatLangChain"),
                     blocks=data.get("blocks", 0),
                     pending_entries=data.get("pending_entries", 0),
-                    llm_validation_available=data.get("llm_validation_available", False)
+                    llm_validation_available=data.get("llm_validation_available", False),
                 )
                 return True, health
             return False, None
@@ -300,7 +295,7 @@ class NatLangChainClient:
         metadata: Optional[Dict[str, Any]] = None,
         validate: bool = True,
         auto_mine: bool = False,
-        queue_on_failure: bool = True
+        queue_on_failure: bool = True,
     ) -> Tuple[bool, Dict[str, Any]]:
         """
         Post a natural language entry to the chain.
@@ -322,7 +317,7 @@ class NatLangChainClient:
             "author": author,
             "intent": intent,
             "validate": validate,
-            "auto_mine": auto_mine
+            "auto_mine": auto_mine,
         }
 
         if metadata:
@@ -333,7 +328,7 @@ class NatLangChainClient:
                 "post",
                 f"{self.base_url}/entry",
                 queue_key=f"entry:{intent}" if queue_on_failure else None,
-                json=payload
+                json=payload,
             )
 
             result = response.json()
@@ -359,7 +354,7 @@ class NatLangChainClient:
         license_model: str,
         price: str,
         terms: Dict[str, Any],
-        agent_id: Optional[str] = None
+        agent_id: Optional[str] = None,
     ) -> Tuple[bool, Dict[str, Any]]:
         """
         Post an RRA licensing transaction to the chain.
@@ -393,7 +388,7 @@ class NatLangChainClient:
             "price": price,
             "terms": terms,
             "agent_id": author,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
         return self.post_entry(
@@ -402,7 +397,7 @@ class NatLangChainClient:
             intent=intent,
             metadata=metadata,
             validate=True,
-            auto_mine=True
+            auto_mine=True,
         )
 
     def post_negotiation_intent(
@@ -410,7 +405,7 @@ class NatLangChainClient:
         repo_url: str,
         intent_type: str,
         details: Dict[str, Any],
-        agent_id: Optional[str] = None
+        agent_id: Optional[str] = None,
     ) -> Tuple[bool, Dict[str, Any]]:
         """
         Post a negotiation intent to the chain.
@@ -439,7 +434,7 @@ class NatLangChainClient:
             "repo_url": repo_url,
             "details": details,
             "agent_id": author,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
         return self.post_entry(
@@ -448,7 +443,7 @@ class NatLangChainClient:
             intent=intent,
             metadata=metadata,
             validate=True,
-            auto_mine=False
+            auto_mine=False,
         )
 
     def mine_block(self) -> Tuple[bool, Dict[str, Any]]:
@@ -496,7 +491,7 @@ class NatLangChainClient:
         query: Optional[str] = None,
         author: Optional[str] = None,
         intent: Optional[str] = None,
-        limit: int = 10
+        limit: int = 10,
     ) -> Tuple[bool, List[Dict[str, Any]]]:
         """
         Search entries on the chain.
@@ -519,10 +514,7 @@ class NatLangChainClient:
             params["intent"] = intent
 
         try:
-            response = self._client.get(
-                f"{self.base_url}/entries/search",
-                params=params
-            )
+            response = self._client.get(f"{self.base_url}/entries/search", params=params)
 
             if response.status_code == 200:
                 result = response.json()
@@ -563,13 +555,13 @@ class AsyncNatLangChainClient:
         self,
         base_url: str = DEFAULT_CHAIN_URL,
         timeout: float = 30.0,
-        agent_id: Optional[str] = None
+        agent_id: Optional[str] = None,
     ):
         """Initialize async NatLangChain client."""
         if not HAS_HTTPX:
             raise ImportError("httpx is required for AsyncNatLangChainClient")
 
-        self.base_url = base_url.rstrip('/')
+        self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.agent_id = agent_id
         self._client = httpx.AsyncClient(timeout=timeout)
@@ -591,7 +583,7 @@ class AsyncNatLangChainClient:
                     service=data.get("service", "NatLangChain"),
                     blocks=data.get("blocks", 0),
                     pending_entries=data.get("pending_entries", 0),
-                    llm_validation_available=data.get("llm_validation_available", False)
+                    llm_validation_available=data.get("llm_validation_available", False),
                 )
                 return True, health
             return False, None
@@ -606,7 +598,7 @@ class AsyncNatLangChainClient:
         intent: str,
         metadata: Optional[Dict[str, Any]] = None,
         validate: bool = True,
-        auto_mine: bool = False
+        auto_mine: bool = False,
     ) -> Tuple[bool, Dict[str, Any]]:
         """Post a natural language entry to the chain."""
         payload = {
@@ -614,17 +606,14 @@ class AsyncNatLangChainClient:
             "author": author,
             "intent": intent,
             "validate": validate,
-            "auto_mine": auto_mine
+            "auto_mine": auto_mine,
         }
 
         if metadata:
             payload["metadata"] = metadata
 
         try:
-            response = await self._client.post(
-                f"{self.base_url}/entry",
-                json=payload
-            )
+            response = await self._client.post(f"{self.base_url}/entry", json=payload)
 
             result = response.json()
 
@@ -646,7 +635,7 @@ class AsyncNatLangChainClient:
         license_model: str,
         price: str,
         terms: Dict[str, Any],
-        agent_id: Optional[str] = None
+        agent_id: Optional[str] = None,
     ) -> Tuple[bool, Dict[str, Any]]:
         """Post an RRA licensing transaction to the chain."""
         author = agent_id or self.agent_id or "rra-agent"
@@ -667,7 +656,7 @@ class AsyncNatLangChainClient:
             "price": price,
             "terms": terms,
             "agent_id": author,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
         return await self.post_entry(
@@ -676,14 +665,12 @@ class AsyncNatLangChainClient:
             intent=intent,
             metadata=metadata,
             validate=True,
-            auto_mine=True
+            auto_mine=True,
         )
 
 
 def get_chain_client(
-    base_url: Optional[str] = None,
-    agent_id: Optional[str] = None,
-    async_mode: bool = False
+    base_url: Optional[str] = None, agent_id: Optional[str] = None, async_mode: bool = False
 ):
     """
     Get a NatLangChain client instance.

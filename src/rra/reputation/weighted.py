@@ -22,6 +22,7 @@ import math
 
 class ReputationAction(Enum):
     """Actions that affect reputation."""
+
     RESOLUTION_SUCCESS = "resolution_success"
     RESOLUTION_FAILURE = "resolution_failure"
     EARLY_VOTING = "early_voting"
@@ -38,6 +39,7 @@ class ReputationAction(Enum):
 @dataclass
 class ReputationChange:
     """Record of a reputation change."""
+
     action: ReputationAction
     delta: int
     timestamp: datetime
@@ -67,6 +69,7 @@ class ReputationChange:
 @dataclass
 class ParticipantReputation:
     """Reputation data for a participant."""
+
     address: str
     score: int
     total_disputes: int = 0
@@ -149,6 +152,7 @@ class ParticipantReputation:
 @dataclass
 class VotingPower:
     """Calculated voting power for a participant."""
+
     base_stake: int
     reputation_multiplier: float  # 1.0 to 3.0
     tenure_bonus: float  # 0.0 to 0.2
@@ -166,6 +170,7 @@ class VotingPower:
 @dataclass
 class ReputationConfig:
     """Configuration for reputation system."""
+
     base_reputation: int = 1000
     max_reputation: int = 10000
     min_reputation: int = 100
@@ -177,19 +182,21 @@ class ReputationConfig:
     tenure_max_days: int = 365
 
     # Action deltas
-    deltas: Dict[ReputationAction, int] = field(default_factory=lambda: {
-        ReputationAction.RESOLUTION_SUCCESS: 50,
-        ReputationAction.RESOLUTION_FAILURE: -30,
-        ReputationAction.EARLY_VOTING: 10,
-        ReputationAction.EVIDENCE_PROVIDED: 20,
-        ReputationAction.CONSENSUS_ALIGNMENT: 15,
-        ReputationAction.GOOD_FAITH_BONUS: 25,
-        ReputationAction.LATE_VOTING_PENALTY: -20,
-        ReputationAction.STAKE_MANIPULATION: -100,
-        ReputationAction.DISPUTE_SPAMMING: -50,
-        ReputationAction.MALICIOUS_BEHAVIOR: -200,
-        ReputationAction.DECAY_ADJUSTMENT: 0,  # Calculated dynamically
-    })
+    deltas: Dict[ReputationAction, int] = field(
+        default_factory=lambda: {
+            ReputationAction.RESOLUTION_SUCCESS: 50,
+            ReputationAction.RESOLUTION_FAILURE: -30,
+            ReputationAction.EARLY_VOTING: 10,
+            ReputationAction.EVIDENCE_PROVIDED: 20,
+            ReputationAction.CONSENSUS_ALIGNMENT: 15,
+            ReputationAction.GOOD_FAITH_BONUS: 25,
+            ReputationAction.LATE_VOTING_PENALTY: -20,
+            ReputationAction.STAKE_MANIPULATION: -100,
+            ReputationAction.DISPUTE_SPAMMING: -50,
+            ReputationAction.MALICIOUS_BEHAVIOR: -200,
+            ReputationAction.DECAY_ADJUSTMENT: 0,  # Calculated dynamically
+        }
+    )
 
 
 class ReputationManager:
@@ -541,8 +548,7 @@ class ReputationManager:
             Dict mapping address to VotingPower
         """
         return {
-            address: self.calculate_voting_power(address, stake)
-            for address, stake in participants
+            address: self.calculate_voting_power(address, stake) for address, stake in participants
         }
 
     def get_power_distribution(
@@ -564,10 +570,7 @@ class ReputationManager:
         if total == 0:
             return {addr: 0.0 for addr, _ in participants}
 
-        return {
-            addr: (power.total_power / total) * 100
-            for addr, power in powers.items()
-        }
+        return {addr: (power.total_power / total) * 100 for addr, power in powers.items()}
 
     # =========================================================================
     # Analytics
@@ -642,9 +645,7 @@ class ReputationManager:
             return
 
         state = {
-            "participants": {
-                addr: p.to_dict() for addr, p in self.participants.items()
-            },
+            "participants": {addr: p.to_dict() for addr, p in self.participants.items()},
             "dispute_participants": self.dispute_participants,
             "config": {
                 "base_reputation": self.config.base_reputation,

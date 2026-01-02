@@ -59,6 +59,7 @@ logger = logging.getLogger(__name__)
 
 class StorageProvider(str, Enum):
     """Supported storage providers."""
+
     IPFS_LOCAL = "ipfs_local"
     IPFS_INFURA = "ipfs_infura"
     IPFS_PINATA = "ipfs_pinata"
@@ -69,6 +70,7 @@ class StorageProvider(str, Enum):
 @dataclass
 class StorageResult:
     """Result of a storage operation."""
+
     success: bool
     uri: str  # ipfs://... or ar://...
     content_hash: bytes  # Hash of encrypted content
@@ -95,6 +97,7 @@ class StorageResult:
 @dataclass
 class StorageConfig:
     """Configuration for storage provider."""
+
     provider: StorageProvider
     api_url: str
     api_key: Optional[str] = None
@@ -102,7 +105,9 @@ class StorageConfig:
     timeout: int = 30  # seconds
     max_retries: int = 3
     pin: bool = True  # Pin content for persistence
-    compression: CompressionConfig = field(default_factory=CompressionConfig)  # Compression settings
+    compression: CompressionConfig = field(
+        default_factory=CompressionConfig
+    )  # Compression settings
 
 
 class EncryptedIPFSStorage:
@@ -189,9 +194,7 @@ class EncryptedIPFSStorage:
                 constraint="dispute_id >= 0",
             )
 
-        logger.info(
-            f"Storing evidence for dispute {dispute_id} on {self.config.provider.value}"
-        )
+        logger.info(f"Storing evidence for dispute {dispute_id} on {self.config.provider.value}")
 
         try:
             # 1. Encrypt evidence
@@ -226,9 +229,7 @@ class EncryptedIPFSStorage:
             logger.debug(f"Package created, size: {original_size} bytes")
 
             # 4. Compress package before upload
-            compressed_bytes, compression_result = compress(
-                package_bytes, self.config.compression
-            )
+            compressed_bytes, compression_result = compress(package_bytes, self.config.compression)
 
             if compression_result.was_compressed:
                 logger.info(
@@ -251,8 +252,7 @@ class EncryptedIPFSStorage:
             if compression_result.was_compressed:
                 result.metadata["compression"] = compression_result.to_dict()
             logger.info(
-                f"Evidence stored successfully: {result.uri} "
-                f"({result.size_bytes} bytes)"
+                f"Evidence stored successfully: {result.uri} " f"({result.size_bytes} bytes)"
             )
             return result
         except Exception as e:
@@ -465,10 +465,14 @@ class EncryptedIPFSStorage:
         # Create multipart form data
         boundary = "----IPFSBoundary"
         body = (
-            f"--{boundary}\r\n"
-            f'Content-Disposition: form-data; name="file"; filename="evidence.json"\r\n'
-            f"Content-Type: application/json\r\n\r\n"
-        ).encode() + data + f"\r\n--{boundary}--\r\n".encode()
+            (
+                f"--{boundary}\r\n"
+                f'Content-Disposition: form-data; name="file"; filename="evidence.json"\r\n'
+                f"Content-Type: application/json\r\n\r\n"
+            ).encode()
+            + data
+            + f"\r\n--{boundary}--\r\n".encode()
+        )
 
         headers = {
             "Content-Type": f"multipart/form-data; boundary={boundary}",
@@ -477,6 +481,7 @@ class EncryptedIPFSStorage:
         # Add auth if configured
         if self.config.api_key and self.config.api_secret:
             import base64
+
             credentials = base64.b64encode(
                 f"{self.config.api_key}:{self.config.api_secret}".encode()
             ).decode()
@@ -556,25 +561,31 @@ class EncryptedIPFSStorage:
         boundary = "----PinataBoundary"
 
         # Metadata for Pinata
-        pinata_metadata = json.dumps({
-            "name": f"dispute_{dispute_id}_evidence",
-            "keyvalues": {
-                "dispute_id": str(dispute_id),
-                "type": "ilrm_evidence",
+        pinata_metadata = json.dumps(
+            {
+                "name": f"dispute_{dispute_id}_evidence",
+                "keyvalues": {
+                    "dispute_id": str(dispute_id),
+                    "type": "ilrm_evidence",
+                },
             }
-        })
+        )
 
         body = (
-            f"--{boundary}\r\n"
-            f'Content-Disposition: form-data; name="file"; filename="evidence.json"\r\n'
-            f"Content-Type: application/json\r\n\r\n"
-        ).encode() + data + (
-            f"\r\n--{boundary}\r\n"
-            f'Content-Disposition: form-data; name="pinataMetadata"\r\n'
-            f"Content-Type: application/json\r\n\r\n"
-            f"{pinata_metadata}\r\n"
-            f"--{boundary}--\r\n"
-        ).encode()
+            (
+                f"--{boundary}\r\n"
+                f'Content-Disposition: form-data; name="file"; filename="evidence.json"\r\n'
+                f"Content-Type: application/json\r\n\r\n"
+            ).encode()
+            + data
+            + (
+                f"\r\n--{boundary}\r\n"
+                f'Content-Disposition: form-data; name="pinataMetadata"\r\n'
+                f"Content-Type: application/json\r\n\r\n"
+                f"{pinata_metadata}\r\n"
+                f"--{boundary}--\r\n"
+            ).encode()
+        )
 
         headers = {
             "Content-Type": f"multipart/form-data; boundary={boundary}",

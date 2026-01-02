@@ -45,7 +45,7 @@ class LocalMessageRouter:
             "from": self.agent_id,
             "to": to_agent,
             "timestamp": datetime.now().isoformat(),
-            "message": message
+            "message": message,
         }
 
         # Add to recipient's queue
@@ -90,6 +90,7 @@ class MediatorNodeRouter:
         # Try to import mediator-node client
         try:
             from mediator_node import MediatorClient  # type: ignore
+
             self.client = MediatorClient(url=self.mediator_url, agent_id=agent_id)
             self.available = True
         except ImportError:
@@ -103,14 +104,10 @@ class MediatorNodeRouter:
             return
 
         try:
-            self.client.route_message(
-                to_agent=to_agent,
-                message=message,
-                priority="normal"
-            )
+            self.client.route_message(to_agent=to_agent, message=message, priority="normal")
         except Exception as e:
             print(f"Warning: Failed to send via mediator-node: {e}")
-            if not hasattr(self, '_fallback'):
+            if not hasattr(self, "_fallback"):
                 self._fallback = LocalMessageRouter(self.agent_id)
             self._fallback.send_message(to_agent, message)
 
@@ -123,15 +120,12 @@ class MediatorNodeRouter:
             return self.client.poll_message(timeout=0)
         except Exception as e:
             print(f"Warning: Failed to receive from mediator-node: {e}")
-            if not hasattr(self, '_fallback'):
+            if not hasattr(self, "_fallback"):
                 self._fallback = LocalMessageRouter(self.agent_id)
             return self._fallback.receive_message()
 
 
-def get_message_router(
-    agent_id: str,
-    prefer_mediator: bool = True
-) -> MessageRouterProtocol:
+def get_message_router(agent_id: str, prefer_mediator: bool = True) -> MessageRouterProtocol:
     """
     Get appropriate message router based on configuration.
 

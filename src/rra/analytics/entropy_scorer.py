@@ -34,15 +34,17 @@ from collections import defaultdict
 
 class EntropyLevel(Enum):
     """Entropy classification levels."""
-    LOW = "low"           # < 0.3 - Stable, well-understood clauses
-    MEDIUM = "medium"     # 0.3-0.6 - Some historical issues
-    HIGH = "high"         # 0.6-0.8 - Frequent disputes
-    CRITICAL = "critical" # > 0.8 - Almost always problematic
+
+    LOW = "low"  # < 0.3 - Stable, well-understood clauses
+    MEDIUM = "medium"  # 0.3-0.6 - Some historical issues
+    HIGH = "high"  # 0.6-0.8 - Frequent disputes
+    CRITICAL = "critical"  # > 0.8 - Almost always problematic
 
 
 @dataclass
 class ClauseEntropy:
     """Entropy analysis result for a clause."""
+
     clause_hash: str
     clause_text: str
     entropy_score: float  # 0.0 to 1.0
@@ -62,7 +64,7 @@ class ClauseEntropy:
 
     # Metadata
     confidence: float = 0.0  # How confident we are in this score
-    sample_size: int = 0     # Number of historical examples
+    sample_size: int = 0  # Number of historical examples
     last_updated: Optional[datetime] = None
 
     def to_dict(self) -> Dict[str, Any]:
@@ -88,6 +90,7 @@ class ClauseEntropy:
 @dataclass
 class DisputeRecord:
     """Historical dispute record for training."""
+
     clause_hash: str
     clause_text: str
     dispute_type: str
@@ -124,20 +127,17 @@ class EntropyScorer:
         "substantial": 0.6,
         "significant": 0.5,
         "material": 0.4,
-
         # Time ambiguity
         "promptly": 0.6,
         "timely": 0.5,
         "as soon as practicable": 0.7,
         "without undue delay": 0.6,
         "reasonable time": 0.8,
-
         # Effort ambiguity
         "best efforts": 0.5,
         "commercially reasonable efforts": 0.4,
         "reasonable efforts": 0.6,
         "good faith": 0.5,
-
         # Scope ambiguity
         "including but not limited to": 0.4,
         "and/or": 0.3,
@@ -169,13 +169,15 @@ class EntropyScorer:
             dispute_history: List of historical dispute records for training
         """
         self.dispute_history = dispute_history or []
-        self._clause_stats: Dict[str, Dict] = defaultdict(lambda: {
-            "disputes": 0,
-            "modifications": 0,
-            "total_uses": 0,
-            "resolution_times": [],
-            "resolution_costs": [],
-        })
+        self._clause_stats: Dict[str, Dict] = defaultdict(
+            lambda: {
+                "disputes": 0,
+                "modifications": 0,
+                "total_uses": 0,
+                "resolution_times": [],
+                "resolution_costs": [],
+            }
+        )
         self._build_statistics()
 
     def _build_statistics(self) -> None:
@@ -228,7 +230,7 @@ class EntropyScorer:
         # Combine scores (diminishing returns for multiple issues)
         combined = 0.0
         for i, score in enumerate(sorted(scores, reverse=True)):
-            combined += score * (0.7 ** i)  # Each subsequent issue adds less
+            combined += score * (0.7**i)  # Each subsequent issue adds less
 
         return min(combined, 1.0)
 
@@ -264,10 +266,21 @@ class EntropyScorer:
         word_count = len(words)
 
         # Count conditional/exception terms
-        conditionals = sum(1 for w in words if w.lower() in [
-            "if", "unless", "except", "provided", "however",
-            "notwithstanding", "subject", "conditional"
-        ])
+        conditionals = sum(
+            1
+            for w in words
+            if w.lower()
+            in [
+                "if",
+                "unless",
+                "except",
+                "provided",
+                "however",
+                "notwithstanding",
+                "subject",
+                "conditional",
+            ]
+        )
 
         # Normalize
         length_factor = min(word_count / 100, 1.0) * 0.3
@@ -346,11 +359,11 @@ class EntropyScorer:
 
         # Weighted combination
         entropy_score = (
-            self.WEIGHTS["dispute_rate"] * dispute_rate +
-            self.WEIGHTS["ambiguity_score"] * ambiguity_score +
-            self.WEIGHTS["modification_frequency"] * modification_frequency +
-            self.WEIGHTS["resolution_difficulty"] * resolution_difficulty +
-            self.WEIGHTS["semantic_volatility"] * semantic_volatility
+            self.WEIGHTS["dispute_rate"] * dispute_rate
+            + self.WEIGHTS["ambiguity_score"] * ambiguity_score
+            + self.WEIGHTS["modification_frequency"] * modification_frequency
+            + self.WEIGHTS["resolution_difficulty"] * resolution_difficulty
+            + self.WEIGHTS["semantic_volatility"] * semantic_volatility
         )
 
         # Determine confidence based on sample size
@@ -393,7 +406,9 @@ class EntropyScorer:
 
         # Aggregate metrics
         total_entropy = sum(c.entropy_score for c in clause_scores) / len(clause_scores)
-        high_risk_clauses = [c for c in clause_scores if c.level in (EntropyLevel.HIGH, EntropyLevel.CRITICAL)]
+        high_risk_clauses = [
+            c for c in clause_scores if c.level in (EntropyLevel.HIGH, EntropyLevel.CRITICAL)
+        ]
 
         return {
             "overall_entropy": round(total_entropy, 4),

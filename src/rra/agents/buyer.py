@@ -49,11 +49,7 @@ class BuyerAgent:
         """
         self.requirements.append(requirement)
 
-    def compose_message(
-        self,
-        intent: str,
-        details: Optional[Dict[str, Any]] = None
-    ) -> str:
+    def compose_message(self, intent: str, details: Optional[Dict[str, Any]] = None) -> str:
         """
         Compose a message to send to the Negotiator Agent.
 
@@ -119,10 +115,7 @@ class BuyerAgent:
         return base
 
     def send_message(
-        self,
-        negotiator,
-        intent: str,
-        details: Optional[Dict[str, Any]] = None
+        self, negotiator, intent: str, details: Optional[Dict[str, Any]] = None
     ) -> str:
         """
         Send a message to a Negotiator Agent and get response.
@@ -156,11 +149,13 @@ class BuyerAgent:
             direction: "sent" or "received"
             content: Message content
         """
-        self.interaction_history.append({
-            "timestamp": datetime.now().isoformat(),
-            "direction": direction,
-            "content": content,
-        })
+        self.interaction_history.append(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "direction": direction,
+                "content": content,
+            }
+        )
 
     def get_interaction_history(self) -> List[Dict[str, Any]]:
         """
@@ -171,11 +166,7 @@ class BuyerAgent:
         """
         return self.interaction_history
 
-    def simulate_negotiation(
-        self,
-        negotiator,
-        strategy: str = "direct"
-    ) -> Dict[str, Any]:
+    def simulate_negotiation(self, negotiator, strategy: str = "direct") -> Dict[str, Any]:
         """
         Simulate a full negotiation with a Negotiator Agent.
 
@@ -203,16 +194,15 @@ class BuyerAgent:
             # Counter with lower offer if budget is set
             if self.budget:
                 import re
-                match = re.search(r'(\d+\.?\d*)', self.budget)
+
+                match = re.search(r"(\d+\.?\d*)", self.budget)
                 if match:
                     amount = float(match.group(1))
                     lower_amount = amount * 0.7  # Offer 70% of budget
                     currency = self.budget.split()[-1]
 
                     self.send_message(
-                        negotiator,
-                        "make_offer",
-                        {"offer": f"{lower_amount} {currency}"}
+                        negotiator, "make_offer", {"offer": f"{lower_amount} {currency}"}
                     )
 
             # Then accept or continue

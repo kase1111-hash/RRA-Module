@@ -61,9 +61,7 @@ def get_voting_manager() -> TreasuryVotingManager:
     """Get or create voting manager instance."""
     global _voting_manager
     if _voting_manager is None:
-        _voting_manager = create_treasury_voting_manager(
-            data_dir="data/treasury/votes"
-        )
+        _voting_manager = create_treasury_voting_manager(data_dir="data/treasury/votes")
     return _voting_manager
 
 
@@ -71,8 +69,10 @@ def get_voting_manager() -> TreasuryVotingManager:
 # Request/Response Models
 # =============================================================================
 
+
 class TreasuryRegisterRequest(BaseModel):
     """Request to register a treasury."""
+
     name: str = Field(..., min_length=1, max_length=100)
     treasury_type: str = Field(default="corporate")
     signers: List[str] = Field(..., min_length=1, max_length=20)
@@ -82,6 +82,7 @@ class TreasuryRegisterRequest(BaseModel):
 
 class TreasuryResponse(BaseModel):
     """Response with treasury details."""
+
     treasury_id: str
     name: str
     treasury_type: str
@@ -93,6 +94,7 @@ class TreasuryResponse(BaseModel):
 
 class DisputeCreateRequest(BaseModel):
     """Request to create a multi-treasury dispute."""
+
     creator_treasury_id: str
     involved_treasury_ids: List[str] = Field(..., min_length=1)
     title: str = Field(..., min_length=5, max_length=200)
@@ -103,6 +105,7 @@ class DisputeCreateRequest(BaseModel):
 
 class DisputeResponse(BaseModel):
     """Response with dispute details."""
+
     dispute_id: str
     creator_treasury: str
     involved_treasuries: List[str]
@@ -116,6 +119,7 @@ class DisputeResponse(BaseModel):
 
 class StakeRequest(BaseModel):
     """Request to stake funds for a dispute."""
+
     dispute_id: str
     treasury_id: str
     stake_amount: int = Field(..., gt=0)
@@ -124,6 +128,7 @@ class StakeRequest(BaseModel):
 
 class StakeResponse(BaseModel):
     """Response with stake details."""
+
     dispute_id: str
     treasury_id: str
     total_stake: int
@@ -132,6 +137,7 @@ class StakeResponse(BaseModel):
 
 class ProposalCreateRequest(BaseModel):
     """Request to create a resolution proposal."""
+
     dispute_id: str
     treasury_id: str
     proposal_type: str = Field(default="resolution")
@@ -144,6 +150,7 @@ class ProposalCreateRequest(BaseModel):
 
 class ProposalResponse(BaseModel):
     """Response with proposal details."""
+
     proposal_id: str
     dispute_id: str
     treasury_id: str
@@ -159,6 +166,7 @@ class ProposalResponse(BaseModel):
 
 class VoteRequest(BaseModel):
     """Request to cast a vote."""
+
     dispute_id: str
     proposal_id: str
     treasury_id: str
@@ -169,6 +177,7 @@ class VoteRequest(BaseModel):
 
 class VoteResponse(BaseModel):
     """Response with vote confirmation."""
+
     proposal_id: str
     treasury_id: str
     choice: str
@@ -178,12 +187,14 @@ class VoteResponse(BaseModel):
 
 class ResolutionRequest(BaseModel):
     """Request to execute resolution."""
+
     dispute_id: str
     executor_address: str
 
 
 class ResolutionResponse(BaseModel):
     """Response with resolution details."""
+
     dispute_id: str
     status: str
     payout_shares: Dict[str, int]
@@ -192,6 +203,7 @@ class ResolutionResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     """API health check response."""
+
     status: str
     version: str
     treasuries_count: int
@@ -201,6 +213,7 @@ class HealthResponse(BaseModel):
 # =============================================================================
 # Endpoints
 # =============================================================================
+
 
 @router.get("/health", response_model=HealthResponse)
 async def health_check() -> HealthResponse:
@@ -217,15 +230,20 @@ async def health_check() -> HealthResponse:
         status="healthy",
         version="1.0.0",
         treasuries_count=len(coordinator.treasuries),
-        active_disputes=len([d for d in disputes if d.status in [
-            DisputeStatus.OPEN, DisputeStatus.VOTING, DisputeStatus.MEDIATION
-        ]]),
+        active_disputes=len(
+            [
+                d
+                for d in disputes
+                if d.status in [DisputeStatus.OPEN, DisputeStatus.VOTING, DisputeStatus.MEDIATION]
+            ]
+        ),
     )
 
 
 # -----------------------------------------------------------------------------
 # Treasury Management
 # -----------------------------------------------------------------------------
+
 
 @router.post("/register", response_model=TreasuryResponse)
 async def register_treasury(request: TreasuryRegisterRequest) -> TreasuryResponse:
@@ -374,6 +392,7 @@ async def add_treasury_signer(
 # Dispute Management
 # -----------------------------------------------------------------------------
 
+
 @router.post("/dispute/create", response_model=DisputeResponse)
 async def create_dispute(request: DisputeCreateRequest) -> DisputeResponse:
     """
@@ -452,7 +471,8 @@ async def list_disputes(
 
     if treasury_id:
         disputes = [
-            d for d in disputes
+            d
+            for d in disputes
             if treasury_id in d.involved_treasuries or d.creator_treasury == treasury_id
         ]
 
@@ -495,6 +515,7 @@ async def get_dispute(dispute_id: str) -> Dict[str, Any]:
 # -----------------------------------------------------------------------------
 # Staking
 # -----------------------------------------------------------------------------
+
 
 @router.post("/stake", response_model=StakeResponse)
 async def stake_for_dispute(request: StakeRequest) -> StakeResponse:
@@ -566,16 +587,21 @@ async def get_dispute_stakes(dispute_id: str) -> Dict[str, Any]:
         "dispute_id": dispute_id,
         "total_stake": dispute.total_stake,
         "stakes_by_treasury": dispute.stakes,
-        "stake_percentages": {
-            tid: round(stake / dispute.total_stake * 100, 2)
-            for tid, stake in dispute.stakes.items()
-        } if dispute.total_stake > 0 else {},
+        "stake_percentages": (
+            {
+                tid: round(stake / dispute.total_stake * 100, 2)
+                for tid, stake in dispute.stakes.items()
+            }
+            if dispute.total_stake > 0
+            else {}
+        ),
     }
 
 
 # -----------------------------------------------------------------------------
 # Proposals
 # -----------------------------------------------------------------------------
+
 
 @router.post("/proposal/create", response_model=ProposalResponse)
 async def create_proposal(request: ProposalCreateRequest) -> ProposalResponse:
@@ -694,6 +720,7 @@ async def get_proposal(proposal_id: str) -> Dict[str, Any]:
 # Voting
 # -----------------------------------------------------------------------------
 
+
 @router.post("/vote", response_model=VoteResponse)
 async def cast_vote(request: VoteRequest) -> VoteResponse:
     """
@@ -716,7 +743,11 @@ async def cast_vote(request: VoteRequest) -> VoteResponse:
 
     # Convert proposal_id to int for coordinator
     try:
-        pid = int(request.proposal_id) if isinstance(request.proposal_id, str) else request.proposal_id
+        pid = (
+            int(request.proposal_id)
+            if isinstance(request.proposal_id, str)
+            else request.proposal_id
+        )
     except ValueError:
         raise HTTPException(400, f"Invalid proposal ID: {request.proposal_id}")
 
@@ -769,9 +800,7 @@ async def get_votes(proposal_id: str) -> Dict[str, Any]:
         for proposal in dispute.proposals:
             if proposal.proposal_id == pid:
                 # votes is Dict[str, VoteChoice], need to convert
-                votes_dict = {
-                    tid: {"choice": v.value} for tid, v in proposal.votes.items()
-                }
+                votes_dict = {tid: {"choice": v.value} for tid, v in proposal.votes.items()}
 
                 return {
                     "proposal_id": proposal_id,
@@ -782,7 +811,8 @@ async def get_votes(proposal_id: str) -> Dict[str, Any]:
                     "votes_by_treasury": votes_dict,
                     "approval_percentage": (
                         round(proposal.stake_approved / dispute.total_stake * 100, 2)
-                        if dispute.total_stake > 0 else 0
+                        if dispute.total_stake > 0
+                        else 0
                     ),
                 }
 
@@ -792,6 +822,7 @@ async def get_votes(proposal_id: str) -> Dict[str, Any]:
 # -----------------------------------------------------------------------------
 # Resolution
 # -----------------------------------------------------------------------------
+
 
 @router.post("/resolve", response_model=ResolutionResponse)
 async def execute_resolution(request: ResolutionRequest) -> ResolutionResponse:
@@ -872,6 +903,7 @@ async def escalate_to_mediation(
 # Statistics
 # -----------------------------------------------------------------------------
 
+
 @router.get("/stats")
 async def get_statistics() -> Dict[str, Any]:
     """
@@ -890,11 +922,13 @@ async def get_statistics() -> Dict[str, Any]:
     return {
         "treasury_count": len(coordinator.treasuries),
         "total_disputes": len(disputes),
-        "active_disputes": len([
-            d for d in disputes if d.status in [
-                DisputeStatus.OPEN, DisputeStatus.VOTING, DisputeStatus.MEDIATION
+        "active_disputes": len(
+            [
+                d
+                for d in disputes
+                if d.status in [DisputeStatus.OPEN, DisputeStatus.VOTING, DisputeStatus.MEDIATION]
             ]
-        ]),
+        ),
         "resolved_disputes": len(resolved),
         "total_stake_locked": total_stake,
         "average_stake": round(avg_stake, 2),
@@ -926,13 +960,12 @@ async def get_treasury_stats(treasury_id: str) -> Dict[str, Any]:
 
     disputes = coordinator.list_disputes()
     involved = [
-        d for d in disputes
+        d
+        for d in disputes
         if treasury_id in d.involved_treasuries or d.creator_treasury == treasury_id
     ]
 
-    total_staked = sum(
-        d.stakes.get(treasury_id, 0) for d in involved
-    )
+    total_staked = sum(d.stakes.get(treasury_id, 0) for d in involved)
 
     return {
         "treasury_id": treasury_id,
@@ -941,10 +974,12 @@ async def get_treasury_stats(treasury_id: str) -> Dict[str, Any]:
         "as_creator": len([d for d in involved if d.creator_treasury == treasury_id]),
         "as_participant": len([d for d in involved if treasury_id in d.involved_treasuries]),
         "total_staked": total_staked,
-        "current_active": len([
-            d for d in involved if d.status in [
-                DisputeStatus.OPEN, DisputeStatus.VOTING, DisputeStatus.MEDIATION
+        "current_active": len(
+            [
+                d
+                for d in involved
+                if d.status in [DisputeStatus.OPEN, DisputeStatus.VOTING, DisputeStatus.MEDIATION]
             ]
-        ]),
+        ),
         "resolved": len([d for d in involved if d.status == DisputeStatus.RESOLVED]),
     }

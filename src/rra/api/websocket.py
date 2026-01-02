@@ -41,8 +41,8 @@ class WSMessage(BaseModel):
     timestamp: str = ""
 
     def __init__(self, **data):
-        if not data.get('timestamp'):
-            data['timestamp'] = datetime.utcnow().isoformat()
+        if not data.get("timestamp"):
+            data["timestamp"] = datetime.utcnow().isoformat()
         super().__init__(**data)
 
 
@@ -89,11 +89,7 @@ class ConnectionManager:
                 except Exception as e:
                     logger.warning(f"Failed to broadcast message to connection: {e}")
 
-    def get_or_create_agent(
-        self,
-        session_id: str,
-        kb: KnowledgeBase
-    ) -> NegotiatorAgent:
+    def get_or_create_agent(self, session_id: str, kb: KnowledgeBase) -> NegotiatorAgent:
         """Get existing agent or create new one for session."""
         if session_id not in self.agents:
             self.agents[session_id] = NegotiatorAgent(kb)
@@ -160,10 +156,11 @@ async def websocket_negotiate(
     # Validate API key before accepting connection
     if not _validate_ws_api_key(api_key):
         await websocket.accept()
-        await websocket.send_json(WSMessage(
-            type="error",
-            payload={"message": "Unauthorized: Invalid or missing API key"}
-        ).model_dump())
+        await websocket.send_json(
+            WSMessage(
+                type="error", payload={"message": "Unauthorized: Invalid or missing API key"}
+            ).model_dump()
+        )
         await websocket.close(code=4001)  # Custom close code for auth failure
         return
 
@@ -173,10 +170,9 @@ async def websocket_negotiate(
     kb = await load_knowledge_base(repo_id)
     if not kb:
         await websocket.accept()
-        await websocket.send_json(WSMessage(
-            type="error",
-            payload={"message": "Repository not found"}
-        ).model_dump())
+        await websocket.send_json(
+            WSMessage(type="error", payload={"message": "Repository not found"}).model_dump()
+        )
         await websocket.close()
         return
 
@@ -188,20 +184,22 @@ async def websocket_negotiate(
 
         # Send initial greeting
         intro = agent.start_negotiation()
-        await manager.send_message(websocket, WSMessage(
-            type="message",
-            payload={
-                "id": str(uuid.uuid4()),
-                "role": "agent",
-                "content": intro,
-            }
-        ))
+        await manager.send_message(
+            websocket,
+            WSMessage(
+                type="message",
+                payload={
+                    "id": str(uuid.uuid4()),
+                    "role": "agent",
+                    "content": intro,
+                },
+            ),
+        )
 
         # Send initial phase
-        await manager.send_message(websocket, WSMessage(
-            type="phase_change",
-            payload={"phase": agent.current_phase.value}
-        ))
+        await manager.send_message(
+            websocket, WSMessage(type="phase_change", payload={"phase": agent.current_phase.value})
+        )
 
         # Listen for messages
         while True:
@@ -215,10 +213,9 @@ async def websocket_negotiate(
                         dreaming = get_dreaming_status()
 
                         # Send typing indicator
-                        await manager.send_message(websocket, WSMessage(
-                            type="typing",
-                            payload={"is_typing": True}
-                        ))
+                        await manager.send_message(
+                            websocket, WSMessage(type="typing", payload={"is_typing": True})
+                        )
 
                         # Small delay to simulate thinking
                         await asyncio.sleep(0.5)
@@ -229,57 +226,82 @@ async def websocket_negotiate(
                         dreaming.complete("Processing negotiation message")
 
                         # Send typing done
-                        await manager.send_message(websocket, WSMessage(
-                            type="typing",
-                            payload={"is_typing": False}
-                        ))
+                        await manager.send_message(
+                            websocket, WSMessage(type="typing", payload={"is_typing": False})
+                        )
 
                         # Send response
-                        await manager.send_message(websocket, WSMessage(
-                            type="message",
-                            payload={
-                                "id": str(uuid.uuid4()),
-                                "role": "agent",
-                                "content": response,
-                            }
-                        ))
+                        await manager.send_message(
+                            websocket,
+                            WSMessage(
+                                type="message",
+                                payload={
+                                    "id": str(uuid.uuid4()),
+                                    "role": "agent",
+                                    "content": response,
+                                },
+                            ),
+                        )
 
                         # Send phase update if changed
-                        await manager.send_message(websocket, WSMessage(
-                            type="phase_change",
-                            payload={"phase": agent.current_phase.value}
-                        ))
+                        await manager.send_message(
+                            websocket,
+                            WSMessage(
+                                type="phase_change", payload={"phase": agent.current_phase.value}
+                            ),
+                        )
 
                 elif data.get("type") == "accept_offer":
                     # Handle offer acceptance
                     summary = agent.get_negotiation_summary()
-                    await manager.send_message(websocket, WSMessage(
-                        type="offer",
-                        payload={
-                            "accepted": True,
-                            "summary": summary,
-                            "transaction_data": {
-                                "amount": kb.market_config.target_price if kb.market_config else "0.05 ETH",
-                                "recipient": kb.market_config.developer_wallet if kb.market_config and hasattr(kb.market_config, 'developer_wallet') else None,
-                            }
-                        }
-                    ))
+                    await manager.send_message(
+                        websocket,
+                        WSMessage(
+                            type="offer",
+                            payload={
+                                "accepted": True,
+                                "summary": summary,
+                                "transaction_data": {
+                                    "amount": (
+                                        kb.market_config.target_price
+                                        if kb.market_config
+                                        else "0.05 ETH"
+                                    ),
+                                    "recipient": (
+                                        kb.market_config.developer_wallet
+                                        if kb.market_config
+                                        and hasattr(kb.market_config, "developer_wallet")
+                                        else None
+                                    ),
+                                },
+                            },
+                        ),
+                    )
 
             except WebSocketDisconnect:
                 logger.info(f"WebSocket disconnected: session={session_id}")
                 break
             except json.JSONDecodeError as e:
                 logger.warning(f"Invalid JSON received in WebSocket: {e}")
-                await manager.send_message(websocket, WSMessage(
-                    type="error",
-                    payload={"message": "Invalid JSON", "code": ErrorCode.VALIDATION_ERROR.value}
-                ))
+                await manager.send_message(
+                    websocket,
+                    WSMessage(
+                        type="error",
+                        payload={
+                            "message": "Invalid JSON",
+                            "code": ErrorCode.VALIDATION_ERROR.value,
+                        },
+                    ),
+                )
             except Exception as e:
                 logger.error(f"WebSocket error in session {session_id}: {e}")
-                await manager.send_message(websocket, WSMessage(
-                    type="error",
-                    payload={"message": str(e), "code": ErrorCode.UNKNOWN_ERROR.value}
-                ))
+                await manager.send_message(
+                    websocket,
+                    WSMessage(
+                        type="error",
+                        payload={"message": str(e), "code": ErrorCode.UNKNOWN_ERROR.value},
+                    ),
+                )
 
     finally:
         manager.disconnect(websocket, repo_id)
@@ -298,7 +320,7 @@ async def load_knowledge_base(repo_id: str) -> Optional[KnowledgeBase]:
         try:
             kb = KnowledgeBase.load(kb_file)
             # Generate ID from URL and compare
-            normalized = kb.repo_url.lower().strip().rstrip('.git')
+            normalized = kb.repo_url.lower().strip().rstrip(".git")
             generated_id = hashlib.sha256(normalized.encode()).hexdigest()[:12]
             if generated_id == repo_id:
                 return kb
@@ -330,10 +352,9 @@ async def websocket_dreaming(
     # Validate API key
     if not _validate_ws_api_key(api_key):
         await websocket.accept()
-        await websocket.send_json({
-            "type": "error",
-            "payload": {"message": "Unauthorized: Invalid or missing API key"}
-        })
+        await websocket.send_json(
+            {"type": "error", "payload": {"message": "Unauthorized: Invalid or missing API key"}}
+        )
         await websocket.close(code=4001)
         return
 
@@ -353,41 +374,39 @@ async def websocket_dreaming(
                 # Handle status request
                 elif data.get("type") == "get_status":
                     dreaming = get_dreaming_status()
-                    await websocket.send_json({
-                        "type": "dreaming",
-                        "payload": {
-                            "status": dreaming.current_status or "Idle",
-                            "operation": dreaming.current_operation,
-                            "active_operations": dreaming.get_active_operations(),
-                            "history": [e.to_dict() for e in dreaming.get_history(10)],
+                    await websocket.send_json(
+                        {
+                            "type": "dreaming",
+                            "payload": {
+                                "status": dreaming.current_status or "Idle",
+                                "operation": dreaming.current_operation,
+                                "active_operations": dreaming.get_active_operations(),
+                                "history": [e.to_dict() for e in dreaming.get_history(10)],
+                            },
                         }
-                    })
+                    )
 
                 # Handle history request
                 elif data.get("type") == "get_history":
                     limit = data.get("payload", {}).get("limit", 10)
                     dreaming = get_dreaming_status()
-                    await websocket.send_json({
-                        "type": "dreaming_history",
-                        "payload": {
-                            "entries": [e.to_dict() for e in dreaming.get_history(limit)],
+                    await websocket.send_json(
+                        {
+                            "type": "dreaming_history",
+                            "payload": {
+                                "entries": [e.to_dict() for e in dreaming.get_history(limit)],
+                            },
                         }
-                    })
+                    )
 
             except WebSocketDisconnect:
                 logger.info("Dreaming WebSocket disconnected")
                 break
             except json.JSONDecodeError:
-                await websocket.send_json({
-                    "type": "error",
-                    "payload": {"message": "Invalid JSON"}
-                })
+                await websocket.send_json({"type": "error", "payload": {"message": "Invalid JSON"}})
             except Exception as e:
                 logger.error(f"Dreaming WebSocket error: {e}")
-                await websocket.send_json({
-                    "type": "error",
-                    "payload": {"message": str(e)}
-                })
+                await websocket.send_json({"type": "error", "payload": {"message": str(e)}})
 
     finally:
         dreaming_manager.disconnect(websocket)

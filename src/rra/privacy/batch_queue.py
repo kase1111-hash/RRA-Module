@@ -32,6 +32,7 @@ from eth_utils import keccak
 
 class SubmissionStatus(str, Enum):
     """Status of a queued submission."""
+
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETED = "completed"
@@ -41,6 +42,7 @@ class SubmissionStatus(str, Enum):
 @dataclass
 class QueuedDispute:
     """A dispute queued for batched submission."""
+
     queue_index: int
     initiator_hash: bytes
     counterparty_hash: bytes
@@ -71,6 +73,7 @@ class QueuedDispute:
 @dataclass
 class QueuedProof:
     """An identity proof queued for batched submission."""
+
     queue_index: int
     dispute_id: int
     proof_a: Tuple[int, int]
@@ -99,9 +102,10 @@ class QueuedProof:
 @dataclass
 class BatchConfig:
     """Configuration for batch queue behavior."""
+
     batch_interval: int = 100  # blocks between releases
-    min_batch_size: int = 3    # minimum items before release
-    max_batch_size: int = 20   # maximum items per batch
+    min_batch_size: int = 3  # minimum items before release
+    max_batch_size: int = 20  # maximum items per batch
     dummy_probability: int = 20  # 0-100, percentage
 
 
@@ -228,13 +232,9 @@ class BatchQueueClient:
             True if batch can be released
         """
         pending_disputes = sum(
-            1 for d in self._dispute_queue
-            if d.status == SubmissionStatus.PENDING
+            1 for d in self._dispute_queue if d.status == SubmissionStatus.PENDING
         )
-        pending_proofs = sum(
-            1 for p in self._proof_queue
-            if p.status == SubmissionStatus.PENDING
-        )
+        pending_proofs = sum(1 for p in self._proof_queue if p.status == SubmissionStatus.PENDING)
         total_pending = pending_disputes + pending_proofs
 
         # Check size threshold
@@ -248,10 +248,7 @@ class BatchQueueClient:
         # If no block number provided, only check size threshold
         return size_reached
 
-    def simulate_batch_release(
-        self,
-        current_block: Optional[int] = None
-    ) -> Dict[str, Any]:
+    def simulate_batch_release(self, current_block: Optional[int] = None) -> Dict[str, Any]:
         """
         Simulate releasing a batch of queued items.
 
@@ -308,11 +305,11 @@ class BatchQueueClient:
 
     def _simulate_dispute_id(self) -> int:
         """Generate a simulated dispute ID."""
-        return int.from_bytes(os.urandom(4), 'big') % 1000000
+        return int.from_bytes(os.urandom(4), "big") % 1000000
 
     def _should_add_dummy(self) -> bool:
         """Check if a dummy transaction should be added."""
-        random_val = int.from_bytes(os.urandom(1), 'big') % 100
+        random_val = int.from_bytes(os.urandom(1), "big") % 100
         return random_val < self._config.dummy_probability
 
     def get_queue_status(self) -> Dict[str, Any]:
@@ -323,20 +320,14 @@ class BatchQueueClient:
             Dictionary with queue sizes and statistics
         """
         pending_disputes = sum(
-            1 for d in self._dispute_queue
-            if d.status == SubmissionStatus.PENDING
+            1 for d in self._dispute_queue if d.status == SubmissionStatus.PENDING
         )
         completed_disputes = sum(
-            1 for d in self._dispute_queue
-            if d.status == SubmissionStatus.COMPLETED
+            1 for d in self._dispute_queue if d.status == SubmissionStatus.COMPLETED
         )
-        pending_proofs = sum(
-            1 for p in self._proof_queue
-            if p.status == SubmissionStatus.PENDING
-        )
+        pending_proofs = sum(1 for p in self._proof_queue if p.status == SubmissionStatus.PENDING)
         completed_proofs = sum(
-            1 for p in self._proof_queue
-            if p.status == SubmissionStatus.COMPLETED
+            1 for p in self._proof_queue if p.status == SubmissionStatus.COMPLETED
         )
 
         return {
@@ -453,7 +444,7 @@ class PrivacyEnhancer:
 
         # Optional random delay (0-30 seconds)
         if add_random_delay:
-            delay = (int.from_bytes(os.urandom(2), 'big') % 30000) / 1000
+            delay = (int.from_bytes(os.urandom(2), "big") % 30000) / 1000
             self._random_delays.append(delay)
             time.sleep(delay)
 
@@ -486,7 +477,7 @@ class PrivacyEnhancer:
         """
         # Optional random delay
         if add_random_delay:
-            delay = (int.from_bytes(os.urandom(2), 'big') % 30000) / 1000
+            delay = (int.from_bytes(os.urandom(2), "big") % 30000) / 1000
             self._random_delays.append(delay)
             time.sleep(delay)
 
@@ -517,7 +508,11 @@ class PrivacyEnhancer:
             "queue_status": queue_status,
             "random_delays": {
                 "count": len(self._random_delays),
-                "average": sum(self._random_delays) / len(self._random_delays) if self._random_delays else 0,
+                "average": (
+                    sum(self._random_delays) / len(self._random_delays)
+                    if self._random_delays
+                    else 0
+                ),
                 "total": sum(self._random_delays),
             },
             "privacy_level": self._calculate_privacy_level(queue_status),
@@ -533,10 +528,7 @@ class PrivacyEnhancer:
         Returns:
             Privacy level: "low", "medium", "high"
         """
-        pending = (
-            queue_status["dispute_queue"]["pending"] +
-            queue_status["proof_queue"]["pending"]
-        )
+        pending = queue_status["dispute_queue"]["pending"] + queue_status["proof_queue"]["pending"]
         dummy_prob = queue_status["config"]["dummy_probability"]
 
         if pending >= 10 and dummy_prob >= 30:
@@ -548,6 +540,7 @@ class PrivacyEnhancer:
 
 
 # Convenience functions
+
 
 def create_batch_client(
     contract_address: Optional[str] = None,

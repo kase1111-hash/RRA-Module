@@ -18,6 +18,7 @@ import secrets
 
 class FractionStatus(Enum):
     """Status of a fractionalized asset."""
+
     PENDING = "pending"
     ACTIVE = "active"
     BUYOUT_INITIATED = "buyout_initiated"
@@ -27,6 +28,7 @@ class FractionStatus(Enum):
 
 class ShareTransferType(Enum):
     """Types of share transfers."""
+
     INITIAL_DISTRIBUTION = "initial_distribution"
     SALE = "sale"
     TRANSFER = "transfer"
@@ -37,6 +39,7 @@ class ShareTransferType(Enum):
 @dataclass
 class ShareHolder:
     """Represents a holder of fractional shares."""
+
     address: str
     shares: int
     acquired_at: datetime
@@ -68,6 +71,7 @@ class ShareHolder:
 @dataclass
 class FractionalAsset:
     """A fractionalized IP asset."""
+
     asset_id: str
     name: str
     description: str
@@ -121,11 +125,7 @@ class FractionalAsset:
             return 0.0
         return (holder.shares / self.total_shares) * 100
 
-    def add_shareholder(
-        self,
-        address: str,
-        shares: int
-    ) -> ShareHolder:
+    def add_shareholder(self, address: str, shares: int) -> ShareHolder:
         """Add or update a shareholder."""
         address = address.lower()
 
@@ -136,7 +136,9 @@ class FractionalAsset:
             current = self._shareholders.get(address)
             current_shares = current.shares if current else 0
             if current_shares + shares > self.max_shares_per_holder:
-                raise ValueError(f"Would exceed max shares per holder: {self.max_shares_per_holder}")
+                raise ValueError(
+                    f"Would exceed max shares per holder: {self.max_shares_per_holder}"
+                )
 
         if address in self._shareholders:
             self._shareholders[address].shares += shares
@@ -150,10 +152,7 @@ class FractionalAsset:
         return self._shareholders[address]
 
     def transfer_shares(
-        self,
-        from_address: str,
-        to_address: str,
-        shares: int
+        self, from_address: str, to_address: str, shares: int
     ) -> tuple[ShareHolder, ShareHolder]:
         """Transfer shares between addresses."""
         from_address = from_address.lower()
@@ -264,6 +263,7 @@ class FractionalAsset:
 @dataclass
 class ShareOrder:
     """An order to buy or sell shares."""
+
     order_id: str
     asset_id: str
     order_type: str  # "buy" or "sell"
@@ -310,7 +310,9 @@ class ShareOrder:
             price_per_share=data["price_per_share"],
             created_at=datetime.fromisoformat(data["created_at"]),
             filled_at=datetime.fromisoformat(data["filled_at"]) if data.get("filled_at") else None,
-            cancelled_at=datetime.fromisoformat(data["cancelled_at"]) if data.get("cancelled_at") else None,
+            cancelled_at=(
+                datetime.fromisoformat(data["cancelled_at"]) if data.get("cancelled_at") else None
+            ),
             filled_shares=data.get("filled_shares", 0),
         )
 
@@ -344,7 +346,7 @@ class FractionalIPManager:
         total_shares: int,
         share_price: float,
         min_shares_per_holder: int = 1,
-        max_shares_per_holder: int = 0
+        max_shares_per_holder: int = 0,
     ) -> FractionalAsset:
         """Create a new fractionalized asset."""
         asset = FractionalAsset(
@@ -385,9 +387,7 @@ class FractionalIPManager:
         return self.assets.get(asset_id)
 
     def list_assets(
-        self,
-        status: Optional[FractionStatus] = None,
-        owner: Optional[str] = None
+        self, status: Optional[FractionStatus] = None, owner: Optional[str] = None
     ) -> List[FractionalAsset]:
         """List fractionalized assets."""
         assets = list(self.assets.values())
@@ -404,12 +404,7 @@ class FractionalIPManager:
     # Share Trading
     # =========================================================================
 
-    def buy_shares(
-        self,
-        asset_id: str,
-        buyer_address: str,
-        shares: int
-    ) -> ShareHolder:
+    def buy_shares(self, asset_id: str, buyer_address: str, shares: int) -> ShareHolder:
         """Buy shares directly from the asset (primary market)."""
         asset = self.assets.get(asset_id)
         if not asset:
@@ -424,11 +419,7 @@ class FractionalIPManager:
         return holder
 
     def create_sell_order(
-        self,
-        asset_id: str,
-        seller_address: str,
-        shares: int,
-        price_per_share: float
+        self, asset_id: str, seller_address: str, shares: int, price_per_share: float
     ) -> ShareOrder:
         """Create a sell order (secondary market)."""
         asset = self.assets.get(asset_id)
@@ -455,10 +446,7 @@ class FractionalIPManager:
         return order
 
     def fill_order(
-        self,
-        order_id: str,
-        buyer_address: str,
-        shares: Optional[int] = None
+        self, order_id: str, buyer_address: str, shares: Optional[int] = None
     ) -> tuple[ShareOrder, ShareHolder]:
         """Fill a sell order (buy from secondary market)."""
         order = self.orders.get(order_id)
@@ -480,11 +468,7 @@ class FractionalIPManager:
             raise ValueError(f"Not enough shares in order. Available: {order.remaining_shares}")
 
         # Transfer shares
-        _, buyer_holder = asset.transfer_shares(
-            order.address,
-            buyer_address,
-            shares_to_fill
-        )
+        _, buyer_holder = asset.transfer_shares(order.address, buyer_address, shares_to_fill)
 
         # Update order
         order.filled_shares += shares_to_fill
@@ -510,9 +494,7 @@ class FractionalIPManager:
         return order
 
     def list_orders(
-        self,
-        asset_id: Optional[str] = None,
-        active_only: bool = True
+        self, asset_id: Optional[str] = None, active_only: bool = True
     ) -> List[ShareOrder]:
         """List share orders."""
         orders = list(self.orders.values())
@@ -529,11 +511,7 @@ class FractionalIPManager:
     # Revenue Distribution
     # =========================================================================
 
-    def distribute_asset_revenue(
-        self,
-        asset_id: str,
-        amount: float
-    ) -> Dict[str, float]:
+    def distribute_asset_revenue(self, asset_id: str, amount: float) -> Dict[str, float]:
         """Distribute revenue to shareholders."""
         asset = self.assets.get(asset_id)
         if not asset:
@@ -549,11 +527,7 @@ class FractionalIPManager:
     # =========================================================================
 
     def initiate_buyout(
-        self,
-        asset_id: str,
-        initiator_address: str,
-        buyout_price: float,
-        deadline_days: int = 14
+        self, asset_id: str, initiator_address: str, buyout_price: float, deadline_days: int = 14
     ) -> FractionalAsset:
         """Initiate a buyout offer for all shares."""
         asset = self.assets.get(asset_id)
@@ -571,7 +545,9 @@ class FractionalIPManager:
         asset.status = FractionStatus.BUYOUT_INITIATED
         asset.buyout_price = buyout_price
         asset.buyout_initiator = initiator_address
-        asset.buyout_deadline = datetime.now() + __import__('datetime').timedelta(days=deadline_days)
+        asset.buyout_deadline = datetime.now() + __import__("datetime").timedelta(
+            days=deadline_days
+        )
 
         self._save_state()
 
@@ -611,15 +587,17 @@ class FractionalIPManager:
             holder = asset._shareholders.get(address.lower())
             if holder and holder.shares > 0:
                 value = holder.shares * asset.share_price
-                holdings.append({
-                    "asset_id": asset.asset_id,
-                    "asset_name": asset.name,
-                    "shares": holder.shares,
-                    "share_price": asset.share_price,
-                    "value": value,
-                    "percentage": asset.get_holder_percentage(address),
-                    "dividends_claimed": holder.total_dividends_claimed,
-                })
+                holdings.append(
+                    {
+                        "asset_id": asset.asset_id,
+                        "asset_name": asset.name,
+                        "shares": holder.shares,
+                        "share_price": asset.share_price,
+                        "value": value,
+                        "percentage": asset.get_holder_percentage(address),
+                        "dividends_claimed": holder.total_dividends_claimed,
+                    }
+                )
                 total_value += value
 
         return {
@@ -635,9 +613,9 @@ class FractionalIPManager:
 
         total_market_cap = sum(a.total_value for a in active_assets)
         total_revenue = sum(a.total_revenue for a in self.assets.values())
-        total_holders = len(set(
-            addr for a in self.assets.values() for addr in a._shareholders.keys()
-        ))
+        total_holders = len(
+            set(addr for a in self.assets.values() for addr in a._shareholders.keys())
+        )
 
         return {
             "total_assets": len(self.assets),
@@ -673,8 +651,12 @@ class FractionalIPManager:
             with open(state_file) as f:
                 state = json.load(f)
 
-            self.assets = {aid: FractionalAsset.from_dict(a) for aid, a in state.get("assets", {}).items()}
-            self.orders = {oid: ShareOrder.from_dict(o) for oid, o in state.get("orders", {}).items()}
+            self.assets = {
+                aid: FractionalAsset.from_dict(a) for aid, a in state.get("assets", {}).items()
+            }
+            self.orders = {
+                oid: ShareOrder.from_dict(o) for oid, o in state.get("orders", {}).items()
+            }
         except (json.JSONDecodeError, KeyError):
             pass
 

@@ -41,10 +41,10 @@ class LocalStateManager:
         state_with_metadata = {
             "agent_id": self.agent_id,
             "timestamp": datetime.now().isoformat(),
-            "state": state
+            "state": state,
         }
 
-        with open(self.state_file, 'w') as f:
+        with open(self.state_file, "w") as f:
             json.dump(state_with_metadata, f, indent=2)
 
     def load_state(self) -> Dict[str, Any]:
@@ -52,7 +52,7 @@ class LocalStateManager:
         if not self.state_file.exists():
             return {}
 
-        with open(self.state_file, 'r') as f:
+        with open(self.state_file, "r") as f:
             data = json.load(f)
 
         return data.get("state", {})
@@ -84,6 +84,7 @@ class MemoryVaultStateManager:
         # Try to import memory-vault client
         try:
             from memory_vault import VaultClient  # type: ignore
+
             self.client = VaultClient(url=self.vault_url)
             self.available = True
         except ImportError:
@@ -104,13 +105,13 @@ class MemoryVaultStateManager:
                 metadata={
                     "agent_id": self.agent_id,
                     "timestamp": datetime.now().isoformat(),
-                    "type": "rra_agent_state"
-                }
+                    "type": "rra_agent_state",
+                },
             )
         except Exception as e:
             # Fall back to local storage on error
             print(f"Warning: Failed to save to memory-vault: {e}")
-            if not hasattr(self, '_fallback'):
+            if not hasattr(self, "_fallback"):
                 self._fallback = LocalStateManager(self.agent_id)
             self._fallback.save_state(state)
 
@@ -124,7 +125,7 @@ class MemoryVaultStateManager:
             return result.get("value", {}) if result else {}
         except Exception as e:
             print(f"Warning: Failed to load from memory-vault: {e}")
-            if not hasattr(self, '_fallback'):
+            if not hasattr(self, "_fallback"):
                 self._fallback = LocalStateManager(self.agent_id)
             return self._fallback.load_state()
 
@@ -140,10 +141,7 @@ class MemoryVaultStateManager:
             pass
 
 
-def get_state_manager(
-    agent_id: str,
-    prefer_vault: bool = True
-) -> AgentStateProtocol:
+def get_state_manager(agent_id: str, prefer_vault: bool = True) -> AgentStateProtocol:
     """
     Get appropriate state manager based on configuration and availability.
 

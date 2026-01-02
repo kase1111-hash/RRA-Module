@@ -26,34 +26,36 @@ import math
 
 class ClauseCategory(Enum):
     """Standard license clause categories."""
-    GRANT = "grant"                     # License grant
-    RESTRICTIONS = "restrictions"        # Usage restrictions
-    ATTRIBUTION = "attribution"          # Attribution requirements
-    WARRANTY = "warranty"                # Warranty provisions
-    LIABILITY = "liability"              # Liability limitations
+
+    GRANT = "grant"  # License grant
+    RESTRICTIONS = "restrictions"  # Usage restrictions
+    ATTRIBUTION = "attribution"  # Attribution requirements
+    WARRANTY = "warranty"  # Warranty provisions
+    LIABILITY = "liability"  # Liability limitations
     INDEMNIFICATION = "indemnification"  # Indemnity clauses
-    TERMINATION = "termination"          # Termination conditions
+    TERMINATION = "termination"  # Termination conditions
     CONFIDENTIALITY = "confidentiality"  # Confidentiality obligations
-    IP_OWNERSHIP = "ip_ownership"        # IP ownership terms
-    PAYMENT = "payment"                  # Payment terms
-    SUPPORT = "support"                  # Support obligations
-    AUDIT = "audit"                      # Audit rights
-    GOVERNING_LAW = "governing_law"      # Jurisdiction
-    DISPUTE_RESOLUTION = "dispute"       # Dispute resolution
-    FORCE_MAJEURE = "force_majeure"      # Force majeure
-    MISCELLANEOUS = "miscellaneous"      # Other
+    IP_OWNERSHIP = "ip_ownership"  # IP ownership terms
+    PAYMENT = "payment"  # Payment terms
+    SUPPORT = "support"  # Support obligations
+    AUDIT = "audit"  # Audit rights
+    GOVERNING_LAW = "governing_law"  # Jurisdiction
+    DISPUTE_RESOLUTION = "dispute"  # Dispute resolution
+    FORCE_MAJEURE = "force_majeure"  # Force majeure
+    MISCELLANEOUS = "miscellaneous"  # Other
 
 
 @dataclass
 class ClausePattern:
     """A pattern identified across multiple clauses."""
+
     pattern_id: str
     category: ClauseCategory
-    template: str                    # Normalized template with placeholders
+    template: str  # Normalized template with placeholders
     examples: List[str] = field(default_factory=list)
-    dispute_rate: float = 0.0        # Historical dispute rate
-    success_rate: float = 0.0        # Rate of successful resolutions
-    frequency: int = 0               # How often this pattern appears
+    dispute_rate: float = 0.0  # Historical dispute rate
+    success_rate: float = 0.0  # Rate of successful resolutions
+    frequency: int = 0  # How often this pattern appears
     variations: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -72,9 +74,10 @@ class ClausePattern:
 @dataclass
 class PatternCluster:
     """A cluster of similar clauses."""
+
     cluster_id: str
     category: ClauseCategory
-    centroid: str                    # Representative clause
+    centroid: str  # Representative clause
     members: List[str] = field(default_factory=list)
     avg_entropy: float = 0.0
     dispute_triggers: List[str] = field(default_factory=list)
@@ -94,51 +97,45 @@ class ClausePatternAnalyzer:
 
     # Category detection keywords
     CATEGORY_KEYWORDS = {
-        ClauseCategory.GRANT: [
-            "grant", "license", "permission", "right to use", "authorize"
-        ],
+        ClauseCategory.GRANT: ["grant", "license", "permission", "right to use", "authorize"],
         ClauseCategory.RESTRICTIONS: [
-            "shall not", "prohibited", "restricted", "limitation", "exclude"
+            "shall not",
+            "prohibited",
+            "restricted",
+            "limitation",
+            "exclude",
         ],
         ClauseCategory.ATTRIBUTION: [
-            "attribution", "credit", "acknowledge", "notice", "copyright notice"
+            "attribution",
+            "credit",
+            "acknowledge",
+            "notice",
+            "copyright notice",
         ],
-        ClauseCategory.WARRANTY: [
-            "warranty", "warrant", "as is", "merchantability", "fitness"
-        ],
+        ClauseCategory.WARRANTY: ["warranty", "warrant", "as is", "merchantability", "fitness"],
         ClauseCategory.LIABILITY: [
-            "liability", "liable", "damages", "consequential", "limitation of"
+            "liability",
+            "liable",
+            "damages",
+            "consequential",
+            "limitation of",
         ],
-        ClauseCategory.INDEMNIFICATION: [
-            "indemnify", "indemnification", "hold harmless", "defend"
-        ],
-        ClauseCategory.TERMINATION: [
-            "termination", "terminate", "expiration", "cancel", "revoke"
-        ],
-        ClauseCategory.CONFIDENTIALITY: [
-            "confidential", "proprietary", "non-disclosure", "secret"
-        ],
+        ClauseCategory.INDEMNIFICATION: ["indemnify", "indemnification", "hold harmless", "defend"],
+        ClauseCategory.TERMINATION: ["termination", "terminate", "expiration", "cancel", "revoke"],
+        ClauseCategory.CONFIDENTIALITY: ["confidential", "proprietary", "non-disclosure", "secret"],
         ClauseCategory.IP_OWNERSHIP: [
-            "intellectual property", "ownership", "title", "patent", "trademark"
+            "intellectual property",
+            "ownership",
+            "title",
+            "patent",
+            "trademark",
         ],
-        ClauseCategory.PAYMENT: [
-            "payment", "fee", "royalty", "price", "compensation"
-        ],
-        ClauseCategory.SUPPORT: [
-            "support", "maintenance", "updates", "assistance"
-        ],
-        ClauseCategory.AUDIT: [
-            "audit", "inspection", "review", "examine"
-        ],
-        ClauseCategory.GOVERNING_LAW: [
-            "governing law", "jurisdiction", "venue", "applicable law"
-        ],
-        ClauseCategory.DISPUTE_RESOLUTION: [
-            "dispute", "arbitration", "mediation", "resolution"
-        ],
-        ClauseCategory.FORCE_MAJEURE: [
-            "force majeure", "act of god", "beyond control"
-        ],
+        ClauseCategory.PAYMENT: ["payment", "fee", "royalty", "price", "compensation"],
+        ClauseCategory.SUPPORT: ["support", "maintenance", "updates", "assistance"],
+        ClauseCategory.AUDIT: ["audit", "inspection", "review", "examine"],
+        ClauseCategory.GOVERNING_LAW: ["governing law", "jurisdiction", "venue", "applicable law"],
+        ClauseCategory.DISPUTE_RESOLUTION: ["dispute", "arbitration", "mediation", "resolution"],
+        ClauseCategory.FORCE_MAJEURE: ["force majeure", "act of god", "beyond control"],
     }
 
     # Common dispute triggers (phrases that correlate with disputes)
@@ -147,17 +144,14 @@ class ClausePatternAnalyzer:
         "including but not limited to": "Scope ambiguity - disputes over what's included",
         "reasonable": "Subjective standard - parties disagree on what's reasonable",
         "material": "Threshold ambiguity - disputes over materiality",
-
         # Unclear obligations
         "best efforts": "Effort level disputes",
         "promptly": "Timing disputes - what counts as prompt",
         "as soon as practicable": "Timing disputes",
-
         # Scope creep
         "and related": "Scope creep - disputes over what's related",
         "substantially similar": "Similarity disputes",
         "derivative": "Derivative work scope disputes",
-
         # Financial ambiguity
         "fair market value": "Valuation disputes",
         "reasonable compensation": "Compensation disputes",
@@ -194,14 +188,56 @@ class ClausePatternAnalyzer:
     def _tokenize(self, text: str) -> List[str]:
         """Tokenize text for analysis."""
         # Lowercase and split on non-alphanumeric
-        tokens = re.findall(r'\b[a-z]+\b', text.lower())
+        tokens = re.findall(r"\b[a-z]+\b", text.lower())
         # Remove common stopwords
         stopwords = {
-            'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
-            'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'been',
-            'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
-            'could', 'should', 'may', 'might', 'must', 'shall', 'this', 'that',
-            'these', 'those', 'it', 'its', 'such', 'any', 'all', 'each', 'every',
+            "the",
+            "a",
+            "an",
+            "and",
+            "or",
+            "but",
+            "in",
+            "on",
+            "at",
+            "to",
+            "for",
+            "of",
+            "with",
+            "by",
+            "from",
+            "as",
+            "is",
+            "was",
+            "are",
+            "were",
+            "been",
+            "be",
+            "have",
+            "has",
+            "had",
+            "do",
+            "does",
+            "did",
+            "will",
+            "would",
+            "could",
+            "should",
+            "may",
+            "might",
+            "must",
+            "shall",
+            "this",
+            "that",
+            "these",
+            "those",
+            "it",
+            "its",
+            "such",
+            "any",
+            "all",
+            "each",
+            "every",
         }
         return [t for t in tokens if t not in stopwords and len(t) > 2]
 
@@ -247,8 +283,8 @@ class ClausePatternAnalyzer:
         all_terms = set(vec1.keys()) | set(vec2.keys())
 
         dot_product = sum(vec1.get(t, 0) * vec2.get(t, 0) for t in all_terms)
-        norm1 = math.sqrt(sum(v ** 2 for v in vec1.values())) or 1
-        norm2 = math.sqrt(sum(v ** 2 for v in vec2.values())) or 1
+        norm1 = math.sqrt(sum(v**2 for v in vec1.values())) or 1
+        norm2 = math.sqrt(sum(v**2 for v in vec2.values())) or 1
 
         return dot_product / (norm1 * norm2)
 
@@ -290,11 +326,13 @@ class ClausePatternAnalyzer:
 
         for trigger, description in self.DISPUTE_TRIGGERS.items():
             if trigger in text_lower:
-                triggers.append({
-                    "trigger": trigger,
-                    "description": description,
-                    "position": text_lower.find(trigger),
-                })
+                triggers.append(
+                    {
+                        "trigger": trigger,
+                        "description": description,
+                        "position": text_lower.find(trigger),
+                    }
+                )
 
         return triggers
 
@@ -313,11 +351,13 @@ class ClausePatternAnalyzer:
 
         for problem_phrase, alternatives in self.HARDENED_ALTERNATIVES.items():
             if problem_phrase in text_lower:
-                suggestions.append({
-                    "original": problem_phrase,
-                    "alternatives": alternatives,
-                    "rationale": f"'{problem_phrase}' is often disputed; consider specific language",
-                })
+                suggestions.append(
+                    {
+                        "original": problem_phrase,
+                        "alternatives": alternatives,
+                        "rationale": f"'{problem_phrase}' is often disputed; consider specific language",
+                    }
+                )
 
         return suggestions
 
@@ -336,26 +376,22 @@ class ClausePatternAnalyzer:
         pattern = clause_text
 
         # Replace numbers with placeholder
-        pattern = re.sub(r'\b\d+\b', '[NUMBER]', pattern)
+        pattern = re.sub(r"\b\d+\b", "[NUMBER]", pattern)
 
         # Replace dates
-        pattern = re.sub(
-            r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b',
-            '[DATE]',
-            pattern
-        )
+        pattern = re.sub(r"\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b", "[DATE]", pattern)
 
         # Replace currency amounts
-        pattern = re.sub(r'\$[\d,]+(?:\.\d{2})?', '[AMOUNT]', pattern)
+        pattern = re.sub(r"\$[\d,]+(?:\.\d{2})?", "[AMOUNT]", pattern)
 
         # Replace email addresses
-        pattern = re.sub(r'\b[\w.-]+@[\w.-]+\.\w+\b', '[EMAIL]', pattern)
+        pattern = re.sub(r"\b[\w.-]+@[\w.-]+\.\w+\b", "[EMAIL]", pattern)
 
         # Replace URLs
-        pattern = re.sub(r'https?://\S+', '[URL]', pattern)
+        pattern = re.sub(r"https?://\S+", "[URL]", pattern)
 
         # Replace quoted strings (company names, etc.)
-        pattern = re.sub(r'"[^"]*"', '[QUOTED]', pattern)
+        pattern = re.sub(r'"[^"]*"', "[QUOTED]", pattern)
 
         return pattern
 
@@ -384,9 +420,8 @@ class ClausePatternAnalyzer:
             pattern.frequency += 1
             if disputed:
                 pattern.dispute_rate = (
-                    (pattern.dispute_rate * (pattern.frequency - 1) + 1) /
-                    pattern.frequency
-                )
+                    pattern.dispute_rate * (pattern.frequency - 1) + 1
+                ) / pattern.frequency
         else:
             pattern = ClausePattern(
                 pattern_id=pattern_id,
@@ -405,10 +440,7 @@ class ClausePatternAnalyzer:
         return pattern_id
 
     def find_similar_patterns(
-        self,
-        clause_text: str,
-        threshold: float = 0.5,
-        limit: int = 5
+        self, clause_text: str, threshold: float = 0.5, limit: int = 5
     ) -> List[Tuple[ClausePattern, float]]:
         """
         Find similar patterns to a given clause.
@@ -445,12 +477,14 @@ class ClausePatternAnalyzer:
 
     def get_category_stats(self) -> Dict[str, Dict[str, Any]]:
         """Get statistics for each clause category."""
-        stats = defaultdict(lambda: {
-            "count": 0,
-            "total_disputes": 0,
-            "avg_dispute_rate": 0.0,
-            "patterns": [],
-        })
+        stats = defaultdict(
+            lambda: {
+                "count": 0,
+                "total_disputes": 0,
+                "avg_dispute_rate": 0.0,
+                "patterns": [],
+            }
+        )
 
         for pattern in self._patterns.values():
             cat_stats = stats[pattern.category.value]
@@ -461,19 +495,20 @@ class ClausePatternAnalyzer:
         # Calculate averages
         for cat, cat_stats in stats.items():
             if cat_stats["count"] > 0:
-                cat_stats["avg_dispute_rate"] = (
-                    cat_stats["total_disputes"] / cat_stats["count"]
-                )
+                cat_stats["avg_dispute_rate"] = cat_stats["total_disputes"] / cat_stats["count"]
 
         return dict(stats)
 
     def get_high_risk_patterns(self, min_frequency: int = 3) -> List[ClausePattern]:
         """Get patterns with high dispute rates."""
         return sorted(
-            [p for p in self._patterns.values()
-             if p.frequency >= min_frequency and p.dispute_rate > 0.3],
+            [
+                p
+                for p in self._patterns.values()
+                if p.frequency >= min_frequency and p.dispute_rate > 0.3
+            ],
             key=lambda p: p.dispute_rate,
-            reverse=True
+            reverse=True,
         )
 
     def analyze_clause(self, clause_text: str) -> Dict[str, Any]:

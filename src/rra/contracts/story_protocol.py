@@ -17,6 +17,7 @@ from eth_utils import to_checksum_address
 @dataclass
 class IPAssetMetadata:
     """Metadata for an IP Asset on Story Protocol."""
+
     name: str
     description: str
     ipType: str  # e.g., "SOFTWARE", "CODE", "REPOSITORY"
@@ -28,6 +29,7 @@ class IPAssetMetadata:
 @dataclass
 class PILTerms:
     """Programmable IP License (PIL) terms."""
+
     commercial_use: bool = True
     derivatives_allowed: bool = True
     derivatives_approve: bool = False
@@ -116,7 +118,7 @@ class StoryProtocolClient:
         self,
         web3: Web3,
         network: str = "testnet",
-        custom_addresses: Optional[Dict[str, str]] = None
+        custom_addresses: Optional[Dict[str, str]] = None,
     ):
         """
         Initialize Story Protocol client.
@@ -162,38 +164,35 @@ class StoryProtocolClient:
         # IP Asset Registry Contract
         self.ip_asset_registry = self.w3.eth.contract(
             address=to_checksum_address(self.addresses["IPAssetRegistry"]),
-            abi=self._get_ip_asset_registry_abi()
+            abi=self._get_ip_asset_registry_abi(),
         )
 
         # License Registry Contract
         self.license_registry = self.w3.eth.contract(
             address=to_checksum_address(self.addresses["LicenseRegistry"]),
-            abi=self._get_license_registry_abi()
+            abi=self._get_license_registry_abi(),
         )
 
         # Licensing Module Contract
         self.licensing_module = self.w3.eth.contract(
             address=to_checksum_address(self.addresses["LicensingModule"]),
-            abi=self._get_licensing_module_abi()
+            abi=self._get_licensing_module_abi(),
         )
 
         # Royalty Module Contract
         self.royalty_module = self.w3.eth.contract(
             address=to_checksum_address(self.addresses["RoyaltyModule"]),
-            abi=self._get_royalty_module_abi()
+            abi=self._get_royalty_module_abi(),
         )
 
         # PIL License Template Contract
         self.pil_license_template = self.w3.eth.contract(
             address=to_checksum_address(self.addresses["PILicenseTemplate"]),
-            abi=self._get_pil_license_template_abi()
+            abi=self._get_pil_license_template_abi(),
         )
 
     def register_ip_asset(
-        self,
-        owner_address: str,
-        metadata: IPAssetMetadata,
-        private_key: str
+        self, owner_address: str, metadata: IPAssetMetadata, private_key: str
     ) -> Dict[str, Any]:
         """
         Register a repository as an IP Asset on Story Protocol.
@@ -214,14 +213,15 @@ class StoryProtocolClient:
 
         # Build transaction
         txn = self.ip_asset_registry.functions.register(
-            to_checksum_address(owner_address),
-            metadata_bytes
-        ).build_transaction({
-            'from': to_checksum_address(owner_address),
-            'nonce': self.w3.eth.get_transaction_count(owner_address),
-            'gas': 500000,
-            'gasPrice': self.w3.eth.gas_price
-        })
+            to_checksum_address(owner_address), metadata_bytes
+        ).build_transaction(
+            {
+                "from": to_checksum_address(owner_address),
+                "nonce": self.w3.eth.get_transaction_count(owner_address),
+                "gas": 500000,
+                "gasPrice": self.w3.eth.gas_price,
+            }
+        )
 
         # Sign and send
         signed_txn = self.w3.eth.account.sign_transaction(txn, private_key)
@@ -236,16 +236,12 @@ class StoryProtocolClient:
         return {
             "tx_hash": tx_hash.hex(),
             "ip_asset_id": ip_asset_id,
-            "block_number": receipt['blockNumber'],
-            "status": "success" if receipt['status'] == 1 else "failed"
+            "block_number": receipt["blockNumber"],
+            "status": "success" if receipt["status"] == 1 else "failed",
         }
 
     def attach_license_terms(
-        self,
-        ip_asset_id: str,
-        pil_terms: PILTerms,
-        owner_address: str,
-        private_key: str
+        self, ip_asset_id: str, pil_terms: PILTerms, owner_address: str, private_key: str
     ) -> str:
         """
         Attach Programmable IP License (PIL) terms to an IP Asset.
@@ -269,15 +265,15 @@ class StoryProtocolClient:
 
         # Then attach terms to IP Asset via Licensing Module
         txn = self.licensing_module.functions.attachLicenseTerms(
-            ip_asset_id,
-            to_checksum_address(self.addresses["PILicenseTemplate"]),
-            terms_id
-        ).build_transaction({
-            'from': to_checksum_address(owner_address),
-            'nonce': self.w3.eth.get_transaction_count(owner_address),
-            'gas': 300000,
-            'gasPrice': self.w3.eth.gas_price
-        })
+            ip_asset_id, to_checksum_address(self.addresses["PILicenseTemplate"]), terms_id
+        ).build_transaction(
+            {
+                "from": to_checksum_address(owner_address),
+                "nonce": self.w3.eth.get_transaction_count(owner_address),
+                "gas": 300000,
+                "gasPrice": self.w3.eth.gas_price,
+            }
+        )
 
         # Sign and send
         signed_txn = self.w3.eth.account.sign_transaction(txn, private_key)
@@ -285,12 +281,7 @@ class StoryProtocolClient:
 
         return tx_hash.hex()
 
-    def _register_pil_terms(
-        self,
-        pil_terms: PILTerms,
-        owner_address: str,
-        private_key: str
-    ) -> int:
+    def _register_pil_terms(self, pil_terms: PILTerms, owner_address: str, private_key: str) -> int:
         """
         Register PIL terms with the PIL License Template.
 
@@ -311,12 +302,14 @@ class StoryProtocolClient:
         # Build transaction to register terms
         txn = self.pil_license_template.functions.registerLicenseTerms(
             terms_struct
-        ).build_transaction({
-            'from': to_checksum_address(owner_address),
-            'nonce': self.w3.eth.get_transaction_count(owner_address),
-            'gas': 400000,
-            'gasPrice': self.w3.eth.gas_price
-        })
+        ).build_transaction(
+            {
+                "from": to_checksum_address(owner_address),
+                "nonce": self.w3.eth.get_transaction_count(owner_address),
+                "gas": 400000,
+                "gasPrice": self.w3.eth.gas_price,
+            }
+        )
 
         # Sign and send
         signed_txn = self.w3.eth.account.sign_transaction(txn, private_key)
@@ -337,7 +330,11 @@ class StoryProtocolClient:
             terms.derivatives_attribution,
             terms.derivatives_reciprocal,
             terms.commercial_revenue_share,  # Basis points
-            to_checksum_address(terms.royalty_policy) if terms.royalty_policy else self.ZERO_ADDRESS,
+            (
+                to_checksum_address(terms.royalty_policy)
+                if terms.royalty_policy
+                else self.ZERO_ADDRESS
+            ),
             terms.territory_restriction or "",
             terms.distribution_channels or [],
         )
@@ -346,8 +343,8 @@ class StoryProtocolClient:
         """Extract terms ID from transaction receipt."""
         # Simplified: use transaction index as terms ID
         # In production, parse LicenseTermsRegistered event
-        if receipt['logs']:
-            return int(receipt['logs'][0]['data'][:66], 16) if receipt['logs'][0]['data'] else 1
+        if receipt["logs"]:
+            return int(receipt["logs"][0]["data"][:66], 16) if receipt["logs"][0]["data"] else 1
         return 1
 
     def mint_license(
@@ -357,7 +354,7 @@ class StoryProtocolClient:
         license_terms_id: str,
         amount: int,
         minter_address: str,
-        private_key: str
+        private_key: str,
     ) -> str:
         """
         Mint a license NFT for an IP Asset.
@@ -378,16 +375,15 @@ class StoryProtocolClient:
 
         # Build transaction
         txn = self.license_registry.functions.mintLicense(
-            ip_asset_id,
-            to_checksum_address(licensee_address),
-            license_terms_id,
-            amount
-        ).build_transaction({
-            'from': to_checksum_address(minter_address),
-            'nonce': self.w3.eth.get_transaction_count(minter_address),
-            'gas': 250000,
-            'gasPrice': self.w3.eth.gas_price
-        })
+            ip_asset_id, to_checksum_address(licensee_address), license_terms_id, amount
+        ).build_transaction(
+            {
+                "from": to_checksum_address(minter_address),
+                "nonce": self.w3.eth.get_transaction_count(minter_address),
+                "gas": 250000,
+                "gasPrice": self.w3.eth.gas_price,
+            }
+        )
 
         # Sign and send
         signed_txn = self.w3.eth.account.sign_transaction(txn, private_key)
@@ -401,7 +397,7 @@ class StoryProtocolClient:
         derivative_owner_address: str,
         derivative_metadata: IPAssetMetadata,
         license_terms_id: str,
-        private_key: str
+        private_key: str,
     ) -> Dict[str, Any]:
         """
         Register a derivative work (fork) linked to parent IP Asset.
@@ -429,13 +425,15 @@ class StoryProtocolClient:
             to_checksum_address(derivative_owner_address),
             parent_ip_asset_id,
             license_terms_id,
-            metadata_bytes
-        ).build_transaction({
-            'from': to_checksum_address(derivative_owner_address),
-            'nonce': self.w3.eth.get_transaction_count(derivative_owner_address),
-            'gas': 600000,
-            'gasPrice': self.w3.eth.gas_price
-        })
+            metadata_bytes,
+        ).build_transaction(
+            {
+                "from": to_checksum_address(derivative_owner_address),
+                "nonce": self.w3.eth.get_transaction_count(derivative_owner_address),
+                "gas": 600000,
+                "gasPrice": self.w3.eth.gas_price,
+            }
+        )
 
         # Sign and send
         signed_txn = self.w3.eth.account.sign_transaction(txn, private_key)
@@ -449,7 +447,7 @@ class StoryProtocolClient:
             "tx_hash": tx_hash.hex(),
             "derivative_ip_asset_id": derivative_id,
             "parent_ip_asset_id": parent_ip_asset_id,
-            "status": "success" if receipt['status'] == 1 else "failed"
+            "status": "success" if receipt["status"] == 1 else "failed",
         }
 
     def set_royalty_policy(
@@ -458,7 +456,7 @@ class StoryProtocolClient:
         royalty_percentage: int,  # Basis points (0-10000)
         payment_token: str,  # ERC20 token address
         owner_address: str,
-        private_key: str
+        private_key: str,
     ) -> str:
         """
         Set royalty policy for an IP Asset.
@@ -481,15 +479,15 @@ class StoryProtocolClient:
 
         # Build transaction
         txn = self.royalty_module.functions.setRoyaltyPolicy(
-            ip_asset_id,
-            royalty_percentage,
-            to_checksum_address(payment_token)
-        ).build_transaction({
-            'from': to_checksum_address(owner_address),
-            'nonce': self.w3.eth.get_transaction_count(owner_address),
-            'gas': 200000,
-            'gasPrice': self.w3.eth.gas_price
-        })
+            ip_asset_id, royalty_percentage, to_checksum_address(payment_token)
+        ).build_transaction(
+            {
+                "from": to_checksum_address(owner_address),
+                "nonce": self.w3.eth.get_transaction_count(owner_address),
+                "gas": 200000,
+                "gasPrice": self.w3.eth.gas_price,
+            }
+        )
 
         # Sign and send
         signed_txn = self.w3.eth.account.sign_transaction(txn, private_key)
@@ -517,7 +515,7 @@ class StoryProtocolClient:
             "owner": info[0],
             "metadata": self._decode_metadata(info[1]),
             "created_at": info[2],
-            "is_active": info[3]
+            "is_active": info[3],
         }
 
     def get_derivatives(self, parent_ip_asset_id: str) -> List[str]:
@@ -533,9 +531,7 @@ class StoryProtocolClient:
         if not self.ip_asset_registry:
             raise ValueError("IP Asset Registry not initialized")
 
-        return self.ip_asset_registry.functions.getDerivatives(
-            parent_ip_asset_id
-        ).call()
+        return self.ip_asset_registry.functions.getDerivatives(parent_ip_asset_id).call()
 
     def get_royalty_info(self, ip_asset_id: str) -> Dict[str, Any]:
         """
@@ -556,7 +552,7 @@ class StoryProtocolClient:
             "royalty_percentage": info[0],  # Basis points
             "payment_token": info[1],
             "total_collected": info[2],
-            "last_payment_timestamp": info[3]
+            "last_payment_timestamp": info[3],
         }
 
     # Helper methods for encoding/decoding
@@ -565,24 +561,27 @@ class StoryProtocolClient:
         """Encode IP Asset metadata for on-chain storage."""
         # Simplified encoding - in production would use proper ABI encoding
         import json
+
         metadata_dict = {
             "name": metadata.name,
             "description": metadata.description,
             "ipType": metadata.ipType,
             "createdAt": metadata.createdAt,
             "ipfsHash": metadata.ipfsHash,
-            "externalUrl": metadata.externalUrl
+            "externalUrl": metadata.externalUrl,
         }
-        return json.dumps(metadata_dict).encode('utf-8')
+        return json.dumps(metadata_dict).encode("utf-8")
 
     def _decode_metadata(self, metadata_bytes: bytes) -> Dict[str, Any]:
         """Decode IP Asset metadata from on-chain storage."""
         import json
-        return json.loads(metadata_bytes.decode('utf-8'))
+
+        return json.loads(metadata_bytes.decode("utf-8"))
 
     def _encode_pil_terms(self, terms: PILTerms) -> bytes:
         """Encode PIL terms for on-chain storage."""
         import json
+
         terms_dict = {
             "commercial_use": terms.commercial_use,
             "derivatives_allowed": terms.derivatives_allowed,
@@ -592,15 +591,15 @@ class StoryProtocolClient:
             "royalty_policy": terms.royalty_policy,
             "commercial_revenue_share": terms.commercial_revenue_share,
             "territory_restriction": terms.territory_restriction,
-            "distribution_channels": terms.distribution_channels
+            "distribution_channels": terms.distribution_channels,
         }
-        return json.dumps(terms_dict).encode('utf-8')
+        return json.dumps(terms_dict).encode("utf-8")
 
     def _extract_ip_asset_id(self, receipt: Dict[str, Any]) -> str:
         """Extract IP Asset ID from transaction receipt logs."""
         # In production, would parse event logs properly
         # For now, return placeholder
-        if receipt['logs']:
+        if receipt["logs"]:
             # Simplified: use transaction hash as asset ID
             return f"ip_asset_{receipt['transactionHash'].hex()[:16]}"
         return "ip_asset_unknown"
@@ -614,24 +613,24 @@ class StoryProtocolClient:
             {
                 "inputs": [
                     {"name": "owner", "type": "address"},
-                    {"name": "metadata", "type": "bytes"}
+                    {"name": "metadata", "type": "bytes"},
                 ],
                 "name": "register",
                 "outputs": [{"name": "ipAssetId", "type": "bytes32"}],
                 "stateMutability": "nonpayable",
-                "type": "function"
+                "type": "function",
             },
             {
                 "inputs": [
                     {"name": "owner", "type": "address"},
                     {"name": "parentIpAssetId", "type": "bytes32"},
                     {"name": "licenseTermsId", "type": "bytes32"},
-                    {"name": "metadata", "type": "bytes"}
+                    {"name": "metadata", "type": "bytes"},
                 ],
                 "name": "registerDerivative",
                 "outputs": [{"name": "derivativeId", "type": "bytes32"}],
                 "stateMutability": "nonpayable",
-                "type": "function"
+                "type": "function",
             },
             {
                 "inputs": [{"name": "ipAssetId", "type": "bytes32"}],
@@ -640,18 +639,18 @@ class StoryProtocolClient:
                     {"name": "owner", "type": "address"},
                     {"name": "metadata", "type": "bytes"},
                     {"name": "createdAt", "type": "uint256"},
-                    {"name": "isActive", "type": "bool"}
+                    {"name": "isActive", "type": "bool"},
                 ],
                 "stateMutability": "view",
-                "type": "function"
+                "type": "function",
             },
             {
                 "inputs": [{"name": "parentId", "type": "bytes32"}],
                 "name": "getDerivatives",
                 "outputs": [{"name": "", "type": "bytes32[]"}],
                 "stateMutability": "view",
-                "type": "function"
-            }
+                "type": "function",
+            },
         ]
 
     @staticmethod
@@ -663,12 +662,12 @@ class StoryProtocolClient:
                     {"name": "ipAssetId", "type": "bytes32"},
                     {"name": "licensee", "type": "address"},
                     {"name": "licenseTermsId", "type": "bytes32"},
-                    {"name": "amount", "type": "uint256"}
+                    {"name": "amount", "type": "uint256"},
                 ],
                 "name": "mintLicense",
                 "outputs": [{"name": "licenseId", "type": "uint256"}],
                 "stateMutability": "nonpayable",
-                "type": "function"
+                "type": "function",
             }
         ]
 
@@ -680,12 +679,12 @@ class StoryProtocolClient:
                 "inputs": [
                     {"name": "ipAssetId", "type": "bytes32"},
                     {"name": "royaltyPercentage", "type": "uint256"},
-                    {"name": "paymentToken", "type": "address"}
+                    {"name": "paymentToken", "type": "address"},
                 ],
                 "name": "setRoyaltyPolicy",
                 "outputs": [],
                 "stateMutability": "nonpayable",
-                "type": "function"
+                "type": "function",
             },
             {
                 "inputs": [{"name": "ipAssetId", "type": "bytes32"}],
@@ -694,11 +693,11 @@ class StoryProtocolClient:
                     {"name": "percentage", "type": "uint256"},
                     {"name": "paymentToken", "type": "address"},
                     {"name": "totalCollected", "type": "uint256"},
-                    {"name": "lastPaymentTimestamp", "type": "uint256"}
+                    {"name": "lastPaymentTimestamp", "type": "uint256"},
                 ],
                 "stateMutability": "view",
-                "type": "function"
-            }
+                "type": "function",
+            },
         ]
 
     @staticmethod
@@ -709,12 +708,12 @@ class StoryProtocolClient:
                 "inputs": [
                     {"name": "ipId", "type": "address"},
                     {"name": "licenseTemplate", "type": "address"},
-                    {"name": "licenseTermsId", "type": "uint256"}
+                    {"name": "licenseTermsId", "type": "uint256"},
                 ],
                 "name": "attachLicenseTerms",
                 "outputs": [],
                 "stateMutability": "nonpayable",
-                "type": "function"
+                "type": "function",
             },
             {
                 "inputs": [
@@ -723,12 +722,12 @@ class StoryProtocolClient:
                     {"name": "licenseTermsId", "type": "uint256"},
                     {"name": "amount", "type": "uint256"},
                     {"name": "receiver", "type": "address"},
-                    {"name": "royaltyContext", "type": "bytes"}
+                    {"name": "royaltyContext", "type": "bytes"},
                 ],
                 "name": "mintLicenseTokens",
                 "outputs": [{"name": "startLicenseTokenId", "type": "uint256"}],
                 "stateMutability": "nonpayable",
-                "type": "function"
+                "type": "function",
             },
             {
                 "inputs": [
@@ -736,13 +735,13 @@ class StoryProtocolClient:
                     {"name": "parentIpIds", "type": "address[]"},
                     {"name": "licenseTermsIds", "type": "uint256[]"},
                     {"name": "licenseTemplate", "type": "address"},
-                    {"name": "royaltyContext", "type": "bytes"}
+                    {"name": "royaltyContext", "type": "bytes"},
                 ],
                 "name": "registerDerivative",
                 "outputs": [],
                 "stateMutability": "nonpayable",
-                "type": "function"
-            }
+                "type": "function",
+            },
         ]
 
     @staticmethod
@@ -771,14 +770,14 @@ class StoryProtocolClient:
                             {"name": "derivativesReciprocal", "type": "bool"},
                             {"name": "derivativeRevCeiling", "type": "uint256"},
                             {"name": "currency", "type": "address"},
-                            {"name": "uri", "type": "string"}
-                        ]
+                            {"name": "uri", "type": "string"},
+                        ],
                     }
                 ],
                 "name": "registerLicenseTerms",
                 "outputs": [{"name": "licenseTermsId", "type": "uint256"}],
                 "stateMutability": "nonpayable",
-                "type": "function"
+                "type": "function",
             },
             {
                 "inputs": [{"name": "licenseTermsId", "type": "uint256"}],
@@ -804,13 +803,13 @@ class StoryProtocolClient:
                             {"name": "derivativesReciprocal", "type": "bool"},
                             {"name": "derivativeRevCeiling", "type": "uint256"},
                             {"name": "currency", "type": "address"},
-                            {"name": "uri", "type": "string"}
-                        ]
+                            {"name": "uri", "type": "string"},
+                        ],
                     }
                 ],
                 "stateMutability": "view",
-                "type": "function"
-            }
+                "type": "function",
+            },
         ]
 
     def _validate_mainnet_addresses(self) -> None:
@@ -856,10 +855,7 @@ class StoryProtocolClient:
         invalid = [cls.DEAD_ADDRESS.lower(), cls.ZERO_ADDRESS.lower()]
 
         def check_contracts(contracts: Dict[str, str]) -> Dict[str, bool]:
-            return {
-                name: addr.lower() not in invalid
-                for name, addr in contracts.items()
-            }
+            return {name: addr.lower() not in invalid for name, addr in contracts.items()}
 
         return {
             "mainnet": check_contracts(cls.STORY_MAINNET_CONTRACTS),

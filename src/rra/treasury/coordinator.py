@@ -27,35 +27,35 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 class TreasuryType(Enum):
     """Types of treasuries."""
 
-    DAO = "dao"                  # DAO-controlled treasury
-    MULTISIG = "multisig"        # Multi-signature wallet
-    INDIVIDUAL = "individual"    # Single-owner treasury
-    PROTOCOL = "protocol"        # Protocol-owned treasury
-    CORPORATE = "corporate"      # Corporate treasury
+    DAO = "dao"  # DAO-controlled treasury
+    MULTISIG = "multisig"  # Multi-signature wallet
+    INDIVIDUAL = "individual"  # Single-owner treasury
+    PROTOCOL = "protocol"  # Protocol-owned treasury
+    CORPORATE = "corporate"  # Corporate treasury
 
 
 class DisputeStatus(Enum):
     """Status of a treasury dispute."""
 
-    CREATED = "created"          # Initial creation
-    OPEN = "open"                # Alias for created/staking (API compatibility)
-    STAKING = "staking"          # Awaiting treasury stakes
-    VOTING = "voting"            # Active voting period
-    MEDIATION = "mediation"      # Escalated to mediator
-    RESOLVED = "resolved"        # Resolution reached
-    EXECUTED = "executed"        # Funds distributed
-    EXPIRED = "expired"          # Voting period expired
-    CANCELLED = "cancelled"      # Cancelled by creator
+    CREATED = "created"  # Initial creation
+    OPEN = "open"  # Alias for created/staking (API compatibility)
+    STAKING = "staking"  # Awaiting treasury stakes
+    VOTING = "voting"  # Active voting period
+    MEDIATION = "mediation"  # Escalated to mediator
+    RESOLVED = "resolved"  # Resolution reached
+    EXECUTED = "executed"  # Funds distributed
+    EXPIRED = "expired"  # Voting period expired
+    CANCELLED = "cancelled"  # Cancelled by creator
 
 
 class ProposalType(Enum):
     """Types of resolution proposals."""
 
-    FUND_DISTRIBUTION = "fund_distribution"      # Distribute disputed funds
-    COMPENSATION_AWARD = "compensation_award"    # Award compensation
-    LICENSE_TERMS = "license_terms"              # Set licensing terms
+    FUND_DISTRIBUTION = "fund_distribution"  # Distribute disputed funds
+    COMPENSATION_AWARD = "compensation_award"  # Award compensation
+    LICENSE_TERMS = "license_terms"  # Set licensing terms
     CONTRIBUTOR_PAYMENT = "contributor_payment"  # Contributor payment
-    CUSTOM = "custom"                            # Custom resolution
+    CUSTOM = "custom"  # Custom resolution
 
 
 class VoteChoice(Enum):
@@ -70,24 +70,24 @@ class VoteChoice(Enum):
 class ProposalStatus(Enum):
     """Status of a proposal."""
 
-    PENDING = "pending"          # Awaiting votes
-    APPROVED = "approved"        # Passed threshold
-    REJECTED = "rejected"        # Failed to pass
-    EXECUTED = "executed"        # Resolution executed
-    CANCELLED = "cancelled"      # Cancelled by proposer
+    PENDING = "pending"  # Awaiting votes
+    APPROVED = "approved"  # Passed threshold
+    REJECTED = "rejected"  # Failed to pass
+    EXECUTED = "executed"  # Resolution executed
+    CANCELLED = "cancelled"  # Cancelled by proposer
 
 
 @dataclass
 class TreasuryConfig:
     """Configuration for treasury coordinator."""
 
-    min_stake: int = 1000                    # Minimum stake in base units
-    voting_period_days: int = 7              # Days for voting period
-    quorum_threshold: int = 5000             # 50% in basis points
-    approval_threshold: int = 6000           # 60% in basis points
-    mediation_threshold: int = 3             # Number of extensions before mediation
-    max_proposal_age_days: int = 30          # Max age for proposals
-    grace_period_hours: int = 24             # Grace period after voting ends
+    min_stake: int = 1000  # Minimum stake in base units
+    voting_period_days: int = 7  # Days for voting period
+    quorum_threshold: int = 5000  # 50% in basis points
+    approval_threshold: int = 6000  # 60% in basis points
+    mediation_threshold: int = 3  # Number of extensions before mediation
+    max_proposal_age_days: int = 30  # Max age for proposals
+    grace_period_hours: int = 24  # Grace period after voting ends
 
 
 @dataclass
@@ -97,12 +97,12 @@ class Treasury:
     treasury_id: str
     name: str
     treasury_type: TreasuryType
-    signers: List[str]              # Signer addresses
-    signer_threshold: int           # Required signatures
+    signers: List[str]  # Signer addresses
+    signer_threshold: int  # Required signatures
     registered_at: datetime
     total_disputes: int = 0
     resolved_disputes: int = 0
-    total_stake: int = 0            # Total staked amount in wei
+    total_stake: int = 0  # Total staked amount in wei
     is_active: bool = True
     metadata: Dict[str, Any] = field(default_factory=dict)
 
@@ -135,12 +135,12 @@ class TreasuryParticipant:
     """A treasury participating in a dispute."""
 
     treasury_id: str
-    stake_amount: int = 0           # In wei
+    stake_amount: int = 0  # In wei
     voting_weight: int = 0
     has_staked: bool = False
     has_voted: bool = False
     vote: VoteChoice = VoteChoice.ABSTAIN
-    escrowed_amount: int = 0        # Escrowed funds
+    escrowed_amount: int = 0  # Escrowed funds
     escrow_token: Optional[str] = None  # Token address or None for ETH
 
     def to_dict(self) -> Dict[str, Any]:
@@ -165,7 +165,7 @@ class Proposal:
     dispute_id: str
     proposer_treasury: str
     proposal_type: ProposalType
-    content_hash: str               # IPFS hash
+    content_hash: str  # IPFS hash
     ipfs_uri: str
     title: str
     description: str
@@ -176,9 +176,9 @@ class Proposal:
     executed: bool = False
     votes: Dict[str, VoteChoice] = field(default_factory=dict)
     status: ProposalStatus = ProposalStatus.PENDING
-    stake_approved: int = 0         # Stake weight for approval
-    stake_rejected: int = 0         # Stake weight for rejection
-    stake_abstained: int = 0        # Stake weight for abstention
+    stake_approved: int = 0  # Stake weight for approval
+    stake_rejected: int = 0  # Stake weight for rejection
+    stake_abstained: int = 0  # Stake weight for abstention
 
     @property
     def treasury_id(self) -> str:
@@ -221,7 +221,7 @@ class TreasuryDispute:
     total_stake: int = 0
     total_escrow: int = 0
     winning_proposal: Optional[int] = None
-    is_binding: bool = False        # Advisory vs binding
+    is_binding: bool = False  # Advisory vs binding
     mediator: Optional[str] = None  # Mediator address if escalated
     participants: Dict[str, TreasuryParticipant] = field(default_factory=dict)
     proposals: List[Proposal] = field(default_factory=list)
@@ -267,7 +267,7 @@ class TreasuryCoordinator:
     """
 
     PERCENTAGE_BASE = 10000  # Basis points
-    MIN_STAKE = 10**16       # 0.01 ETH in wei
+    MIN_STAKE = 10**16  # 0.01 ETH in wei
     CONSENSUS_THRESHOLD = 6666  # 66.66% in basis points
 
     def __init__(
@@ -680,9 +680,7 @@ class TreasuryCoordinator:
             if sum(payout_shares) != self.PERCENTAGE_BASE:
                 return None
 
-        content_hash = hashlib.sha256(
-            f"{title}:{description}:{ipfs_uri}".encode()
-        ).hexdigest()[:32]
+        content_hash = hashlib.sha256(f"{title}:{description}:{ipfs_uri}".encode()).hexdigest()[:32]
 
         proposal = Proposal(
             proposal_id=len(dispute.proposals),
@@ -759,7 +757,9 @@ class TreasuryCoordinator:
 
         # Check for consensus (>66% support)
         if dispute.total_stake > 0:
-            support_percentage = (proposal.support_weight * self.PERCENTAGE_BASE) // dispute.total_stake
+            support_percentage = (
+                proposal.support_weight * self.PERCENTAGE_BASE
+            ) // dispute.total_stake
             if support_percentage > self.CONSENSUS_THRESHOLD:
                 self._resolve_dispute(dispute, proposal_id)
 
@@ -962,16 +962,15 @@ class TreasuryCoordinator:
 
     def get_disputes_by_treasury(self, treasury_id: str) -> List[TreasuryDispute]:
         """Get all disputes involving a treasury."""
-        return [
-            d for d in self._disputes.values()
-            if treasury_id in d.involved_treasuries
-        ]
+        return [d for d in self._disputes.values() if treasury_id in d.involved_treasuries]
 
     def get_active_disputes(self) -> List[TreasuryDispute]:
         """Get all active disputes."""
         return [
-            d for d in self._disputes.values()
-            if d.status in (
+            d
+            for d in self._disputes.values()
+            if d.status
+            in (
                 DisputeStatus.CREATED,
                 DisputeStatus.STAKING,
                 DisputeStatus.VOTING,

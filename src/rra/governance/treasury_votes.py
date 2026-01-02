@@ -22,15 +22,17 @@ import hashlib
 
 class TreasuryVoteType(Enum):
     """Types of treasury votes."""
-    RESOLUTION = "resolution"          # Vote on dispute resolution
+
+    RESOLUTION = "resolution"  # Vote on dispute resolution
     FUND_ALLOCATION = "fund_allocation"  # Vote on fund distribution
-    MEDIATION = "mediation"            # Vote to escalate to mediation
-    SETTLEMENT = "settlement"          # Vote on settlement offer
-    EMERGENCY = "emergency"            # Emergency action vote
+    MEDIATION = "mediation"  # Vote to escalate to mediation
+    SETTLEMENT = "settlement"  # Vote on settlement offer
+    EMERGENCY = "emergency"  # Emergency action vote
 
 
 class TreasuryVoteStatus(Enum):
     """Status of a treasury vote."""
+
     PENDING = "pending"
     ACTIVE = "active"
     PASSED = "passed"
@@ -41,6 +43,7 @@ class TreasuryVoteStatus(Enum):
 
 class VoteChoice(Enum):
     """Voting options."""
+
     APPROVE = "approve"
     REJECT = "reject"
     ABSTAIN = "abstain"
@@ -49,6 +52,7 @@ class VoteChoice(Enum):
 @dataclass
 class TreasuryVote:
     """A vote cast by a treasury or signer."""
+
     voter_id: str  # Treasury ID or signer address
     voter_type: str  # "treasury" or "signer"
     stake_weight: int
@@ -84,6 +88,7 @@ class TreasuryVote:
 @dataclass
 class TreasuryProposal:
     """A proposal for treasury decision."""
+
     proposal_id: str
     dispute_id: str
     treasury_id: str  # Proposing treasury
@@ -117,18 +122,15 @@ class TreasuryProposal:
 
     @property
     def stake_approved(self) -> int:
-        return sum(v.stake_weight for v in self._votes.values()
-                   if v.choice == VoteChoice.APPROVE)
+        return sum(v.stake_weight for v in self._votes.values() if v.choice == VoteChoice.APPROVE)
 
     @property
     def stake_rejected(self) -> int:
-        return sum(v.stake_weight for v in self._votes.values()
-                   if v.choice == VoteChoice.REJECT)
+        return sum(v.stake_weight for v in self._votes.values() if v.choice == VoteChoice.REJECT)
 
     @property
     def stake_abstained(self) -> int:
-        return sum(v.stake_weight for v in self._votes.values()
-                   if v.choice == VoteChoice.ABSTAIN)
+        return sum(v.stake_weight for v in self._votes.values() if v.choice == VoteChoice.ABSTAIN)
 
     @property
     def voter_count(self) -> int:
@@ -171,7 +173,9 @@ class TreasuryProposal:
             "stake_abstained": self.stake_abstained,
             "total_stake_voted": self.total_stake_voted,
             "total_stake": total_stake,
-            "participation_pct": (self.total_stake_voted / total_stake * 100) if total_stake > 0 else 0,
+            "participation_pct": (
+                (self.total_stake_voted / total_stake * 100) if total_stake > 0 else 0
+            ),
             "voter_count": self.voter_count,
             "quorum_stake": self.quorum_stake,
             "quorum_met": quorum_met,
@@ -237,6 +241,7 @@ class TreasuryProposal:
 @dataclass
 class TreasurySigner:
     """A signer authorized for a treasury."""
+
     address: str
     weight: int = 1
     added_at: datetime = field(default_factory=datetime.now)
@@ -263,6 +268,7 @@ class TreasurySigner:
 @dataclass
 class VotingTreasury:
     """A treasury participating in voting."""
+
     treasury_id: str
     name: str
     stake: int = 0
@@ -610,20 +616,25 @@ class TreasuryVotingManager:
         # Collect signer votes for this treasury
         prefix = f"{treasury_id}:"
         signer_votes = {
-            vid: v for vid, v in proposal._votes.items()
+            vid: v
+            for vid, v in proposal._votes.items()
             if vid.startswith(prefix) and v.voter_type == "signer"
         }
 
         # Calculate weighted votes by choice
-        approve_weight = sum(v.stake_weight for v in signer_votes.values()
-                            if v.choice == VoteChoice.APPROVE)
-        reject_weight = sum(v.stake_weight for v in signer_votes.values()
-                           if v.choice == VoteChoice.REJECT)
+        approve_weight = sum(
+            v.stake_weight for v in signer_votes.values() if v.choice == VoteChoice.APPROVE
+        )
+        reject_weight = sum(
+            v.stake_weight for v in signer_votes.values() if v.choice == VoteChoice.REJECT
+        )
         total_weight = sum(v.stake_weight for v in signer_votes.values())
 
         # Check threshold
         consensus_reached = approve_weight >= treasury.signer_threshold
-        majority_choice = VoteChoice.APPROVE if approve_weight > reject_weight else VoteChoice.REJECT
+        majority_choice = (
+            VoteChoice.APPROVE if approve_weight > reject_weight else VoteChoice.REJECT
+        )
 
         return consensus_reached, {
             "treasury_id": treasury_id,
@@ -706,9 +717,15 @@ class TreasuryVotingManager:
             "treasury_count": len(stakes),
             "stakes_by_treasury": stakes,
             "proposal_count": len(proposals),
-            "active_proposals": len([p for p in proposals if p.status == TreasuryVoteStatus.ACTIVE]),
-            "passed_proposals": len([p for p in proposals if p.status == TreasuryVoteStatus.PASSED]),
-            "executed_proposals": len([p for p in proposals if p.status == TreasuryVoteStatus.EXECUTED]),
+            "active_proposals": len(
+                [p for p in proposals if p.status == TreasuryVoteStatus.ACTIVE]
+            ),
+            "passed_proposals": len(
+                [p for p in proposals if p.status == TreasuryVoteStatus.PASSED]
+            ),
+            "executed_proposals": len(
+                [p for p in proposals if p.status == TreasuryVoteStatus.EXECUTED]
+            ),
         }
 
     def get_treasury_voting_history(
@@ -722,16 +739,18 @@ class TreasuryVotingManager:
         for proposal in self.proposals.values():
             vote = proposal.get_vote(treasury_id)
             if vote:
-                history.append({
-                    "proposal_id": proposal.proposal_id,
-                    "dispute_id": proposal.dispute_id,
-                    "vote_type": proposal.vote_type.value,
-                    "title": proposal.title,
-                    "status": proposal.status.value,
-                    "choice": vote.choice.value,
-                    "stake_weight": vote.stake_weight,
-                    "voted_at": vote.voted_at.isoformat(),
-                })
+                history.append(
+                    {
+                        "proposal_id": proposal.proposal_id,
+                        "dispute_id": proposal.dispute_id,
+                        "vote_type": proposal.vote_type.value,
+                        "title": proposal.title,
+                        "status": proposal.status.value,
+                        "choice": vote.choice.value,
+                        "stake_weight": vote.stake_weight,
+                        "voted_at": vote.voted_at.isoformat(),
+                    }
+                )
 
         # Sort by vote time, most recent first
         history.sort(key=lambda x: x["voted_at"], reverse=True)
@@ -773,12 +792,10 @@ class TreasuryVotingManager:
                 state = json.load(f)
 
             self.treasuries = {
-                tid: VotingTreasury.from_dict(t)
-                for tid, t in state.get("treasuries", {}).items()
+                tid: VotingTreasury.from_dict(t) for tid, t in state.get("treasuries", {}).items()
             }
             self.proposals = {
-                pid: TreasuryProposal.from_dict(p)
-                for pid, p in state.get("proposals", {}).items()
+                pid: TreasuryProposal.from_dict(p) for pid, p in state.get("proposals", {}).items()
             }
             self.dispute_stakes = state.get("dispute_stakes", {})
 

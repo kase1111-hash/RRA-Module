@@ -61,6 +61,7 @@ def _is_probable_prime(n: int, k: int = 40) -> bool:
 
     # Witness loop
     import random
+
     for _ in range(k):
         a = random.randrange(2, n - 1)
         x = pow(a, d, n)
@@ -100,6 +101,7 @@ _verify_prime_constant()
 
 class ShareHolder(str, Enum):
     """Standard share holder roles."""
+
     USER = "user"
     DAO_GOVERNANCE = "dao_governance"
     ESCROW_SERVICE_1 = "escrow_1"
@@ -116,6 +118,7 @@ class ThresholdConfig:
 
     Defines the M-of-N scheme parameters.
     """
+
     threshold: int  # M - minimum shares needed
     total_shares: int  # N - total shares created
     holders: List[ShareHolder]  # Who gets each share
@@ -129,7 +132,7 @@ class ThresholdConfig:
             raise ValueError("Number of holders must match total shares")
 
     @classmethod
-    def standard_3_of_5(cls) -> 'ThresholdConfig':
+    def standard_3_of_5(cls) -> "ThresholdConfig":
         """Standard 3-of-5 configuration for compliance."""
         return cls(
             threshold=3,
@@ -140,11 +143,11 @@ class ThresholdConfig:
                 ShareHolder.ESCROW_SERVICE_1,
                 ShareHolder.ESCROW_SERVICE_2,
                 ShareHolder.COMPLIANCE_OFFICER,
-            ]
+            ],
         )
 
     @classmethod
-    def simple_2_of_3(cls) -> 'ThresholdConfig':
+    def simple_2_of_3(cls) -> "ThresholdConfig":
         """Simple 2-of-3 for basic recovery."""
         return cls(
             threshold=2,
@@ -153,7 +156,7 @@ class ThresholdConfig:
                 ShareHolder.USER,
                 ShareHolder.DAO_GOVERNANCE,
                 ShareHolder.PROTOCOL_MULTISIG,
-            ]
+            ],
         )
 
 
@@ -164,6 +167,7 @@ class KeyShare:
 
     Contains the share value and metadata for reconstruction.
     """
+
     index: int  # x-coordinate (1-indexed)
     value: bytes  # y-coordinate as bytes
     holder: ShareHolder
@@ -189,7 +193,7 @@ class KeyShare:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'KeyShare':
+    def from_dict(cls, data: Dict[str, Any]) -> "KeyShare":
         """Deserialize from dictionary."""
         return cls(
             index=data["index"],
@@ -206,13 +210,14 @@ class KeyShare:
     def to_bytes(self) -> bytes:
         """Compact binary serialization."""
         import struct
+
         context_bytes = self.context_id.encode()
         return (
-            struct.pack(">BHH", self.index, self.threshold, self.total_shares) +
-            self.value +
-            struct.pack(">H", len(context_bytes)) +
-            context_bytes +
-            self.commitment
+            struct.pack(">BHH", self.index, self.threshold, self.total_shares)
+            + self.value
+            + struct.pack(">H", len(context_bytes))
+            + context_bytes
+            + self.commitment
         )
 
 
@@ -233,12 +238,7 @@ class ShamirSecretSharing:
         """
         self.prime = prime
 
-    def split(
-        self,
-        secret: bytes,
-        config: ThresholdConfig,
-        context_id: str
-    ) -> List[KeyShare]:
+    def split(self, secret: bytes, config: ThresholdConfig, context_id: str) -> List[KeyShare]:
         """
         Split a secret into shares.
 
@@ -257,7 +257,7 @@ class ShamirSecretSharing:
             raise ValueError("Secret must be 32 bytes")
 
         # Convert secret to integer
-        secret_int = int.from_bytes(secret, 'big')
+        secret_int = int.from_bytes(secret, "big")
 
         # Generate random polynomial coefficients
         # f(x) = secret + a1*x + a2*x^2 + ... + a(m-1)*x^(m-1)
@@ -268,6 +268,7 @@ class ShamirSecretSharing:
 
         # Compute commitment (hash of secret)
         from eth_utils import keccak
+
         commitment = keccak(secret)
 
         # Generate shares
@@ -280,7 +281,7 @@ class ShamirSecretSharing:
 
             share = KeyShare(
                 index=x,
-                value=y.to_bytes(32, 'big'),
+                value=y.to_bytes(32, "big"),
                 holder=config.holders[i],
                 context_id=context_id,
                 created_at=created_at,
@@ -310,37 +311,29 @@ class ShamirSecretSharing:
 
         threshold = shares[0].threshold
         if len(shares) < threshold:
-            raise ValueError(
-                f"Not enough shares: have {len(shares)}, need {threshold}"
-            )
+            raise ValueError(f"Not enough shares: have {len(shares)}, need {threshold}")
 
         # Use exactly threshold shares
         shares_to_use = shares[:threshold]
 
         # Extract x and y coordinates
-        points = [
-            (share.index, int.from_bytes(share.value, 'big'))
-            for share in shares_to_use
-        ]
+        points = [(share.index, int.from_bytes(share.value, "big")) for share in shares_to_use]
 
         # Lagrange interpolation at x=0 gives the secret
         secret_int = self._lagrange_interpolate(0, points)
 
         # Convert back to bytes
-        secret = secret_int.to_bytes(32, 'big')
+        secret = secret_int.to_bytes(32, "big")
 
         # Verify commitment
         from eth_utils import keccak
+
         if keccak(secret) != shares[0].commitment:
             raise ValueError("Secret verification failed - commitment mismatch")
 
         return secret
 
-    def _evaluate_polynomial(
-        self,
-        coefficients: List[int],
-        x: int
-    ) -> int:
+    def _evaluate_polynomial(self, coefficients: List[int], x: int) -> int:
         """
         Evaluate polynomial at point x using Horner's method.
 
@@ -359,11 +352,7 @@ class ShamirSecretSharing:
 
         return result
 
-    def _lagrange_interpolate(
-        self,
-        x: int,
-        points: List[Tuple[int, int]]
-    ) -> int:
+    def _lagrange_interpolate(self, x: int, points: List[Tuple[int, int]]) -> int:
         """
         Lagrange interpolation in finite field.
 
@@ -429,21 +418,20 @@ class ShamirSecretSharing:
             )
 
         # Try to reconstruct using threshold-1 other shares + this share
-        test_shares = other_shares[:threshold - 1] + [share]
+        test_shares = other_shares[: threshold - 1] + [share]
 
         try:
             # If reconstruction succeeds and commitment matches, share is valid
             secret = self.reconstruct(test_shares)
             from eth_utils import keccak
+
             return keccak(secret) == share.commitment
         except Exception:
             return False
 
 
 def split_key_for_escrow(
-    key_bytes: bytes,
-    context_id: str,
-    config: Optional[ThresholdConfig] = None
+    key_bytes: bytes, context_id: str, config: Optional[ThresholdConfig] = None
 ) -> List[KeyShare]:
     """
     Convenience function to split a key for escrow.
@@ -485,9 +473,7 @@ class EscrowManager:
     """
 
     def __init__(
-        self,
-        config: Optional[ThresholdConfig] = None,
-        storage_backend: Optional[Any] = None
+        self, config: Optional[ThresholdConfig] = None, storage_backend: Optional[Any] = None
     ):
         """
         Initialize escrow manager.
@@ -501,11 +487,7 @@ class EscrowManager:
         self.shamir = ShamirSecretSharing()
         self._shares_cache: Dict[str, List[KeyShare]] = {}
 
-    def escrow_viewing_key(
-        self,
-        key_bytes: bytes,
-        context_id: str
-    ) -> Dict[ShareHolder, KeyShare]:
+    def escrow_viewing_key(self, key_bytes: bytes, context_id: str) -> Dict[ShareHolder, KeyShare]:
         """
         Split and escrow a viewing key.
 
@@ -524,11 +506,7 @@ class EscrowManager:
         # Return as dict for easy distribution
         return {share.holder: share for share in shares}
 
-    def recover_viewing_key(
-        self,
-        context_id: str,
-        provided_shares: List[KeyShare]
-    ) -> bytes:
+    def recover_viewing_key(self, context_id: str, provided_shares: List[KeyShare]) -> bytes:
         """
         Recover a viewing key from provided shares.
 
@@ -544,11 +522,7 @@ class EscrowManager:
         """
         return self.shamir.reconstruct(provided_shares)
 
-    def get_share_for_holder(
-        self,
-        context_id: str,
-        holder: ShareHolder
-    ) -> Optional[KeyShare]:
+    def get_share_for_holder(self, context_id: str, holder: ShareHolder) -> Optional[KeyShare]:
         """
         Get a specific holder's share.
 
@@ -569,9 +543,7 @@ class EscrowManager:
         return None
 
     def verify_reconstruction_possible(
-        self,
-        context_id: str,
-        available_holders: List[ShareHolder]
+        self, context_id: str, available_holders: List[ShareHolder]
     ) -> bool:
         """
         Check if reconstruction is possible with available holders.
@@ -587,8 +559,7 @@ class EscrowManager:
             return False
 
         available_count = sum(
-            1 for share in self._shares_cache[context_id]
-            if share.holder in available_holders
+            1 for share in self._shares_cache[context_id] if share.holder in available_holders
         )
 
         return available_count >= self.config.threshold

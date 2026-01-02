@@ -20,10 +20,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import (
-    Any, Callable, Dict, Generic, List, Optional,
-    Tuple, TypeVar, Union, Awaitable
-)
+from typing import Any, Callable, Dict, Generic, List, Optional, Tuple, TypeVar, Union, Awaitable
 from functools import wraps
 
 logger = logging.getLogger(__name__)
@@ -33,14 +30,16 @@ T = TypeVar("T")
 
 class CircuitState(Enum):
     """Circuit breaker states."""
-    CLOSED = "closed"      # Normal operation
-    OPEN = "open"          # Failing, reject requests
+
+    CLOSED = "closed"  # Normal operation
+    OPEN = "open"  # Failing, reject requests
     HALF_OPEN = "half_open"  # Testing recovery
 
 
 @dataclass
 class RetryConfig:
     """Configuration for retry behavior."""
+
     max_retries: int = 3
     base_delay: float = 1.0  # seconds
     max_delay: float = 30.0  # seconds
@@ -53,6 +52,7 @@ class RetryConfig:
 @dataclass
 class CircuitBreakerConfig:
     """Configuration for circuit breaker."""
+
     failure_threshold: int = 5  # failures before opening
     success_threshold: int = 2  # successes to close from half-open
     timeout: float = 30.0  # seconds before trying half-open
@@ -62,6 +62,7 @@ class CircuitBreakerConfig:
 @dataclass
 class CircuitBreakerState:
     """Mutable state for circuit breaker."""
+
     state: CircuitState = CircuitState.CLOSED
     failure_count: int = 0
     success_count: int = 0
@@ -156,6 +157,7 @@ class CircuitOpenError(Exception):
 @dataclass
 class QueuedRequest:
     """A request queued for later execution."""
+
     id: str
     method: str
     args: tuple
@@ -216,13 +218,7 @@ class RequestQueue:
         except Exception as e:
             logger.error(f"Failed to save queue: {e}")
 
-    def enqueue(
-        self,
-        request_id: str,
-        method: str,
-        args: tuple,
-        kwargs: dict
-    ) -> bool:
+    def enqueue(self, request_id: str, method: str, args: tuple, kwargs: dict) -> bool:
         """Add a request to the queue."""
         if len(self._queue) >= self.max_size:
             logger.warning("Request queue full, dropping oldest request")
@@ -298,14 +294,11 @@ def calculate_delay(
     """Calculate delay for retry attempt with optional jitter."""
     import random
 
-    delay = min(
-        config.base_delay * (config.exponential_base ** attempt),
-        config.max_delay
-    )
+    delay = min(config.base_delay * (config.exponential_base**attempt), config.max_delay)
 
     if config.jitter:
         # Add random jitter of 0-50%
-        delay *= (1 + random.random() * 0.5)
+        delay *= 1 + random.random() * 0.5
 
     return delay
 
@@ -347,6 +340,7 @@ def retry(config: Optional[RetryConfig] = None):
             raise last_exception
 
         return wrapper
+
     return decorator
 
 
@@ -387,6 +381,7 @@ def async_retry(config: Optional[RetryConfig] = None):
             raise last_exception
 
         return wrapper
+
     return decorator
 
 
@@ -437,11 +432,7 @@ class ResilientClient(Generic[T]):
         return False
 
     def execute(
-        self,
-        method_name: str,
-        *args,
-        queue_on_failure: bool = True,
-        **kwargs
+        self, method_name: str, *args, queue_on_failure: bool = True, **kwargs
     ) -> Tuple[bool, Any]:
         """
         Execute a method with resilience patterns.
@@ -453,13 +444,11 @@ class ResilientClient(Generic[T]):
         if not self.circuit_breaker.allow_request():
             if queue_on_failure and self.queue:
                 import uuid
+
                 request_id = str(uuid.uuid4())
                 self.queue.enqueue(request_id, method_name, args, kwargs)
                 return (False, {"queued": True, "request_id": request_id})
-            raise CircuitOpenError(
-                self.name,
-                self.circuit_breaker.config.timeout
-            )
+            raise CircuitOpenError(self.name, self.circuit_breaker.config.timeout)
 
         last_error = None
 
@@ -487,6 +476,7 @@ class ResilientClient(Generic[T]):
         # All retries failed
         if queue_on_failure and self.queue:
             import uuid
+
             request_id = str(uuid.uuid4())
             self.queue.enqueue(request_id, method_name, args, kwargs)
             return (False, {"queued": True, "request_id": request_id, "error": str(last_error)})
@@ -494,11 +484,7 @@ class ResilientClient(Generic[T]):
         return (False, {"error": str(last_error)})
 
     async def execute_async(
-        self,
-        method_name: str,
-        *args,
-        queue_on_failure: bool = True,
-        **kwargs
+        self, method_name: str, *args, queue_on_failure: bool = True, **kwargs
     ) -> Tuple[bool, Any]:
         """
         Execute an async method with resilience patterns.
@@ -510,13 +496,11 @@ class ResilientClient(Generic[T]):
         if not self.circuit_breaker.allow_request():
             if queue_on_failure and self.queue:
                 import uuid
+
                 request_id = str(uuid.uuid4())
                 self.queue.enqueue(request_id, method_name, args, kwargs)
                 return (False, {"queued": True, "request_id": request_id})
-            raise CircuitOpenError(
-                self.name,
-                self.circuit_breaker.config.timeout
-            )
+            raise CircuitOpenError(self.name, self.circuit_breaker.config.timeout)
 
         last_error = None
 
@@ -544,6 +528,7 @@ class ResilientClient(Generic[T]):
         # All retries failed
         if queue_on_failure and self.queue:
             import uuid
+
             request_id = str(uuid.uuid4())
             self.queue.enqueue(request_id, method_name, args, kwargs)
             return (False, {"queued": True, "request_id": request_id, "error": str(last_error)})

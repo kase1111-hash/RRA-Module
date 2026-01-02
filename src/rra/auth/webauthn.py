@@ -45,6 +45,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class WebAuthnCredential:
     """A registered WebAuthn credential."""
+
     credential_id: bytes
     public_key_x: int
     public_key_y: int
@@ -62,7 +63,9 @@ class WebAuthnCredential:
     @property
     def public_key_bytes(self) -> bytes:
         """Get uncompressed public key bytes."""
-        return b'\x04' + self.public_key_x.to_bytes(32, 'big') + self.public_key_y.to_bytes(32, 'big')
+        return (
+            b"\x04" + self.public_key_x.to_bytes(32, "big") + self.public_key_y.to_bytes(32, "big")
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to dictionary."""
@@ -74,11 +77,11 @@ class WebAuthnCredential:
             "rp_id": self.rp_id,
             "user_id": base64.urlsafe_b64encode(self.user_id).decode(),
             "created_at": self.created_at.isoformat(),
-            "last_used": self.last_used.isoformat() if self.last_used else None
+            "last_used": self.last_used.isoformat() if self.last_used else None,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'WebAuthnCredential':
+    def from_dict(cls, data: Dict[str, Any]) -> "WebAuthnCredential":
         """Deserialize from dictionary."""
         return cls(
             credential_id=base64.urlsafe_b64decode(data["credential_id"]),
@@ -88,13 +91,14 @@ class WebAuthnCredential:
             rp_id=data["rp_id"],
             user_id=base64.urlsafe_b64decode(data["user_id"]),
             created_at=datetime.fromisoformat(data["created_at"]),
-            last_used=datetime.fromisoformat(data["last_used"]) if data.get("last_used") else None
+            last_used=datetime.fromisoformat(data["last_used"]) if data.get("last_used") else None,
         )
 
 
 @dataclass
 class AuthenticatorData:
     """Parsed authenticator data structure."""
+
     rp_id_hash: bytes
     flags: int
     sign_count: int
@@ -119,7 +123,7 @@ class AuthenticatorData:
 
     def to_bytes(self) -> bytes:
         """Serialize to bytes."""
-        data = self.rp_id_hash + bytes([self.flags]) + struct.pack('>I', self.sign_count)
+        data = self.rp_id_hash + bytes([self.flags]) + struct.pack(">I", self.sign_count)
         if self.attested_credential_data:
             data += self.attested_credential_data
         if self.extensions:
@@ -130,6 +134,7 @@ class AuthenticatorData:
 @dataclass
 class AuthenticatorAssertion:
     """An authenticator assertion (authentication response)."""
+
     credential_id: bytes
     authenticator_data: bytes
     client_data_json: bytes
@@ -167,6 +172,7 @@ class AuthenticatorAssertion:
 @dataclass
 class Challenge:
     """A WebAuthn challenge."""
+
     value: bytes
     action_hash: bytes
     created_at: datetime
@@ -191,12 +197,7 @@ class WebAuthnClient:
     Designed for integration with ILRM and RRA agent delegation.
     """
 
-    def __init__(
-        self,
-        rp_id: str,
-        rp_name: str,
-        challenge_timeout: int = 300  # 5 minutes
-    ):
+    def __init__(self, rp_id: str, rp_name: str, challenge_timeout: int = 300):  # 5 minutes
         """
         Initialize WebAuthn client.
 
@@ -218,11 +219,7 @@ class WebAuthnClient:
     # Challenge Management
     # =========================================================================
 
-    def create_challenge(
-        self,
-        action_hash: bytes,
-        user_address: Optional[str] = None
-    ) -> Challenge:
+    def create_challenge(self, action_hash: bytes, user_address: Optional[str] = None) -> Challenge:
         """
         Create a new authentication challenge.
 
@@ -236,7 +233,9 @@ class WebAuthnClient:
         challenge_bytes = os.urandom(32)
 
         # Incorporate action and timestamp for uniqueness
-        combined = challenge_bytes + action_hash + struct.pack('>Q', int(datetime.utcnow().timestamp()))
+        combined = (
+            challenge_bytes + action_hash + struct.pack(">Q", int(datetime.utcnow().timestamp()))
+        )
         challenge_value = hashlib.sha256(combined).digest()
 
         challenge = Challenge(
@@ -244,7 +243,7 @@ class WebAuthnClient:
             action_hash=action_hash,
             created_at=datetime.utcnow(),
             expires_at=datetime.utcnow() + timedelta(seconds=self.challenge_timeout),
-            user_address=user_address
+            user_address=user_address,
         )
 
         self._challenges[challenge_value] = challenge
@@ -284,7 +283,7 @@ class WebAuthnClient:
         credential_id: bytes,
         public_key_cose: bytes,
         user_id: bytes,
-        attestation_object: Optional[bytes] = None
+        attestation_object: Optional[bytes] = None,
     ) -> WebAuthnCredential:
         """
         Register a new WebAuthn credential.
@@ -308,7 +307,7 @@ class WebAuthnClient:
             sign_count=0,
             rp_id=self.rp_id,
             user_id=user_id,
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
         )
 
         self._credentials[credential_id] = credential
@@ -337,9 +336,7 @@ class WebAuthnClient:
     # =========================================================================
 
     def verify_assertion(
-        self,
-        assertion: AuthenticatorAssertion,
-        expected_challenge: Optional[bytes] = None
+        self, assertion: AuthenticatorAssertion, expected_challenge: Optional[bytes] = None
     ) -> Tuple[bool, Optional[str]]:
         """
         Verify an authenticator assertion.
@@ -389,7 +386,7 @@ class WebAuthnClient:
             assertion.signature_r,
             assertion.signature_s,
             credential.public_key_x,
-            credential.public_key_y
+            credential.public_key_y,
         )
 
         if not valid:
@@ -405,10 +402,7 @@ class WebAuthnClient:
     # Contract Integration Helpers
     # =========================================================================
 
-    def prepare_for_contract(
-        self,
-        assertion: AuthenticatorAssertion
-    ) -> Dict[str, Any]:
+    def prepare_for_contract(self, assertion: AuthenticatorAssertion) -> Dict[str, Any]:
         """
         Prepare assertion data for smart contract verification.
 
@@ -417,19 +411,24 @@ class WebAuthnClient:
         credential = self.get_credential(assertion.credential_id)
 
         return {
-            "credentialIdHash": "0x" + assertion.credential_id_hash.hex() if hasattr(assertion, 'credential_id_hash') else "0x" + keccak(assertion.credential_id).hex(),
+            "credentialIdHash": (
+                "0x" + assertion.credential_id_hash.hex()
+                if hasattr(assertion, "credential_id_hash")
+                else "0x" + keccak(assertion.credential_id).hex()
+            ),
             "authenticatorData": "0x" + assertion.authenticator_data.hex(),
             "clientDataJSON": "0x" + assertion.client_data_json.hex(),
             "signatureR": assertion.signature_r,
             "signatureS": assertion.signature_s,
             "publicKeyX": credential.public_key_x if credential else 0,
-            "publicKeyY": credential.public_key_y if credential else 0
+            "publicKeyY": credential.public_key_y if credential else 0,
         }
 
 
 # =========================================================================
 # Helper Functions
 # =========================================================================
+
 
 def parse_authenticator_data(data: bytes) -> AuthenticatorData:
     """Parse authenticator data structure."""
@@ -438,7 +437,7 @@ def parse_authenticator_data(data: bytes) -> AuthenticatorData:
 
     rp_id_hash = data[0:32]
     flags = data[32]
-    sign_count = struct.unpack('>I', data[33:37])[0]
+    sign_count = struct.unpack(">I", data[33:37])[0]
 
     attested_data = None
     extensions = None
@@ -453,7 +452,7 @@ def parse_authenticator_data(data: bytes) -> AuthenticatorData:
         flags=flags,
         sign_count=sign_count,
         attested_credential_data=attested_data,
-        extensions=extensions
+        extensions=extensions,
     )
 
 
@@ -469,17 +468,18 @@ def parse_cose_public_key(cose_key: bytes) -> Tuple[int, int]:
     # Look for x (-2) and y (-3) keys in COSE map
     # For now, assume raw format: 04 || x (32 bytes) || y (32 bytes)
     if len(cose_key) >= 65 and cose_key[0] == 0x04:
-        x = int.from_bytes(cose_key[1:33], 'big')
-        y = int.from_bytes(cose_key[33:65], 'big')
+        x = int.from_bytes(cose_key[1:33], "big")
+        y = int.from_bytes(cose_key[33:65], "big")
         return x, y
 
     # Try to find coordinates in CBOR structure
     # This is a simplified parser
     try:
         import cbor2
+
         decoded = cbor2.loads(cose_key)
-        x = int.from_bytes(decoded[-2], 'big')
-        y = int.from_bytes(decoded[-3], 'big')
+        x = int.from_bytes(decoded[-2], "big")
+        y = int.from_bytes(decoded[-3], "big")
         return x, y
     except ImportError:
         # cbor2 not installed, cannot parse CBOR-encoded key
@@ -509,7 +509,7 @@ def parse_der_signature(der_sig: bytes) -> Tuple[int, int]:
     idx += 1
     r_len = der_sig[idx]
     idx += 1
-    r = int.from_bytes(der_sig[idx:idx + r_len], 'big')
+    r = int.from_bytes(der_sig[idx : idx + r_len], "big")
     idx += r_len
 
     # Parse S
@@ -518,17 +518,13 @@ def parse_der_signature(der_sig: bytes) -> Tuple[int, int]:
     idx += 1
     s_len = der_sig[idx]
     idx += 1
-    s = int.from_bytes(der_sig[idx:idx + s_len], 'big')
+    s = int.from_bytes(der_sig[idx : idx + s_len], "big")
 
     return r, s
 
 
 def verify_p256_signature(
-    message_hash: bytes,
-    r: int,
-    s: int,
-    public_key_x: int,
-    public_key_y: int
+    message_hash: bytes, r: int, s: int, public_key_x: int, public_key_y: int
 ) -> bool:
     """
     Verify a P-256 signature using cryptography library.
@@ -540,9 +536,7 @@ def verify_p256_signature(
 
         # Construct public key
         public_numbers = ec.EllipticCurvePublicNumbers(
-            x=public_key_x,
-            y=public_key_y,
-            curve=ec.SECP256R1()
+            x=public_key_x, y=public_key_y, curve=ec.SECP256R1()
         )
         public_key = public_numbers.public_key(default_backend())
 
@@ -551,11 +545,8 @@ def verify_p256_signature(
 
         # Verify (using prehashed since we have the hash)
         from cryptography.hazmat.primitives.asymmetric.utils import Prehashed
-        public_key.verify(
-            signature,
-            message_hash,
-            ec.ECDSA(Prehashed(hashes.SHA256()))
-        )
+
+        public_key.verify(signature, message_hash, ec.ECDSA(Prehashed(hashes.SHA256())))
 
         return True
     except InvalidSignature:
@@ -575,7 +566,7 @@ def create_challenge(action_hash: bytes, rp_id: str = "rra.local") -> Challenge:
 def verify_assertion(
     assertion: AuthenticatorAssertion,
     credential: WebAuthnCredential,
-    expected_challenge: Optional[bytes] = None
+    expected_challenge: Optional[bytes] = None,
 ) -> Tuple[bool, Optional[str]]:
     """Verify a WebAuthn assertion."""
     client = WebAuthnClient(credential.rp_id, "RRA Module")

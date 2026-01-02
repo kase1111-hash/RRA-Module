@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class CodeCategory(str, Enum):
     """Primary categories for code repositories."""
+
     LIBRARY = "library"  # Reusable code package
     CLI_TOOL = "cli_tool"  # Command-line application
     WEB_APP = "web_app"  # Web application (frontend/backend)
@@ -41,6 +42,7 @@ class CodeCategory(str, Enum):
 
 class SubCategory(str, Enum):
     """Subcategories for more specific classification."""
+
     # Library subcategories
     UTILITY = "utility"
     WRAPPER = "wrapper"
@@ -80,6 +82,7 @@ class SubCategory(str, Enum):
 @dataclass
 class CategoryResult:
     """Result of code categorization."""
+
     primary_category: CodeCategory
     subcategory: Optional[SubCategory] = None
     confidence: float = 0.0  # 0-1 confidence score
@@ -121,9 +124,16 @@ class CodeCategorizer:
         },
         CodeCategory.WEB_APP: {
             "files": [
-                "app.py", "wsgi.py", "asgi.py", "manage.py",
-                "index.html", "app.tsx", "App.vue", "pages/",
-                "src/components/", "public/index.html",
+                "app.py",
+                "wsgi.py",
+                "asgi.py",
+                "manage.py",
+                "index.html",
+                "app.tsx",
+                "App.vue",
+                "pages/",
+                "src/components/",
+                "public/index.html",
             ],
             "patterns": [r"flask", r"django", r"fastapi", r"express", r"next", r"react", r"vue"],
             "package_json": ["react", "vue", "angular", "next", "nuxt", "svelte"],
@@ -139,7 +149,13 @@ class CodeCategorizer:
             "package_json_fields": {"main", "module", "exports"},
         },
         CodeCategory.SMART_CONTRACT: {
-            "files": ["contracts/", "hardhat.config", "truffle-config", "foundry.toml", "Move.toml"],
+            "files": [
+                "contracts/",
+                "hardhat.config",
+                "truffle-config",
+                "foundry.toml",
+                "Move.toml",
+            ],
             "patterns": [r"pragma solidity", r"contract \w+", r"@openzeppelin"],
             "extensions": [".sol", ".move", ".cairo"],
         },
@@ -150,16 +166,26 @@ class CodeCategorizer:
         },
         CodeCategory.DEVOPS: {
             "files": [
-                "Dockerfile", "docker-compose.yml", "kubernetes/", "k8s/",
-                "terraform/", ".github/workflows/", "Jenkinsfile",
-                "ansible/", "helm/",
+                "Dockerfile",
+                "docker-compose.yml",
+                "kubernetes/",
+                "k8s/",
+                "terraform/",
+                ".github/workflows/",
+                "Jenkinsfile",
+                "ansible/",
+                "helm/",
             ],
             "patterns": [r"FROM ", r"apiVersion:", r"provider \"aws\""],
         },
         CodeCategory.MOBILE_APP: {
             "files": [
-                "android/", "ios/", "App.tsx", "app.json",
-                "MainActivity.java", "AppDelegate.swift",
+                "android/",
+                "ios/",
+                "App.tsx",
+                "app.json",
+                "MainActivity.java",
+                "AppDelegate.swift",
             ],
             "patterns": [r"react-native", r"flutter", r"ionic", r"expo"],
             "package_json": ["react-native", "expo", "@ionic/core"],
@@ -322,7 +348,9 @@ class CodeCategorizer:
             total_score = sum(scores.values())
             confidence = min(0.95, scores[primary_category] / total_score if total_score > 0 else 0)
 
-            reasoning_parts.append(f"Detected {primary_category.value} based on file patterns and dependencies")
+            reasoning_parts.append(
+                f"Detected {primary_category.value} based on file patterns and dependencies"
+            )
 
         # Determine subcategory
         subcategory = self._determine_subcategory(
@@ -350,9 +378,10 @@ class CodeCategorizer:
         # Get all files (limit for performance)
         try:
             all_files = []
-            for f in repo_path.rglob('*'):
+            for f in repo_path.rglob("*"):
                 if f.is_file() and not any(
-                    part.startswith('.') or part in {'node_modules', 'venv', '__pycache__', 'target', 'dist'}
+                    part.startswith(".")
+                    or part in {"node_modules", "venv", "__pycache__", "target", "dist"}
                     for part in f.parts
                 ):
                     all_files.append(f)
@@ -369,7 +398,7 @@ class CodeCategorizer:
         # Check for technology indicators
         for tech, indicators in self.TECHNOLOGY_INDICATORS.items():
             for indicator in indicators:
-                if indicator.startswith('.'):
+                if indicator.startswith("."):
                     if indicator in extensions:
                         technologies.add(tech)
                         break
@@ -382,13 +411,14 @@ class CodeCategorizer:
             # Check files
             if "files" in patterns:
                 for pattern in patterns["files"]:
-                    if pattern.endswith('/'):
+                    if pattern.endswith("/"):
                         # Directory pattern
                         if any(pattern[:-1] in p for p in file_paths):
                             scores[category] += 1.0
-                    elif '*' in pattern:
+                    elif "*" in pattern:
                         # Wildcard pattern
                         import fnmatch
+
                         if any(fnmatch.fnmatch(f, pattern) for f in file_names):
                             scores[category] += 0.5
                     else:
@@ -412,7 +442,7 @@ class CodeCategorizer:
 
         all_deps = set()
         for deps in dependencies.values():
-            all_deps.update(dep.lower().split('[')[0].split('>=')[0].split('==')[0] for dep in deps)
+            all_deps.update(dep.lower().split("[")[0].split(">=")[0].split("==")[0] for dep in deps)
 
         # Check framework indicators
         for framework, indicators in self.FRAMEWORK_INDICATORS.items():
@@ -467,12 +497,31 @@ class CodeCategorizer:
 
         # Category keywords
         category_keywords = {
-            CodeCategory.LIBRARY: ["library", "package", "module", "sdk", "pip install", "npm install"],
+            CodeCategory.LIBRARY: [
+                "library",
+                "package",
+                "module",
+                "sdk",
+                "pip install",
+                "npm install",
+            ],
             CodeCategory.CLI_TOOL: ["cli", "command line", "command-line", "terminal", "usage:"],
             CodeCategory.WEB_APP: ["web app", "webapp", "website", "dashboard", "frontend"],
             CodeCategory.API_SERVICE: ["api", "endpoint", "rest", "graphql", "server"],
-            CodeCategory.SMART_CONTRACT: ["smart contract", "solidity", "blockchain", "ethereum", "defi"],
-            CodeCategory.DATA_SCIENCE: ["machine learning", "ml", "data science", "model", "training"],
+            CodeCategory.SMART_CONTRACT: [
+                "smart contract",
+                "solidity",
+                "blockchain",
+                "ethereum",
+                "defi",
+            ],
+            CodeCategory.DATA_SCIENCE: [
+                "machine learning",
+                "ml",
+                "data science",
+                "model",
+                "training",
+            ],
             CodeCategory.DEVOPS: ["docker", "kubernetes", "deployment", "infrastructure", "ci/cd"],
             CodeCategory.MOBILE_APP: ["mobile", "ios", "android", "app store"],
             CodeCategory.DESKTOP_APP: ["desktop", "windows", "macos", "linux app"],
@@ -496,14 +545,18 @@ class CodeCategorizer:
         scores: Dict[CodeCategory, float] = {cat: 0.0 for cat in CodeCategory}
 
         # Sample a few code files
-        code_extensions = {'.py', '.js', '.ts', '.go', '.rs', '.java', '.sol'}
+        code_extensions = {".py", ".js", ".ts", ".go", ".rs", ".java", ".sol"}
         sample_files = []
 
         try:
-            for f in repo_path.rglob('*'):
-                if f.is_file() and f.suffix in code_extensions and not any(
-                    part.startswith('.') or part in {'node_modules', 'venv', '__pycache__'}
-                    for part in f.parts
+            for f in repo_path.rglob("*"):
+                if (
+                    f.is_file()
+                    and f.suffix in code_extensions
+                    and not any(
+                        part.startswith(".") or part in {"node_modules", "venv", "__pycache__"}
+                        for part in f.parts
+                    )
                 ):
                     sample_files.append(f)
                     if len(sample_files) >= 20:
@@ -514,7 +567,7 @@ class CodeCategorizer:
 
         for file_path in sample_files:
             try:
-                content = file_path.read_text(encoding='utf-8', errors='ignore')[:5000]
+                content = file_path.read_text(encoding="utf-8", errors="ignore")[:5000]
 
                 for category, patterns in self.CATEGORY_PATTERNS.items():
                     if "patterns" in patterns:
@@ -536,8 +589,7 @@ class CodeCategorizer:
             try:
                 with open(req_file) as f:
                     deps["python"] = [
-                        line.strip() for line in f
-                        if line.strip() and not line.startswith('#')
+                        line.strip() for line in f if line.strip() and not line.startswith("#")
                     ]
             except (OSError, UnicodeDecodeError) as e:
                 logger.debug(f"Could not read requirements.txt: {e}")
@@ -547,6 +599,7 @@ class CodeCategorizer:
         if pkg_file.exists():
             try:
                 import json
+
                 with open(pkg_file) as f:
                     data = json.load(f)
                     deps["javascript"] = list(data.get("dependencies", {}).keys())
@@ -596,7 +649,7 @@ class CodeCategorizer:
             try:
                 sol_files = list(repo_path.rglob("*.sol"))[:10]
                 for sol_file in sol_files:
-                    content = sol_file.read_text(encoding='utf-8', errors='ignore').lower()
+                    content = sol_file.read_text(encoding="utf-8", errors="ignore").lower()
                     if any(kw in content for kw in ["swap", "liquidity", "lend", "borrow"]):
                         return SubCategory.DEFI
                     if any(kw in content for kw in ["erc721", "erc1155", "nft", "tokenuri"]):
@@ -627,11 +680,11 @@ class CodeCategorizer:
         tags = set()
 
         # Add category as tag
-        tags.add(primary_category.value.replace('_', '-'))
+        tags.add(primary_category.value.replace("_", "-"))
 
         # Add subcategory
         if subcategory:
-            tags.add(subcategory.value.replace('_', '-'))
+            tags.add(subcategory.value.replace("_", "-"))
 
         # Add technologies (lowercase)
         for tech in technologies:
@@ -639,6 +692,6 @@ class CodeCategorizer:
 
         # Add frameworks (lowercase)
         for framework in frameworks:
-            tags.add(framework.lower().replace('.', '').replace(' ', '-'))
+            tags.add(framework.lower().replace(".", "").replace(" ", "-"))
 
         return tags

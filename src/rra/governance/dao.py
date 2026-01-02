@@ -18,6 +18,7 @@ import secrets
 
 class ProposalStatus(Enum):
     """Status of a governance proposal."""
+
     DRAFT = "draft"
     ACTIVE = "active"
     PASSED = "passed"
@@ -29,6 +30,7 @@ class ProposalStatus(Enum):
 
 class ProposalType(Enum):
     """Types of governance proposals."""
+
     ADD_ASSET = "add_asset"
     REMOVE_ASSET = "remove_asset"
     SET_PRICING = "set_pricing"
@@ -41,6 +43,7 @@ class ProposalType(Enum):
 
 class VoteChoice(Enum):
     """Voting options."""
+
     FOR = "for"
     AGAINST = "against"
     ABSTAIN = "abstain"
@@ -49,6 +52,7 @@ class VoteChoice(Enum):
 @dataclass
 class Vote:
     """A vote on a proposal."""
+
     voter_address: str
     voting_power: int
     choice: VoteChoice
@@ -78,6 +82,7 @@ class Vote:
 @dataclass
 class Proposal:
     """A governance proposal."""
+
     proposal_id: str
     dao_id: str
     title: str
@@ -105,10 +110,7 @@ class Proposal:
     @property
     def is_active(self) -> bool:
         now = datetime.now()
-        return (
-            self.status == ProposalStatus.ACTIVE and
-            self.voting_start <= now <= self.voting_end
-        )
+        return self.status == ProposalStatus.ACTIVE and self.voting_start <= now <= self.voting_end
 
     @property
     def votes_for(self) -> int:
@@ -139,7 +141,11 @@ class Proposal:
 
     def get_result(self, total_voting_power: int) -> Dict[str, Any]:
         """Calculate voting result."""
-        quorum_met = (self.total_votes / total_voting_power * 100) >= self.quorum_percentage if total_voting_power > 0 else False
+        quorum_met = (
+            (self.total_votes / total_voting_power * 100) >= self.quorum_percentage
+            if total_voting_power > 0
+            else False
+        )
 
         votes_cast = self.votes_for + self.votes_against
         approval = (self.votes_for / votes_cast * 100) if votes_cast > 0 else 0
@@ -152,7 +158,9 @@ class Proposal:
             "votes_abstain": self.votes_abstain,
             "total_votes": self.total_votes,
             "voter_count": self.voter_count,
-            "quorum_percentage": (self.total_votes / total_voting_power * 100) if total_voting_power > 0 else 0,
+            "quorum_percentage": (
+                (self.total_votes / total_voting_power * 100) if total_voting_power > 0 else 0
+            ),
             "quorum_met": quorum_met,
             "approval_percentage": approval,
             "passed": passed,
@@ -211,6 +219,7 @@ class Proposal:
 @dataclass
 class DAOMember:
     """A DAO member with voting power."""
+
     address: str
     voting_power: int
     joined_at: datetime
@@ -248,6 +257,7 @@ class DAOMember:
 @dataclass
 class IPDAO:
     """An IP Portfolio DAO."""
+
     dao_id: str
     name: str
     description: str
@@ -397,7 +407,7 @@ class DAOGovernanceManager:
         voting_period_days: int = 7,
         proposal_threshold: int = 100,
         quorum_percentage: float = 20.0,
-        approval_percentage: float = 50.0
+        approval_percentage: float = 50.0,
     ) -> IPDAO:
         """Create a new DAO."""
         dao = IPDAO(
@@ -426,12 +436,7 @@ class DAOGovernanceManager:
     def list_daos(self) -> List[IPDAO]:
         return list(self.daos.values())
 
-    def add_dao_member(
-        self,
-        dao_id: str,
-        address: str,
-        voting_power: int
-    ) -> DAOMember:
+    def add_dao_member(self, dao_id: str, address: str, voting_power: int) -> DAOMember:
         """Add a member to a DAO."""
         dao = self.daos.get(dao_id)
         if not dao:
@@ -477,7 +482,7 @@ class DAOGovernanceManager:
         proposal_type: ProposalType,
         proposer: str,
         data: Optional[Dict[str, Any]] = None,
-        voting_delay_hours: int = 24
+        voting_delay_hours: int = 24,
     ) -> Proposal:
         """Create a new governance proposal."""
         dao = self.daos.get(dao_id)
@@ -515,11 +520,7 @@ class DAOGovernanceManager:
         return proposal
 
     def vote(
-        self,
-        proposal_id: str,
-        voter_address: str,
-        choice: VoteChoice,
-        reason: Optional[str] = None
+        self, proposal_id: str, voter_address: str, choice: VoteChoice, reason: Optional[str] = None
     ) -> Vote:
         """Cast a vote on a proposal."""
         proposal = self.proposals.get(proposal_id)
@@ -635,9 +636,7 @@ class DAOGovernanceManager:
         return self.proposals.get(proposal_id)
 
     def list_proposals(
-        self,
-        dao_id: Optional[str] = None,
-        status: Optional[ProposalStatus] = None
+        self, dao_id: Optional[str] = None, status: Optional[ProposalStatus] = None
     ) -> List[Proposal]:
         """List proposals with optional filters."""
         proposals = list(self.proposals.values())
@@ -667,7 +666,9 @@ class DAOGovernanceManager:
             "total_proposals": len(proposals),
             "active_proposals": len([p for p in proposals if p.status == ProposalStatus.ACTIVE]),
             "passed_proposals": len([p for p in proposals if p.status == ProposalStatus.PASSED]),
-            "executed_proposals": len([p for p in proposals if p.status == ProposalStatus.EXECUTED]),
+            "executed_proposals": len(
+                [p for p in proposals if p.status == ProposalStatus.EXECUTED]
+            ),
         }
 
     # =========================================================================
@@ -696,7 +697,9 @@ class DAOGovernanceManager:
                 state = json.load(f)
 
             self.daos = {did: IPDAO.from_dict(d) for did, d in state.get("daos", {}).items()}
-            self.proposals = {pid: Proposal.from_dict(p) for pid, p in state.get("proposals", {}).items()}
+            self.proposals = {
+                pid: Proposal.from_dict(p) for pid, p in state.get("proposals", {}).items()
+            }
         except (json.JSONDecodeError, KeyError):
             pass
 

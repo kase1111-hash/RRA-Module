@@ -83,7 +83,10 @@ def verify_api_key(api_key: str = Security(API_KEY_HEADER)) -> bool:
     valid_keys = get_api_keys()
 
     # Allow bypass in development with specific env var
-    if os.environ.get("RRA_ENV") == "development" and os.environ.get("RRA_DEV_AUTH_BYPASS") == "true":
+    if (
+        os.environ.get("RRA_ENV") == "development"
+        and os.environ.get("RRA_DEV_AUTH_BYPASS") == "true"
+    ):
         logger.debug("API key verification bypassed in development mode")
         return True
 
@@ -144,11 +147,11 @@ def validate_repo_name(repo_name: str) -> bool:
         return False
 
     # Only allow alphanumeric, underscore, hyphen, and dot
-    if not re.match(r'^[\w\-\.]+$', repo_name):
+    if not re.match(r"^[\w\-\.]+$", repo_name):
         return False
 
     # Reject path traversal attempts
-    if '..' in repo_name or repo_name.startswith('.'):
+    if ".." in repo_name or repo_name.startswith("."):
         return False
 
     return True
@@ -174,7 +177,7 @@ def validate_kb_path(kb_path: str, allowed_dir: Path = KB_BASE_DIR) -> bool:
 
         # Check file extension (support both .json and .json.gz)
         path_str = str(resolved)
-        if not (path_str.endswith('_kb.json') or path_str.endswith('_kb.json.gz')):
+        if not (path_str.endswith("_kb.json") or path_str.endswith("_kb.json.gz")):
             return False
 
         return True
@@ -196,20 +199,20 @@ def sanitize_error_message(error: Exception) -> str:
 
     # List of patterns to redact
     sensitive_patterns = [
-        r'/home/[\w/]+',  # File paths
-        r'/usr/[\w/]+',
-        r'postgresql://[^\s]+',  # Database URLs
-        r'mongodb://[^\s]+',
-        r'redis://[^\s]+',
-        r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b',  # IP addresses
+        r"/home/[\w/]+",  # File paths
+        r"/usr/[\w/]+",
+        r"postgresql://[^\s]+",  # Database URLs
+        r"mongodb://[^\s]+",
+        r"redis://[^\s]+",
+        r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b",  # IP addresses
     ]
 
     for pattern in sensitive_patterns:
-        error_str = re.sub(pattern, '[REDACTED]', error_str)
+        error_str = re.sub(pattern, "[REDACTED]", error_str)
 
     # Truncate long messages
     if len(error_str) > 200:
-        error_str = error_str[:200] + '...'
+        error_str = error_str[:200] + "..."
 
     return error_str
 
@@ -310,12 +313,14 @@ def create_app() -> FastAPI:
 
     # In development, also allow localhost
     if os.environ.get("RRA_ENV", "production") == "development":
-        allowed_origins.extend([
-            "http://localhost:3000",
-            "http://localhost:8000",
-            "http://127.0.0.1:3000",
-            "http://127.0.0.1:8000",
-        ])
+        allowed_origins.extend(
+            [
+                "http://localhost:3000",
+                "http://localhost:8000",
+                "http://127.0.0.1:3000",
+                "http://127.0.0.1:8000",
+            ]
+        )
 
     app.add_middleware(
         CORSMiddleware,
@@ -402,6 +407,7 @@ def create_app() -> FastAPI:
     if os.environ.get("RRA_RATE_LIMIT_ENABLED", "true").lower() == "true":
         try:
             from rra.api.rate_limiter import setup_rate_limiting
+
             setup_rate_limiting(app)
             logger.info("Rate limiting enabled")
         except ImportError:
@@ -472,7 +478,7 @@ def create_app() -> FastAPI:
                     "dashboard": "/api/analytics/dashboard",
                     "event": "/api/analytics/event",
                 },
-            }
+            },
         }
 
     @app.post("/api/ingest", response_model=IngestResponse)
@@ -502,10 +508,7 @@ def create_app() -> FastAPI:
 
             logger.info(f"Repository ingested successfully: {request.repo_url} -> {kb_path}")
             return IngestResponse(
-                status="success",
-                repo_url=request.repo_url,
-                kb_path=str(kb_path),
-                summary=context
+                status="success", repo_url=request.repo_url, kb_path=str(kb_path), summary=context
             )
 
         except Exception as e:
@@ -532,10 +535,7 @@ def create_app() -> FastAPI:
             # Security: Validate kb_path to prevent path traversal
             if not validate_kb_path(request.kb_path):
                 logger.warning(f"Invalid knowledge base path rejected: {request.kb_path}")
-                raise HTTPException(
-                    status_code=400,
-                    detail="Invalid knowledge base path"
-                )
+                raise HTTPException(status_code=400, detail="Invalid knowledge base path")
 
             # Load knowledge base
             kb = KnowledgeBase.load(Path(request.kb_path))
@@ -554,9 +554,7 @@ def create_app() -> FastAPI:
 
             logger.info(f"Negotiation session started: {session_id} for {kb.repo_url}")
             return NegotiationResponse(
-                message=intro,
-                phase=negotiator.current_phase.value,
-                session_id=session_id
+                message=intro, phase=negotiator.current_phase.value, session_id=session_id
             )
 
         except HTTPException:
@@ -602,11 +600,11 @@ def create_app() -> FastAPI:
             negotiator = session.agent
             response = negotiator.respond(message)
 
-            logger.debug(f"Message processed for session {session_id[:8]}..., phase: {negotiator.current_phase.value}")
+            logger.debug(
+                f"Message processed for session {session_id[:8]}..., phase: {negotiator.current_phase.value}"
+            )
             return NegotiationResponse(
-                message=response,
-                phase=negotiator.current_phase.value,
-                session_id=session_id
+                message=response, phase=negotiator.current_phase.value, session_id=session_id
             )
 
         except HTTPException:
@@ -673,14 +671,16 @@ def create_app() -> FastAPI:
                         continue
                     seen_repos.add(kb.repo_url)
 
-                    repositories.append({
-                        "url": kb.repo_url,
-                        "kb_path": str(kb_file),
-                        "updated_at": kb.updated_at.isoformat(),
-                        "languages": kb.statistics.get("languages", []),
-                        "files": kb.statistics.get("code_files", 0),
-                        "compressed": str(kb_file).endswith('.gz'),
-                    })
+                    repositories.append(
+                        {
+                            "url": kb.repo_url,
+                            "kb_path": str(kb_file),
+                            "updated_at": kb.updated_at.isoformat(),
+                            "languages": kb.statistics.get("languages", []),
+                            "files": kb.statistics.get("code_files", 0),
+                            "compressed": str(kb_file).endswith(".gz"),
+                        }
+                    )
                 except Exception as e:
                     # Skip corrupted knowledge bases but log the issue
                     logger.warning(f"Skipping corrupted knowledge base {kb_file}: {e}")
@@ -761,7 +761,7 @@ def create_app() -> FastAPI:
         return {
             "token_id": request.token_id,
             "valid": True,
-            "message": "License verification requires blockchain connection"
+            "message": "License verification requires blockchain connection",
         }
 
     @app.get("/health")
@@ -783,6 +783,7 @@ def create_app() -> FastAPI:
         from rra.api.warnings import router as warnings_router
         from rra.api.treasury import router as treasury_router
         from rra.api.verification_api import router as verification_router
+
         app.include_router(marketplace_router)
         app.include_router(websocket_router)
         app.include_router(deep_links_router)
@@ -810,6 +811,7 @@ app = create_app()
 if __name__ == "__main__":
     import os
     import uvicorn
+
     # Use environment variable for host binding; 127.0.0.1 for local dev, 0.0.0.0 for production behind reverse proxy
     host = os.environ.get("RRA_HOST", "127.0.0.1")  # nosec B104
     port = int(os.environ.get("RRA_PORT", "8000"))

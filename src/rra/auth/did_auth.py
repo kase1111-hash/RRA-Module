@@ -38,26 +38,31 @@ class AuthStatus(Enum):
 
 class AuthError(Exception):
     """Base exception for authentication errors."""
+
     pass
 
 
 class ChallengeExpiredError(AuthError):
     """Challenge has expired."""
+
     pass
 
 
 class InvalidSignatureError(AuthError):
     """Signature verification failed."""
+
     pass
 
 
 class DIDResolutionError(AuthError):
     """Failed to resolve DID document."""
+
     pass
 
 
 class InsufficientScoreError(AuthError):
     """Identity score below required threshold."""
+
     pass
 
 
@@ -81,7 +86,9 @@ class AuthChallenge:
     def to_sign_bytes(self) -> bytes:
         """Get bytes to be signed by the DID controller."""
         # Include challenge ID, nonce, and timestamp for replay protection
-        sign_data = f"{self.id}:{self.nonce.hex()}:{self.message}:{int(self.created_at.timestamp())}"
+        sign_data = (
+            f"{self.id}:{self.nonce.hex()}:{self.message}:{int(self.created_at.timestamp())}"
+        )
         return sign_data.encode("utf-8")
 
 
@@ -102,10 +109,7 @@ class AuthSession:
     @property
     def is_valid(self) -> bool:
         """Check if session is valid."""
-        return (
-            self.status == AuthStatus.VERIFIED
-            and datetime.now(timezone.utc) <= self.expires_at
-        )
+        return self.status == AuthStatus.VERIFIED and datetime.now(timezone.utc) <= self.expires_at
 
     def has_scope(self, scope: str) -> bool:
         """Check if session has a specific scope."""
@@ -403,8 +407,7 @@ class DIDAuthenticator:
         # Remove from DID tracking
         if session.did in self._did_sessions:
             self._did_sessions[session.did] = [
-                sid for sid in self._did_sessions[session.did]
-                if sid != session_id
+                sid for sid in self._did_sessions[session.did] if sid != session_id
             ]
 
         return True
@@ -506,7 +509,11 @@ class DIDAuthenticator:
                 payload_parts = payload.split("|")
                 if len(payload_parts) != 3:
                     raise ValueError("Invalid payload structure")
-                session_id, did, expires_ts = payload_parts[0], payload_parts[1], int(payload_parts[2])
+                session_id, did, expires_ts = (
+                    payload_parts[0],
+                    payload_parts[1],
+                    int(payload_parts[2]),
+                )
             except (ValueError, UnicodeDecodeError) as e:
                 return AuthResult(
                     success=False,
@@ -556,24 +563,17 @@ class DIDAuthenticator:
         now = datetime.now(timezone.utc)
 
         # Clean challenges
-        expired_challenges = [
-            cid for cid, c in self._challenges.items()
-            if c.is_expired
-        ]
+        expired_challenges = [cid for cid, c in self._challenges.items() if c.is_expired]
         for cid in expired_challenges:
             del self._challenges[cid]
 
         # Clean sessions
-        expired_sessions = [
-            sid for sid, s in self._sessions.items()
-            if now > s.expires_at
-        ]
+        expired_sessions = [sid for sid, s in self._sessions.items() if now > s.expires_at]
         for sid in expired_sessions:
             session = self._sessions[sid]
             if session.did in self._did_sessions:
                 self._did_sessions[session.did] = [
-                    s for s in self._did_sessions[session.did]
-                    if s != sid
+                    s for s in self._did_sessions[session.did] if s != sid
                 ]
             del self._sessions[sid]
 

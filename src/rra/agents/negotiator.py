@@ -22,6 +22,7 @@ from rra.exceptions import ConfigurationError
 
 class NegotiationPhase(str, Enum):
     """Phases of a negotiation."""
+
     INTRODUCTION = "introduction"
     DISCOVERY = "discovery"
     PROPOSAL = "proposal"
@@ -48,7 +49,7 @@ class NegotiatorAgent(BaseAgent):
         self,
         knowledge_base: KnowledgeBase,
         integrated: bool = False,
-        agent_id: Optional[str] = None
+        agent_id: Optional[str] = None,
     ):
         """
         Initialize the NegotiatorAgent.
@@ -70,7 +71,7 @@ class NegotiatorAgent(BaseAgent):
                 message="Knowledge base must have market_config to negotiate",
                 config_key="market_config",
                 expected="MarketConfig instance",
-                actual="None"
+                actual="None",
             )
 
         self.negotiation_history: List[Dict[str, Any]] = []
@@ -82,11 +83,14 @@ class NegotiatorAgent(BaseAgent):
             self.load_state()
 
         # Log agent creation intent if in integrated mode
-        self.log_intent("agent_created", {
-            "repo": self.kb.repo_url,
-            "license_model": self.config.license_model.value,
-            "target_price": self.config.target_price
-        })
+        self.log_intent(
+            "agent_created",
+            {
+                "repo": self.kb.repo_url,
+                "license_model": self.config.license_model.value,
+                "target_price": self.config.target_price,
+            },
+        )
 
     def start_negotiation(self) -> str:
         """
@@ -157,7 +161,9 @@ What are your licensing needs?"""
         if context.get("strengths"):
             strengths.extend(context["strengths"][:2])
 
-        strengths_str = "\n".join(f"  - {s}" for s in strengths) if strengths else "  - Production-ready code"
+        strengths_str = (
+            "\n".join(f"  - {s}" for s in strengths) if strengths else "  - Production-ready code"
+        )
 
         return f"""Welcome! I'm excited to discuss licensing for {self.kb.repo_url}.
 
@@ -211,14 +217,17 @@ What's your intended use case?"""
         }
 
         # Price-related
-        if any(word in message_lower for word in ["price", "cost", "how much", "expensive", "cheap"]):
+        if any(
+            word in message_lower for word in ["price", "cost", "how much", "expensive", "cheap"]
+        ):
             intent["asks_about_price"] = True
 
         if any(word in message_lower for word in ["offer", "would pay", "can do", "counter"]):
             intent["proposes_price"] = True
             # Try to extract amount (simplified)
             import re
-            price_match = re.search(r'(\d+\.?\d*)\s*(eth|usdc|usd|\$)', message_lower)
+
+            price_match = re.search(r"(\d+\.?\d*)\s*(eth|usdc|usd|\$)", message_lower)
             if price_match:
                 intent["proposed_amount"] = f"{price_match.group(1)} {price_match.group(2).upper()}"
 
@@ -304,12 +313,13 @@ I'm open to discussing terms that work for both of us. What's your budget?"""
         # Extract numeric value (simplified)
         try:
             import re
-            match = re.search(r'(\d+\.?\d*)', proposed_amount)
+
+            match = re.search(r"(\d+\.?\d*)", proposed_amount)
             if match:
                 proposed_value = float(match.group(1))
 
                 # Compare with floor price (simplified - assumes ETH)
-                floor_match = re.search(r'(\d+\.?\d*)', context['pricing']['floor_price'])
+                floor_match = re.search(r"(\d+\.?\d*)", context["pricing"]["floor_price"])
                 floor_value = float(floor_match.group(1)) if floor_match else 0
 
                 if proposed_value >= floor_value:
@@ -352,7 +362,7 @@ Can you provide a specific offer within this range?"""
                 "Full source code access",
                 "Regular updates",
                 "Documentation",
-                "Basic support"
+                "Basic support",
             ]
 
         features_str = "\n".join(f"  - {f}" for f in features)
@@ -401,7 +411,11 @@ Any questions about specific terms?"""
 
     def _generate_agreement_response(self, context: Dict[str, Any]) -> str:
         """Generate response when buyer agrees to purchase."""
-        price = self.current_offer["price"] if self.current_offer else context['pricing']['target_price']
+        price = (
+            self.current_offer["price"]
+            if self.current_offer
+            else context["pricing"]["target_price"]
+        )
 
         return f"""Excellent! I'm pleased we've reached an agreement.
 
@@ -434,12 +448,14 @@ Or we can proceed directly if you're ready. What would you like to know?"""
 
     def _log_message(self, sender: str, content: str) -> None:
         """Log a message in the negotiation history."""
-        self.negotiation_history.append({
-            "timestamp": datetime.now().isoformat(),
-            "sender": sender,
-            "content": content,
-            "phase": self.current_phase.value,
-        })
+        self.negotiation_history.append(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "sender": sender,
+                "content": content,
+                "phase": self.current_phase.value,
+            }
+        )
 
     def get_negotiation_summary(self) -> Dict[str, Any]:
         """
@@ -492,7 +508,7 @@ Or we can proceed directly if you're ready. What would you like to know?"""
             "kb_metadata": {
                 "repo_url": self.kb.repo_url,
                 "repo_path": str(self.kb.repo_path) if self.kb.repo_path else None,
-            }
+            },
         }
 
     def restore_state(self, state: Dict[str, Any]) -> None:

@@ -20,6 +20,7 @@ from abc import ABC, abstractmethod
 
 class AgentStatus(Enum):
     """Status of an agent instance."""
+
     PENDING = "pending"
     STARTING = "starting"
     RUNNING = "running"
@@ -32,6 +33,7 @@ class AgentStatus(Enum):
 
 class AgentType(Enum):
     """Types of RRA agents."""
+
     NEGOTIATOR = "negotiator"
     BUYER = "buyer"
     ANALYZER = "analyzer"
@@ -41,15 +43,17 @@ class AgentType(Enum):
 
 class ResourceTier(Enum):
     """Resource allocation tiers."""
-    MINIMAL = "minimal"    # 128MB RAM, 0.1 CPU
+
+    MINIMAL = "minimal"  # 128MB RAM, 0.1 CPU
     STANDARD = "standard"  # 512MB RAM, 0.5 CPU
     ENHANCED = "enhanced"  # 1GB RAM, 1 CPU
-    PREMIUM = "premium"    # 2GB RAM, 2 CPU
+    PREMIUM = "premium"  # 2GB RAM, 2 CPU
 
 
 @dataclass
 class ResourceAllocation:
     """Resource allocation for an agent."""
+
     memory_mb: int = 512
     cpu_cores: float = 0.5
     storage_mb: int = 100
@@ -87,6 +91,7 @@ class ResourceAllocation:
 @dataclass
 class AgentConfig:
     """Configuration for deploying an agent."""
+
     agent_type: AgentType
     name: str
     description: str
@@ -134,6 +139,7 @@ class AgentConfig:
 @dataclass
 class AgentInstance:
     """A running agent instance."""
+
     instance_id: str
     config: AgentConfig
     status: AgentStatus
@@ -175,7 +181,9 @@ class AgentInstance:
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "stopped_at": self.stopped_at.isoformat() if self.stopped_at else None,
             "restart_count": self.restart_count,
-            "last_health_check": self.last_health_check.isoformat() if self.last_health_check else None,
+            "last_health_check": (
+                self.last_health_check.isoformat() if self.last_health_check else None
+            ),
             "health_status": self.health_status,
             "error_message": self.error_message,
             "metrics": self.metrics,
@@ -208,12 +216,15 @@ class AgentInstance:
 @dataclass
 class RuntimeNode:
     """A node in the Agent-OS cluster."""
+
     node_id: str
     name: str
     host: str
     port: int
     status: str = "active"
-    capacity: ResourceAllocation = field(default_factory=lambda: ResourceAllocation(8192, 8.0, 100000, 1000))
+    capacity: ResourceAllocation = field(
+        default_factory=lambda: ResourceAllocation(8192, 8.0, 100000, 1000)
+    )
     allocated: ResourceAllocation = field(default_factory=ResourceAllocation)
     agent_count: int = 0
     region: str = "default"
@@ -230,14 +241,18 @@ class RuntimeNode:
 
     @property
     def utilization(self) -> float:
-        mem_util = self.allocated.memory_mb / self.capacity.memory_mb if self.capacity.memory_mb > 0 else 0
-        cpu_util = self.allocated.cpu_cores / self.capacity.cpu_cores if self.capacity.cpu_cores > 0 else 0
+        mem_util = (
+            self.allocated.memory_mb / self.capacity.memory_mb if self.capacity.memory_mb > 0 else 0
+        )
+        cpu_util = (
+            self.allocated.cpu_cores / self.capacity.cpu_cores if self.capacity.cpu_cores > 0 else 0
+        )
         return (mem_util + cpu_util) / 2
 
     def can_allocate(self, resources: ResourceAllocation) -> bool:
         return (
-            self.available_memory >= resources.memory_mb and
-            self.available_cpu >= resources.cpu_cores
+            self.available_memory >= resources.memory_mb
+            and self.available_cpu >= resources.cpu_cores
         )
 
     def allocate(self, resources: ResourceAllocation) -> bool:
@@ -333,7 +348,7 @@ class AgentOSRuntime:
         port: int,
         capacity: Optional[ResourceAllocation] = None,
         region: str = "default",
-        tags: Optional[List[str]] = None
+        tags: Optional[List[str]] = None,
     ) -> RuntimeNode:
         """Register a new runtime node."""
         node = RuntimeNode(
@@ -377,7 +392,7 @@ class AgentOSRuntime:
         self,
         resources: ResourceAllocation,
         preferred_region: Optional[str] = None,
-        required_tags: Optional[List[str]] = None
+        required_tags: Optional[List[str]] = None,
     ) -> Optional[RuntimeNode]:
         """Select best node for deployment."""
         candidates = []
@@ -408,11 +423,7 @@ class AgentOSRuntime:
     # Agent Deployment
     # =========================================================================
 
-    def deploy_agent(
-        self,
-        config: AgentConfig,
-        node_id: Optional[str] = None
-    ) -> AgentInstance:
+    def deploy_agent(self, config: AgentConfig, node_id: Optional[str] = None) -> AgentInstance:
         """Deploy a new agent instance."""
         # Select node if not specified
         if node_id:
@@ -554,7 +565,7 @@ class AgentOSRuntime:
         self,
         status: Optional[AgentStatus] = None,
         agent_type: Optional[AgentType] = None,
-        node_id: Optional[str] = None
+        node_id: Optional[str] = None,
     ) -> List[AgentInstance]:
         """List agent instances with filters."""
         instances = list(self.instances.values())
@@ -575,10 +586,7 @@ class AgentOSRuntime:
     # =========================================================================
 
     def update_health(
-        self,
-        instance_id: str,
-        health_status: str,
-        metrics: Optional[Dict[str, Any]] = None
+        self, instance_id: str, health_status: str, metrics: Optional[Dict[str, Any]] = None
     ) -> AgentInstance:
         """Update agent health status."""
         instance = self.instances.get(instance_id)
@@ -616,17 +624,14 @@ class AgentOSRuntime:
     # Scaling
     # =========================================================================
 
-    def scale_agent(
-        self,
-        config: AgentConfig,
-        replicas: int
-    ) -> List[AgentInstance]:
+    def scale_agent(self, config: AgentConfig, replicas: int) -> List[AgentInstance]:
         """Scale an agent to specified number of replicas."""
         # Find existing instances for this config
         existing = [
-            i for i in self.instances.values()
-            if i.config.name == config.name and
-            i.status in (AgentStatus.RUNNING, AgentStatus.PENDING, AgentStatus.STARTING)
+            i
+            for i in self.instances.values()
+            if i.config.name == config.name
+            and i.status in (AgentStatus.RUNNING, AgentStatus.PENDING, AgentStatus.STARTING)
         ]
 
         current_count = len(existing)
@@ -669,8 +674,12 @@ class AgentOSRuntime:
             "total_instances": len(self.instances),
             "running_instances": len(running_instances),
             "healthy_instances": len(healthy_instances),
-            "pending_instances": len([i for i in self.instances.values() if i.status == AgentStatus.PENDING]),
-            "failed_instances": len([i for i in self.instances.values() if i.status == AgentStatus.FAILED]),
+            "pending_instances": len(
+                [i for i in self.instances.values() if i.status == AgentStatus.PENDING]
+            ),
+            "failed_instances": len(
+                [i for i in self.instances.values() if i.status == AgentStatus.FAILED]
+            ),
             "total_memory_mb": total_memory,
             "used_memory_mb": used_memory,
             "memory_utilization": (used_memory / total_memory * 100) if total_memory > 0 else 0,
@@ -707,8 +716,12 @@ class AgentOSRuntime:
             with open(state_file) as f:
                 state = json.load(f)
 
-            self.nodes = {nid: RuntimeNode.from_dict(n) for nid, n in state.get("nodes", {}).items()}
-            self.instances = {iid: AgentInstance.from_dict(i) for iid, i in state.get("instances", {}).items()}
+            self.nodes = {
+                nid: RuntimeNode.from_dict(n) for nid, n in state.get("nodes", {}).items()
+            }
+            self.instances = {
+                iid: AgentInstance.from_dict(i) for iid, i in state.get("instances", {}).items()
+            }
             self.deployments = state.get("deployments", {})
 
             if not self.nodes:

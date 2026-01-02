@@ -55,10 +55,11 @@ from decimal import Decimal
 
 class NegotiationStatus(Enum):
     """Status of a negotiation."""
-    PENDING = "pending"      # Waiting for responder
-    ACTIVE = "active"        # Both parties engaged
-    AGREED = "agreed"        # Agreement reached
-    EXPIRED = "expired"      # Deadline passed
+
+    PENDING = "pending"  # Waiting for responder
+    ACTIVE = "active"  # Both parties engaged
+    AGREED = "agreed"  # Agreement reached
+    EXPIRED = "expired"  # Deadline passed
     CANCELLED = "cancelled"  # Voluntarily cancelled
 
 
@@ -71,11 +72,11 @@ class PressureConfig:
 
     # Delay cost parameters (in basis points, 100 = 1%)
     base_delay_rate_bps: int = 10  # 0.1% per day base
-    half_life_days: int = 7        # Cost doubles every 7 days
+    half_life_days: int = 7  # Cost doubles every 7 days
 
     # Penalty rates (in basis points)
-    counter_proposal_penalty_bps: int = 500   # 5% for exceeding cap
-    expiration_penalty_bps: int = 2000        # 20% for expiration
+    counter_proposal_penalty_bps: int = 500  # 5% for exceeding cap
+    expiration_penalty_bps: int = 2000  # 20% for expiration
 
     # Stake requirements
     min_stake_eth: float = 0.01
@@ -102,6 +103,7 @@ class PressureConfig:
 @dataclass
 class CounterProposal:
     """Record of a counter-proposal."""
+
     proposal_hash: str
     party: str  # "initiator" or "responder"
     timestamp: datetime
@@ -124,6 +126,7 @@ class CounterProposal:
 @dataclass
 class NegotiationState:
     """State of a tracked negotiation."""
+
     negotiation_id: str
     initiator_hash: str
     responder_hash: str
@@ -173,6 +176,7 @@ class NegotiationState:
 @dataclass
 class PressureStatus:
     """Current pressure status for a negotiation."""
+
     negotiation_id: str
     status: NegotiationStatus
     current_delay_cost: float
@@ -202,10 +206,7 @@ class PressureStatus:
 
 
 def calculate_delay_cost(
-    total_stake: float,
-    elapsed_days: float,
-    base_rate_bps: int = 10,
-    half_life_days: int = 7
+    total_stake: float, elapsed_days: float, base_rate_bps: int = 10, half_life_days: int = 7
 ) -> float:
     """
     Calculate exponential delay cost.
@@ -237,7 +238,7 @@ def calculate_delay_cost(
     else:
         # Exponential growth after first period (doubles each half_life)
         periods = (elapsed_days / half_life_days) - 1
-        multiplier = 2 ** periods
+        multiplier = 2**periods
 
     cost = total_stake * base_rate * multiplier
 
@@ -271,7 +272,7 @@ class NegotiationPressure:
         responder_id: str,
         initiator_stake: float,
         duration_days: int,
-        config: Optional[PressureConfig] = None
+        config: Optional[PressureConfig] = None,
     ) -> NegotiationState:
         """
         Start tracking a new negotiation.
@@ -317,11 +318,7 @@ class NegotiationPressure:
         self._negotiations[negotiation_id] = state
         return state
 
-    def join_negotiation(
-        self,
-        negotiation_id: str,
-        responder_stake: float
-    ) -> NegotiationState:
+    def join_negotiation(self, negotiation_id: str, responder_stake: float) -> NegotiationState:
         """
         Responder joins the negotiation.
 
@@ -350,10 +347,7 @@ class NegotiationPressure:
         return state
 
     def submit_counter_proposal(
-        self,
-        negotiation_id: str,
-        party: str,
-        proposal_hash: str
+        self, negotiation_id: str, party: str, proposal_hash: str
     ) -> Tuple[CounterProposal, Optional[float]]:
         """
         Submit a counter-proposal.
@@ -428,9 +422,7 @@ class NegotiationPressure:
         return cp, penalty
 
     def record_agreement(
-        self,
-        negotiation_id: str,
-        agreement_hash: str
+        self, negotiation_id: str, agreement_hash: str
     ) -> Tuple[float, float, float]:
         """
         Record agreement and calculate final costs.
@@ -474,10 +466,7 @@ class NegotiationPressure:
 
         return initiator_refund, responder_refund, delay_cost
 
-    def process_expiration(
-        self,
-        negotiation_id: str
-    ) -> Tuple[float, float]:
+    def process_expiration(self, negotiation_id: str) -> Tuple[float, float]:
         """
         Process an expired negotiation.
 
@@ -530,18 +519,12 @@ class NegotiationPressure:
         elapsed = (now - state.start_time).total_seconds() / 86400  # days
         total_stake = state.initiator_stake + state.responder_stake
         current_cost = calculate_delay_cost(
-            total_stake,
-            elapsed,
-            state.config.base_delay_rate_bps,
-            state.config.half_life_days
+            total_stake, elapsed, state.config.base_delay_rate_bps, state.config.half_life_days
         )
 
         # Project cost 24h ahead
         projected_cost = calculate_delay_cost(
-            total_stake,
-            elapsed + 1,
-            state.config.base_delay_rate_bps,
-            state.config.half_life_days
+            total_stake, elapsed + 1, state.config.base_delay_rate_bps, state.config.half_life_days
         )
 
         # Remaining proposals
@@ -552,8 +535,12 @@ class NegotiationPressure:
         time_remaining = max(timedelta(0), state.deadline - now)
 
         # Stake at risk (delay cost share + potential penalties)
-        stake_risk_init = (current_cost * state.initiator_stake / total_stake) if total_stake > 0 else 0
-        stake_risk_resp = (current_cost * state.responder_stake / total_stake) if total_stake > 0 else 0
+        stake_risk_init = (
+            (current_cost * state.initiator_stake / total_stake) if total_stake > 0 else 0
+        )
+        stake_risk_resp = (
+            (current_cost * state.responder_stake / total_stake) if total_stake > 0 else 0
+        )
 
         # Urgency level
         days_remaining = time_remaining.total_seconds() / 86400
@@ -588,18 +575,22 @@ class NegotiationPressure:
     def get_all_active(self) -> List[NegotiationState]:
         """Get all active negotiations."""
         return [
-            n for n in self._negotiations.values()
+            n
+            for n in self._negotiations.values()
             if n.status in (NegotiationStatus.PENDING, NegotiationStatus.ACTIVE)
         ]
 
     def get_statistics(self) -> Dict[str, Any]:
         """Get aggregate statistics."""
-        active = len([n for n in self._negotiations.values()
-                     if n.status == NegotiationStatus.ACTIVE])
-        agreed = len([n for n in self._negotiations.values()
-                     if n.status == NegotiationStatus.AGREED])
-        expired = len([n for n in self._negotiations.values()
-                      if n.status == NegotiationStatus.EXPIRED])
+        active = len(
+            [n for n in self._negotiations.values() if n.status == NegotiationStatus.ACTIVE]
+        )
+        agreed = len(
+            [n for n in self._negotiations.values() if n.status == NegotiationStatus.AGREED]
+        )
+        expired = len(
+            [n for n in self._negotiations.values() if n.status == NegotiationStatus.EXPIRED]
+        )
 
         return {
             "total_negotiations": len(self._negotiations),
@@ -637,10 +628,7 @@ class NegotiationPressure:
 
         total_stake = state.initiator_stake + state.responder_stake
         new_cost = calculate_delay_cost(
-            total_stake,
-            elapsed,
-            state.config.base_delay_rate_bps,
-            state.config.half_life_days
+            total_stake, elapsed, state.config.base_delay_rate_bps, state.config.half_life_days
         )
 
         accrued = new_cost - state.accrued_delay_cost

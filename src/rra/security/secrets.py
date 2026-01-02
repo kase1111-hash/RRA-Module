@@ -93,7 +93,7 @@ class EnvironmentSecretsBackend(SecretsBackend):
         """Get all environment variables with prefix."""
         full_prefix = f"{self.prefix}{prefix}"
         return {
-            k[len(self.prefix):] if self.prefix else k: v
+            k[len(self.prefix) :] if self.prefix else k: v
             for k, v in os.environ.items()
             if k.startswith(full_prefix)
         }
@@ -179,7 +179,7 @@ class VaultSecretsBackend(SecretsBackend):
         self,
         vault_addr: Optional[str] = None,
         vault_token: Optional[str] = None,
-        secrets_path: str = "secret/data/rra"
+        secrets_path: str = "secret/data/rra",
     ):
         """
         Initialize the Vault backend.
@@ -203,20 +203,15 @@ class VaultSecretsBackend(SecretsBackend):
         if self._client is None:
             try:
                 import hvac
-                self._client = hvac.Client(
-                    url=self.vault_addr,
-                    token=self.vault_token
-                )
+
+                self._client = hvac.Client(url=self.vault_addr, token=self.vault_token)
 
                 # Try AppRole auth if token not provided
                 if not self.vault_token:
                     role_id = os.environ.get("VAULT_ROLE_ID")
                     secret_id = os.environ.get("VAULT_SECRET_ID")
                     if role_id and secret_id:
-                        self._client.auth.approle.login(
-                            role_id=role_id,
-                            secret_id=secret_id
-                        )
+                        self._client.auth.approle.login(role_id=role_id, secret_id=secret_id)
 
                 if not self._client.is_authenticated():
                     logger.error("Vault authentication failed")
@@ -244,8 +239,7 @@ class VaultSecretsBackend(SecretsBackend):
         try:
             # Read from KV v2 secrets engine
             response = client.secrets.kv.v2.read_secret_version(
-                path=self.secrets_path.replace("secret/data/", ""),
-                mount_point="secret"
+                path=self.secrets_path.replace("secret/data/", ""), mount_point="secret"
             )
 
             if response and response.get("data", {}).get("data"):
@@ -292,11 +286,7 @@ class AWSSecretsBackend(SecretsBackend):
     Stores all secrets as a single JSON document in AWS Secrets Manager.
     """
 
-    def __init__(
-        self,
-        secret_name: Optional[str] = None,
-        region_name: Optional[str] = None
-    ):
+    def __init__(self, secret_name: Optional[str] = None, region_name: Optional[str] = None):
         """
         Initialize the AWS Secrets Manager backend.
 
@@ -321,10 +311,8 @@ class AWSSecretsBackend(SecretsBackend):
         if self._client is None:
             try:
                 import boto3
-                self._client = boto3.client(
-                    "secretsmanager",
-                    region_name=self.region_name
-                )
+
+                self._client = boto3.client("secretsmanager", region_name=self.region_name)
             except ImportError:
                 logger.error("boto3 package not installed. Install with: pip install boto3")
                 return None
@@ -412,6 +400,7 @@ class MultiBackendSecrets(SecretsBackend):
 @dataclass
 class SecretValue:
     """Wrapper for secret values with metadata."""
+
     value: str
     source: str  # Which backend provided this secret
     cached_at: datetime
@@ -441,7 +430,6 @@ class SecretsManager:
         "WORLDCOIN_APP_ID": "Worldcoin World ID application ID",
         "GITHUB_WEBHOOK_SECRET": "GitHub webhook signing secret",
         "GITHUB_API_TOKEN": "GitHub API token for repository access",
-
         # RPC URLs
         "ETH_RPC_URL": "Ethereum mainnet RPC endpoint",
         "SEPOLIA_RPC_URL": "Sepolia testnet RPC endpoint",
@@ -449,19 +437,15 @@ class SecretsManager:
         "OPTIMISM_RPC_URL": "Optimism mainnet RPC endpoint",
         "BASE_RPC_URL": "Base mainnet RPC endpoint",
         "POLYGON_RPC_URL": "Polygon mainnet RPC endpoint",
-
         # Story Protocol
         "STORY_PRIVATE_KEY": "Private key for Story Protocol transactions",
         "STORY_RPC_URL": "Story Protocol RPC endpoint",
-
         # DID Registry
         "NLC_DID_REGISTRY_ADDRESS": "NatLangChain DID Registry contract address",
-
         # Security
         "RRA_ENCRYPTION_KEY": "Encryption key for webhook secrets",
         "RRA_ADMIN_API_KEY": "Admin API key for management endpoints",
         "RRA_API_KEYS": "Comma-separated list of valid API keys",
-
         # Vault (when using Vault backend)
         "VAULT_ADDR": "HashiCorp Vault server address",
         "VAULT_TOKEN": "Vault authentication token",
@@ -517,11 +501,13 @@ class SecretsManager:
         if not self._audit_enabled:
             return
 
-        self._access_log.append({
-            "key": key,
-            "found": found,
-            "timestamp": datetime.utcnow().isoformat(),
-        })
+        self._access_log.append(
+            {
+                "key": key,
+                "found": found,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+        )
 
         # Keep only last 1000 entries
         if len(self._access_log) > 1000:
@@ -561,10 +547,7 @@ class SecretsManager:
         value = self.get(key)
         if value is None:
             description = self.KNOWN_SECRETS.get(key, "Unknown secret")
-            raise ValueError(
-                f"Required secret '{key}' not found. "
-                f"Description: {description}"
-            )
+            raise ValueError(f"Required secret '{key}' not found. " f"Description: {description}")
         return value
 
     def has(self, key: str) -> bool:

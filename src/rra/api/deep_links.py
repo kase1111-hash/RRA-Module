@@ -116,11 +116,12 @@ async def resolve_repo_id(
         raise HTTPException(status_code=404, detail="Repository ID not found")
 
     return ResolveResponse(
-        repo_url=mapping['repo_url'],
-        created_at=mapping['created_at'],
-        agent_active=mapping.get('agent_active', True),
-        metadata={k: v for k, v in mapping.items()
-                  if k not in ('repo_url', 'created_at', 'agent_active')}
+        repo_url=mapping["repo_url"],
+        created_at=mapping["created_at"],
+        agent_active=mapping.get("agent_active", True),
+        metadata={
+            k: v for k, v in mapping.items() if k not in ("repo_url", "created_at", "agent_active")
+        },
     )
 
 
@@ -142,19 +143,16 @@ async def register_repo(
     """
     metadata = {}
     if request.owner:
-        metadata['owner'] = request.owner
+        metadata["owner"] = request.owner
     if request.name:
-        metadata['name'] = request.name
+        metadata["name"] = request.name
     if request.description:
-        metadata['description'] = request.description
+        metadata["description"] = request.description
 
     repo_id = link_service.register_repo(request.repo_url, metadata)
     links = link_service.get_all_links(request.repo_url)
 
-    return RegisterRepoResponse(
-        repo_id=repo_id,
-        links=LinksResponse(**links)
-    )
+    return RegisterRepoResponse(repo_id=repo_id, links=LinksResponse(**links))
 
 
 @router.get("/id/{repo_url:path}")
@@ -171,10 +169,7 @@ async def get_repo_id(
     Returns:
         Repository ID
     """
-    return {
-        "repo_id": link_service.generate_repo_id(repo_url),
-        "repo_url": repo_url
-    }
+    return {"repo_id": link_service.generate_repo_id(repo_url), "repo_url": repo_url}
 
 
 @router.post("/badge", response_model=BadgeResponse)
@@ -194,16 +189,16 @@ async def generate_badge(
     from urllib.parse import quote
 
     agent_url = link_service.get_agent_url(request.repo_url)
-    badge_url = f"https://img.shields.io/badge/{quote(request.label)}-RRA-blue?style={request.style}"
+    badge_url = (
+        f"https://img.shields.io/badge/{quote(request.label)}-RRA-blue?style={request.style}"
+    )
 
     return BadgeResponse(
         markdown=link_service.generate_badge_markdown(
             request.repo_url, request.style, request.label
         ),
-        html=link_service.generate_badge_html(
-            request.repo_url, request.style, request.label
-        ),
-        url=badge_url
+        html=link_service.generate_badge_html(request.repo_url, request.style, request.label),
+        url=badge_url,
     )
 
 
@@ -226,20 +221,25 @@ async def get_qr_code(
     # Resolve repo_id to URL first
     mapping = link_service.resolve_repo_id(repo_id)
     if mapping:
-        repo_url = mapping['repo_url']
+        repo_url = mapping["repo_url"]
     else:
         # If not registered, construct URL from ID
         # This allows QR codes for any repo_id
         repo_url = repo_id
 
     from urllib.parse import quote
-    agent_url = link_service.get_agent_url(repo_url) if mapping else f"{link_service.base_url}/agent/{repo_id}"
+
+    agent_url = (
+        link_service.get_agent_url(repo_url)
+        if mapping
+        else f"{link_service.base_url}/agent/{repo_id}"
+    )
     encoded_url = quote(agent_url)
 
     return QRCodeResponse(
         png_url=f"https://api.qrserver.com/v1/create-qr-code/?size={size}x{size}&data={encoded_url}",
         svg_url=f"https://api.qrserver.com/v1/create-qr-code/?size={size}x{size}&format=svg&data={encoded_url}",
-        size=size
+        size=size,
     )
 
 
@@ -260,31 +260,31 @@ async def get_embed_code(
     mapping = link_service.resolve_repo_id(repo_id)
     base_url = link_service.base_url
 
-    js_embed = f'''<!-- RRA Negotiation Widget -->
+    js_embed = f"""<!-- RRA Negotiation Widget -->
 <div id="rra-widget-{repo_id}"></div>
-<script src="{base_url}/embed.js" data-repo-id="{repo_id}"></script>'''
+<script src="{base_url}/embed.js" data-repo-id="{repo_id}"></script>"""
 
-    iframe_embed = f'''<!-- RRA Negotiation iFrame -->
+    iframe_embed = f"""<!-- RRA Negotiation iFrame -->
 <iframe
   src="{base_url}/agent/{repo_id}/embed"
   width="400"
   height="600"
   frameborder="0"
   style="border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);"
-></iframe>'''
+></iframe>"""
 
-    button_html = f'''<!-- RRA License Button -->
+    button_html = f"""<!-- RRA License Button -->
 <a href="{base_url}/agent/{repo_id}"
    style="display: inline-block; padding: 12px 24px; background: #3b82f6; color: white; text-decoration: none; border-radius: 6px; font-weight: 500;">
   License This Repository
-</a>'''
+</a>"""
 
     return {
         "repo_id": repo_id,
         "js_embed": js_embed,
         "iframe_embed": iframe_embed,
         "button_html": button_html,
-        "repo_url": mapping['repo_url'] if mapping else None
+        "repo_url": mapping["repo_url"] if mapping else None,
     }
 
 

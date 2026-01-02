@@ -33,17 +33,17 @@ class ProposalStatus(Enum):
     """Status of a proposal."""
 
     ACTIVE = "active"
-    ENDORSED = "endorsed"      # Reached quorum
+    ENDORSED = "endorsed"  # Reached quorum
     REJECTED = "rejected"
     SUPERSEDED = "superseded"  # Replaced by another proposal
-    EXECUTED = "executed"      # Settlement executed
+    EXECUTED = "executed"  # Settlement executed
 
 
 class VotingStrategy(Enum):
     """Voting weight strategies."""
 
-    LINEAR = "linear"          # 1 stake = 1 vote
-    QUADRATIC = "quadratic"    # sqrt(stake) = vote power
+    LINEAR = "linear"  # 1 stake = 1 vote
+    QUADRATIC = "quadratic"  # sqrt(stake) = vote power
     CONVICTION = "conviction"  # Weight increases with lock time
 
 
@@ -52,8 +52,8 @@ class QuorumConfig:
     """Configuration for quorum requirements."""
 
     threshold_percentage: float = 60.0  # Percentage of weight needed
-    require_majority: bool = True       # Must have more endorse than reject
-    minimum_voters: int = 2             # Minimum number of voters
+    require_majority: bool = True  # Must have more endorse than reject
+    minimum_voters: int = 2  # Minimum number of voters
     minimum_weight: Optional[Decimal] = None  # Minimum total weight to vote
 
     def is_quorum_reached(
@@ -70,11 +70,7 @@ class QuorumConfig:
         if self.minimum_weight and (endorse_weight + reject_weight) < self.minimum_weight:
             return False
 
-        endorse_percentage = (
-            (endorse_weight / total_weight) * 100
-            if total_weight > 0
-            else 0
-        )
+        endorse_percentage = (endorse_weight / total_weight) * 100 if total_weight > 0 else 0
 
         if endorse_percentage < self.threshold_percentage:
             return False

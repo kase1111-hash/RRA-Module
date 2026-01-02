@@ -34,6 +34,7 @@ class HardwareIdentity:
     - credential_hash: Hash binding to specific hardware credential
     - identity_commitment: Public commitment for group registration
     """
+
     identity_secret: int
     credential_hash: bytes
     identity_commitment: bytes
@@ -41,10 +42,8 @@ class HardwareIdentity:
 
     @classmethod
     def generate(
-        cls,
-        credential_public_key: bytes,
-        user_entropy: Optional[bytes] = None
-    ) -> 'HardwareIdentity':
+        cls, credential_public_key: bytes, user_entropy: Optional[bytes] = None
+    ) -> "HardwareIdentity":
         """
         Generate a new hardware-backed identity.
 
@@ -60,7 +59,7 @@ class HardwareIdentity:
         if user_entropy:
             secret_entropy = hashlib.sha256(secret_entropy + user_entropy).digest()
 
-        identity_secret = int.from_bytes(secret_entropy, 'big')
+        identity_secret = int.from_bytes(secret_entropy, "big")
 
         # Compute credential hash
         credential_hash = keccak(credential_public_key)
@@ -68,8 +67,8 @@ class HardwareIdentity:
         # Compute identity commitment
         # commitment = Poseidon(identity_secret, credential_hash)
         # Using keccak as Poseidon mock for compatibility
-        commitment = poseidon_mock([identity_secret, int.from_bytes(credential_hash, 'big')])
-        identity_commitment = commitment.to_bytes(32, 'big')
+        commitment = poseidon_mock([identity_secret, int.from_bytes(credential_hash, "big")])
+        identity_commitment = commitment.to_bytes(32, "big")
 
         # Nullifier seed for deriving action-specific nullifiers
         nullifier_seed = keccak(secret_entropy + credential_hash)
@@ -78,7 +77,7 @@ class HardwareIdentity:
             identity_secret=identity_secret,
             credential_hash=credential_hash,
             identity_commitment=identity_commitment,
-            nullifier_seed=nullifier_seed
+            nullifier_seed=nullifier_seed,
         )
 
     def derive_nullifier(self, external_nullifier: int) -> bytes:
@@ -93,13 +92,10 @@ class HardwareIdentity:
         """
         # nullifier = Poseidon(identity_secret, external_nullifier)
         nullifier_int = poseidon_mock([self.identity_secret, external_nullifier])
-        return nullifier_int.to_bytes(32, 'big')
+        return nullifier_int.to_bytes(32, "big")
 
     def prepare_zk_inputs(
-        self,
-        action_hash: bytes,
-        external_nullifier: int,
-        action_nonce: Optional[bytes] = None
+        self, action_hash: bytes, external_nullifier: int, action_nonce: Optional[bytes] = None
     ) -> Dict[str, str]:
         """
         Prepare inputs for hardware_identity.circom circuit.
@@ -113,17 +109,17 @@ class HardwareIdentity:
             Dictionary of inputs for ZK proof generation
         """
         nonce = action_nonce or os.urandom(16)
-        nonce_int = int.from_bytes(nonce[:16].ljust(16, b'\x00'), 'big')
+        nonce_int = int.from_bytes(nonce[:16].ljust(16, b"\x00"), "big")
 
         nullifier = self.derive_nullifier(external_nullifier)
 
         return {
             "identitySecret": str(self.identity_secret),
-            "credentialHash": str(int.from_bytes(self.credential_hash, 'big')),
+            "credentialHash": str(int.from_bytes(self.credential_hash, "big")),
             "actionNonce": str(nonce_int),
-            "identityCommitment": str(int.from_bytes(self.identity_commitment, 'big')),
-            "actionHash": str(int.from_bytes(action_hash[:32].ljust(32, b'\x00'), 'big')),
-            "nullifierHash": str(int.from_bytes(nullifier, 'big'))
+            "identityCommitment": str(int.from_bytes(self.identity_commitment, "big")),
+            "actionHash": str(int.from_bytes(action_hash[:32].ljust(32, b"\x00"), "big")),
+            "nullifierHash": str(int.from_bytes(nullifier, "big")),
         }
 
     def prepare_membership_proof_inputs(
@@ -131,7 +127,7 @@ class HardwareIdentity:
         merkle_siblings: List[bytes],
         merkle_path_indices: List[int],
         signal_hash: bytes,
-        external_nullifier: int
+        external_nullifier: int,
     ) -> Dict[str, Any]:
         """
         Prepare inputs for semaphore_membership.circom circuit.
@@ -149,13 +145,13 @@ class HardwareIdentity:
 
         return {
             "identitySecret": str(self.identity_secret),
-            "credentialCommitment": str(int.from_bytes(self.credential_hash, 'big')),
-            "merkleProofSiblings": [str(int.from_bytes(s, 'big')) for s in merkle_siblings],
+            "credentialCommitment": str(int.from_bytes(self.credential_hash, "big")),
+            "merkleProofSiblings": [str(int.from_bytes(s, "big")) for s in merkle_siblings],
             "merkleProofPathIndices": [str(i) for i in merkle_path_indices],
             "merkleRoot": "",  # To be filled from contract
-            "nullifierHash": str(int.from_bytes(nullifier, 'big')),
-            "signalHash": str(int.from_bytes(signal_hash[:32].ljust(32, b'\x00'), 'big')),
-            "externalNullifier": str(external_nullifier)
+            "nullifierHash": str(int.from_bytes(nullifier, "big")),
+            "signalHash": str(int.from_bytes(signal_hash[:32].ljust(32, b"\x00"), "big")),
+            "externalNullifier": str(external_nullifier),
         }
 
     def to_dict(self) -> Dict[str, str]:
@@ -164,17 +160,17 @@ class HardwareIdentity:
             "identity_secret": hex(self.identity_secret),
             "credential_hash": self.credential_hash.hex(),
             "identity_commitment": self.identity_commitment.hex(),
-            "nullifier_seed": self.nullifier_seed.hex()
+            "nullifier_seed": self.nullifier_seed.hex(),
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, str]) -> 'HardwareIdentity':
+    def from_dict(cls, data: Dict[str, str]) -> "HardwareIdentity":
         """Deserialize identity."""
         return cls(
             identity_secret=int(data["identity_secret"], 16),
             credential_hash=bytes.fromhex(data["credential_hash"]),
             identity_commitment=bytes.fromhex(data["identity_commitment"]),
-            nullifier_seed=bytes.fromhex(data["nullifier_seed"])
+            nullifier_seed=bytes.fromhex(data["nullifier_seed"]),
         )
 
 
@@ -200,10 +196,7 @@ class IdentityGroupManager:
         self.group_count = 0
 
         # Zero value for empty leaves (same as Semaphore)
-        self.zero_value = int.from_bytes(
-            keccak(b"Semaphore"),
-            'big'
-        ) % (2**256 - 1)
+        self.zero_value = int.from_bytes(keccak(b"Semaphore"), "big") % (2**256 - 1)
 
     def create_group(self, name: str) -> int:
         """Create a new identity group."""
@@ -214,16 +207,12 @@ class IdentityGroupManager:
             "name": name,
             "members": [],  # List of identity commitments
             "merkle_root": self._compute_zero_root(),
-            "nullifiers": set()
+            "nullifiers": set(),
         }
 
         return group_id
 
-    def add_member(
-        self,
-        group_id: int,
-        identity: HardwareIdentity
-    ) -> Tuple[int, bytes]:
+    def add_member(self, group_id: int, identity: HardwareIdentity) -> Tuple[int, bytes]:
         """
         Add a member to a group.
 
@@ -252,9 +241,7 @@ class IdentityGroupManager:
         return index, group["merkle_root"]
 
     def get_merkle_proof(
-        self,
-        group_id: int,
-        identity: HardwareIdentity
+        self, group_id: int, identity: HardwareIdentity
     ) -> Tuple[List[bytes], List[int]]:
         """
         Get Merkle proof for a member.
@@ -281,7 +268,7 @@ class IdentityGroupManager:
         path_indices = []
 
         current_index = index
-        leaves = [int.from_bytes(m, 'big') for m in group["members"]]
+        leaves = [int.from_bytes(m, "big") for m in group["members"]]
 
         # Pad to power of 2
         tree_size = 1 << self.depth
@@ -292,9 +279,9 @@ class IdentityGroupManager:
         for level in range(self.depth):
             sibling_index = current_index ^ 1  # XOR to get sibling
             if sibling_index < len(current_level):
-                siblings.append(current_level[sibling_index].to_bytes(32, 'big'))
+                siblings.append(current_level[sibling_index].to_bytes(32, "big"))
             else:
-                siblings.append(self._get_zero_hash(level).to_bytes(32, 'big'))
+                siblings.append(self._get_zero_hash(level).to_bytes(32, "big"))
 
             path_indices.append(current_index & 1)  # 0 = left, 1 = right
 
@@ -302,7 +289,11 @@ class IdentityGroupManager:
             next_level = []
             for i in range(0, len(current_level), 2):
                 left = current_level[i]
-                right = current_level[i + 1] if i + 1 < len(current_level) else self._get_zero_hash(level)
+                right = (
+                    current_level[i + 1]
+                    if i + 1 < len(current_level)
+                    else self._get_zero_hash(level)
+                )
                 parent = poseidon_mock([left, right])
                 next_level.append(parent)
 
@@ -311,22 +302,14 @@ class IdentityGroupManager:
 
         return siblings, path_indices
 
-    def verify_nullifier(
-        self,
-        group_id: int,
-        nullifier_hash: bytes
-    ) -> bool:
+    def verify_nullifier(self, group_id: int, nullifier_hash: bytes) -> bool:
         """Check if nullifier has been used."""
         group = self.groups.get(group_id)
         if not group:
             return False
         return nullifier_hash in group["nullifiers"]
 
-    def use_nullifier(
-        self,
-        group_id: int,
-        nullifier_hash: bytes
-    ) -> bool:
+    def use_nullifier(self, group_id: int, nullifier_hash: bytes) -> bool:
         """Mark nullifier as used. Returns False if already used."""
         group = self.groups.get(group_id)
         if not group:
@@ -343,7 +326,7 @@ class IdentityGroupManager:
         if not members:
             return self._compute_zero_root()
 
-        leaves = [int.from_bytes(m, 'big') for m in members]
+        leaves = [int.from_bytes(m, "big") for m in members]
 
         # Pad to power of 2
         tree_size = 1 << self.depth
@@ -360,14 +343,14 @@ class IdentityGroupManager:
                 next_level.append(parent)
             current_level = next_level
 
-        return current_level[0].to_bytes(32, 'big')
+        return current_level[0].to_bytes(32, "big")
 
     def _compute_zero_root(self) -> bytes:
         """Compute root of empty tree."""
         current = self.zero_value
         for _ in range(self.depth):
             current = poseidon_mock([current, current])
-        return current.to_bytes(32, 'big')
+        return current.to_bytes(32, "big")
 
     def _get_zero_hash(self, level: int) -> int:
         """Get zero hash for a given level."""
@@ -381,31 +364,29 @@ class IdentityGroupManager:
 # Helper Functions
 # =========================================================================
 
+
 def poseidon_mock(inputs: List[int]) -> int:
     """
     Mock Poseidon hash using keccak256.
 
     In production, use actual Poseidon implementation for ZK compatibility.
     """
-    data = b''
+    data = b""
     for inp in inputs:
-        data += inp.to_bytes(32, 'big')
+        data += inp.to_bytes(32, "big")
 
-    return int.from_bytes(keccak(data), 'big')
+    return int.from_bytes(keccak(data), "big")
 
 
-def generate_identity_commitment(
-    identity_secret: int,
-    credential_hash: bytes
-) -> bytes:
+def generate_identity_commitment(identity_secret: int, credential_hash: bytes) -> bytes:
     """
     Generate identity commitment from secret and credential.
 
     commitment = Poseidon(identity_secret, credential_hash)
     """
-    credential_int = int.from_bytes(credential_hash, 'big')
+    credential_int = int.from_bytes(credential_hash, "big")
     commitment_int = poseidon_mock([identity_secret, credential_int])
-    return commitment_int.to_bytes(32, 'big')
+    return commitment_int.to_bytes(32, "big")
 
 
 def compute_credential_hash(public_key: bytes) -> bytes:
