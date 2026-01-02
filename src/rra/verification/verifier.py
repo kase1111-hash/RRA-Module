@@ -18,6 +18,8 @@ from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, field
 from enum import Enum
 
+from rra.verification.dependency_installer import DependencyInstaller, IsolatedEnvironment
+
 
 class VerificationStatus(str, Enum):
     """Verification status levels."""
@@ -136,6 +138,7 @@ class CodeVerifier:
         timeout: int = 300,
         skip_tests: bool = False,
         skip_security: bool = False,
+        auto_install_deps: bool = False,
     ):
         """
         Initialize the code verifier.
@@ -144,10 +147,14 @@ class CodeVerifier:
             timeout: Maximum time (seconds) for test/lint commands
             skip_tests: Skip running actual tests (just check existence)
             skip_security: Skip security pattern scanning
+            auto_install_deps: Automatically install dependencies in temp environment
         """
         self.timeout = timeout
         self.skip_tests = skip_tests
         self.skip_security = skip_security
+        self.auto_install_deps = auto_install_deps
+        self._dep_installer: Optional[DependencyInstaller] = None
+        self._isolated_env: Optional[IsolatedEnvironment] = None
 
     def verify(
         self,
@@ -170,47 +177,72 @@ class CodeVerifier:
 
         checks: List[CheckResult] = []
 
-        # 1. Check for test files
-        test_check = self._check_tests(repo_path)
-        checks.append(test_check)
+        # Set up isolated environment if auto_install_deps is enabled
+        if self.auto_install_deps and not self.skip_tests:
+            self._setup_isolated_env(repo_path)
 
-        # 2. Check code quality (linting)
-        lint_check = self._check_linting(repo_path)
-        checks.append(lint_check)
+        try:
+            # 1. Check for test files
+            test_check = self._check_tests(repo_path)
+            checks.append(test_check)
 
-        # 3. Security scan
-        if not self.skip_security:
-            security_check = self._check_security(repo_path)
-            checks.append(security_check)
+            # 2. Check code quality (linting)
+            lint_check = self._check_linting(repo_path)
+            checks.append(lint_check)
 
-        # 4. Check build/installation
-        build_check = self._check_build(repo_path)
-        checks.append(build_check)
+            # 3. Security scan
+            if not self.skip_security:
+                security_check = self._check_security(repo_path)
+                checks.append(security_check)
 
-        # 5. README alignment check
-        if readme_content:
-            alignment_check = self._check_readme_alignment(repo_path, readme_content)
-            checks.append(alignment_check)
+            # 4. Check build/installation
+            build_check = self._check_build(repo_path)
+            checks.append(build_check)
 
-        # 6. Check for documentation
-        docs_check = self._check_documentation(repo_path)
-        checks.append(docs_check)
+            # 5. README alignment check
+            if readme_content:
+                alignment_check = self._check_readme_alignment(repo_path, readme_content)
+                checks.append(alignment_check)
 
-        # 7. Check for license
-        license_check = self._check_license(repo_path)
-        checks.append(license_check)
+            # 6. Check for documentation
+            docs_check = self._check_documentation(repo_path)
+            checks.append(docs_check)
 
-        # Calculate overall status and score
-        overall_status, score = self._calculate_overall(checks)
+            # 7. Check for license
+            license_check = self._check_license(repo_path)
+            checks.append(license_check)
 
-        return VerificationResult(
-            repo_path=str(repo_path),
-            repo_url=repo_url,
-            overall_status=overall_status,
-            checks=checks,
-            score=score,
-            verified_at=datetime.now().isoformat(),
+            # Calculate overall status and score
+            overall_status, score = self._calculate_overall(checks)
+
+            return VerificationResult(
+                repo_path=str(repo_path),
+                repo_url=repo_url,
+                overall_status=overall_status,
+                checks=checks,
+                score=score,
+                verified_at=datetime.now().isoformat(),
+            )
+        finally:
+            # Clean up isolated environment
+            self._cleanup_isolated_env()
+
+    def _setup_isolated_env(self, repo_path: Path) -> None:
+        """Set up an isolated environment for dependency installation."""
+        languages = self._detect_languages(repo_path)
+        primary_lang = languages[0] if languages else "python"
+
+        self._dep_installer = DependencyInstaller(timeout=self.timeout)
+        self._isolated_env = self._dep_installer.create_isolated_env(
+            repo_path, language=primary_lang
         )
+
+    def _cleanup_isolated_env(self) -> None:
+        """Clean up the isolated environment."""
+        if self._dep_installer:
+            self._dep_installer.cleanup_all()
+            self._dep_installer = None
+            self._isolated_env = None
 
     def _check_tests(self, repo_path: Path) -> CheckResult:
         """Check for test files and optionally run them."""
@@ -669,6 +701,10 @@ class CodeVerifier:
 
     def _run_tests(self, repo_path: Path, languages: List[str]) -> Dict[str, Any]:
         """Try to run tests for detected languages."""
+        # Use isolated environment if available
+        if self._isolated_env and self._isolated_env.language == "python":
+            return self._run_tests_in_isolated_env(repo_path)
+
         for lang in languages:
             if lang not in self.TEST_COMMANDS:
                 continue
@@ -714,8 +750,55 @@ class CodeVerifier:
 
         return {"success": True, "skipped": True}  # No test runner found
 
+    def _run_tests_in_isolated_env(self, repo_path: Path) -> Dict[str, Any]:
+        """Run tests using the isolated virtual environment."""
+        if not self._isolated_env:
+            return {"success": False, "error": "No isolated environment available"}
+
+        try:
+            # Run pytest using the isolated environment's Python
+            cmd = [str(self._isolated_env.python_path), "-m", "pytest", "-v", "--tb=short"]
+            result = subprocess.run(
+                cmd,
+                cwd=repo_path,
+                capture_output=True,
+                text=True,
+                timeout=self.timeout,
+                env={**self._isolated_env.activate_env, "CI": "true"},
+            )
+
+            if result.returncode == 0:
+                return {"success": True, "output": result.stdout}
+            else:
+                error_output = result.stderr or result.stdout
+                # Check if failure is due to missing dependencies
+                dependency_errors = [
+                    "ModuleNotFoundError",
+                    "ImportError",
+                    "No module named",
+                    "cannot import name",
+                ]
+                if any(err in error_output for err in dependency_errors):
+                    return {
+                        "success": False,
+                        "dependency_error": True,
+                        "error": error_output,
+                    }
+                return {
+                    "success": False,
+                    "error": error_output,
+                }
+        except subprocess.TimeoutExpired:
+            return {"success": False, "timeout": True, "error": "Test execution timed out"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
     def _run_linting(self, repo_path: Path, languages: List[str]) -> Dict[str, Any]:
         """Try to run linting for detected languages."""
+        # Use isolated environment if available
+        if self._isolated_env and self._isolated_env.language == "python":
+            return self._run_linting_in_isolated_env(repo_path)
+
         for lang in languages:
             if lang not in self.LINT_COMMANDS:
                 continue
@@ -759,6 +842,44 @@ class CodeVerifier:
                     continue
 
         return {"success": True, "skipped": True}
+
+    def _run_linting_in_isolated_env(self, repo_path: Path) -> Dict[str, Any]:
+        """Run linting using the isolated virtual environment."""
+        if not self._isolated_env:
+            return {"success": False, "skipped": True}
+
+        try:
+            # Run ruff using the isolated environment's Python
+            cmd = [str(self._isolated_env.python_path), "-m", "ruff", "check", "."]
+            result = subprocess.run(
+                cmd,
+                cwd=repo_path,
+                capture_output=True,
+                text=True,
+                timeout=120,
+                env=self._isolated_env.activate_env,
+            )
+
+            if result.returncode == 0:
+                return {"success": True, "output": result.stdout}
+            else:
+                output = result.stdout + result.stderr
+                # Count lines that look like linting errors (path:line:col: code)
+                issue_lines = [
+                    line for line in output.split("\n")
+                    if line.strip() and ":" in line and not line.startswith(" ")
+                ]
+                issue_count = len(issue_lines)
+
+                return {
+                    "success": False,
+                    "issues": issue_count,
+                    "output": output,
+                }
+        except subprocess.TimeoutExpired:
+            return {"success": False, "error": "Linting timed out"}
+        except Exception:
+            return {"success": True, "skipped": True}
 
     def _try_build(self, repo_path: Path, build_systems: List[Dict]) -> Dict[str, Any]:
         """Try to verify build configuration."""

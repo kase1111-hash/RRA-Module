@@ -56,6 +56,7 @@ class RepoIngester:
         owner_address: Optional[str] = None,
         network: str = "testnet",
         test_timeout: int = 300,
+        auto_install_deps: bool = False,
     ):
         """
         Initialize the RepoIngester.
@@ -68,6 +69,7 @@ class RepoIngester:
             owner_address: Ethereum address for blockchain registration
             network: Blockchain network ("mainnet", "testnet", "localhost")
             test_timeout: Timeout in seconds for test execution
+            auto_install_deps: Automatically install dependencies in temp environment
         """
         self.workspace_dir = workspace_dir
         self.workspace_dir.mkdir(parents=True, exist_ok=True)
@@ -77,6 +79,7 @@ class RepoIngester:
         self.owner_address = owner_address
         self.network = network
         self.test_timeout = test_timeout
+        self.auto_install_deps = auto_install_deps
 
         # Initialize verification and categorization modules
         self._verifier = None
@@ -90,7 +93,10 @@ class RepoIngester:
         if self._verifier is None:
             from rra.verification.verifier import CodeVerifier
 
-            self._verifier = CodeVerifier(timeout=self.test_timeout)
+            self._verifier = CodeVerifier(
+                timeout=self.test_timeout,
+                auto_install_deps=self.auto_install_deps,
+            )
         return self._verifier
 
     @property
