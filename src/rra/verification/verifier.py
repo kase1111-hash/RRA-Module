@@ -105,7 +105,8 @@ class CodeVerifier:
             r"eval\s*\(\s*(?:input|request)",
         ],
         "path_traversal": [
-            r"open\s*\(\s*(?:request|input|user)",
+            # Match open() with user input, but exclude urlopen() which is for HTTP
+            r"(?<!url)open\s*\(\s*(?:request|input|user)",
             r"\.\./",
         ],
     }
@@ -370,11 +371,11 @@ class CodeVerifier:
                 continue
             if any(
                 part.startswith(".")
-                or part in {"node_modules", "venv", "__pycache__", "tests", "test", "docs"}
+                or part in {"node_modules", "venv", "__pycache__", "tests", "test", "docs", "examples"}
                 for part in file_path.parts
             ):
                 continue
-            # Skip test files (they often have mock credentials)
+            # Skip test files and examples (they often have mock/placeholder credentials)
             if file_path.name.startswith("test_") or file_path.name.endswith("_test.py"):
                 continue
 

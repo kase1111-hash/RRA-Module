@@ -508,7 +508,7 @@ class DIDAuthenticator:
                 payload_parts = payload.split("|")
                 if len(payload_parts) != 3:
                     raise ValueError("Invalid payload structure")
-                session_id, _did, expires_ts = (
+                session_id, _, expires_ts = (
                     payload_parts[0],
                     payload_parts[1],
                     int(payload_parts[2]),
