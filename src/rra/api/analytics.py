@@ -20,7 +20,7 @@ from pathlib import Path
 from collections import defaultdict
 from enum import Enum
 
-from fastapi import APIRouter, Query, HTTPException, Depends
+from fastapi import APIRouter, Query, Depends
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 

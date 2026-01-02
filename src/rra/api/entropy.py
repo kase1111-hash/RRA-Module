@@ -23,7 +23,6 @@ from pydantic import BaseModel, Field
 
 from rra.analytics.entropy_scorer import (
     EntropyScorer,
-    ClauseEntropy,
     EntropyLevel,
     DisputeRecord,
 )
@@ -33,7 +32,6 @@ from rra.analytics.clause_patterns import (
 )
 from rra.predictions.dispute_model import (
     DisputePredictor,
-    DisputePrediction,
     DisputeType,
 )
 

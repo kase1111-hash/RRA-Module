@@ -14,14 +14,12 @@ Tests verification methods for:
 import pytest
 from unittest.mock import Mock, patch, AsyncMock, MagicMock
 from datetime import datetime, timedelta
-import httpx
 
 from rra.identity.sybil_resistance import (
     SybilResistance,
     ProofType,
     ProofOfHumanity,
     IdentityScore,
-    SybilCheck,
     RiskLevel,
     TrustLevel,
 )

@@ -15,15 +15,12 @@ Tests cover:
 """
 
 import pytest
-from datetime import datetime, timezone
 
 from src.rra.predictions.dispute_warning import (
     DisputeWarningGenerator,
-    DisputeWarning,
     WarningReport,
     WarningSeverity,
     WarningCategory,
-    Mitigation,
     generate_dispute_warnings,
 )
 from src.rra.analytics.term_analysis import (
@@ -34,7 +31,6 @@ from src.rra.analytics.term_analysis import (
     TermCategory,
     find_high_entropy_terms,
 )
-from src.rra.predictions.dispute_model import DisputePredictor, DisputeType
 
 
 # =============================================================================
@@ -257,7 +253,7 @@ class TestDisputeWarningGenerator:
         # Different license types should have different requirements
         commercial_missing = sum(1 for w in commercial_report.warnings if w.category == WarningCategory.MISSING_CLAUSE)
         saas_missing = sum(1 for w in saas_report.warnings if w.category == WarningCategory.MISSING_CLAUSE)
-        oss_missing = sum(1 for w in oss_report.warnings if w.category == WarningCategory.MISSING_CLAUSE)
+        sum(1 for w in oss_report.warnings if w.category == WarningCategory.MISSING_CLAUSE)
 
         # All should have some missing clauses, but counts may differ
         assert commercial_missing > 0

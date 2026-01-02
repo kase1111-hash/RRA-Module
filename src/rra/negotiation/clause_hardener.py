@@ -16,16 +16,14 @@ optional LLM enhancement for complex clauses.
 """
 
 import re
-import hashlib
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, Callable
+from typing import Any, Dict, List, Optional, Set
 
 from ..analytics.clause_patterns import (
     ClausePatternAnalyzer,
     ClauseCategory,
-    ClausePattern,
 )
 
 

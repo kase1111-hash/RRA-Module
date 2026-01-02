@@ -12,7 +12,6 @@ Tests cover:
 - Session management
 """
 
-import asyncio
 import pytest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -38,9 +37,6 @@ from src.rra.auth.did_auth import (
     DIDAuthMiddleware,
     AuthChallenge,
     AuthSession,
-    AuthResult,
-    AuthStatus,
-    DIDResolutionError,
 )
 
 
@@ -734,8 +730,7 @@ class TestNLCDIDResolverOnChain:
     @pytest.mark.asyncio
     async def test_resolve_on_chain_mocked(self, nlc_resolver):
         """Test on-chain resolution with mocked contract calls."""
-        from datetime import datetime
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import patch
 
         # Use hex identifier (bytes32 format)
         did = "did:nlc:" + "ab" * 32
@@ -792,7 +787,7 @@ class TestNLCDIDResolverOnChain:
     @pytest.mark.asyncio
     async def test_resolve_deactivated_did(self, nlc_resolver):
         """Test that deactivated DIDs return None."""
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import patch
 
         did = "did:nlc:deactivated_test"
         mock_contract = MagicMock()
@@ -820,7 +815,7 @@ class TestNLCDIDResolverOnChain:
     @pytest.mark.asyncio
     async def test_resolve_nonexistent_did(self, nlc_resolver):
         """Test that non-existent DIDs return None."""
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import patch
 
         did = "did:nlc:nonexistent"
         mock_contract = MagicMock()
@@ -879,7 +874,7 @@ class TestNLCDIDResolverOnChain:
     @pytest.mark.asyncio
     async def test_resolve_handles_exception(self, nlc_resolver):
         """Test that resolution handles exceptions gracefully."""
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import patch
 
         did = "did:nlc:error_test"
         mock_contract = MagicMock()
@@ -893,7 +888,7 @@ class TestNLCDIDResolverOnChain:
     @pytest.mark.asyncio
     async def test_resolve_skips_inactive_verification_methods(self, nlc_resolver):
         """Test that inactive verification methods are skipped."""
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import patch
 
         # Use hex identifier (bytes32 format)
         did = "did:nlc:" + "cd" * 32
@@ -930,7 +925,7 @@ class TestNLCDIDResolverOnChain:
     @pytest.mark.asyncio
     async def test_did_document_context_includes_nlc(self, nlc_resolver):
         """Test that resolved documents include NLC context."""
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import patch
 
         # Use hex identifier (bytes32 format)
         did = "did:nlc:" + "ef" * 32

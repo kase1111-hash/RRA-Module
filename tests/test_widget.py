@@ -5,7 +5,6 @@ Tests for the Embeddable Widget API.
 """
 
 import os
-import pytest
 from fastapi.testclient import TestClient
 
 # Set up test environment before imports

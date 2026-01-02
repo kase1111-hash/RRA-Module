@@ -19,7 +19,6 @@ Security Properties:
 - Shares are computationally independent
 """
 
-import os
 import secrets
 from typing import List, Tuple, Dict, Any, Optional
 from dataclasses import dataclass, field

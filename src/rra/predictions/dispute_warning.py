@@ -20,9 +20,9 @@ import secrets
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
-from .dispute_model import DisputePredictor, DisputePrediction, DisputeType, PredictionFeatures
+from .dispute_model import DisputePredictor, DisputePrediction, DisputeType
 
 
 class WarningSeverity(Enum):
@@ -646,7 +646,7 @@ class DisputeWarningGenerator:
                         severity=self._get_severity(weight),
                         category=WarningCategory.HIGH_ENTROPY,
                         title=f"Risk Factor: {factor}",
-                        description=f"This factor contributes significantly to dispute risk",
+                        description="This factor contributes significantly to dispute risk",
                         location="Model prediction",
                         matched_text=None,
                         dispute_probability=weight,

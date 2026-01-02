@@ -7,12 +7,10 @@ Tests for network resilience module.
 """
 
 import pytest
-import asyncio
 import time
 import tempfile
 import shutil
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from rra.integration.network_resilience import (
     CircuitBreaker,
@@ -20,7 +18,6 @@ from rra.integration.network_resilience import (
     CircuitState,
     CircuitOpenError,
     RequestQueue,
-    QueuedRequest,
     RetryConfig,
     ResilientClient,
     calculate_delay,

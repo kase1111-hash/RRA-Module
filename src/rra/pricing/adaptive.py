@@ -12,7 +12,6 @@ Implements dynamic pricing based on:
 """
 
 import json
-import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -424,7 +423,7 @@ class AdaptivePricingEngine:
         # Calculate final adjustment
         if adjustments:
             # Weighted geometric mean of adjustments
-            total_weight = sum(self.DEFAULT_WEIGHTS.values())
+            sum(self.DEFAULT_WEIGHTS.values())
             final_adjustment = 1.0
             for adj in adjustments:
                 final_adjustment *= adj

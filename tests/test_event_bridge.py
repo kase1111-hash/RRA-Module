@@ -14,20 +14,13 @@ Tests event bridging and validation:
 
 import pytest
 from datetime import datetime, timedelta
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
 import json
 import hashlib
-import asyncio
 
 from rra.oracles.event_bridge import (
     EventSource,
     EventStatus,
-    AttestationChoice,
-    EventData,
-    Attestation,
     BridgedEvent,
-    EventBridge,
     APIEventFetcher,
     IPFSEventFetcher,
     GitHubEventFetcher,
@@ -35,7 +28,6 @@ from rra.oracles.event_bridge import (
 )
 from rra.oracles.validators import (
     ValidationResult,
-    ValidationReport,
     SchemaValidator,
     HashValidator,
     TimestampValidator,
@@ -43,7 +35,6 @@ from rra.oracles.validators import (
     CompositeValidator,
     GitHubEventValidator,
     FinancialEventValidator,
-    create_composite_validator,
 )
 
 

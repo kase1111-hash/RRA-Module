@@ -15,12 +15,11 @@ Part of Phase 6.6: Predictive Dispute Warnings
 """
 
 import re
-import math
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class TermRiskLevel(Enum):

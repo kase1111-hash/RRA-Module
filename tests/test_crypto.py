@@ -13,27 +13,22 @@ Tests:
 
 import pytest
 import os
-from datetime import datetime, timedelta
 
 from rra.crypto.viewing_keys import (
     ViewingKey,
     ViewingKeyManager,
     EncryptedData,
     KeyPurpose,
-    generate_viewing_key_for_dispute,
 )
 from rra.crypto.shamir import (
     ShamirSecretSharing,
     KeyShare,
     ThresholdConfig,
     ShareHolder,
-    split_key_for_escrow,
-    reconstruct_key_from_shares,
     EscrowManager,
 )
 from rra.crypto.pedersen import (
     PedersenCommitment,
-    CommitmentProof,
     EvidenceCommitmentManager,
 )
 
@@ -480,7 +475,7 @@ class TestCryptoIntegration:
         """Test complete viewing key escrow flow."""
         # 1. Generate viewing key
         vk_manager = ViewingKeyManager()
-        viewing_key = vk_manager.generate_for_dispute("dispute-123")
+        vk_manager.generate_for_dispute("dispute-123")
 
         # 2. Encrypt evidence
         evidence = b"Confidential dispute evidence"
@@ -514,7 +509,7 @@ class TestCryptoIntegration:
         # Commit evidence
         commit_manager = EvidenceCommitmentManager()
         evidence = b"Evidence requiring commitment"
-        proof = commit_manager.commit_dispute_evidence("d-1", evidence)
+        commit_manager.commit_dispute_evidence("d-1", evidence)
 
         # The commitment can be stored on-chain
         on_chain_commitment = commit_manager.get_commitment_for_chain("d-1")

@@ -45,12 +45,10 @@ Usage:
 """
 
 import hashlib
-import math
 from enum import Enum
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from decimal import Decimal
 
 
 class NegotiationStatus(Enum):

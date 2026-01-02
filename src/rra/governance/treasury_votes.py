@@ -17,7 +17,6 @@ from typing import Dict, List, Optional, Any, Tuple
 from pathlib import Path
 import json
 import secrets
-import hashlib
 
 
 class TreasuryVoteType(Enum):

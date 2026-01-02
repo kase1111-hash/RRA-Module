@@ -20,10 +20,7 @@ from pydantic import BaseModel, Field, field_validator
 from rra.api.auth import verify_api_key
 
 from rra.defi.yield_tokens import (
-    StakingManager,
-    YieldPool,
     YieldStrategy,
-    StakedLicense,
     create_staking_manager,
 )
 

@@ -14,7 +14,7 @@ Provides jurisdiction-specific legal wrapper templates for:
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Any, Callable
+from typing import Dict, List, Optional
 import re
 
 
@@ -764,7 +764,7 @@ ANTI-MONEY LAUNDERING AND KNOW YOUR CUSTOMER
                 try:
                     clause = self.render_template(template.template_id, variables)
                     clauses.append(clause)
-                except ValueError as e:
+                except ValueError:
                     # Skip if required variables missing
                     pass
 

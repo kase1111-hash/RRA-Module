@@ -13,7 +13,6 @@ Features:
 - Fallback to alternative endpoints
 """
 
-import os
 from typing import Dict, Any, Optional, Tuple, List
 from dataclasses import dataclass
 from datetime import datetime
@@ -228,7 +227,7 @@ class NatLangChainClient:
                 if attempt < self.retry_config.max_retries:
                     # Try fallback URL
                     if self._switch_to_fallback():
-                        logger.info(f"Retrying with fallback URL")
+                        logger.info("Retrying with fallback URL")
                         continue
 
                     delay = calculate_delay(attempt, self.retry_config)

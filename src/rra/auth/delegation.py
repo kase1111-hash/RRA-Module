@@ -20,7 +20,6 @@ Example:
      threshold requires a fresh YubiKey touch."
 """
 
-import os
 from enum import Enum, auto
 from typing import Optional, List, Dict, Any, Set
 from dataclasses import dataclass, field
@@ -336,7 +335,7 @@ class ScopedDelegation:
                 if amount > remaining:
                     return {
                         "allowed": False,
-                        "reason": f"ETH limit exceeded",
+                        "reason": "ETH limit exceeded",
                         "requested": amount,
                         "remaining": remaining,
                     }

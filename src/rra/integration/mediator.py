@@ -9,7 +9,6 @@ ecosystem through the mediator network.
 
 from typing import Dict, Any, Optional, List
 from datetime import datetime
-import json
 from collections import deque
 
 from rra.integration.base import MessageRouterProtocol

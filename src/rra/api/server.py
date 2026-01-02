@@ -17,10 +17,9 @@ import re
 import os
 import secrets
 import hmac
-from typing import Optional, Dict, Any, Callable
+from typing import Optional, Dict, Any
 from pathlib import Path
 from datetime import datetime, timedelta
-from functools import wraps
 
 logger = logging.getLogger(__name__)
 
@@ -219,7 +218,6 @@ def sanitize_error_message(error: Exception) -> str:
 
 from rra.ingestion.knowledge_base import KnowledgeBase
 from rra.agents.negotiator import NegotiatorAgent
-from rra.config.market_config import MarketConfig
 
 
 # Request/Response models

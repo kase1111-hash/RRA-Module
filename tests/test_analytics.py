@@ -4,7 +4,6 @@
 Tests for the Analytics Dashboard API.
 """
 
-import pytest
 import tempfile
 import shutil
 from pathlib import Path

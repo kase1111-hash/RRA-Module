@@ -21,11 +21,8 @@ import pytest
 
 from src.rra.l3.batch_processor import (
     BatchProcessor,
-    Batch,
     BatchConfig,
     BatchStatus,
-    ProcessedDispute,
-    BatchResult,
     create_batch_processor,
 )
 from src.rra.l3.sequencer import (
@@ -34,7 +31,6 @@ from src.rra.l3.sequencer import (
     SequencerStatus,
     Transaction,
     TransactionType,
-    StateTransition,
     create_sequencer,
 )
 
@@ -214,7 +210,7 @@ class TestBatchProcessor:
                 stake_amount=1000000,
             )
 
-        initial_count = processor.get_pending_dispute_count()
+        processor.get_pending_dispute_count()
         result = processor.create_and_process_batch()
 
         # Challenge and reject
@@ -475,7 +471,7 @@ class TestDisputeSequencer:
                 stake_amount=1000000,
             )
 
-            transition = sequencer.produce_block()
+            sequencer.produce_block()
             current_root = sequencer.get_current_state_root()
 
             # Root should change
@@ -664,7 +660,7 @@ class TestL3Integration:
                 stake_amount=1000000,
             )
 
-        submit_time = time.time() - start_time
+        time.time() - start_time
 
         # Process all
         while sequencer.get_pending_count() > 0:

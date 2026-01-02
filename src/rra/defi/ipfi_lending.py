@@ -7,7 +7,7 @@ Enables license NFT holders to use their licenses as collateral
 for loans, similar to NFTfi but specialized for IP assets.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Dict, List, Optional, Any
@@ -595,13 +595,13 @@ class IPFiLendingManager:
         loans = list(self.loans.values())
 
         if borrower_address:
-            loans = [l for l in loans if l.borrower_address.lower() == borrower_address.lower()]
+            loans = [ln for ln in loans if ln.borrower_address.lower() == borrower_address.lower()]
 
         if lender_address:
-            loans = [l for l in loans if l.lender_address.lower() == lender_address.lower()]
+            loans = [ln for ln in loans if ln.lender_address.lower() == lender_address.lower()]
 
         if status:
-            loans = [l for l in loans if l.status == status]
+            loans = [ln for ln in loans if ln.status == status]
 
         return loans
 
@@ -611,20 +611,20 @@ class IPFiLendingManager:
 
     def get_market_stats(self) -> Dict[str, Any]:
         """Get overall lending market statistics."""
-        active_loans = [l for l in self.loans.values() if l.status == LoanStatus.ACTIVE]
+        active_loans = [ln for ln in self.loans.values() if ln.status == LoanStatus.ACTIVE]
         all_loans = list(self.loans.values())
 
-        total_value_locked = sum(l.collateral.estimated_value for l in active_loans)
-        total_borrowed = sum(l.terms.principal for l in active_loans)
-        total_repaid = sum(l.amount_repaid for l in all_loans)
+        total_value_locked = sum(ln.collateral.estimated_value for ln in active_loans)
+        total_borrowed = sum(ln.terms.principal for ln in active_loans)
+        total_repaid = sum(ln.amount_repaid for ln in all_loans)
 
         return {
             "total_loans": len(all_loans),
             "active_loans": len(active_loans),
-            "pending_loans": len([l for l in all_loans if l.status == LoanStatus.PENDING]),
-            "repaid_loans": len([l for l in all_loans if l.status == LoanStatus.REPAID]),
-            "defaulted_loans": len([l for l in all_loans if l.status == LoanStatus.DEFAULTED]),
-            "liquidated_loans": len([l for l in all_loans if l.status == LoanStatus.LIQUIDATED]),
+            "pending_loans": len([ln for ln in all_loans if ln.status == LoanStatus.PENDING]),
+            "repaid_loans": len([ln for ln in all_loans if ln.status == LoanStatus.REPAID]),
+            "defaulted_loans": len([ln for ln in all_loans if ln.status == LoanStatus.DEFAULTED]),
+            "liquidated_loans": len([ln for ln in all_loans if ln.status == LoanStatus.LIQUIDATED]),
             "total_value_locked": total_value_locked,
             "total_borrowed": total_borrowed,
             "total_repaid": total_repaid,
@@ -644,9 +644,9 @@ class IPFiLendingManager:
             return
 
         state = {
-            "loans": {lid: l.to_dict() for lid, l in self.loans.items()},
-            "offers": {oid: o.to_dict() for oid, o in self.offers.items()},
-            "collaterals": {cid: c.to_dict() for cid, c in self.collaterals.items()},
+            "loans": {lid: loan.to_dict() for lid, loan in self.loans.items()},
+            "offers": {oid: offer.to_dict() for oid, offer in self.offers.items()},
+            "collaterals": {cid: coll.to_dict() for cid, coll in self.collaterals.items()},
         }
 
         with open(self.data_dir / "lending_state.json", "w") as f:
@@ -661,12 +661,12 @@ class IPFiLendingManager:
             with open(state_file) as f:
                 state = json.load(f)
 
-            self.loans = {lid: Loan.from_dict(l) for lid, l in state.get("loans", {}).items()}
+            self.loans = {lid: Loan.from_dict(loan) for lid, loan in state.get("loans", {}).items()}
             self.offers = {
-                oid: LoanOffer.from_dict(o) for oid, o in state.get("offers", {}).items()
+                oid: LoanOffer.from_dict(offer) for oid, offer in state.get("offers", {}).items()
             }
             self.collaterals = {
-                cid: Collateral.from_dict(c) for cid, c in state.get("collaterals", {}).items()
+                cid: Collateral.from_dict(coll) for cid, coll in state.get("collaterals", {}).items()
             }
         except (json.JSONDecodeError, KeyError):
             pass

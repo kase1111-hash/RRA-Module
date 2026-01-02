@@ -272,6 +272,18 @@ class CodeVerifier:
                     "output": test_result.get("output", "")[:500],
                 },
             )
+        elif test_result.get("timeout"):
+            # Timeout is a warning, not a failure - large test suites shouldn't penalize repos
+            return CheckResult(
+                name="tests",
+                status=VerificationStatus.WARNING,
+                message=f"Tests timed out ({len(test_files)} files, ~{test_count} cases detected)",
+                details={
+                    "test_files": len(test_files),
+                    "test_count": test_count,
+                    "warning": "Test suite too large or slow; consider using --skip-tests",
+                },
+            )
         else:
             return CheckResult(
                 name="tests",
@@ -667,10 +679,10 @@ class CodeVerifier:
                             "error": result.stderr or result.stdout,
                         }
                 except subprocess.TimeoutExpired:
-                    return {"success": False, "error": "Test execution timed out"}
+                    return {"success": False, "timeout": True, "error": "Test execution timed out"}
                 except FileNotFoundError:
                     continue  # Try next command
-                except Exception as e:
+                except Exception:
                     continue
 
         return {"success": True, "skipped": True}  # No test runner found

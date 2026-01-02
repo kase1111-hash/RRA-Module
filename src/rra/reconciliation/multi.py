@@ -12,13 +12,12 @@ Coordinates N-party dispute resolution with:
 - Resolution execution
 """
 
-import hashlib
 import secrets
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from .voting import (
     VotingSystem,

@@ -11,11 +11,9 @@ Tests for final feature implementations:
 """
 
 import pytest
-from datetime import datetime, timedelta
 from pathlib import Path
 import tempfile
 import shutil
-import asyncio
 
 
 # =============================================================================
@@ -187,7 +185,6 @@ class TestFractionalIP:
         assert asset.total_value == 1.0
 
     def test_buy_shares(self, manager):
-        from rra.defi.fractional_ip import FractionStatus
 
         asset = manager.fractionalize_asset(
             name="Test Repository",
@@ -214,7 +211,6 @@ class TestFractionalIP:
         assert asset.shares_available == 900
 
     def test_transfer_shares(self, manager):
-        from rra.defi.fractional_ip import FractionStatus
 
         asset = manager.fractionalize_asset(
             name="Test Repository",
@@ -366,8 +362,8 @@ class TestDAOGovernance:
         )
 
         # Cast votes
-        vote1 = manager.vote(proposal.proposal_id, "0x1111111111111111111111111111111111111111", VoteChoice.FOR)
-        vote2 = manager.vote(proposal.proposal_id, "0x2222222222222222222222222222222222222222", VoteChoice.FOR)
+        manager.vote(proposal.proposal_id, "0x1111111111111111111111111111111111111111", VoteChoice.FOR)
+        manager.vote(proposal.proposal_id, "0x2222222222222222222222222222222222222222", VoteChoice.FOR)
 
         updated_proposal = manager.get_proposal(proposal.proposal_id)
         assert updated_proposal.votes_for == 1500

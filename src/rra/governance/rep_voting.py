@@ -13,14 +13,13 @@ Integrates reputation weights with governance proposals:
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Dict, List, Optional, Any, Set
+from typing import Dict, List, Optional, Any
 from pathlib import Path
 import json
 import secrets
 
 from rra.reputation.weighted import (
     ReputationManager,
-    ReputationConfig,
     VotingPower,
     ReputationAction,
     create_reputation_manager,

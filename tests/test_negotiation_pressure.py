@@ -10,7 +10,6 @@ Tests counter-proposal caps, exponential delay costs, and deadline enforcement.
 
 import pytest
 from datetime import datetime, timedelta
-from unittest.mock import patch
 
 from rra.negotiation.pressure import (
     PressureConfig,

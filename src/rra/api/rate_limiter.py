@@ -18,7 +18,6 @@ import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Tuple, Callable, Any, cast
-from enum import Enum
 from functools import wraps
 
 from fastapi import Request, HTTPException, Response
@@ -345,7 +344,6 @@ class RateLimiter:
             return (True, {})
 
         client_key = self._get_client_key(request)
-        endpoint_key = f"{client_key}:{path}"
 
         # Check token bucket first (for burst handling)
         bucket_ok, bucket_remaining, bucket_retry = await self.token_bucket.acquire(

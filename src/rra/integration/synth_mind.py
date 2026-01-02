@@ -10,7 +10,7 @@ integrating with the NatLangChain synth-mind system.
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Dict, List, Optional, Any, Callable, AsyncIterator
+from typing import Dict, List, Optional, Any, AsyncIterator
 from pathlib import Path
 import json
 import secrets

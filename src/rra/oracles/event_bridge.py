@@ -13,7 +13,7 @@ Bridges real-world events to on-chain disputes:
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Dict, List, Optional, Any, Tuple, Callable
+from typing import Dict, List, Optional, Any
 from pathlib import Path
 import json
 import hashlib
@@ -25,8 +25,6 @@ from abc import ABC, abstractmethod
 
 from rra.integration.network_resilience import (
     RetryConfig,
-    CircuitBreaker,
-    CircuitBreakerConfig,
     calculate_delay,
 )
 
@@ -221,7 +219,6 @@ class APIEventFetcher(EventFetcher):
             retryable_exceptions=(aiohttp.ClientError, asyncio.TimeoutError),
         )
 
-        last_exception = None
         for attempt in range(retry_config.max_retries + 1):
             try:
                 async with aiohttp.ClientSession() as session:
@@ -251,7 +248,6 @@ class APIEventFetcher(EventFetcher):
                             metadata={"json_path": json_path} if json_path else {},
                         )
             except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-                last_exception = e
                 if attempt < retry_config.max_retries:
                     delay = calculate_delay(attempt, retry_config)
                     logger.warning(

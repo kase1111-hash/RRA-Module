@@ -9,16 +9,15 @@ Provides REST API endpoints for:
 - Widget analytics and tracking
 """
 
-import json
 import secrets
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Query, Request, Response, Depends
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
-from rra.api.auth import verify_api_key, optional_api_key
+from rra.api.auth import verify_api_key
 
 
 router = APIRouter(prefix="/api/widget", tags=["widget"])

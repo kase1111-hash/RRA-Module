@@ -23,11 +23,9 @@ import json
 import logging
 import threading
 import time
-import queue
 import socket
 import os
 import re
-import urllib.parse
 
 from rra.integration.boundary_daemon import (
     BoundaryEvent,

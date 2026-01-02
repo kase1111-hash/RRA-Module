@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Dict, List, Optional, Set, Any
+from typing import Dict, List, Optional, Any
 
 from .jurisdiction import JurisdictionCode, JurisdictionRegion
 

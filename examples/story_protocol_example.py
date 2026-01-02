@@ -56,7 +56,7 @@ def main():
     manager = StoryIntegrationManager(w3, network="testnet")
 
     network_info = manager.get_network_info()
-    print(f"   ✓ Story Protocol Client initialized")
+    print("   ✓ Story Protocol Client initialized")
     print(f"   Network: {network_info['network']}")
     print(f"   Contracts: {len(network_info['story_contracts'])} deployed")
     print()
@@ -84,14 +84,14 @@ def main():
         config.story_protocol_enabled = True
         config.derivative_royalty_percentage = 0.15
 
-    print(f"   ✓ Configuration loaded")
+    print("   ✓ Configuration loaded")
     print(f"   Story Protocol: {'Enabled' if config.story_protocol_enabled else 'Disabled'}")
     print(f"   Derivative Royalty: {config.derivative_royalty_percentage * 100}%")
     print()
 
     # Register repository as IP Asset
     print("4. Registering repository as IP Asset...")
-    print(f"   Repository: https://github.com/example/repo")
+    print("   Repository: https://github.com/example/repo")
     print(f"   Owner: {owner_address}")
     print()
 
@@ -143,7 +143,7 @@ def main():
 
     # Demonstrate derivative registration
     print("5. Registering a derivative (fork)...")
-    print(f"   Fork: https://github.com/fork-owner/forked-repo")
+    print("   Fork: https://github.com/fork-owner/forked-repo")
     print()
 
     print("   [SIMULATION MODE]")
@@ -229,7 +229,7 @@ def main():
     print("   Royalty Statistics:")
     print(f"   Royalty Rate: {simulated_royalty_stats['royalty_percentage']}%")
     print(f"   Total Collected: {simulated_royalty_stats['total_collected_eth']} ETH")
-    print(f"   Payment Token: ETH")
+    print("   Payment Token: ETH")
     print()
 
     # Actual query (commented out)

@@ -16,9 +16,8 @@ Used in ComplianceEscrow for decentralized key management:
 - Prevents honeypot attacks
 """
 
-import os
 import secrets
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 from dataclasses import dataclass
 
 

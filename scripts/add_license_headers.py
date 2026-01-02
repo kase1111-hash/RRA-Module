@@ -7,7 +7,6 @@ Copyright 2025 Kase Branham
 """
 
 import os
-import re
 from pathlib import Path
 from typing import List, Tuple
 

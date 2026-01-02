@@ -27,7 +27,6 @@ from enum import Enum
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
-from collections import defaultdict
 
 
 class DisputeType(Enum):

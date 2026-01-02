@@ -14,15 +14,12 @@ To run these tests:
 """
 
 import pytest
-import asyncio
 from unittest.mock import MagicMock, patch, AsyncMock
 from datetime import datetime
 
 from rra.integration.natlangchain_client import (
     NatLangChainClient,
     AsyncNatLangChainClient,
-    ChainEntry,
-    ChainHealth,
     get_chain_client,
 )
 

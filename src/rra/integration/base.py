@@ -10,7 +10,6 @@ standalone and integrated with the NatLangChain ecosystem.
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Dict, Any, Optional, Protocol
-from datetime import datetime
 
 
 class IntegrationMode(str, Enum):
@@ -31,7 +30,7 @@ def get_integration_mode() -> IntegrationMode:
     """
     try:
         # Try importing common base - if available, we're in integrated mode
-        import natlangchain.common  # type: ignore
+        import natlangchain.common  # type: ignore  # noqa: F401
 
         return IntegrationMode.INTEGRATED
     except ImportError:

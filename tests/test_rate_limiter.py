@@ -9,7 +9,7 @@ Tests for API rate limiting module.
 import pytest
 import asyncio
 import time
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock, patch
 
 from rra.api.rate_limiter import (
     RateLimitConfig,
@@ -17,7 +17,6 @@ from rra.api.rate_limiter import (
     TokenBucketLimiter,
     SlidingWindowLimiter,
     RateLimiter,
-    RateLimitExceeded,
     rate_limit,
 )
 

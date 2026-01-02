@@ -9,7 +9,7 @@ real blockchain connection.
 """
 
 import pytest
-from unittest.mock import patch, MagicMock, Mock
+from unittest.mock import patch, Mock
 from typing import Dict, Any
 import os
 import sys
@@ -102,7 +102,6 @@ class TestContractManagerIntegration:
     def test_contract_manager_network_validation(self):
         """Test ContractManager validates network names."""
         from rra.contracts.manager import ContractManager
-        from rra.exceptions import ConfigurationError
 
         with patch("rra.contracts.manager.Web3") as mock_web3_class:
             mock_web3_class.HTTPProvider = Mock(return_value=Mock())
@@ -458,8 +457,6 @@ class TestTreasuryCoordinatorIntegration:
         from rra.treasury.coordinator import (
             TreasuryCoordinator,
             TreasuryType,
-            ProposalType,
-            VoteChoice,
         )
 
         coordinator = TreasuryCoordinator()
@@ -560,8 +557,6 @@ class TestE2EBlockchainFlow:
         from rra.treasury.coordinator import (
             TreasuryCoordinator,
             TreasuryType,
-            ProposalType,
-            VoteChoice,
             DisputeStatus,
         )
 
@@ -621,7 +616,7 @@ class TestE2EBlockchainFlow:
 
     def test_multi_chain_configuration(self, mock_web3):
         """Test multi-chain configuration works correctly."""
-        from rra.chains.config import ChainManager, get_chain_manager
+        from rra.chains.config import get_chain_manager
 
         # Use the existing chain manager with pre-configured chains
         manager = get_chain_manager()
@@ -744,7 +739,6 @@ class TestBlockchainErrorHandling:
 
     def test_contract_call_failure_handling(self, mock_web3):
         """Test handling of contract call failures."""
-        from web3.exceptions import ContractLogicError
 
         contract_addr = "0x1234567890123456789012345678901234567890"
         contract = mock_web3.eth.contract(address=contract_addr, abi=[])

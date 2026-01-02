@@ -12,12 +12,11 @@ Provides reputation-based weight calculations for dispute resolution:
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional, Any, Tuple
 from pathlib import Path
 import json
-import math
 
 
 class ReputationAction(Enum):

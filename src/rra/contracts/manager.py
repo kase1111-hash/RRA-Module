@@ -10,14 +10,12 @@ import logging
 from typing import Optional, Dict, Any
 from pathlib import Path
 import json
-import os
 from web3 import Web3
-from web3.exceptions import ContractLogicError, TransactionNotFound
+from web3.exceptions import ContractLogicError
 
 from rra.contracts.license_nft import LicenseNFTContract
 from rra.contracts.artifacts import is_compiled, available_contracts
 from rra.exceptions import (
-    RRAError,
     ConfigurationError,
     ContractNotFoundError,
     ContractDeploymentError,
@@ -177,7 +175,7 @@ class ContractManager:
 
         # Check contracts are compiled
         if not is_compiled():
-            available = available_contracts()
+            available_contracts()
             raise ContractNotFoundError(
                 contract_name="RepoLicense",
                 search_paths=[
