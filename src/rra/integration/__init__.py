@@ -45,7 +45,27 @@ from rra.integration.boundary_daemon import (
     AccessPolicy,
     Principal,
     AccessToken,
+    BoundaryMode,
+    BoundaryEvent,
+    EventSeverity,
+    ModeConstraints,
+    DaemonConnection,
+    EventSigner,
     create_boundary_daemon,
+    create_connected_boundary_daemon,
+)
+
+from rra.integration.boundary_siem import (
+    BoundarySIEMClient,
+    SIEMConfig,
+    SIEMProtocol,
+    SIEMAlert,
+    AlertSeverity,
+    AlertStatus,
+    DetectionRule,
+    RRA_DETECTION_RULES,
+    create_siem_client,
+    create_siem_event_callback,
 )
 
 from rra.integration.synth_mind import (
@@ -84,7 +104,25 @@ __all__ = [
     "AccessPolicy",
     "Principal",
     "AccessToken",
+    "BoundaryMode",
+    "BoundaryEvent",
+    "EventSeverity",
+    "ModeConstraints",
+    "DaemonConnection",
+    "EventSigner",
     "create_boundary_daemon",
+    "create_connected_boundary_daemon",
+    # Boundary SIEM
+    "BoundarySIEMClient",
+    "SIEMConfig",
+    "SIEMProtocol",
+    "SIEMAlert",
+    "AlertSeverity",
+    "AlertStatus",
+    "DetectionRule",
+    "RRA_DETECTION_RULES",
+    "create_siem_client",
+    "create_siem_event_callback",
     # Synth Mind
     "SynthMindRouter",
     "ModelConfig",
