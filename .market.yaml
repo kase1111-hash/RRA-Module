@@ -7,13 +7,13 @@ copyright_holder: "Kase Branham"
 copyright_year: 2025
 
 # Pricing Configuration
-license_model: "Per-seat"  # Options: Per-seat, Subscription, Perpetual, Custom
+license_model: "per-seat"  # Options: per-seat, subscription, one-time, perpetual, custom
 target_price: "0.05 ETH"   # Initial asking price for blockchain licensing
 floor_price: "0.02 ETH"    # Minimum acceptable price (agents won't go below this)
 ceiling_price: "0.15 ETH"  # Maximum price for premium features
 
 # Negotiation Agent Configuration
-negotiation_style: "Persuasive"  # Options: Concise, Persuasive, Strict, Adaptive
+negotiation_style: "persuasive"  # Options: concise, persuasive, strict, adaptive
 agent_personality: "Professional" # How the agent presents the repository
 negotiation_rounds_max: 5         # Maximum back-and-forth negotiations
 
@@ -69,20 +69,11 @@ blockchain:
 
 # Repository Features (for agent marketing)
 features:
-  - name: "AI-Driven Negotiation Agents"
-    description: "Autonomous agents that negotiate licensing on your behalf"
-
-  - name: "Blockchain License Management"
-    description: "Smart contract-based licensing with NFT tokens"
-
-  - name: "GitHub Integration"
-    description: "Seamless integration with GitHub repositories"
-
-  - name: "Automated Revenue Distribution"
-    description: "On-chain revenue splitting via smart contracts"
-
-  - name: "Knowledge Base Generation"
-    description: "AI-powered repository ingestion and understanding"
+  - "AI-Driven Negotiation Agents"
+  - "Blockchain License Management"
+  - "GitHub Integration"
+  - "Automated Revenue Distribution"
+  - "Knowledge Base Generation"
 
 # Technical Specifications (for verification)
 repository:

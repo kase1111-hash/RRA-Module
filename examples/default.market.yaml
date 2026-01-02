@@ -1,0 +1,34 @@
+# .market.yaml - RRA Module Default Configuration
+# Copy this file to your repository root and customize
+
+# === Pricing (Per-Seat Model) ===
+license_model: "per-seat"
+target_price: "0.05 ETH"   # Starting negotiation price
+floor_price: "0.02 ETH"    # Minimum acceptable price
+
+# === Agent Behavior ===
+negotiation_style: "concise"  # Options: concise, persuasive, strict, adaptive
+allow_custom_fork_rights: true
+auto_renewal: false
+
+# === Your Repository ===
+description: "Your repository description here"
+features:
+  - "Full source code access"
+  - "Regular updates and bug fixes"
+  - "Developer support via GitHub issues"
+  - "Commercial use permitted"
+
+# === Blockchain Settings ===
+# Uncomment and set your wallet address to receive payments
+# developer_wallet: "0xYourWalletAddressHere"
+royalty_on_derivatives: 0.15  # 15% royalty on forks/derivatives
+
+# === Optional Settings ===
+update_frequency: "weekly"  # Options: daily, weekly, monthly, on-push
+# sandbox_tests: "tests/"   # Path to verification scripts
+
+# === Metadata ===
+metadata:
+  category: "library"       # Options: library, cli, web-app, api, framework, tool
+  maturity: "beta"          # Options: alpha, beta, production, stable
