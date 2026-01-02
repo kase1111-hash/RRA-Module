@@ -322,24 +322,44 @@ class AccessPolicy:
         return self.resource_id == resource_id
 
     def check_conditions(self, context: Dict[str, Any]) -> bool:
-        """Evaluate policy conditions against context."""
+        """
+        Evaluate policy conditions against context.
+
+        Handles type mismatches safely by returning False (fail-closed).
+        """
         for key, expected in self.conditions.items():
             if key not in context:
                 return False
 
             actual = context[key]
 
-            # Handle different condition types
-            if isinstance(expected, dict):
-                if "min" in expected and actual < expected["min"]:
+            try:
+                # Handle different condition types
+                if isinstance(expected, dict):
+                    if "min" in expected:
+                        # Type-safe comparison
+                        if type(actual) != type(expected["min"]):
+                            logger.warning(f"Type mismatch in condition '{key}': {type(actual)} vs {type(expected['min'])}")
+                            return False
+                        if actual < expected["min"]:
+                            return False
+                    if "max" in expected:
+                        if type(actual) != type(expected["max"]):
+                            logger.warning(f"Type mismatch in condition '{key}': {type(actual)} vs {type(expected['max'])}")
+                            return False
+                        if actual > expected["max"]:
+                            return False
+                    if "in" in expected:
+                        if actual not in expected["in"]:
+                            return False
+                    if "not_in" in expected:
+                        if actual in expected["not_in"]:
+                            return False
+                elif actual != expected:
                     return False
-                if "max" in expected and actual > expected["max"]:
-                    return False
-                if "in" in expected and actual not in expected["in"]:
-                    return False
-                if "not_in" in expected and actual in expected["not_in"]:
-                    return False
-            elif actual != expected:
+            except (TypeError, ValueError) as e:
+                # Fail closed on any comparison error
+                logger.warning(f"Condition evaluation error for '{key}': {e}")
                 return False
 
         return True
@@ -591,10 +611,29 @@ class DaemonConnection:
                 response_str = response_bytes.decode().strip()
                 return json.loads(response_str)
 
+    # Allowed actions for external daemon API
+    ALLOWED_ACTIONS = frozenset({
+        "check_permission",
+        "get_mode",
+        "set_mode",
+        "log_event",
+        "get_policy",
+        "health",
+    })
+
     def _send_http_request(self, action: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Send request via HTTP API."""
         import urllib.request
         import urllib.error
+        import re
+
+        # Validate action to prevent path traversal/SSRF
+        if action not in self.ALLOWED_ACTIONS:
+            raise ValueError(f"Invalid action: {action}")
+
+        # Additional safety: ensure action contains only safe characters
+        if not re.match(r'^[a-z_]+$', action):
+            raise ValueError(f"Action contains invalid characters: {action}")
 
         url = f"{self.http_url}/api/v1/{action}"
         data = json.dumps(payload).encode()
@@ -738,7 +777,6 @@ class BoundaryDaemon:
         # Event chain for audit trail
         self._event_chain: List[BoundaryEvent] = []
         self._last_event_hash: Optional[str] = None
-        self._event_signer = EventSigner()
 
         # SIEM forwarding
         self._enable_siem = enable_siem_forwarding
@@ -747,6 +785,56 @@ class BoundaryDaemon:
         if data_dir:
             self.data_dir.mkdir(parents=True, exist_ok=True)
             self._load_state()
+
+        # Initialize event signer with persistent key
+        signing_key = self._load_or_generate_signing_key()
+        self._event_signer = EventSigner(private_key=signing_key)
+
+    def _load_or_generate_signing_key(self) -> Optional[bytes]:
+        """
+        Load signing key from disk or generate and save a new one.
+
+        This ensures event signatures can be verified across daemon restarts.
+        """
+        if not HAS_CRYPTO:
+            return None
+
+        if not self.data_dir:
+            logger.warning("No data_dir specified, signing key will not be persisted")
+            return None
+
+        key_file = self.data_dir / "signing_key.bin"
+
+        if key_file.exists():
+            # Load existing key
+            try:
+                with open(key_file, "rb") as f:
+                    key_bytes = f.read()
+                logger.info("Loaded existing signing key")
+                return key_bytes
+            except Exception as e:
+                logger.error(f"Failed to load signing key: {e}")
+                # Fall through to generate new key
+
+        # Generate new key and save
+        try:
+            private_key = Ed25519PrivateKey.generate()
+            key_bytes = private_key.private_bytes(
+                encoding=serialization.Encoding.Raw,
+                format=serialization.PrivateFormat.Raw,
+                encryption_algorithm=serialization.NoEncryption()
+            )
+
+            # Save with restricted permissions (owner read/write only)
+            key_file.touch(mode=0o600)
+            with open(key_file, "wb") as f:
+                f.write(key_bytes)
+
+            logger.info("Generated and saved new signing key")
+            return key_bytes
+        except Exception as e:
+            logger.error(f"Failed to generate/save signing key: {e}")
+            return None
 
     def _generate_id(self, prefix: str = "") -> str:
         return f"{prefix}{secrets.token_hex(8)}"
@@ -1376,8 +1464,24 @@ class BoundaryDaemon:
             self.policies = {pid: AccessPolicy.from_dict(p) for pid, p in state.get("policies", {}).items()}
             self.principals = {pid: Principal.from_dict(p) for pid, p in state.get("principals", {}).items()}
             self.tokens = {tid: AccessToken.from_dict(t) for tid, t in state.get("tokens", {}).items()}
-        except (json.JSONDecodeError, KeyError):
-            pass
+
+            logger.info(
+                f"Loaded state: {len(self.policies)} policies, "
+                f"{len(self.principals)} principals, {len(self.tokens)} tokens"
+            )
+
+        except (json.JSONDecodeError, KeyError, ValueError) as e:
+            logger.error(f"Failed to load state from {state_file}: {e}")
+            logger.warning("Starting with empty state due to corrupted state file")
+
+            # Backup corrupted file for forensic analysis
+            if state_file.exists():
+                backup_file = state_file.with_suffix('.json.corrupted')
+                try:
+                    state_file.rename(backup_file)
+                    logger.info(f"Corrupted state backed up to {backup_file}")
+                except OSError as rename_err:
+                    logger.error(f"Failed to backup corrupted state: {rename_err}")
 
 
 def create_boundary_daemon(

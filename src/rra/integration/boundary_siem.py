@@ -26,6 +26,8 @@ import time
 import queue
 import socket
 import os
+import re
+import urllib.parse
 
 from rra.integration.boundary_daemon import (
     BoundaryEvent,
@@ -168,14 +170,44 @@ class SIEMConfig:
     @classmethod
     def from_env(cls) -> "SIEMConfig":
         """Load configuration from environment variables."""
+        host = os.environ.get("BOUNDARY_SIEM_HOST", "localhost")
+
+        # Validate host to prevent SSRF attacks
+        cls._validate_host(host)
+
         return cls(
-            host=os.environ.get("BOUNDARY_SIEM_HOST", "localhost"),
+            host=host,
             port=int(os.environ.get("BOUNDARY_SIEM_PORT", "8514")),
             protocol=SIEMProtocol(os.environ.get("BOUNDARY_SIEM_PROTOCOL", "json_http")),
             api_key=os.environ.get("BOUNDARY_SIEM_API_KEY"),
             tls_enabled=os.environ.get("BOUNDARY_SIEM_TLS", "false").lower() == "true",
             tls_cert_path=os.environ.get("BOUNDARY_SIEM_TLS_CERT"),
         )
+
+    @staticmethod
+    def _validate_host(host: str) -> None:
+        """Validate host to prevent SSRF attacks."""
+        # Block cloud metadata endpoints
+        blocked_hosts = {
+            "169.254.169.254",  # AWS/GCP metadata
+            "metadata.google.internal",
+            "metadata.goog",
+        }
+
+        if host.lower() in blocked_hosts:
+            raise ValueError(f"Blocked host (cloud metadata): {host}")
+
+        # Block private IP ranges for SIEM (unless explicitly localhost)
+        if host != "localhost" and host != "127.0.0.1":
+            private_patterns = [
+                r"^10\.",
+                r"^172\.(1[6-9]|2[0-9]|3[0-1])\.",
+                r"^192\.168\.",
+                r"^127\.",
+            ]
+            for pattern in private_patterns:
+                if re.match(pattern, host):
+                    raise ValueError(f"Private IP not allowed for SIEM host: {host}")
 
 
 class EventBuffer:
@@ -482,6 +514,34 @@ class BoundarySIEMClient:
         """Resolve an alert."""
         return self._update_alert_status(alert_id, AlertStatus.RESOLVED, note)
 
+    @staticmethod
+    def _validate_identifier(identifier: str, name: str = "identifier") -> str:
+        """
+        Validate and sanitize an identifier to prevent path injection.
+
+        Args:
+            identifier: The identifier to validate
+            name: Name of the identifier for error messages
+
+        Returns:
+            The validated identifier
+
+        Raises:
+            ValueError: If identifier contains invalid characters
+        """
+        if not identifier:
+            raise ValueError(f"Empty {name}")
+
+        # Only allow alphanumeric, underscore, hyphen
+        if not re.match(r'^[a-zA-Z0-9_-]+$', identifier):
+            raise ValueError(f"Invalid {name} format: contains forbidden characters")
+
+        # Limit length to prevent DoS
+        if len(identifier) > 256:
+            raise ValueError(f"Invalid {name}: exceeds maximum length")
+
+        return identifier
+
     def _update_alert_status(
         self,
         alert_id: str,
@@ -492,7 +552,11 @@ class BoundarySIEMClient:
         import urllib.request
         import urllib.error
 
-        url = f"{'https' if self.config.tls_enabled else 'http'}://{self.config.host}:{self.config.port}/api/v1/alerts/{alert_id}"
+        # Validate alert_id to prevent path injection
+        safe_alert_id = self._validate_identifier(alert_id, "alert_id")
+        safe_alert_id = urllib.parse.quote(safe_alert_id, safe='')
+
+        url = f"{'https' if self.config.tls_enabled else 'http'}://{self.config.host}:{self.config.port}/api/v1/alerts/{safe_alert_id}"
 
         payload = {
             "status": status.value,
