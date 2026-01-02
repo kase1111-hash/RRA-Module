@@ -143,6 +143,11 @@ def init(
     is_flag=True,
     help="Automatically install dependencies in temp environment for testing",
 )
+@click.option(
+    "--verbose", "-v",
+    is_flag=True,
+    help="Show verbose output including full test/lint errors",
+)
 def ingest(
     repo_url: str,
     workspace: Path,
@@ -153,6 +158,7 @@ def ingest(
     network: str,
     timeout: int,
     auto_install_deps: bool,
+    verbose: bool,
 ):
     """
     Ingest a repository and generate its knowledge base.
@@ -201,15 +207,100 @@ def ingest(
             console.print(f"  Score: [{color}]{score}/100[/{color}]")
             console.print(f"  Status: [{color}]{status}[/{color}]")
 
+            # Check descriptions for verbose mode
+            check_descriptions = {
+                "tests": "Runs test suite to verify code correctness",
+                "linting": "Checks code style and quality standards",
+                "security": "Scans for hardcoded secrets, SQL injection, command injection",
+                "build": "Validates build configuration files",
+                "readme_alignment": "Verifies README claims match actual code",
+                "documentation": "Checks for README and doc files",
+                "license": "Verifies license file exists",
+            }
+
             for check in kb.verification.get("checks", []):
                 check_color = (
                     "green"
                     if check["status"] == "passed"
                     else ("yellow" if check["status"] == "warning" else "red")
                 )
-                console.print(
-                    f"    [{check_color}]•[/{check_color}] {check['name']}: {check['message']}"
+                status_icon = (
+                    "✓" if check["status"] == "passed"
+                    else ("⚠" if check["status"] == "warning" else "✗")
                 )
+                console.print(
+                    f"    [{check_color}]{status_icon}[/{check_color}] {check['name']}: {check['message']}"
+                )
+
+                # Show verbose details
+                if verbose and check.get("details"):
+                    details = check["details"]
+
+                    # Show description
+                    if check["name"] in check_descriptions:
+                        console.print(f"      [dim]→ {check_descriptions[check['name']]}[/dim]")
+
+                    # Show test output/errors
+                    if check["name"] == "tests":
+                        if details.get("error"):
+                            console.print(f"      [dim]Test output:[/dim]")
+                            # Show full error output, limited to 2000 chars
+                            error_text = details["error"][:2000]
+                            for line in error_text.split("\n")[:50]:
+                                if line.strip():
+                                    console.print(f"        {line}")
+                            if len(details["error"]) > 2000:
+                                console.print(f"        [dim]... (truncated, {len(details['error'])} chars total)[/dim]")
+                        if details.get("output"):
+                            console.print(f"      [dim]Test output:[/dim]")
+                            output_text = details["output"][:1000]
+                            for line in output_text.split("\n")[:30]:
+                                if line.strip():
+                                    console.print(f"        {line}")
+                        if details.get("warning"):
+                            console.print(f"      [yellow]Note: {details['warning']}[/yellow]")
+                        console.print(f"      [dim]Test files: {details.get('test_files', 0)}, Test cases: ~{details.get('test_count', 0)}[/dim]")
+
+                    # Show linting details
+                    elif check["name"] == "linting":
+                        if details.get("output"):
+                            console.print(f"      [dim]Linting output:[/dim]")
+                            output_text = details["output"][:1500]
+                            for line in output_text.split("\n")[:40]:
+                                if line.strip():
+                                    console.print(f"        {line}")
+                        if details.get("issues"):
+                            console.print(f"      [dim]Total issues: {details['issues']}[/dim]")
+                        if details.get("has_config"):
+                            console.print(f"      [dim]Lint config found: Yes[/dim]")
+
+                    # Show security details
+                    elif check["name"] == "security":
+                        console.print(f"      [dim]Files scanned: {details.get('files_scanned', 0)}[/dim]")
+                        if details.get("issues"):
+                            console.print(f"      [yellow]Issues found:[/yellow]")
+                            for issue in details.get("issues", [])[:10]:
+                                console.print(f"        [{issue.get('category')}] {issue.get('file')}")
+                        if details.get("issues_by_category"):
+                            for cat, count in details["issues_by_category"].items():
+                                console.print(f"        {cat}: {count} issues")
+
+                    # Show build details
+                    elif check["name"] == "build":
+                        if details.get("build_systems"):
+                            systems = [b["language"] for b in details["build_systems"]]
+                            console.print(f"      [dim]Build systems: {', '.join(systems)}[/dim]")
+
+                    # Show README alignment details
+                    elif check["name"] == "readme_alignment":
+                        if details.get("verified_claims"):
+                            console.print(f"      [green]Verified claims:[/green]")
+                            for claim in details["verified_claims"][:5]:
+                                console.print(f"        ✓ {claim.get('claim', claim)[:60]}")
+                        if details.get("unverified_claims"):
+                            console.print(f"      [yellow]Unverified claims:[/yellow]")
+                            for claim in details["unverified_claims"][:5]:
+                                console.print(f"        ? {claim.get('claim', claim)[:60]}")
 
         # Show category
         if kb.category:
@@ -597,7 +688,12 @@ def resolve(repo_id: str):
     is_flag=True,
     help="Automatically install dependencies in temp environment for testing",
 )
-def verify(repo_url: str, skip_tests: bool, skip_security: bool, workspace: Path, timeout: int, auto_install_deps: bool):
+@click.option(
+    "--verbose", "-v",
+    is_flag=True,
+    help="Show verbose output including full test/lint errors",
+)
+def verify(repo_url: str, skip_tests: bool, skip_security: bool, workspace: Path, timeout: int, auto_install_deps: bool, verbose: bool):
     """
     Verify a GitHub repository's code quality.
 
@@ -679,12 +775,80 @@ def verify(repo_url: str, skip_tests: bool, skip_security: bool, workspace: Path
 
         console.print(table)
 
-        # Show security issues if any
-        for check in result.checks:
-            if check.name == "security" and check.details and check.details.get("issues"):
-                console.print("\n[bold yellow]Security Issues Found:[/bold yellow]")
-                for issue in check.details["issues"][:5]:
-                    console.print(f"  [{issue['category']}] {issue['file']}")
+        # Show verbose details for each check
+        if verbose:
+            check_descriptions = {
+                "tests": "Runs test suite to verify code correctness",
+                "linting": "Checks code style and quality standards",
+                "security": "Scans for hardcoded secrets, SQL injection, command injection",
+                "build": "Validates build configuration files",
+                "readme_alignment": "Verifies README claims match actual code",
+                "documentation": "Checks for README and doc files",
+                "license": "Verifies license file exists",
+            }
+
+            console.print("\n[bold]Detailed Output:[/bold]\n")
+
+            for check in result.checks:
+                check_color = (
+                    "green" if check.status.value == "passed"
+                    else ("yellow" if check.status.value == "warning" else "red")
+                )
+                console.print(f"[{check_color}]━━━ {check.name.upper()} ━━━[/{check_color}]")
+
+                if check.name in check_descriptions:
+                    console.print(f"[dim]{check_descriptions[check.name]}[/dim]")
+
+                console.print(f"Status: {check.status.value}")
+                console.print(f"Message: {check.message}")
+
+                if check.details:
+                    details = check.details
+
+                    if check.name == "tests":
+                        if details.get("error"):
+                            console.print("\n[bold]Test Error Output:[/bold]")
+                            error_text = details["error"][:3000]
+                            for line in error_text.split("\n")[:60]:
+                                console.print(f"  {line}")
+                            if len(details["error"]) > 3000:
+                                console.print(f"  [dim]... (truncated, {len(details['error'])} chars total)[/dim]")
+                        if details.get("output"):
+                            console.print("\n[bold]Test Output:[/bold]")
+                            output_text = details["output"][:2000]
+                            for line in output_text.split("\n")[:40]:
+                                console.print(f"  {line}")
+                        if details.get("warning"):
+                            console.print(f"\n[yellow]Note: {details['warning']}[/yellow]")
+                        console.print(f"\nTest files: {details.get('test_files', 0)}")
+                        console.print(f"Test cases: ~{details.get('test_count', 0)}")
+
+                    elif check.name == "linting":
+                        if details.get("output"):
+                            console.print("\n[bold]Linting Output:[/bold]")
+                            output_text = details["output"][:2000]
+                            for line in output_text.split("\n")[:50]:
+                                if line.strip():
+                                    console.print(f"  {line}")
+                        if details.get("issues"):
+                            console.print(f"\nTotal issues: {details['issues']}")
+
+                    elif check.name == "security":
+                        console.print(f"Files scanned: {details.get('files_scanned', 0)}")
+                        if details.get("issues"):
+                            console.print("\n[yellow]Issues found:[/yellow]")
+                            for issue in details.get("issues", [])[:15]:
+                                console.print(f"  [{issue.get('category')}] {issue.get('file')}")
+
+                console.print()
+
+        # Show security issues if any (non-verbose mode)
+        if not verbose:
+            for check in result.checks:
+                if check.name == "security" and check.details and check.details.get("issues"):
+                    console.print("\n[bold yellow]Security Issues Found:[/bold yellow]")
+                    for issue in check.details["issues"][:5]:
+                        console.print(f"  [{issue['category']}] {issue['file']}")
 
     except Exception as e:
         console.print(f"[red]✗[/red] Verification failed: {e}", style="bold red")
