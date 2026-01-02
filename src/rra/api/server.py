@@ -807,7 +807,6 @@ app = create_app()
 
 
 if __name__ == "__main__":
-    import os
     import uvicorn
 
     # Use environment variable for host binding; 127.0.0.1 for local dev, 0.0.0.0 for production behind reverse proxy

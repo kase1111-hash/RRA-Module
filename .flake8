@@ -1,0 +1,25 @@
+[flake8]
+# Match project's line length
+max-line-length = 100
+
+# Ignore stylistic issues that conflict with Black formatter
+# E501: Line too long (handled by Black)
+# W293: Blank line contains whitespace
+# W291: Trailing whitespace
+# E402: Module level import not at top of file (logger pattern)
+# E203: Whitespace before ':' (Black intentionally does this)
+# W503: Line break before binary operator (Black prefers this)
+# W504: Line break after binary operator (allow both styles)
+# E226: Missing whitespace around arithmetic operator (style preference)
+ignore = E501, W293, W291, E402, E203, W503, W504, E226
+
+# Exclude common directories
+exclude =
+    .git,
+    __pycache__,
+    venv,
+    .venv,
+    build,
+    dist,
+    *.egg-info,
+    node_modules

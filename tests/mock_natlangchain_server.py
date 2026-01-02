@@ -1,6 +1,6 @@
+#!/usr/bin/env python3
 # SPDX-License-Identifier: FSL-1.1-ALv2
 # Copyright 2025 Kase Branham
-#!/usr/bin/env python3
 """
 Mock NatLangChain Server for integration testing.
 
@@ -118,8 +118,7 @@ def mine():
 
 def mine_block():
     """Internal function to mine a block."""
-    global entries, blocks
-
+    # entries and blocks are module-level lists; no 'global' needed for mutating methods
     if not entries:
         return {
             "status": "no_entries",
