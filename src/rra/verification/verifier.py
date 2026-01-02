@@ -285,6 +285,18 @@ class CodeVerifier:
                     "warning": "Test suite too large or slow; consider using --skip-tests",
                 },
             )
+        elif test_result.get("dependency_error"):
+            # Missing dependencies is a warning - repo has tests but can't run without install
+            return CheckResult(
+                name="tests",
+                status=VerificationStatus.WARNING,
+                message=f"Tests need dependencies ({len(test_files)} files, ~{test_count} cases detected)",
+                details={
+                    "test_files": len(test_files),
+                    "test_count": test_count,
+                    "warning": "Install dependencies to run tests; verification based on test structure",
+                },
+            )
         else:
             return CheckResult(
                 name="tests",
@@ -675,9 +687,23 @@ class CodeVerifier:
                     if result.returncode == 0:
                         return {"success": True, "output": result.stdout}
                     else:
+                        error_output = result.stderr or result.stdout
+                        # Check if failure is due to missing dependencies
+                        dependency_errors = [
+                            "ModuleNotFoundError",
+                            "ImportError",
+                            "No module named",
+                            "cannot import name",
+                        ]
+                        if any(err in error_output for err in dependency_errors):
+                            return {
+                                "success": False,
+                                "dependency_error": True,
+                                "error": error_output,
+                            }
                         return {
                             "success": False,
-                            "error": result.stderr or result.stdout,
+                            "error": error_output,
                         }
                 except subprocess.TimeoutExpired:
                     return {"success": False, "timeout": True, "error": "Test execution timed out"}
