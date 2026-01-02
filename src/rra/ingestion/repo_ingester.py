@@ -55,6 +55,7 @@ class RepoIngester:
         generate_blockchain_links: bool = True,
         owner_address: Optional[str] = None,
         network: str = "testnet",
+        test_timeout: int = 300,
     ):
         """
         Initialize the RepoIngester.
@@ -66,6 +67,7 @@ class RepoIngester:
             generate_blockchain_links: Whether to generate blockchain links
             owner_address: Ethereum address for blockchain registration
             network: Blockchain network ("mainnet", "testnet", "localhost")
+            test_timeout: Timeout in seconds for test execution
         """
         self.workspace_dir = workspace_dir
         self.workspace_dir.mkdir(parents=True, exist_ok=True)
@@ -74,6 +76,7 @@ class RepoIngester:
         self.generate_blockchain_links = generate_blockchain_links
         self.owner_address = owner_address
         self.network = network
+        self.test_timeout = test_timeout
 
         # Initialize verification and categorization modules
         self._verifier = None
@@ -87,7 +90,7 @@ class RepoIngester:
         if self._verifier is None:
             from rra.verification.verifier import CodeVerifier
 
-            self._verifier = CodeVerifier()
+            self._verifier = CodeVerifier(timeout=self.test_timeout)
         return self._verifier
 
     @property

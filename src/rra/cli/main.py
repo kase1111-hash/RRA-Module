@@ -132,6 +132,12 @@ def init(
     default="testnet",
     help="Blockchain network",
 )
+@click.option(
+    "--timeout",
+    type=int,
+    default=300,
+    help="Timeout in seconds for test execution (default: 300)",
+)
 def ingest(
     repo_url: str,
     workspace: Path,
@@ -140,6 +146,7 @@ def ingest(
     categorize: bool,
     wallet: Optional[str],
     network: str,
+    timeout: int,
 ):
     """
     Ingest a repository and generate its knowledge base.
@@ -165,6 +172,7 @@ def ingest(
                 generate_blockchain_links=bool(wallet),
                 owner_address=wallet,
                 network=network,
+                test_timeout=timeout,
             )
             kb = ingester.ingest(repo_url, force_refresh=force)
 
@@ -571,7 +579,13 @@ def resolve(repo_id: str):
     default=Path("./cloned_repos"),
     help="Directory for cloned repos",
 )
-def verify(repo_url: str, skip_tests: bool, skip_security: bool, workspace: Path):
+@click.option(
+    "--timeout",
+    type=int,
+    default=300,
+    help="Timeout in seconds for test execution (default: 300)",
+)
+def verify(repo_url: str, skip_tests: bool, skip_security: bool, workspace: Path, timeout: int):
     """
     Verify a GitHub repository's code quality.
 
@@ -602,7 +616,7 @@ def verify(repo_url: str, skip_tests: bool, skip_security: bool, workspace: Path
         # Run verification
         console.print("\n[bold]Running verification checks...[/bold]\n")
 
-        verifier = CodeVerifier(skip_tests=skip_tests, skip_security=skip_security)
+        verifier = CodeVerifier(timeout=timeout, skip_tests=skip_tests, skip_security=skip_security)
 
         readme_content = kb.documentation.get("README.md", "")
 
