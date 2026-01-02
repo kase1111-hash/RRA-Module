@@ -82,10 +82,16 @@ class CodeVerifier:
     """
 
     # Common security patterns to check for
+    # Note: Patterns are designed to minimize false positives from:
+    # - Enum/constant definitions (UPPER_CASE = "value")
+    # - Type hints and token type names
+    # - Test fixtures (handled by skipping test files)
     SECURITY_PATTERNS = {
         "hardcoded_secrets": [
-            r'(?i)(password|secret|api_key|token|credential)\s*=\s*["\'][^"\']+["\']',
-            r"(?i)aws_secret_access_key\s*=",
+            # Match lowercase variable assignments that look like real secrets
+            # Excludes UPPER_CASE enum definitions and type hints
+            r'(?<![A-Z_])(password|api_key|api_secret|private_key|secret_key)\s*=\s*["\'][a-zA-Z0-9_\-]{8,}["\']',
+            r"(?i)aws_secret_access_key\s*=\s*['\"][A-Za-z0-9/+=]{20,}['\"]",
             r"-----BEGIN (RSA |DSA |EC )?PRIVATE KEY-----",
         ],
         "sql_injection": [
@@ -351,9 +357,13 @@ class CodeVerifier:
             if file_path.suffix not in code_extensions:
                 continue
             if any(
-                part.startswith(".") or part in {"node_modules", "venv", "__pycache__"}
+                part.startswith(".")
+                or part in {"node_modules", "venv", "__pycache__", "tests", "test", "docs"}
                 for part in file_path.parts
             ):
+                continue
+            # Skip test files (they often have mock credentials)
+            if file_path.name.startswith("test_") or file_path.name.endswith("_test.py"):
                 continue
 
             files_scanned += 1
