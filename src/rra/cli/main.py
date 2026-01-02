@@ -138,6 +138,11 @@ def init(
     default=300,
     help="Timeout in seconds for test execution (default: 300)",
 )
+@click.option(
+    "--auto-install-deps",
+    is_flag=True,
+    help="Automatically install dependencies in temp environment for testing",
+)
 def ingest(
     repo_url: str,
     workspace: Path,
@@ -147,6 +152,7 @@ def ingest(
     wallet: Optional[str],
     network: str,
     timeout: int,
+    auto_install_deps: bool,
 ):
     """
     Ingest a repository and generate its knowledge base.
@@ -173,6 +179,7 @@ def ingest(
                 owner_address=wallet,
                 network=network,
                 test_timeout=timeout,
+                auto_install_deps=auto_install_deps,
             )
             kb = ingester.ingest(repo_url, force_refresh=force)
 
@@ -585,7 +592,12 @@ def resolve(repo_id: str):
     default=300,
     help="Timeout in seconds for test execution (default: 300)",
 )
-def verify(repo_url: str, skip_tests: bool, skip_security: bool, workspace: Path, timeout: int):
+@click.option(
+    "--auto-install-deps",
+    is_flag=True,
+    help="Automatically install dependencies in temp environment for testing",
+)
+def verify(repo_url: str, skip_tests: bool, skip_security: bool, workspace: Path, timeout: int, auto_install_deps: bool):
     """
     Verify a GitHub repository's code quality.
 
@@ -616,7 +628,12 @@ def verify(repo_url: str, skip_tests: bool, skip_security: bool, workspace: Path
         # Run verification
         console.print("\n[bold]Running verification checks...[/bold]\n")
 
-        verifier = CodeVerifier(timeout=timeout, skip_tests=skip_tests, skip_security=skip_security)
+        verifier = CodeVerifier(
+            timeout=timeout,
+            skip_tests=skip_tests,
+            skip_security=skip_security,
+            auto_install_deps=auto_install_deps,
+        )
 
         readme_content = kb.documentation.get("README.md", "")
 
