@@ -16,7 +16,7 @@ from dataclasses import dataclass
 
 from fastapi import WebSocket
 
-from rra.status.dreaming import get_dreaming_status, StatusEntry, StatusType
+from rra.status.dreaming import get_dreaming_status, StatusEntry
 
 logger = logging.getLogger(__name__)
 

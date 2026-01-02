@@ -11,7 +11,6 @@ Provides REST API endpoints for:
 """
 
 from typing import Optional, List, Dict, Any
-from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query, Depends, BackgroundTasks
 from pydantic import BaseModel, Field

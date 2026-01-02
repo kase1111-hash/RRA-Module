@@ -10,17 +10,15 @@ Provides:
 - Fallback chain support
 """
 
-import os
 import time
 import asyncio
 import json
 import logging
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, Generic, List, Optional, Tuple, TypeVar, Union, Awaitable
+from typing import Any, Callable, Dict, Generic, List, Optional, Tuple, TypeVar
 from functools import wraps
 
 logger = logging.getLogger(__name__)
@@ -466,7 +464,7 @@ class ResilientClient(Generic[T]):
                 if attempt < self.retry_config.max_retries:
                     # Try fallback URL
                     if self._switch_to_fallback():
-                        logger.info(f"Retrying with fallback URL")
+                        logger.info("Retrying with fallback URL")
                         continue
 
                     delay = calculate_delay(attempt, self.retry_config)
@@ -518,7 +516,7 @@ class ResilientClient(Generic[T]):
                 if attempt < self.retry_config.max_retries:
                     # Try fallback URL
                     if self._switch_to_fallback():
-                        logger.info(f"Retrying with fallback URL")
+                        logger.info("Retrying with fallback URL")
                         continue
 
                     delay = calculate_delay(attempt, self.retry_config)

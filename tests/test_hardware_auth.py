@@ -506,7 +506,7 @@ class TestIntegration:
 
         # 5. Create challenge for action
         action_hash = os.urandom(32)
-        challenge = webauthn_client.create_challenge(action_hash)
+        webauthn_client.create_challenge(action_hash)
 
         # 6. Prepare ZK inputs
         zk_inputs = identity.prepare_zk_inputs(

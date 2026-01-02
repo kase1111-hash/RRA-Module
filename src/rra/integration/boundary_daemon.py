@@ -31,10 +31,7 @@ import uuid
 from contextlib import contextmanager
 
 try:
-    from cryptography.hazmat.primitives.asymmetric.ed25519 import (
-        Ed25519PrivateKey,
-        Ed25519PublicKey,
-    )
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
     from cryptography.hazmat.primitives import serialization
 
     HAS_CRYPTO = True
@@ -298,17 +295,17 @@ class BoundaryEvent:
             f"act={self.action}",
             f"outcome={self.outcome}",
             f"cs1={self.mode.value}",
-            f"cs1Label=BoundaryMode",
+            "cs1Label=BoundaryMode",
         ]
 
         if self.principal_id:
             extensions.append(f"suser={self.principal_id}")
         if self.resource_type:
             extensions.append(f"cs2={self.resource_type}")
-            extensions.append(f"cs2Label=ResourceType")
+            extensions.append("cs2Label=ResourceType")
         if self.resource_id:
             extensions.append(f"cs3={self.resource_id}")
-            extensions.append(f"cs3Label=ResourceId")
+            extensions.append("cs3Label=ResourceId")
 
         return (
             f"CEF:0|NatLangChain|RRA-Module|0.1.0|{self.event_type}|"
@@ -477,7 +474,7 @@ class AccessPolicy:
                 if isinstance(expected, dict):
                     if "min" in expected:
                         # Type-safe comparison
-                        if type(actual) != type(expected["min"]):
+                        if type(actual) is not type(expected["min"]):
                             logger.warning(
                                 f"Type mismatch in condition '{key}': {type(actual)} vs {type(expected['min'])}"
                             )
@@ -485,7 +482,7 @@ class AccessPolicy:
                         if actual < expected["min"]:
                             return False
                     if "max" in expected:
-                        if type(actual) != type(expected["max"]):
+                        if type(actual) is not type(expected["max"]):
                             logger.warning(
                                 f"Type mismatch in condition '{key}': {type(actual)} vs {type(expected['max'])}"
                             )
@@ -702,7 +699,7 @@ class DaemonConnection:
         # Try Unix socket first
         if os.path.exists(self.socket_path):
             try:
-                with self._create_socket_connection() as sock:
+                with self._create_socket_connection():
                     return True
             except Exception:
                 pass
@@ -1662,19 +1659,19 @@ class BoundaryDaemon:
     def get_access_stats(self) -> Dict[str, Any]:
         """Get access control statistics."""
         recent_logs = [
-            l for l in self.access_logs if l.timestamp > datetime.now() - timedelta(hours=24)
+            log for log in self.access_logs if log.timestamp > datetime.now() - timedelta(hours=24)
         ]
 
         return {
             "total_policies": len(self.policies),
-            "active_policies": len([p for p in self.policies.values() if p.is_valid]),
+            "active_policies": len([pol for pol in self.policies.values() if pol.is_valid]),
             "total_principals": len(self.principals),
-            "active_principals": len([p for p in self.principals.values() if p.active]),
+            "active_principals": len([pri for pri in self.principals.values() if pri.active]),
             "total_tokens": len(self.tokens),
-            "valid_tokens": len([t for t in self.tokens.values() if t.is_valid]),
+            "valid_tokens": len([tok for tok in self.tokens.values() if tok.is_valid]),
             "access_logs_24h": len(recent_logs),
-            "granted_24h": len([l for l in recent_logs if l.granted]),
-            "denied_24h": len([l for l in recent_logs if not l.granted]),
+            "granted_24h": len([log for log in recent_logs if log.granted]),
+            "denied_24h": len([log for log in recent_logs if not log.granted]),
         }
 
     # =========================================================================

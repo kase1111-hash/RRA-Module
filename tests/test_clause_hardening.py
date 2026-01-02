@@ -14,21 +14,16 @@ Tests cover:
 """
 
 import pytest
-from decimal import Decimal
 
 from src.rra.negotiation.clause_hardener import (
     ClauseHardener,
     HardeningLevel,
-    HardeningStrategy,
-    HardeningRule,
     HardeningResult,
-    HardeningSession,
     HardeningPipeline,
 )
 from src.rra.templates.hardened_clauses import (
     ClauseTemplate,
     TemplateCategory,
-    TemplateLibrary,
     TemplateParameter,
     LicenseType,
     get_default_library,

@@ -18,9 +18,8 @@ import pytest
 import asyncio
 import tempfile
 import shutil
-import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock, patch
 from datetime import datetime
 
 
@@ -253,7 +252,7 @@ class TestEndToEndGitHubFlow:
 
             assert success is True
             assert "entry" in result
-            print(f"  ✓ Transaction posted successfully")
+            print("  ✓ Transaction posted successfully")
             print(f"  ✓ Entry ID: {result['entry']['id']}")
             print(f"  ✓ Block hash: {result['entry']['block_hash']}")
 
@@ -310,10 +309,7 @@ class TestEndToEndGitHubFlow:
 
         from rra.config.environment import (
             Environment,
-            get_config,
             reload_config,
-            is_development,
-            is_production,
         )
 
         # Test development config
@@ -349,7 +345,7 @@ class TestEndToEndGitHubFlow:
 
             api_key = env_backend.get("API_KEY")
             assert api_key == "secret-api-key"
-            print(f"  ✓ Environment secrets: API_KEY retrieved")
+            print("  ✓ Environment secrets: API_KEY retrieved")
 
         # Test file backend
         secrets_dir = Path(temp_dir) / "secrets"
@@ -359,7 +355,7 @@ class TestEndToEndGitHubFlow:
         file_backend = FileSecretsBackend(str(secrets_dir))
         db_pass = file_backend.get("database_password")
         assert db_pass == "db-pass-456"
-        print(f"  ✓ File secrets: database_password retrieved")
+        print("  ✓ File secrets: database_password retrieved")
 
         # Test secrets manager with caching
         manager = SecretsManager(backend=env_backend)
@@ -369,7 +365,7 @@ class TestEndToEndGitHubFlow:
             # Second call (should use cache)
             val2 = manager.get("CACHED_SECRET")
             assert val1 == val2
-            print(f"  ✓ Secrets caching works")
+            print("  ✓ Secrets caching works")
 
     def test_full_e2e_flow(self, temp_dir, mock_github_repo, mock_knowledge_base):
         """Run complete end-to-end flow."""

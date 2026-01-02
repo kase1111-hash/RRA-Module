@@ -258,7 +258,7 @@ def deploy_l3_rollup(
 
     contract_address = receipt["contractAddress"]
     print(f"\n{'='*60}")
-    print(f"L3DisputeRollup deployed successfully!")
+    print("L3DisputeRollup deployed successfully!")
     print(f"Contract address: {contract_address}")
     print(f"Transaction hash: {tx_hash.hex()}")
     print(f"Gas used: {receipt['gasUsed']}")
@@ -335,12 +335,12 @@ def verify_contract(
 
     # In a real implementation, this would call the explorer API
     # For now, print instructions
-    print(f"\nTo verify manually, run:")
-    print(f"  forge verify-contract \\")
+    print("\nTo verify manually, run:")
+    print("  forge verify-contract \\")
     print(f"    --chain-id {config.chain_id} \\")
     print(f"    --constructor-args $(cast abi-encode 'constructor(address,address)' {constructor_args[0]} {constructor_args[1]}) \\")
     print(f"    {contract_address} \\")
-    print(f"    contracts/src/L3DisputeRollup.sol:L3DisputeRollup")
+    print("    contracts/src/L3DisputeRollup.sol:L3DisputeRollup")
 
     return False
 

@@ -10,9 +10,9 @@ Provides REST API endpoints for:
 - QR code generation
 """
 
-from typing import Optional, List
+from typing import Optional
 from fastapi import APIRouter, HTTPException, Query, Depends
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel
 
 from rra.api.auth import verify_api_key, optional_api_key
 from rra.services.deep_links import DeepLinkService
@@ -188,7 +188,7 @@ async def generate_badge(
     """
     from urllib.parse import quote
 
-    agent_url = link_service.get_agent_url(request.repo_url)
+    link_service.get_agent_url(request.repo_url)
     badge_url = (
         f"https://img.shields.io/badge/{quote(request.label)}-RRA-blue?style={request.style}"
     )

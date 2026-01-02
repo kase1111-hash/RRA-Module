@@ -16,30 +16,18 @@ Tests multi-treasury dispute resolution:
 
 import pytest
 from datetime import datetime, timedelta
-from pathlib import Path
-import tempfile
 
 from rra.treasury.coordinator import (
-    TreasuryCoordinator,
-    TreasuryConfig,
-    Treasury,
     TreasuryType,
-    TreasuryDispute,
     DisputeStatus,
-    Proposal,
     ProposalType,
-    ProposalStatus,
     VoteChoice,
     create_treasury_coordinator,
 )
 from rra.governance.treasury_votes import (
-    TreasuryVotingManager,
     TreasuryVoteType,
     TreasuryVoteStatus,
     VoteChoice as VotingChoice,
-    TreasuryVote,
-    TreasuryProposal,
-    VotingTreasury,
     create_treasury_voting_manager,
 )
 
@@ -563,7 +551,6 @@ class TestTreasuryVotingManager:
 
     def test_finalize_proposal(self, voting_manager):
         """Test finalizing a proposal."""
-        from datetime import datetime, timedelta
 
         treasury = voting_manager.register_treasury(
             name="Treasury",
@@ -856,7 +843,7 @@ class TestTreasuryIntegration:
                           "0x2222222222222222222222222222222222222222")
 
         # Proposal from Treasury 1
-        proposal1 = coordinator.create_proposal(
+        coordinator.create_proposal(
             dispute_id=dispute.dispute_id,
             treasury_id=treasury1.treasury_id,
             proposal_type=ProposalType.FUND_DISTRIBUTION,

@@ -142,7 +142,7 @@ class MarketConfig(BaseModel):
         # Basic validation - should contain amount and currency
         parts = v.strip().split()
         if len(parts) != 2:
-            raise ValueError(f"Price must be in format '<amount> <currency>' (e.g., '0.05 ETH')")
+            raise ValueError("Price must be in format '<amount> <currency>' (e.g., '0.05 ETH')")
 
         try:
             amount = float(parts[0])

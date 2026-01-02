@@ -29,7 +29,7 @@ Example Flow:
 import os
 import re
 import threading
-from enum import Enum, auto
+from enum import Enum
 from typing import Dict, Any, Optional, List, Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -611,7 +611,7 @@ class TransactionConfirmation:
         logs = self.audit_log
 
         if transaction_id:
-            logs = [l for l in logs if l.get("transaction_id") == transaction_id]
+            logs = [log for log in logs if log.get("transaction_id") == transaction_id]
 
         return logs[-limit:]
 

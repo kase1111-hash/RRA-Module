@@ -236,7 +236,7 @@ class LicenseVerifier:
 
         license_ok = self.verify_license_file()
         sources_ok = self.verify_source_files()
-        docs_ok = self.verify_documentation()
+        self.verify_documentation()
 
         self.print_summary()
 

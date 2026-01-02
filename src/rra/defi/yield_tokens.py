@@ -793,7 +793,7 @@ class StakingManager:
             }
 
             self.distributor.distribution_history = state.get("distribution_history", [])
-        except (json.JSONDecodeError, KeyError) as e:
+        except (json.JSONDecodeError, KeyError):
             # Start fresh if state is corrupted
             self.pools = {}
             self.stakes = {}

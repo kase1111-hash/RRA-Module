@@ -12,7 +12,6 @@ Provides decentralized identity authentication for RRA:
 - Integration with Sybil resistance scoring
 """
 
-import asyncio
 import hashlib
 import hmac
 import secrets
@@ -22,7 +21,7 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
-from ..identity.did_resolver import DIDResolver, DIDDocument, VerificationMethod
+from ..identity.did_resolver import DIDResolver
 from ..identity.sybil_resistance import SybilResistance, IdentityScore
 
 
@@ -509,12 +508,12 @@ class DIDAuthenticator:
                 payload_parts = payload.split("|")
                 if len(payload_parts) != 3:
                     raise ValueError("Invalid payload structure")
-                session_id, did, expires_ts = (
+                session_id, _did, expires_ts = (
                     payload_parts[0],
                     payload_parts[1],
                     int(payload_parts[2]),
                 )
-            except (ValueError, UnicodeDecodeError) as e:
+            except (ValueError, UnicodeDecodeError):
                 return AuthResult(
                     success=False,
                     error="Invalid token payload",

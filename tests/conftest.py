@@ -7,7 +7,7 @@ Pytest configuration and shared fixtures for RRA tests.
 import os
 import hashlib
 from typing import Dict, Any, Optional, List
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock
 from dataclasses import dataclass, field
 
 import pytest

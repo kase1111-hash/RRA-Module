@@ -2,13 +2,11 @@
 # Copyright 2025 Kase Branham
 """Tests for Webhook Bridge infrastructure."""
 
-import pytest
 import json
 import hmac
 import hashlib
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from datetime import datetime, timedelta
 
 from rra.security.webhook_auth import (
     WebhookSecurity,
@@ -246,7 +244,7 @@ class TestComputeSignature:
             creds_path = Path(tmpdir) / "creds.json"
             security = WebhookSecurity(credentials_path=creds_path)
 
-            creds = security.generate_credentials("test_agent")
+            security.generate_credentials("test_agent")
 
             payload = {"key": "value"}
             sig = security.compute_signature("test_agent", payload)

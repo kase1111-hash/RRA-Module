@@ -3,7 +3,6 @@
 """Tests for Superfluid streaming payments integration."""
 
 import pytest
-import asyncio
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from datetime import datetime, timedelta

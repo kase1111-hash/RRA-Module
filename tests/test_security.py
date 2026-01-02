@@ -15,11 +15,9 @@ Tests for OWASP Top 10 and common vulnerabilities:
 """
 
 import pytest
-import re
 import time
 import hashlib
 from pathlib import Path
-from unittest.mock import patch, MagicMock
 from rra.exceptions import ValidationError
 
 

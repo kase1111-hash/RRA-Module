@@ -18,20 +18,18 @@ The sequencer is responsible for:
 4. Committing batches to L2
 """
 
-import asyncio
 import hashlib
 import heapq
 import secrets
 import time
-from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, List, Optional
 
 from eth_utils import keccak
 
-from .batch_processor import BatchProcessor, BatchConfig, BatchResult
+from .batch_processor import BatchProcessor, BatchResult
 
 
 class TransactionType(Enum):
@@ -438,7 +436,7 @@ class DisputeSequencer:
             tx.error = "Invalid payload length"
             return
 
-        dispute_id = int.from_bytes(tx.payload[0:32], "big")
+        int.from_bytes(tx.payload[0:32], "big")
         resolution = tx.payload[32:]
 
         tx.result = resolution

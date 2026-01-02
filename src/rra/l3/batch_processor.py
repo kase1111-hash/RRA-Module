@@ -17,8 +17,6 @@ Throughput targets:
 - Batched L2 commitments every 100 blocks
 """
 
-import hashlib
-import secrets
 import time
 from collections import deque
 from dataclasses import dataclass, field

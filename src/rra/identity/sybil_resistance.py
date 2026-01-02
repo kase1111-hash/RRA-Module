@@ -34,8 +34,6 @@ Usage:
     voting_weight = score.voting_weight
 """
 
-import hashlib
-import asyncio
 import os
 import logging
 from enum import Enum

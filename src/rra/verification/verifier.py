@@ -670,7 +670,7 @@ class CodeVerifier:
                     return {"success": False, "error": "Test execution timed out"}
                 except FileNotFoundError:
                     continue  # Try next command
-                except Exception as e:
+                except Exception:
                     continue
 
         return {"success": True, "skipped": True}  # No test runner found

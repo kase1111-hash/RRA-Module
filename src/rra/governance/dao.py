@@ -10,7 +10,7 @@ through voting mechanisms and treasury management.
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Dict, List, Optional, Any, Callable
+from typing import Dict, List, Optional, Any
 from pathlib import Path
 import json
 import secrets
@@ -615,7 +615,7 @@ class DAOGovernanceManager:
 
         elif proposal.proposal_type == ProposalType.TREASURY_SPEND:
             amount = proposal.data.get("amount", 0)
-            recipient = proposal.data.get("recipient")
+            proposal.data.get("recipient")
             if amount > 0 and amount <= dao.treasury_balance:
                 dao.treasury_balance -= amount
                 # In production, would transfer to recipient

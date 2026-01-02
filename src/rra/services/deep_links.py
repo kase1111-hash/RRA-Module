@@ -16,7 +16,6 @@ Provides URL generation and resolution for:
 
 import hashlib
 import json
-import base64
 from pathlib import Path
 from typing import Optional, Dict, Any
 from datetime import datetime

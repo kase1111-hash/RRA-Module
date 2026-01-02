@@ -18,12 +18,9 @@ import sys
 import json
 import random
 import time
-import asyncio
-import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Any
 from enum import Enum
 
 # Add src to path
@@ -273,7 +270,6 @@ class TransactionSimulator:
         shared_agent = create_test_agent("1.0 ETH", "0.1 ETH")
 
         results = []
-        errors = []
 
         def concurrent_negotiate(buyer_id: int):
             """Simulate concurrent buyer."""
@@ -292,7 +288,7 @@ class TransactionSimulator:
 
         # Analyze results for race conditions
         phase_changes = [r for r in results if "phase" in str(r.get("response", "")).lower()]
-        errors = [r for r in results if not r["success"]]
+        [r for r in results if not r["success"]]
 
         # Create test records
         for i, result in enumerate(results):
@@ -470,12 +466,10 @@ class TransactionSimulator:
         }
 
         # Track phase changes
-        max_iterations = 20
-        iteration = 0
 
         if action == "immediate_agreement":
             # Try to jump directly to agreement
-            response = agent.respond("I agree to buy now!")
+            agent.respond("I agree to buy now!")
             phase = agent.current_phase if hasattr(agent, 'current_phase') else NegotiationPhase.INTRODUCTION
 
             # Check if we skipped required phases

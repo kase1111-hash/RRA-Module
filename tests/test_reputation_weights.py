@@ -15,23 +15,14 @@ Tests reputation-based voting:
 
 import pytest
 from datetime import datetime, timedelta
-from pathlib import Path
 
 from rra.reputation.weighted import (
     ReputationAction,
-    ReputationChange,
-    ParticipantReputation,
-    VotingPower,
-    ReputationConfig,
-    ReputationManager,
     create_reputation_manager,
 )
 from rra.governance.rep_voting import (
     ProposalStatus,
     VoteChoice,
-    WeightedVote,
-    RepWeightedProposal,
-    RepWeightedGovernance,
     create_rep_weighted_governance,
 )
 

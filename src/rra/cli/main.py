@@ -24,7 +24,6 @@ from rich.markdown import Markdown
 from rra import __version__
 from rra.config.market_config import (
     MarketConfig,
-    create_default_config,
     LicenseModel,
     NegotiationStyle,
 )
@@ -241,7 +240,7 @@ def agent(kb_path: Path, interactive: bool, simulate: bool):
     from rra.ingestion.knowledge_base import KnowledgeBase
 
     console.print(
-        Panel.fit(f"[bold blue]Starting Negotiation Agent[/bold blue]", border_style="blue")
+        Panel.fit("[bold blue]Starting Negotiation Agent[/bold blue]", border_style="blue")
     )
 
     try:
@@ -295,7 +294,7 @@ def agent(kb_path: Path, interactive: bool, simulate: bool):
 
             # Show summary
             summary = negotiator.get_negotiation_summary()
-            console.print(f"\n[bold]Negotiation Summary:[/bold]")
+            console.print("\n[bold]Negotiation Summary:[/bold]")
             console.print(f"Phase: {summary['phase']}")
             console.print(f"Messages: {summary['message_count']}")
 
@@ -467,7 +466,7 @@ def links(repo_url: str, output_format: str, register: bool):
     # Register if requested
     if register:
         service.register_repo(repo_url)
-        console.print(f"[green]✓[/green] Repository registered for permanent linking\n")
+        console.print("[green]✓[/green] Repository registered for permanent linking\n")
 
     # Get all links
     all_links = service.get_all_links(repo_url)
@@ -820,7 +819,6 @@ def categorize(repo_url: str, workspace: Path):
     - Technologies used
     - Frameworks detected
     """
-    from rra.verification.categorizer import CodeCategorizer
 
     console.print(
         Panel.fit(
@@ -861,12 +859,12 @@ def categorize(repo_url: str, workspace: Path):
         )
 
         if category.get("technologies"):
-            console.print(f"\n[bold]Technologies:[/bold]")
+            console.print("\n[bold]Technologies:[/bold]")
             for tech in category.get("technologies", []):
                 console.print(f"  • {tech}")
 
         if category.get("frameworks"):
-            console.print(f"\n[bold]Frameworks:[/bold]")
+            console.print("\n[bold]Frameworks:[/bold]")
             for framework in category.get("frameworks", []):
                 console.print(f"  • {framework}")
 
@@ -906,7 +904,7 @@ def dreaming(history: int):
     # Show active operations
     active = dreaming_status.get_active_operations()
     if active:
-        console.print(f"\n[bold]Active Operations:[/bold]")
+        console.print("\n[bold]Active Operations:[/bold]")
         for op in active:
             console.print(f"  [blue]•[/blue] {op}")
 
@@ -1051,7 +1049,7 @@ def register(
         else:
             rpc_url = "http://localhost:8545"
 
-    console.print(f"\n[bold]Configuration:[/bold]")
+    console.print("\n[bold]Configuration:[/bold]")
     console.print(f"  Network: [cyan]{network}[/cyan]")
     console.print(f"  RPC URL: {rpc_url}")
     console.print(f"  Owner:   {wallet}")
@@ -1095,7 +1093,7 @@ def register(
                 description=description or raw_config.get("description", f"Repository: {repo_url}"),
             )
 
-            console.print(f"\n[bold]PIL Terms from .market.yaml:[/bold]")
+            console.print("\n[bold]PIL Terms from .market.yaml:[/bold]")
             console.print(f"  Commercial Use:   {'✓' if market_config.pil_commercial_use else '✗'}")
             console.print(
                 f"  Derivatives:      {'✓' if market_config.pil_derivatives_allowed else '✗'}"
@@ -1154,8 +1152,8 @@ def register(
             )
 
         if result.get("status") == "success":
-            console.print(f"\n[green]✓ IP Asset Registered Successfully![/green]")
-            console.print(f"\n[bold]Registration Details:[/bold]")
+            console.print("\n[green]✓ IP Asset Registered Successfully![/green]")
+            console.print("\n[bold]Registration Details:[/bold]")
             console.print(f"  IP Asset ID: [cyan]{result['ip_asset_id']}[/cyan]")
             console.print(f"  TX Hash:     {result['tx_hash']}")
             console.print(f"  Block:       {result['block_number']}")
@@ -1184,7 +1182,7 @@ def register(
                     with open(config_path, "w") as f:
                         yaml.dump(raw_config, f, default_flow_style=False, sort_keys=False)
 
-                console.print(f"[green]✓[/green] Updated .market.yaml with IP Asset ID")
+                console.print("[green]✓[/green] Updated .market.yaml with IP Asset ID")
 
             # Show explorer link
             if network == "mainnet":
@@ -1192,7 +1190,7 @@ def register(
             else:
                 explorer = f"https://aeneid.storyscan.xyz/ip-asset/{result['ip_asset_id']}"
 
-            console.print(f"\n[bold]View on Explorer:[/bold]")
+            console.print("\n[bold]View on Explorer:[/bold]")
             console.print(f"  {explorer}")
 
         else:
@@ -1206,7 +1204,7 @@ def register(
         sys.exit(1)
 
 
-@story.command()
+@story.command("info")
 @click.argument("ip_asset_id")
 @click.option(
     "--network",
@@ -1215,7 +1213,7 @@ def register(
     help="Network to query",
 )
 @click.option("--rpc-url", envvar="STORY_RPC_URL", help="RPC endpoint URL")
-def info(ip_asset_id: str, network: str, rpc_url: Optional[str]):
+def story_info(ip_asset_id: str, network: str, rpc_url: Optional[str]):
     """
     Get information about an IP Asset on Story Protocol.
 
@@ -1247,13 +1245,13 @@ def info(ip_asset_id: str, network: str, rpc_url: Optional[str]):
         with console.status("[bold blue]Fetching IP Asset info...", spinner="dots"):
             asset_info = manager.story_client.get_ip_asset_info(ip_asset_id)
 
-        console.print(f"\n[bold]IP Asset Details:[/bold]")
+        console.print("\n[bold]IP Asset Details:[/bold]")
         console.print(f"  ID:       [cyan]{ip_asset_id}[/cyan]")
         console.print(f"  Owner:    {asset_info.get('owner', 'Unknown')}")
         console.print(f"  Active:   {'✓' if asset_info.get('is_active') else '✗'}")
 
         if asset_info.get("metadata"):
-            console.print(f"\n[bold]Metadata:[/bold]")
+            console.print("\n[bold]Metadata:[/bold]")
             for key, value in asset_info.get("metadata", {}).items():
                 console.print(f"  {key}: {value}")
 
@@ -1261,7 +1259,7 @@ def info(ip_asset_id: str, network: str, rpc_url: Optional[str]):
         with console.status("[bold blue]Fetching royalty info...", spinner="dots"):
             royalty_stats = manager.get_royalty_stats(ip_asset_id)
 
-        console.print(f"\n[bold]Royalty Information:[/bold]")
+        console.print("\n[bold]Royalty Information:[/bold]")
         console.print(f"  Royalty Rate:    {royalty_stats.get('royalty_percentage', 0):.1f}%")
         console.print(f"  Total Collected: {royalty_stats.get('total_collected_eth', 0):.4f} ETH")
 
@@ -1269,7 +1267,7 @@ def info(ip_asset_id: str, network: str, rpc_url: Optional[str]):
         with console.status("[bold blue]Fetching derivatives...", spinner="dots"):
             derivatives = manager.get_repository_derivatives(ip_asset_id)
 
-        console.print(f"\n[bold]Derivatives:[/bold]")
+        console.print("\n[bold]Derivatives:[/bold]")
         console.print(f"  Count: {derivatives.get('derivative_count', 0)}")
 
         if derivatives.get("derivatives"):
@@ -1320,12 +1318,12 @@ def royalties(ip_asset_id: str, network: str, rpc_url: Optional[str]):
         with console.status("[bold blue]Fetching royalty stats...", spinner="dots"):
             stats = manager.get_royalty_stats(ip_asset_id)
 
-        console.print(f"\n[bold]Royalty Overview:[/bold]")
+        console.print("\n[bold]Royalty Overview:[/bold]")
         console.print(f"  IP Asset ID:     [cyan]{ip_asset_id}[/cyan]")
         console.print(f"  Royalty Rate:    {stats.get('royalty_percentage', 0):.1f}%")
         console.print(f"  Payment Token:   {stats.get('payment_token', 'ETH')}")
 
-        console.print(f"\n[bold]Earnings:[/bold]")
+        console.print("\n[bold]Earnings:[/bold]")
         console.print(
             f"  Total Collected: [green]{stats.get('total_collected_eth', 0):.6f} ETH[/green]"
         )

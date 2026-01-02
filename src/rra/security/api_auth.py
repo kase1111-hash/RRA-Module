@@ -16,10 +16,9 @@ import json
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
 from pathlib import Path
-from functools import wraps
 
-from fastapi import HTTPException, Security, Depends, Request
-from fastapi.security import APIKeyHeader, HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import HTTPException, Security, Depends
+from fastapi.security import APIKeyHeader, HTTPBearer
 
 
 # =============================================================================

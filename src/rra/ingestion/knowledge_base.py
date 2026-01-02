@@ -15,7 +15,7 @@ import logging
 from pathlib import Path
 from typing import Optional, Dict, List, Any
 from datetime import datetime
-from dataclasses import dataclass, asdict, field
+from dataclasses import dataclass, field
 
 from rra.config.market_config import MarketConfig
 

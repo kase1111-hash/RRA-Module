@@ -27,9 +27,6 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from eth_utils import keccak
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization
 
 
 # BN254/BN128 curve parameters (used in Ethereum ZK applications)

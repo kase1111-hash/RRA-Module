@@ -6,7 +6,6 @@ Tests for the verification module.
 Tests code verification, README parsing, categorization, and blockchain link generation.
 """
 
-import pytest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -244,7 +243,7 @@ class TestCodeCategorizer:
 
     def test_categorize_python_library(self):
         """Test categorization of a Python library."""
-        from rra.verification.categorizer import CodeCategorizer, CodeCategory
+        from rra.verification.categorizer import CodeCategorizer
 
         categorizer = CodeCategorizer()
 
@@ -494,7 +493,7 @@ class TestIntegration:
 
     def test_full_verification_flow(self):
         """Test complete verification flow with all components."""
-        from rra.verification.verifier import CodeVerifier, VerificationStatus
+        from rra.verification.verifier import CodeVerifier
         from rra.verification.readme_parser import ReadmeParser
         from rra.verification.categorizer import CodeCategorizer
         from rra.verification.blockchain_link import BlockchainLinkGenerator

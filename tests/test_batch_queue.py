@@ -14,14 +14,10 @@ Tests:
 
 import pytest
 import os
-from datetime import datetime
 
 from rra.privacy.batch_queue import (
     BatchQueueClient,
     PrivacyEnhancer,
-    QueuedDispute,
-    QueuedProof,
-    BatchConfig,
     SubmissionStatus,
     create_batch_client,
     create_privacy_enhancer,

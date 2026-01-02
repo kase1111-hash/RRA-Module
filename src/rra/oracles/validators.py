@@ -13,12 +13,11 @@ Provides validation logic for different event types:
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Dict, List, Optional, Any, Callable, Set
+from typing import Dict, List, Optional, Any, Set
 from abc import ABC, abstractmethod
 import hashlib
 import json
 import re
-from pathlib import Path
 
 
 class ValidationResult(Enum):
@@ -98,41 +97,41 @@ class SchemaValidator(EventValidator):
         errors = []
 
         # Check required fields
-        for field in self.required_fields:
-            if field in event_data and event_data[field] is not None:
-                passed.append(f"required_field:{field}")
+        for field_name in self.required_fields:
+            if field_name in event_data and event_data[field_name] is not None:
+                passed.append(f"required_field:{field_name}")
             else:
-                failed.append(f"required_field:{field}")
+                failed.append(f"required_field:{field_name}")
 
         # Check field types
-        for field, type_spec in self.field_types.items():
-            if field in event_data:
+        for field_name, type_spec in self.field_types.items():
+            if field_name in event_data:
                 expected_type = type_spec.get("type")
-                value = event_data[field]
+                value = event_data[field_name]
 
                 if self._check_type(value, expected_type):
-                    passed.append(f"type_check:{field}")
+                    passed.append(f"type_check:{field_name}")
                 else:
-                    failed.append(f"type_check:{field}")
+                    failed.append(f"type_check:{field_name}")
 
                 # Check additional constraints
                 if "minLength" in type_spec and isinstance(value, str):
                     if len(value) >= type_spec["minLength"]:
-                        passed.append(f"min_length:{field}")
+                        passed.append(f"min_length:{field_name}")
                     else:
-                        failed.append(f"min_length:{field}")
+                        failed.append(f"min_length:{field_name}")
 
                 if "maxLength" in type_spec and isinstance(value, str):
                     if len(value) <= type_spec["maxLength"]:
-                        passed.append(f"max_length:{field}")
+                        passed.append(f"max_length:{field_name}")
                     else:
-                        failed.append(f"max_length:{field}")
+                        failed.append(f"max_length:{field_name}")
 
                 if "pattern" in type_spec and isinstance(value, str):
                     if re.match(type_spec["pattern"], value):
-                        passed.append(f"pattern:{field}")
+                        passed.append(f"pattern:{field_name}")
                     else:
-                        failed.append(f"pattern:{field}")
+                        failed.append(f"pattern:{field_name}")
 
         # Calculate confidence
         total = len(passed) + len(failed)

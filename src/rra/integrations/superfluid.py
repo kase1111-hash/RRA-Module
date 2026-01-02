@@ -13,7 +13,6 @@ Superfluid is best deployed on Polygon for low gas costs.
 """
 
 import json
-import asyncio
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -439,12 +438,12 @@ class SuperfluidManager:
 
     def get_stats(self) -> Dict[str, Any]:
         """Get streaming payment statistics."""
-        active = len([l for l in self._licenses.values() if l.status == StreamStatus.ACTIVE])
-        stopped = len([l for l in self._licenses.values() if l.status == StreamStatus.STOPPED])
-        revoked = len([l for l in self._licenses.values() if l.status == StreamStatus.REVOKED])
+        active = len([lic for lic in self._licenses.values() if lic.status == StreamStatus.ACTIVE])
+        stopped = len([lic for lic in self._licenses.values() if lic.status == StreamStatus.STOPPED])
+        revoked = len([lic for lic in self._licenses.values() if lic.status == StreamStatus.REVOKED])
 
         total_monthly_revenue = sum(
-            l.monthly_cost_usd for l in self._licenses.values() if l.status == StreamStatus.ACTIVE
+            lic.monthly_cost_usd for lic in self._licenses.values() if lic.status == StreamStatus.ACTIVE
         )
 
         return {
@@ -470,7 +469,7 @@ class SuperfluidManager:
         Returns:
             Proposal text for negotiation agent
         """
-        flow_rate = self.calculate_flow_rate(monthly_price)
+        self.calculate_flow_rate(monthly_price)
         per_second = monthly_price / self.SECONDS_PER_MONTH
 
         return f"""I can offer a streaming subscription model using Superfluid for {repo_name}:

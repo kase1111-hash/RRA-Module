@@ -32,10 +32,8 @@ import hashlib
 import base64
 import struct
 from typing import Optional, Tuple, Dict, Any, List
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timedelta
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.backends import default_backend
 from eth_utils import keccak
 

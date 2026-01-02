@@ -16,20 +16,16 @@ Part of Phase 6.6: Predictive Dispute Warnings
 
 from typing import List, Optional, Dict, Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from rra.predictions.dispute_warning import (
     DisputeWarningGenerator,
-    DisputeWarning,
-    WarningReport,
     WarningSeverity,
     WarningCategory,
 )
 from rra.analytics.term_analysis import (
     TermAnalyzer,
-    TermAnalysis,
-    TermReport,
     TermRiskLevel,
     TermCategory,
 )

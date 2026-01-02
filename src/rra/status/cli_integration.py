@@ -16,7 +16,6 @@ from rich.console import Console
 from rich.live import Live
 from rich.panel import Panel
 from rich.text import Text
-from rich.spinner import Spinner
 from rich.table import Table
 
 from rra.status.dreaming import get_dreaming_status, StatusEntry, StatusType
@@ -49,7 +48,6 @@ class DreamingDisplay:
     def _render_status(self) -> Panel:
         """Render the current status as a Rich Panel."""
         status = self._dreaming.current_status
-        operation = self._dreaming.current_operation
 
         if not status:
             content = Text("Idle", style="dim")

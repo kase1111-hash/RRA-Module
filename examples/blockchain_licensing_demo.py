@@ -93,24 +93,24 @@ class BlockchainLicensingDemo:
 
         # Revenue split
         split = config['blockchain']['revenue_split']
-        print(f"\n💰 Revenue Split:")
+        print("\n💰 Revenue Split:")
         print(f"   Developer: {split['developer']}%")
         print(f"   Platform: {split['platform']}%")
         print(f"   Community: {split['community']}%")
 
         # NFT configuration
         nft = config['blockchain']['nft_config']
-        print(f"\n🎫 NFT License Token:")
+        print("\n🎫 NFT License Token:")
         print(f"   Standard: {nft['token_standard']}")
         print(f"   Transferable: {nft['transferable']}")
         print(f"   Revocable: {nft['revocable']}")
 
         # Simulated contract address
         contract_address = "0x" + "1234567890abcdef" * 2 + "12345678"
-        print(f"\n✅ Contract Deployed:")
+        print("\n✅ Contract Deployed:")
         print(f"   Address: {contract_address}")
         print(f"   Network: {config['blockchain']['network']}")
-        print(f"   Status: Active")
+        print("   Status: Active")
 
         return contract_address
 
@@ -131,37 +131,37 @@ class BlockchainLicensingDemo:
         platform_share = price_value * (split['platform'] / 100)
         community_share = price_value * (split['community'] / 100)
 
-        print(f"\n🛒 Purchase Details:")
-        print(f"   License Tier: Standard")
+        print("\n🛒 Purchase Details:")
+        print("   License Tier: Standard")
         print(f"   Purchase Price: {price_value} {currency}")
-        print(f"   Buyer: 0xABCD...5678")
+        print("   Buyer: 0xABCD...5678")
         print(f"   Timestamp: {datetime.now().isoformat()}")
 
-        print(f"\n💸 Revenue Distribution:")
+        print("\n💸 Revenue Distribution:")
         print(f"   Developer: {dev_share} {currency} ({split['developer']}%)")
         print(f"   Platform: {platform_share} {currency} ({split['platform']}%)")
         print(f"   Community: {community_share} {currency} ({split['community']}%)")
 
         # NFT token details
         token_id = 1
-        print(f"\n🎫 License NFT Minted:")
+        print("\n🎫 License NFT Minted:")
         print(f"   Token ID: #{token_id}")
         print(f"   Contract: {contract_address}")
-        print(f"   Owner: 0xABCD...5678")
+        print("   Owner: 0xABCD...5678")
         print(f"   License Type: {config['license_identifier']}")
 
         # License terms
         terms = config['license_terms']['standard']['features']
-        print(f"\n📜 License Terms (Encoded in NFT):")
+        print("\n📜 License Terms (Encoded in NFT):")
         for term in terms:
             print(f"   ✓ {term}")
 
         # Future license calculation
         effective_date = datetime.now() + timedelta(days=730)  # 2 years
-        print(f"\n🔮 Future License Grant:")
-        print(f"   Type: Apache-2.0")
+        print("\n🔮 Future License Grant:")
+        print("   Type: Apache-2.0")
         print(f"   Effective Date: {effective_date.strftime('%Y-%m-%d')}")
-        print(f"   Auto-activation: Yes (via time-lock)")
+        print("   Auto-activation: Yes (via time-lock)")
 
         return token_id
 
@@ -171,12 +171,12 @@ class BlockchainLicensingDemo:
         print("SIMULATING ACCESS VERIFICATION")
         print("=" * 70)
 
-        print(f"\n🔐 Token-Gated Access:")
+        print("\n🔐 Token-Gated Access:")
         print(f"   Buyer presents NFT token #{token_id}")
-        print(f"   Smart contract verifies ownership")
-        print(f"   ✓ Access granted to repository")
-        print(f"   ✓ License terms enforced on-chain")
-        print(f"   ✓ Update notifications enabled")
+        print("   Smart contract verifies ownership")
+        print("   ✓ Access granted to repository")
+        print("   ✓ License terms enforced on-chain")
+        print("   ✓ Update notifications enabled")
 
     def demonstrate_complete_flow(self):
         """Run complete demonstration."""
@@ -199,7 +199,7 @@ class BlockchainLicensingDemo:
         print("\n[3/6] Loading Blockchain Configuration...")
         config = self.load_market_config()
         if config:
-            print(f"    ✓ .market.yaml loaded")
+            print("    ✓ .market.yaml loaded")
             print(f"    ✓ License: {config['license_identifier']}")
             print(f"    ✓ Target: {config['target_price']}")
         else:

@@ -17,8 +17,8 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass
 from enum import Enum
 
-from rra.integrations.superfluid import SuperfluidManager, StreamStatus, StreamingLicense
-from rra.exceptions import ValidationError, ErrorCode
+from rra.integrations.superfluid import SuperfluidManager, StreamStatus
+from rra.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -149,7 +149,7 @@ class StreamAccessController:
             Access status and details
         """
         licenses = self.sf.get_licenses_for_buyer(buyer_address)
-        repo_licenses = [l for l in licenses if l.repo_id == repo_id]
+        repo_licenses = [lic for lic in licenses if lic.repo_id == repo_id]
 
         if not repo_licenses:
             return {
@@ -302,11 +302,11 @@ class StreamAccessController:
         licenses = self.sf.get_licenses_for_repo(repo_id)
         grants = self.get_grants_for_repo(repo_id)
 
-        active_count = len([l for l in licenses if l.status == StreamStatus.ACTIVE])
-        stopped_count = len([l for l in licenses if l.status == StreamStatus.STOPPED])
-        revoked_count = len([l for l in licenses if l.status == StreamStatus.REVOKED])
+        active_count = len([lic for lic in licenses if lic.status == StreamStatus.ACTIVE])
+        stopped_count = len([lic for lic in licenses if lic.status == StreamStatus.STOPPED])
+        revoked_count = len([lic for lic in licenses if lic.status == StreamStatus.REVOKED])
 
-        total_mrr = sum(l.monthly_cost_usd for l in licenses if l.status == StreamStatus.ACTIVE)
+        total_mrr = sum(lic.monthly_cost_usd for lic in licenses if lic.status == StreamStatus.ACTIVE)
 
         return {
             "repo_id": repo_id,

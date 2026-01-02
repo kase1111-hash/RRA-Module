@@ -19,8 +19,7 @@ Security:
 
 import os
 import json
-import hashlib
-from typing import Optional, Tuple, Dict, Any
+from typing import Optional, Tuple, Dict
 from dataclasses import dataclass
 from pathlib import Path
 from eth_utils import keccak

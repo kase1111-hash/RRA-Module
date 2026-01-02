@@ -24,7 +24,7 @@ from pydantic import BaseModel
 
 from rra.ingestion.knowledge_base import KnowledgeBase
 from rra.agents.negotiator import NegotiatorAgent
-from rra.exceptions import IntegrationError, ValidationError, ErrorCode
+from rra.exceptions import ErrorCode
 from rra.status.websocket_integration import get_dreaming_ws_manager
 from rra.status.dreaming import get_dreaming_status
 

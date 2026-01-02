@@ -23,8 +23,7 @@ Security:
 
 import os
 import json
-import hashlib
-from typing import Optional, Tuple, Dict, Any
+from typing import Tuple, Dict, Any
 from dataclasses import dataclass
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec

@@ -13,7 +13,6 @@ Now includes:
 - Blockchain purchase link generation
 """
 
-import os
 import re
 import json
 import logging
@@ -22,7 +21,6 @@ from typing import Optional, Dict, List, Any
 from datetime import datetime
 from urllib.parse import urlparse
 import git
-from git.exc import GitCommandError
 
 logger = logging.getLogger(__name__)
 
@@ -223,7 +221,7 @@ class RepoIngester:
             dreaming.complete("Cloning repository")
         else:
             dreaming.start("Pulling latest changes")
-            print(f"Repository already exists, pulling latest changes")
+            print("Repository already exists, pulling latest changes")
             repo = git.Repo(repo_path)
             repo.remotes.origin.pull()
             dreaming.complete("Pulling latest changes")

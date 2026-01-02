@@ -2,8 +2,6 @@
 # Copyright 2025 Kase Branham
 """Tests for Deep Links service."""
 
-import pytest
-import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 

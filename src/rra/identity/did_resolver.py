@@ -37,12 +37,10 @@ Usage:
 
 import re
 import os
-import json
-import hashlib
 import asyncio
 import logging
 from enum import Enum
-from typing import Dict, List, Optional, Any, Tuple, Union
+from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
 from abc import ABC, abstractmethod
@@ -52,12 +50,9 @@ from web3 import Web3
 
 from rra.integration.network_resilience import (
     RetryConfig,
-    CircuitBreaker,
-    CircuitBreakerConfig,
     calculate_delay,
 )
-from eth_utils import keccak, to_checksum_address
-from eth_keys import keys
+from eth_utils import to_checksum_address
 from eth_account.messages import encode_defunct
 from eth_account import Account
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -347,7 +342,6 @@ class WebDIDResolver(DIDMethodResolver):
             retryable_exceptions=(httpx.TimeoutException, httpx.NetworkError),
         )
 
-        last_exception = None
         for attempt in range(retry_config.max_retries + 1):
             try:
                 async with httpx.AsyncClient() as client:
@@ -363,7 +357,6 @@ class WebDIDResolver(DIDMethodResolver):
                     return self._parse_document(data)
 
             except (httpx.TimeoutException, httpx.NetworkError) as e:
-                last_exception = e
                 if attempt < retry_config.max_retries:
                     delay = calculate_delay(attempt, retry_config)
                     logger.warning(
@@ -462,10 +455,10 @@ class KeyDIDResolver(DIDMethodResolver):
             # Determine key type from multicodec prefix
             if key_bytes[:2] == self.ED25519_PREFIX:
                 key_type = "Ed25519VerificationKey2020"
-                public_key = key_bytes[2:]
+                key_bytes[2:]
             elif key_bytes[:2] == self.SECP256K1_PREFIX:
                 key_type = "EcdsaSecp256k1VerificationKey2019"
-                public_key = key_bytes[2:]
+                key_bytes[2:]
             else:
                 return None
 
@@ -694,7 +687,7 @@ class NLCDIDResolver(DIDMethodResolver):
 
             # Parse document data
             owner = doc_data[1]
-            controllers = doc_data[2]
+            doc_data[2]
             created_at = datetime.fromtimestamp(doc_data[3])
             updated_at = datetime.fromtimestamp(doc_data[4])
 

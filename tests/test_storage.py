@@ -7,7 +7,6 @@ Tests for Encrypted IPFS/Arweave Storage.
 """
 
 import pytest
-import os
 from datetime import datetime
 
 
@@ -16,7 +15,7 @@ class TestEncryptedStorage:
 
     def test_store_and_retrieve_mock(self):
         """Test store and retrieve with mock provider."""
-        from rra.storage import EncryptedIPFSStorage, StorageProvider, create_storage
+        from rra.storage import StorageProvider, create_storage
         from rra.privacy import generate_viewing_key
 
         storage = create_storage(provider=StorageProvider.MOCK)

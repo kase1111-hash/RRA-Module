@@ -14,19 +14,15 @@ To run these tests:
 """
 
 import pytest
-from unittest.mock import MagicMock, patch, Mock
-from datetime import datetime, timedelta
+from unittest.mock import patch
+from datetime import datetime
 from pathlib import Path
 import tempfile
-import json
 
 from rra.integration.boundary_daemon import (
     BoundaryDaemon,
     Permission,
     ResourceType,
-    AccessPolicy,
-    Principal,
-    AccessToken,
     BoundaryMode,
     BoundaryEvent,
     EventSeverity,
@@ -44,9 +40,7 @@ from rra.integration.boundary_siem import (
     SIEMAlert,
     AlertSeverity,
     AlertStatus,
-    DetectionRule,
     RRA_DETECTION_RULES,
-    create_siem_client,
     create_siem_event_callback,
 )
 
@@ -436,7 +430,7 @@ class TestEventSigner:
 
     def test_signer_initialization(self):
         """Test signer initializes with keys."""
-        signer = EventSigner()
+        EventSigner()
         # Key generation happens if cryptography is available
         # This test should pass regardless
 

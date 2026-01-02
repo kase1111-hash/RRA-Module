@@ -28,7 +28,7 @@ def main():
     print("\n[1] Ingesting repository...")
     repo_url = "https://github.com/example/sample-repo.git"
 
-    ingester = RepoIngester()
+    RepoIngester()
 
     # For this example, we'll simulate with a local repo
     # In production, would use actual GitHub URL
@@ -86,19 +86,19 @@ def main():
     result = buyer.simulate_negotiation(negotiator, strategy="haggle")
 
     print("-" * 60)
-    print(f"\n[5] Negotiation complete!")
+    print("\n[5] Negotiation complete!")
     print(f"    Messages exchanged: {result['messages_exchanged']}")
     print(f"    Strategy used: {result['strategy']}")
 
     # Show summary
     summary = result['negotiation_summary']
-    print(f"\n[6] Summary:")
+    print("\n[6] Summary:")
     print(f"    Phase: {summary['phase']}")
     print(f"    Repository: {summary['repo']}")
     print(f"    Total messages: {summary['message_count']}")
 
     # Show last few messages
-    print(f"\n[7] Conversation highlights:")
+    print("\n[7] Conversation highlights:")
     history = buyer.get_interaction_history()
     for i, interaction in enumerate(history[-4:], 1):
         direction = "Buyer →" if interaction["direction"] == "sent" else "Seller ←"

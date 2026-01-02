@@ -8,9 +8,8 @@ and royalty enforcement functionality.
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from web3 import Web3
-from pathlib import Path
 
 from rra.contracts.story_protocol import (
     StoryProtocolClient,

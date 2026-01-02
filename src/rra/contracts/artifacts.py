@@ -11,7 +11,7 @@ For deployment, contracts must be compiled with `forge build` in contracts/.
 
 import json
 from pathlib import Path
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional
 from dataclasses import dataclass
 
 

@@ -20,7 +20,7 @@ Addresses:
 """
 
 import re
-from enum import Enum, auto
+from enum import Enum
 from typing import Dict, Any, Optional, List, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -193,7 +193,7 @@ class TransactionSafeguards:
                     )
                 elif amount > target_amount * 2:
                     warnings.append(
-                        f"Price is more than 2x the target price. Verify this is correct."
+                        "Price is more than 2x the target price. Verify this is correct."
                     )
 
         # Determine safeguard level
@@ -408,7 +408,7 @@ class TransactionSafeguards:
         elif level == SafeguardLevel.MEDIUM:
             base += "\n\nPlease review and click CONFIRM to proceed."
         elif level == SafeguardLevel.HIGH:
-            base += f"\n\nThis is a HIGH VALUE transaction." f"\n\nType 'CONFIRM' to proceed."
+            base += "\n\nThis is a HIGH VALUE transaction." "\n\nType 'CONFIRM' to proceed."
         else:  # CRITICAL
             base += (
                 f"\n\nThis is a VERY HIGH VALUE transaction."

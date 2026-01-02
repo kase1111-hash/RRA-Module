@@ -87,7 +87,7 @@ class BuyerAgent:
             return details.get("message", "I have a question about the repository.")
 
         else:
-            return f"I'm interested in learning more about licensing this repository."
+            return "I'm interested in learning more about licensing this repository."
 
     def _compose_price_inquiry(self) -> str:
         """Compose a price inquiry message."""
