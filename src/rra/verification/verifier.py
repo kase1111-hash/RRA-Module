@@ -733,9 +733,19 @@ class CodeVerifier:
                     if result.returncode == 0:
                         return {"success": True, "output": result.stdout}
                     else:
-                        # Count issues from output
+                        # Count actual issue lines (file:line:col: error format)
                         output = result.stdout + result.stderr
-                        issue_count = output.count("\n")
+                        # Count lines that look like linting errors (path:line:col: code)
+                        issue_lines = [
+                            line for line in output.split("\n")
+                            if line.strip() and ":" in line and not line.startswith(" ")
+                        ]
+                        issue_count = len(issue_lines)
+
+                        # If no structured issues but command failed, treat as tool error
+                        if issue_count == 0 and result.returncode != 0:
+                            continue  # Try next linter
+
                         return {
                             "success": False,
                             "issues": issue_count,
