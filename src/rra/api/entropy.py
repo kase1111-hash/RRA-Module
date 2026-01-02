@@ -74,13 +74,16 @@ def get_dispute_predictor() -> DisputePredictor:
 # Request/Response Models
 # =============================================================================
 
+
 class ClauseScoreRequest(BaseModel):
     """Request to score a single clause."""
+
     clause_text: str = Field(..., min_length=10, max_length=10000)
 
 
 class ClauseScoreResponse(BaseModel):
     """Response with clause entropy score."""
+
     clause_hash: str
     entropy_score: float
     level: str
@@ -92,12 +95,14 @@ class ClauseScoreResponse(BaseModel):
 
 class ContractScoreRequest(BaseModel):
     """Request to score a full contract."""
+
     clauses: List[str] = Field(..., min_length=1, max_length=100)
     repo_id: Optional[str] = None
 
 
 class ContractScoreResponse(BaseModel):
     """Response with contract-level entropy analysis."""
+
     overall_entropy: float
     overall_level: str
     total_clauses: int
@@ -108,6 +113,7 @@ class ContractScoreResponse(BaseModel):
 
 class DisputePredictionRequest(BaseModel):
     """Request for dispute prediction."""
+
     clauses: List[str] = Field(..., min_length=1, max_length=100)
     licensee_prior_disputes: int = Field(default=0, ge=0)
     licensor_prior_disputes: int = Field(default=0, ge=0)
@@ -115,6 +121,7 @@ class DisputePredictionRequest(BaseModel):
 
 class DisputePredictionResponse(BaseModel):
     """Response with dispute prediction."""
+
     dispute_probability: float
     expected_disputes: float
     type_probabilities: Dict[str, float]
@@ -126,11 +133,13 @@ class DisputePredictionResponse(BaseModel):
 
 class PatternAnalysisRequest(BaseModel):
     """Request for pattern analysis."""
+
     clause_text: str = Field(..., min_length=10, max_length=10000)
 
 
 class PatternAnalysisResponse(BaseModel):
     """Response with pattern analysis."""
+
     category: str
     dispute_triggers: List[Dict[str, str]]
     hardening_suggestions: List[Dict[str, Any]]
@@ -140,6 +149,7 @@ class PatternAnalysisResponse(BaseModel):
 
 class DisputeRecordRequest(BaseModel):
     """Request to record a dispute for model training."""
+
     clause_text: str
     dispute_type: str
     resolution_time_days: float = Field(ge=0)
@@ -149,6 +159,7 @@ class DisputeRecordRequest(BaseModel):
 
 class HealthResponse(BaseModel):
     """API health check response."""
+
     status: str
     version: str
     model_version: str
@@ -158,6 +169,7 @@ class HealthResponse(BaseModel):
 # =============================================================================
 # Endpoints
 # =============================================================================
+
 
 @router.get("/health", response_model=HealthResponse)
 async def health_check() -> HealthResponse:
@@ -258,18 +270,12 @@ async def predict_disputes(request: DisputePredictionRequest) -> DisputePredicti
     return DisputePredictionResponse(
         dispute_probability=round(result.dispute_probability, 4),
         expected_disputes=round(result.expected_disputes, 2),
-        type_probabilities={
-            t.value: round(p, 4)
-            for t, p in result.type_probabilities.items()
-        },
+        type_probabilities={t.value: round(p, 4) for t, p in result.type_probabilities.items()},
         expected_resolution={
             "days": round(result.expected_resolution_days, 1),
             "cost_usd": round(result.expected_resolution_cost, 2),
         },
-        risk_factors=[
-            {"factor": f, "weight": round(w, 4)}
-            for f, w in result.top_risk_factors
-        ],
+        risk_factors=[{"factor": f, "weight": round(w, 4)} for f, w in result.top_risk_factors],
         recommended_actions=result.recommended_actions,
         confidence=round(result.confidence, 4),
     )
@@ -328,11 +334,13 @@ async def get_score_by_hash(clause_hash: str) -> Dict[str, Any]:
         "sample_size": stats["total_uses"],
         "avg_resolution_days": (
             round(sum(stats["resolution_times"]) / len(stats["resolution_times"]), 1)
-            if stats["resolution_times"] else None
+            if stats["resolution_times"]
+            else None
         ),
         "avg_resolution_cost": (
             round(sum(stats["resolution_costs"]) / len(stats["resolution_costs"]), 2)
-            if stats["resolution_costs"] else None
+            if stats["resolution_costs"]
+            else None
         ),
     }
 
@@ -354,6 +362,7 @@ async def record_dispute(request: DisputeRecordRequest) -> Dict[str, str]:
 
     # Create dispute record
     import hashlib
+
     clause_hash = hashlib.sha256(
         " ".join(request.clause_text.lower().split()).encode()
     ).hexdigest()[:16]
@@ -404,14 +413,8 @@ async def get_statistics() -> Dict[str, Any]:
     analyzer = get_pattern_analyzer()
 
     # Aggregate statistics
-    total_clauses = sum(
-        stats.get("total_uses", 0)
-        for stats in scorer._clause_stats.values()
-    )
-    total_disputes = sum(
-        stats.get("disputes", 0)
-        for stats in scorer._clause_stats.values()
-    )
+    total_clauses = sum(stats.get("total_uses", 0) for stats in scorer._clause_stats.values())
+    total_disputes = sum(stats.get("disputes", 0) for stats in scorer._clause_stats.values())
 
     return {
         "total_clauses_analyzed": total_clauses,
@@ -421,16 +424,12 @@ async def get_statistics() -> Dict[str, Any]:
         ),
         "unique_patterns": len(analyzer._patterns),
         "category_stats": analyzer.get_category_stats(),
-        "high_risk_patterns": [
-            p.to_dict() for p in analyzer.get_high_risk_patterns()
-        ],
+        "high_risk_patterns": [p.to_dict() for p in analyzer.get_high_risk_patterns()],
     }
 
 
 @router.post("/batch/score")
-async def batch_score_clauses(
-    clauses: List[str] = Query(..., max_length=50)
-) -> Dict[str, Any]:
+async def batch_score_clauses(clauses: List[str] = Query(..., max_length=50)) -> Dict[str, Any]:
     """
     Score multiple clauses in a single request.
 
@@ -445,11 +444,13 @@ async def batch_score_clauses(
     results = []
     for clause in clauses:
         result = scorer.score_clause(clause)
-        results.append({
-            "clause_hash": result.clause_hash,
-            "entropy_score": round(result.entropy_score, 4),
-            "level": result.level.value,
-        })
+        results.append(
+            {
+                "clause_hash": result.clause_hash,
+                "entropy_score": round(result.entropy_score, 4),
+                "level": result.level.value,
+            }
+        )
 
     avg_entropy = sum(cast(float, r["entropy_score"]) for r in results) / len(results)
 

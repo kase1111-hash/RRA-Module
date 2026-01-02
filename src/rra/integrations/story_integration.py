@@ -12,11 +12,7 @@ from pathlib import Path
 import time
 from web3 import Web3
 
-from rra.contracts.story_protocol import (
-    StoryProtocolClient,
-    IPAssetMetadata,
-    PILTerms
-)
+from rra.contracts.story_protocol import StoryProtocolClient, IPAssetMetadata, PILTerms
 from rra.config.market_config import MarketConfig
 
 
@@ -32,7 +28,7 @@ class StoryIntegrationManager:
         self,
         web3: Web3,
         network: str = "mainnet",
-        custom_addresses: Optional[Dict[str, str]] = None
+        custom_addresses: Optional[Dict[str, str]] = None,
     ):
         """
         Initialize Story Integration Manager.
@@ -52,7 +48,7 @@ class StoryIntegrationManager:
         market_config: MarketConfig,
         owner_address: str,
         private_key: str,
-        repo_description: Optional[str] = None
+        repo_description: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Register a repository as an IP Asset on Story Protocol.
@@ -76,18 +72,18 @@ class StoryIntegrationManager:
         # Create IP Asset metadata
         metadata = IPAssetMetadata(
             name=f"Repository: {repo_url}",
-            description=repo_description or market_config.description or f"Code repository at {repo_url}",
+            description=repo_description
+            or market_config.description
+            or f"Code repository at {repo_url}",
             ipType="SOFTWARE_REPOSITORY",
             createdAt=int(time.time()),
             externalUrl=repo_url,
-            ipfsHash=None  # Could be populated with IPFS hash of repo snapshot
+            ipfsHash=None,  # Could be populated with IPFS hash of repo snapshot
         )
 
         # Register IP Asset
         result = self.story_client.register_ip_asset(
-            owner_address=owner_address,
-            metadata=metadata,
-            private_key=private_key
+            owner_address=owner_address, metadata=metadata, private_key=private_key
         )
 
         # Attach PIL terms
@@ -98,7 +94,7 @@ class StoryIntegrationManager:
                 ip_asset_id=result["ip_asset_id"],
                 pil_terms=pil_terms,
                 owner_address=owner_address,
-                private_key=private_key
+                private_key=private_key,
             )
             result["pil_terms_tx"] = terms_tx
 
@@ -108,7 +104,7 @@ class StoryIntegrationManager:
                     ip_asset_id=result["ip_asset_id"],
                     royalty_percentage=market_config.derivative_royalty_percentage,
                     owner_address=owner_address,
-                    private_key=private_key
+                    private_key=private_key,
                 )
                 result["royalty_tx"] = royalty_tx
 
@@ -122,7 +118,7 @@ class StoryIntegrationManager:
         fork_description: str,
         license_terms_id: str,
         fork_owner_address: str,
-        private_key: str
+        private_key: str,
     ) -> Dict[str, Any]:
         """
         Register a forked/derivative repository linked to parent IP Asset.
@@ -148,7 +144,7 @@ class StoryIntegrationManager:
             ipType="SOFTWARE_REPOSITORY_DERIVATIVE",
             createdAt=int(time.time()),
             externalUrl=fork_repo_url,
-            ipfsHash=None
+            ipfsHash=None,
         )
 
         # Register derivative
@@ -157,7 +153,7 @@ class StoryIntegrationManager:
             derivative_owner_address=fork_owner_address,
             derivative_metadata=derivative_metadata,
             license_terms_id=license_terms_id,
-            private_key=private_key
+            private_key=private_key,
         )
 
         return result
@@ -169,7 +165,7 @@ class StoryIntegrationManager:
         license_terms_id: str,
         quantity: int,
         issuer_address: str,
-        private_key: str
+        private_key: str,
     ) -> str:
         """
         Mint a license NFT for a repository buyer.
@@ -191,7 +187,7 @@ class StoryIntegrationManager:
             license_terms_id=license_terms_id,
             amount=quantity,
             minter_address=issuer_address,
-            private_key=private_key
+            private_key=private_key,
         )
 
     def get_repository_derivatives(self, ip_asset_id: str) -> Dict[str, Any]:
@@ -214,7 +210,7 @@ class StoryIntegrationManager:
         return {
             "parent_ip_asset_id": ip_asset_id,
             "derivative_count": len(derivatives),
-            "derivatives": derivatives
+            "derivatives": derivatives,
         }
 
     def get_royalty_stats(self, ip_asset_id: str) -> Dict[str, Any]:
@@ -231,17 +227,16 @@ class StoryIntegrationManager:
 
         return {
             "ip_asset_id": ip_asset_id,
-            "royalty_percentage": royalty_info["royalty_percentage"] / 100,  # Convert from basis points
+            "royalty_percentage": royalty_info["royalty_percentage"]
+            / 100,  # Convert from basis points
             "payment_token": royalty_info["payment_token"],
             "total_collected_wei": royalty_info["total_collected"],
-            "total_collected_eth": self.w3.from_wei(royalty_info["total_collected"], 'ether'),
-            "last_payment_timestamp": royalty_info["last_payment_timestamp"]
+            "total_collected_eth": self.w3.from_wei(royalty_info["total_collected"], "ether"),
+            "last_payment_timestamp": royalty_info["last_payment_timestamp"],
         }
 
     def update_market_config_with_ip_asset(
-        self,
-        market_config_path: Path,
-        ip_asset_id: str
+        self, market_config_path: Path, ip_asset_id: str
     ) -> None:
         """
         Update .market.yaml with Story Protocol IP Asset ID.
@@ -269,7 +264,7 @@ class StoryIntegrationManager:
             royalty_policy=pil_dict["royalty_policy"],
             commercial_revenue_share=pil_dict["commercial_revenue_share"],
             territory_restriction=pil_dict["territory_restriction"],
-            distribution_channels=pil_dict["distribution_channels"]
+            distribution_channels=pil_dict["distribution_channels"],
         )
 
     def _set_royalty_policy(
@@ -278,7 +273,7 @@ class StoryIntegrationManager:
         royalty_percentage: float,
         owner_address: str,
         private_key: str,
-        payment_token: str = "0x0000000000000000000000000000000000000000"  # ETH
+        payment_token: str = "0x0000000000000000000000000000000000000000",  # ETH
     ) -> str:
         """
         Set royalty policy for an IP Asset.
@@ -300,7 +295,7 @@ class StoryIntegrationManager:
             royalty_percentage=royalty_bps,
             payment_token=payment_token,
             owner_address=owner_address,
-            private_key=private_key
+            private_key=private_key,
         )
 
     def get_network_info(self) -> Dict[str, Any]:
@@ -314,5 +309,5 @@ class StoryIntegrationManager:
             "network": self.network,
             "connected": self.w3.is_connected(),
             "chain_id": self.w3.eth.chain_id if self.w3.is_connected() else None,
-            "story_contracts": self.story_client.addresses
+            "story_contracts": self.story_client.addresses,
         }

@@ -26,23 +26,23 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 class TermRiskLevel(Enum):
     """Risk level for a term."""
 
-    SAFE = "safe"           # Low dispute correlation
-    MODERATE = "moderate"   # Some dispute potential
-    HIGH = "high"           # Frequently disputed
-    CRITICAL = "critical"   # Almost always disputed
+    SAFE = "safe"  # Low dispute correlation
+    MODERATE = "moderate"  # Some dispute potential
+    HIGH = "high"  # Frequently disputed
+    CRITICAL = "critical"  # Almost always disputed
 
 
 class TermCategory(Enum):
     """Categories of legal terms."""
 
-    TEMPORAL = "temporal"           # Time-related terms
-    QUANTITATIVE = "quantitative"   # Amount/quantity terms
-    OBLIGATORY = "obligatory"       # Obligation terms (shall, must, etc.)
-    PERMISSIVE = "permissive"       # Permission terms (may, can, etc.)
-    CONDITIONAL = "conditional"     # Conditional terms (if, unless, etc.)
-    DEFINITIONAL = "definitional"   # Defining terms
-    SCOPE = "scope"                 # Scope-related terms
-    STANDARD = "standard"           # Standard of care terms
+    TEMPORAL = "temporal"  # Time-related terms
+    QUANTITATIVE = "quantitative"  # Amount/quantity terms
+    OBLIGATORY = "obligatory"  # Obligation terms (shall, must, etc.)
+    PERMISSIVE = "permissive"  # Permission terms (may, can, etc.)
+    CONDITIONAL = "conditional"  # Conditional terms (if, unless, etc.)
+    DEFINITIONAL = "definitional"  # Defining terms
+    SCOPE = "scope"  # Scope-related terms
+    STANDARD = "standard"  # Standard of care terms
 
 
 @dataclass
@@ -50,10 +50,10 @@ class TermOccurrence:
     """An occurrence of a term in a contract."""
 
     term: str
-    position: int           # Character position
-    clause_index: int       # Which clause
-    context: str            # Surrounding text
-    normalized: str         # Normalized form
+    position: int  # Character position
+    clause_index: int  # Which clause
+    context: str  # Surrounding text
+    normalized: str  # Normalized form
 
 
 @dataclass
@@ -64,9 +64,9 @@ class TermAnalysis:
     normalized_form: str
     category: TermCategory
     risk_level: TermRiskLevel
-    entropy_score: float            # 0-1, how ambiguous
-    dispute_rate: float             # Historical dispute rate
-    frequency: int                  # How often it appears
+    entropy_score: float  # 0-1, how ambiguous
+    dispute_rate: float  # Historical dispute rate
+    frequency: int  # How often it appears
     occurrences: List[TermOccurrence] = field(default_factory=list)
     alternatives: List[str] = field(default_factory=list)
     explanation: str = ""
@@ -159,14 +159,16 @@ class TermAnalyzer:
             "explanation": "Combines timing and feasibility ambiguity",
             "alternatives": ["within 10 business days", "by [date] or with written explanation"],
         },
-
         # Standard of care terms
         "best efforts": {
             "category": TermCategory.STANDARD,
             "entropy": 0.85,
             "dispute_rate": 0.42,
             "explanation": "Highest effort standard with unclear requirements",
-            "alternatives": ["commercially reasonable efforts", "efforts including [specific actions]"],
+            "alternatives": [
+                "commercially reasonable efforts",
+                "efforts including [specific actions]",
+            ],
         },
         "reasonable efforts": {
             "category": TermCategory.STANDARD,
@@ -189,7 +191,6 @@ class TermAnalyzer:
             "explanation": "Behavioral standard open to interpretation",
             "alternatives": ["in accordance with the terms hereof"],
         },
-
         # Quantitative terms
         "material": {
             "category": TermCategory.QUANTITATIVE,
@@ -219,7 +220,6 @@ class TermAnalyzer:
             "explanation": "Undefined minimal threshold",
             "alternatives": ["less than $[amount]", "under [X]%"],
         },
-
         # Scope terms
         "including but not limited to": {
             "category": TermCategory.SCOPE,
@@ -249,7 +249,6 @@ class TermAnalyzer:
             "explanation": "Derivative work scope can be disputed",
             "alternatives": ["incorporating more than [X]% of the original"],
         },
-
         # Conditional terms
         "unless otherwise agreed": {
             "category": TermCategory.CONDITIONAL,
@@ -265,7 +264,6 @@ class TermAnalyzer:
             "explanation": "Dependency creates complexity",
             "alternatives": ["provided that [specific condition]"],
         },
-
         # Permissive terms
         "sole discretion": {
             "category": TermCategory.PERMISSIVE,
@@ -286,33 +284,33 @@ class TermAnalyzer:
     # Regex patterns for term detection
     TERM_PATTERNS = {
         TermCategory.TEMPORAL: [
-            r'\b(within\s+)?a?\s*reasonable\s+(time|period)\b',
-            r'\bpromptly\b',
-            r'\btimely\b',
-            r'\bas\s+soon\s+as\s+(reasonably\s+)?practicable\b',
-            r'\bwithout\s+delay\b',
-            r'\bforthwith\b',
+            r"\b(within\s+)?a?\s*reasonable\s+(time|period)\b",
+            r"\bpromptly\b",
+            r"\btimely\b",
+            r"\bas\s+soon\s+as\s+(reasonably\s+)?practicable\b",
+            r"\bwithout\s+delay\b",
+            r"\bforthwith\b",
         ],
         TermCategory.STANDARD: [
-            r'\bbest\s+efforts?\b',
-            r'\breasonable\s+efforts?\b',
-            r'\bcommercially\s+reasonable\b',
-            r'\bgood\s+faith\b',
-            r'\bdue\s+diligence\b',
+            r"\bbest\s+efforts?\b",
+            r"\breasonable\s+efforts?\b",
+            r"\bcommercially\s+reasonable\b",
+            r"\bgood\s+faith\b",
+            r"\bdue\s+diligence\b",
         ],
         TermCategory.QUANTITATIVE: [
-            r'\bmaterial(ly)?\b',
-            r'\bsubstantial(ly)?\b',
-            r'\bsignificant(ly)?\b',
-            r'\bde\s+minimis\b',
-            r'\bnominal\b',
+            r"\bmaterial(ly)?\b",
+            r"\bsubstantial(ly)?\b",
+            r"\bsignificant(ly)?\b",
+            r"\bde\s+minimis\b",
+            r"\bnominal\b",
         ],
         TermCategory.SCOPE: [
-            r'\bincluding,?\s*but\s+not\s+limited\s+to\b',
-            r'\band\s+related\b',
-            r'\bsubstantially\s+similar\b',
-            r'\bderivative\b',
-            r'\band\s+the\s+like\b',
+            r"\bincluding,?\s*but\s+not\s+limited\s+to\b",
+            r"\band\s+related\b",
+            r"\bsubstantially\s+similar\b",
+            r"\bderivative\b",
+            r"\band\s+the\s+like\b",
         ],
     }
 
@@ -337,6 +335,7 @@ class TermAnalyzer:
             TermReport with complete analysis
         """
         import secrets
+
         contract_id = contract_id or secrets.token_urlsafe(8)
 
         all_terms: List[TermAnalysis] = []
@@ -394,8 +393,7 @@ class TermAnalyzer:
         avg_entropy = total_entropy / total_freq if total_freq > 0 else 0
 
         high_risk_count = sum(
-            1 for t in all_terms
-            if t.risk_level in (TermRiskLevel.HIGH, TermRiskLevel.CRITICAL)
+            1 for t in all_terms if t.risk_level in (TermRiskLevel.HIGH, TermRiskLevel.CRITICAL)
         )
 
         # Generate top concerns
@@ -610,13 +608,15 @@ class TermAnalyzer:
                 end = min(len(clause), match.end() + 50)
                 context = clause[start:end]
 
-                occurrences.append(TermOccurrence(
-                    term=match.group(),
-                    position=match.start(),
-                    clause_index=i,
-                    context=context,
-                    normalized=term.lower(),
-                ))
+                occurrences.append(
+                    TermOccurrence(
+                        term=match.group(),
+                        position=match.start(),
+                        clause_index=i,
+                        context=context,
+                        normalized=term.lower(),
+                    )
+                )
 
         return occurrences
 
@@ -643,7 +643,10 @@ class TermAnalyzer:
             return TermCategory.TEMPORAL
 
         # Check for quantity indicators
-        if any(w in term_lower or w in context_lower for w in ["amount", "number", "percent", "quantity"]):
+        if any(
+            w in term_lower or w in context_lower
+            for w in ["amount", "number", "percent", "quantity"]
+        ):
             return TermCategory.QUANTITATIVE
 
         # Check for obligation indicators
@@ -681,7 +684,9 @@ class TermAnalyzer:
         # Add general concerns
         critical_terms = [t for t in terms if t.risk_level == TermRiskLevel.CRITICAL]
         if critical_terms:
-            concerns.insert(0, f"{len(critical_terms)} critical-risk terms require immediate attention")
+            concerns.insert(
+                0, f"{len(critical_terms)} critical-risk terms require immediate attention"
+            )
 
         return concerns[:5]
 

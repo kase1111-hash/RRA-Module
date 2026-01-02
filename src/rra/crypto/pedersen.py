@@ -86,7 +86,7 @@ def _hash_to_scalar(data: bytes, domain: bytes = b"") -> int:
     # Domain-separated hash
     h = hashlib.sha256(domain + b":" + data).digest()
     # Reduce modulo curve order
-    return int.from_bytes(h, 'big') % BN254_CURVE_ORDER
+    return int.from_bytes(h, "big") % BN254_CURVE_ORDER
 
 
 def _derive_generator_point(seed: bytes) -> Tuple[int, int]:
@@ -100,8 +100,8 @@ def _derive_generator_point(seed: bytes) -> Tuple[int, int]:
 
     for counter in range(256):
         # Hash seed with counter
-        attempt = hashlib.sha256(domain + seed + counter.to_bytes(1, 'big')).digest()
-        x = int.from_bytes(attempt, 'big') % BN254_FIELD_PRIME
+        attempt = hashlib.sha256(domain + seed + counter.to_bytes(1, "big")).digest()
+        x = int.from_bytes(attempt, "big") % BN254_FIELD_PRIME
 
         # Try to compute y^2 = x^3 + 3 (BN254 curve equation: y^2 = x^3 + 3)
         y_squared = (pow(x, 3, BN254_FIELD_PRIME) + 3) % BN254_FIELD_PRIME
@@ -206,9 +206,9 @@ def _scalar_mult(k: int, point: Tuple[int, int]) -> Tuple[int, int]:
 def _point_to_bytes(point: Tuple[int, int]) -> bytes:
     """Serialize EC point to 64 bytes (x || y)."""
     if point == (0, 0):
-        return b'\x00' * 64
+        return b"\x00" * 64
     x, y = point
-    return x.to_bytes(32, 'big') + y.to_bytes(32, 'big')
+    return x.to_bytes(32, "big") + y.to_bytes(32, "big")
 
 
 def _bytes_to_point(data: bytes) -> Tuple[int, int]:
@@ -229,10 +229,10 @@ def _bytes_to_point(data: bytes) -> Tuple[int, int]:
     """
     if len(data) != 64:
         raise ValueError("Point must be 64 bytes")
-    if data == b'\x00' * 64:
+    if data == b"\x00" * 64:
         return (0, 0)
-    x = int.from_bytes(data[:32], 'big')
-    y = int.from_bytes(data[32:], 'big')
+    x = int.from_bytes(data[:32], "big")
+    y = int.from_bytes(data[32:], "big")
     point = (x, y)
 
     # SECURITY: Validate point is on the curve
@@ -249,6 +249,7 @@ class CommitmentProof:
 
     Used for on-chain verification without revealing the value.
     """
+
     commitment: bytes  # The commitment (64 bytes, EC point)
     blinding_factor_hash: bytes  # Hash of blinding factor for verification
     created_at: datetime
@@ -266,7 +267,7 @@ class CommitmentProof:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'CommitmentProof':
+    def from_dict(cls, data: Dict[str, Any]) -> "CommitmentProof":
         """Deserialize from dictionary."""
         return cls(
             commitment=bytes.fromhex(data["commitment"]),
@@ -300,7 +301,7 @@ class PedersenCommitment:
         self,
         g: Tuple[int, int] = G_POINT,
         h: Tuple[int, int] = H_POINT,
-        order: int = BN254_CURVE_ORDER
+        order: int = BN254_CURVE_ORDER,
     ):
         """
         Initialize with generator points.
@@ -314,11 +315,7 @@ class PedersenCommitment:
         self.h = h
         self.order = order
 
-    def commit(
-        self,
-        value: bytes,
-        blinding: Optional[bytes] = None
-    ) -> Tuple[bytes, bytes]:
+    def commit(self, value: bytes, blinding: Optional[bytes] = None) -> Tuple[bytes, bytes]:
         """
         Create a Pedersen commitment to a value.
 
@@ -334,12 +331,12 @@ class PedersenCommitment:
         # Convert value to scalar
         if len(value) > 32:
             raise ValueError("Value must be at most 32 bytes")
-        v = int.from_bytes(value.ljust(32, b'\x00'), 'big') % self.order
+        v = int.from_bytes(value.ljust(32, b"\x00"), "big") % self.order
 
         # Generate or use provided blinding factor
         if blinding is None:
             blinding = os.urandom(32)
-        r = int.from_bytes(blinding, 'big') % self.order
+        r = int.from_bytes(blinding, "big") % self.order
 
         # Compute commitment: C = v*G + r*H (proper EC math!)
         vG = _scalar_mult(v, self.g)
@@ -357,12 +354,7 @@ class PedersenCommitment:
         commitment = _point_to_bytes(C)
         return commitment, blinding
 
-    def verify(
-        self,
-        commitment: bytes,
-        value: bytes,
-        blinding: bytes
-    ) -> bool:
+    def verify(self, commitment: bytes, value: bytes, blinding: bytes) -> bool:
         """
         Verify a commitment opening.
 
@@ -382,10 +374,7 @@ class PedersenCommitment:
             return False
 
     def commit_evidence(
-        self,
-        evidence_hash: bytes,
-        context_id: str,
-        metadata: Optional[Dict[str, Any]] = None
+        self, evidence_hash: bytes, context_id: str, metadata: Optional[Dict[str, Any]] = None
     ) -> Tuple[CommitmentProof, bytes]:
         """
         Create a commitment proof for evidence.
@@ -414,10 +403,7 @@ class PedersenCommitment:
         return proof, blinding
 
     def verify_evidence_commitment(
-        self,
-        proof: CommitmentProof,
-        evidence_hash: bytes,
-        blinding: bytes
+        self, proof: CommitmentProof, evidence_hash: bytes, blinding: bytes
     ) -> bool:
         """
         Verify an evidence commitment proof.
@@ -453,10 +439,7 @@ class PedersenCommitment:
         # Domain-separated hash prevents cross-context collisions
         return keccak(context.encode() + b":" + evidence)
 
-    def aggregate_commitments(
-        self,
-        commitments: List[bytes]
-    ) -> bytes:
+    def aggregate_commitments(self, commitments: List[bytes]) -> bytes:
         """
         Homomorphically aggregate multiple commitments.
 
@@ -489,11 +472,7 @@ class EvidenceCommitmentManager:
         self._commitments: Dict[str, CommitmentProof] = {}
         self._blindings: Dict[str, bytes] = {}
 
-    def commit_dispute_evidence(
-        self,
-        dispute_id: str,
-        evidence: bytes
-    ) -> CommitmentProof:
+    def commit_dispute_evidence(self, dispute_id: str, evidence: bytes) -> CommitmentProof:
         """
         Create a commitment for dispute evidence.
 
@@ -508,9 +487,7 @@ class EvidenceCommitmentManager:
         evidence_hash = self.pedersen.hash_evidence(evidence, f"dispute:{dispute_id}")
 
         proof, blinding = self.pedersen.commit_evidence(
-            evidence_hash,
-            context_id=dispute_id,
-            metadata={"evidence_size": len(evidence)}
+            evidence_hash, context_id=dispute_id, metadata={"evidence_size": len(evidence)}
         )
 
         # Store for later revelation
@@ -519,11 +496,7 @@ class EvidenceCommitmentManager:
 
         return proof
 
-    def reveal_evidence(
-        self,
-        dispute_id: str,
-        evidence: bytes
-    ) -> Tuple[bytes, bytes]:
+    def reveal_evidence(self, dispute_id: str, evidence: bytes) -> Tuple[bytes, bytes]:
         """
         Prepare evidence revelation with proof.
 
@@ -545,12 +518,7 @@ class EvidenceCommitmentManager:
 
         return evidence_hash, blinding
 
-    def verify_revelation(
-        self,
-        dispute_id: str,
-        evidence: bytes,
-        blinding: bytes
-    ) -> bool:
+    def verify_revelation(self, dispute_id: str, evidence: bytes, blinding: bytes) -> bool:
         """
         Verify that revealed evidence matches commitment.
 
@@ -568,9 +536,7 @@ class EvidenceCommitmentManager:
         proof = self._commitments[dispute_id]
         evidence_hash = self.pedersen.hash_evidence(evidence, f"dispute:{dispute_id}")
 
-        return self.pedersen.verify_evidence_commitment(
-            proof, evidence_hash, blinding
-        )
+        return self.pedersen.verify_evidence_commitment(proof, evidence_hash, blinding)
 
     def get_commitment_for_chain(self, dispute_id: str) -> bytes:
         """
@@ -591,9 +557,7 @@ class EvidenceCommitmentManager:
         return self._commitments[dispute_id].commitment
 
     def batch_commit(
-        self,
-        dispute_id: str,
-        evidence_list: List[bytes]
+        self, dispute_id: str, evidence_list: List[bytes]
     ) -> Tuple[bytes, List[bytes]]:
         """
         Create aggregated commitment for multiple evidence items.
@@ -609,9 +573,7 @@ class EvidenceCommitmentManager:
         blindings = []
 
         for i, evidence in enumerate(evidence_list):
-            evidence_hash = self.pedersen.hash_evidence(
-                evidence, f"dispute:{dispute_id}:item:{i}"
-            )
+            evidence_hash = self.pedersen.hash_evidence(evidence, f"dispute:{dispute_id}:item:{i}")
             commitment, blinding = self.pedersen.commit(evidence_hash)
             commitments.append(commitment)
             blindings.append(blinding)

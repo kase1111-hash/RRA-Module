@@ -33,6 +33,7 @@ SESSION_EXPIRY_HOURS = 24
 @dataclass
 class SessionData:
     """Session data structure."""
+
     session_id: str
     user_id: Optional[str] = None
     created_at: datetime = field(default_factory=datetime.utcnow)

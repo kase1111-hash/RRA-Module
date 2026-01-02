@@ -29,10 +29,11 @@ from eth_utils import keccak
 @dataclass
 class DisputeIdentity:
     """Identity for participating in a dispute."""
-    identity_secret: int      # Private: 256-bit secret value
-    identity_hash: bytes      # Public: Poseidon hash for on-chain
-    salt: bytes               # Additional entropy
-    address: Optional[str]    # Optional: Associated Ethereum address
+
+    identity_secret: int  # Private: 256-bit secret value
+    identity_hash: bytes  # Public: Poseidon hash for on-chain
+    salt: bytes  # Additional entropy
+    address: Optional[str]  # Optional: Associated Ethereum address
 
 
 class PoseidonHash:
@@ -141,16 +142,17 @@ class PoseidonHash:
                 for i2 in range(i1 + 1, 3):
                     for j1 in range(3):
                         for j2 in range(j1 + 1, 3):
-                            det = (matrix[i1][j1] * matrix[i2][j2] -
-                                   matrix[i1][j2] * matrix[i2][j1]) % self.FIELD_PRIME
+                            det = (
+                                matrix[i1][j1] * matrix[i2][j2] - matrix[i1][j2] * matrix[i2][j1]
+                            ) % self.FIELD_PRIME
                             if det == 0:
                                 return False
 
             # 3x3 determinant
             det = (
-                matrix[0][0] * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1]) -
-                matrix[0][1] * (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0]) +
-                matrix[0][2] * (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0])
+                matrix[0][0] * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1])
+                - matrix[0][1] * (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0])
+                + matrix[0][2] * (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0])
             ) % self.FIELD_PRIME
             return det != 0
 
@@ -181,7 +183,7 @@ class PoseidonHash:
             for i in range(t):
                 # Generate constant from seed
                 seed = keccak(seed)
-                c = int.from_bytes(seed, 'big') % self.FIELD_PRIME
+                c = int.from_bytes(seed, "big") % self.FIELD_PRIME
                 round_consts.append(c)
             constants.append(round_consts)
 
@@ -248,10 +250,10 @@ class PoseidonHash:
             if isinstance(inp, int):
                 normalized.append(inp % self.FIELD_PRIME)
             elif isinstance(inp, bytes):
-                val = int.from_bytes(inp[:32].ljust(32, b'\x00'), 'big')
+                val = int.from_bytes(inp[:32].ljust(32, b"\x00"), "big")
                 normalized.append(val % self.FIELD_PRIME)
             else:
-                val = int.from_bytes(str(inp).encode()[:32].ljust(32, b'\x00'), 'big')
+                val = int.from_bytes(str(inp).encode()[:32].ljust(32, b"\x00"), "big")
                 normalized.append(val % self.FIELD_PRIME)
 
         # State width = inputs + 1 (capacity of 1)
@@ -283,8 +285,9 @@ class PoseidonHash:
         # First half of full rounds (4)
         for _ in range(full_rounds // 2):
             # Add round constants
-            state = [(state[i] + round_constants[round_idx][i]) % self.FIELD_PRIME
-                     for i in range(t)]
+            state = [
+                (state[i] + round_constants[round_idx][i]) % self.FIELD_PRIME for i in range(t)
+            ]
             # Full S-box layer
             state = [self._sbox(x) for x in state]
             # Mix
@@ -294,8 +297,9 @@ class PoseidonHash:
         # Partial rounds
         for _ in range(partial_rounds):
             # Add round constants
-            state = [(state[i] + round_constants[round_idx][i]) % self.FIELD_PRIME
-                     for i in range(t)]
+            state = [
+                (state[i] + round_constants[round_idx][i]) % self.FIELD_PRIME for i in range(t)
+            ]
             # Partial S-box (only first element)
             state[0] = self._sbox(state[0])
             # Mix
@@ -305,8 +309,9 @@ class PoseidonHash:
         # Second half of full rounds (4)
         for _ in range(full_rounds // 2):
             # Add round constants
-            state = [(state[i] + round_constants[round_idx][i]) % self.FIELD_PRIME
-                     for i in range(t)]
+            state = [
+                (state[i] + round_constants[round_idx][i]) % self.FIELD_PRIME for i in range(t)
+            ]
             # Full S-box layer
             state = [self._sbox(x) for x in state]
             # Mix
@@ -327,7 +332,7 @@ class PoseidonHash:
             32-byte hash
         """
         result = self.hash(inputs)
-        return result.to_bytes(32, 'big')
+        return result.to_bytes(32, "big")
 
 
 # Alias for backward compatibility
@@ -353,9 +358,7 @@ class IdentityManager:
         self.poseidon = PoseidonHash()
 
     def generate_identity(
-        self,
-        address: Optional[str] = None,
-        custom_salt: Optional[bytes] = None
+        self, address: Optional[str] = None, custom_salt: Optional[bytes] = None
     ) -> DisputeIdentity:
         """
         Generate a new dispute identity.
@@ -373,27 +376,22 @@ class IdentityManager:
         # Generate identity secret
         if address:
             # Derive from address + salt for deterministic binding
-            combined = bytes.fromhex(address[2:]).ljust(20, b'\x00') + salt
-            identity_secret = int.from_bytes(keccak(combined), 'big')
+            combined = bytes.fromhex(address[2:]).ljust(20, b"\x00") + salt
+            identity_secret = int.from_bytes(keccak(combined), "big")
         else:
             # Pure random identity
-            identity_secret = int.from_bytes(os.urandom(32), 'big')
+            identity_secret = int.from_bytes(os.urandom(32), "big")
 
         # Compute Poseidon hash for on-chain
         identity_hash_int = self.poseidon.hash([identity_secret])
-        identity_hash = identity_hash_int.to_bytes(32, 'big')
+        identity_hash = identity_hash_int.to_bytes(32, "big")
 
         return DisputeIdentity(
-            identity_secret=identity_secret,
-            identity_hash=identity_hash,
-            salt=salt,
-            address=address
+            identity_secret=identity_secret, identity_hash=identity_hash, salt=salt, address=address
         )
 
     def derive_identity_from_signature(
-        self,
-        signature: bytes,
-        message: str = "ILRM Identity"
+        self, signature: bytes, message: str = "ILRM Identity"
     ) -> DisputeIdentity:
         """
         Derive identity from an Ethereum signature.
@@ -410,23 +408,21 @@ class IdentityManager:
         # Hash signature components
         combined = signature + message.encode()
         secret_bytes = keccak(combined)
-        identity_secret = int.from_bytes(secret_bytes, 'big')
+        identity_secret = int.from_bytes(secret_bytes, "big")
 
         # Compute hash
         identity_hash_int = self.poseidon.hash([identity_secret])
-        identity_hash = identity_hash_int.to_bytes(32, 'big')
+        identity_hash = identity_hash_int.to_bytes(32, "big")
 
         return DisputeIdentity(
             identity_secret=identity_secret,
             identity_hash=identity_hash,
             salt=signature[:32],
-            address=None
+            address=None,
         )
 
     def prepare_zk_inputs(
-        self,
-        identity: DisputeIdentity,
-        identity_manager_hash: bytes
+        self, identity: DisputeIdentity, identity_manager_hash: bytes
     ) -> Dict[str, str]:
         """
         Prepare inputs for ZK proof generation.
@@ -442,7 +438,7 @@ class IdentityManager:
         """
         return {
             "identitySecret": str(identity.identity_secret),
-            "identityManager": str(int.from_bytes(identity_manager_hash, 'big'))
+            "identityManager": str(int.from_bytes(identity_manager_hash, "big")),
         }
 
     def prepare_membership_inputs(
@@ -450,7 +446,7 @@ class IdentityManager:
         identity: DisputeIdentity,
         initiator_hash: bytes,
         counterparty_hash: bytes,
-        is_initiator: bool
+        is_initiator: bool,
     ) -> Dict[str, str]:
         """
         Prepare inputs for dispute membership proof.
@@ -469,16 +465,11 @@ class IdentityManager:
         return {
             "identitySecret": str(identity.identity_secret),
             "roleSelector": "0" if is_initiator else "1",
-            "initiatorHash": str(int.from_bytes(initiator_hash, 'big')),
-            "counterpartyHash": str(int.from_bytes(counterparty_hash, 'big'))
+            "initiatorHash": str(int.from_bytes(initiator_hash, "big")),
+            "counterpartyHash": str(int.from_bytes(counterparty_hash, "big")),
         }
 
-    def save_identity(
-        self,
-        identity: DisputeIdentity,
-        name: str,
-        password: str
-    ) -> bool:
+    def save_identity(self, identity: DisputeIdentity, name: str, password: str) -> bool:
         """
         Save identity to encrypted storage.
 
@@ -513,7 +504,7 @@ class IdentityManager:
             "identity_secret": str(identity.identity_secret),
             "identity_hash": identity.identity_hash.hex(),
             "salt": identity.salt.hex(),
-            "address": identity.address
+            "address": identity.address,
         }
 
         # Encrypt
@@ -523,7 +514,7 @@ class IdentityManager:
         # Save
         self.storage_path.mkdir(parents=True, exist_ok=True)
         file_path = self.storage_path / f"{name}.identity"
-        with open(file_path, 'wb') as f:
+        with open(file_path, "wb") as f:
             f.write(salt + encrypted)
 
         return True
@@ -552,7 +543,7 @@ class IdentityManager:
             return None
 
         try:
-            with open(file_path, 'rb') as f:
+            with open(file_path, "rb") as f:
                 content = f.read()
 
             salt = content[:16]
@@ -576,7 +567,7 @@ class IdentityManager:
                 identity_secret=int(data["identity_secret"]),
                 identity_hash=bytes.fromhex(data["identity_hash"]),
                 salt=bytes.fromhex(data["salt"]),
-                address=data.get("address")
+                address=data.get("address"),
             )
         except Exception:
             return None
@@ -607,4 +598,4 @@ def compute_identity_hash(secret: int) -> bytes:
     """
     poseidon = PoseidonHash()
     hash_int = poseidon.hash([secret])
-    return hash_int.to_bytes(32, 'big')
+    return hash_int.to_bytes(32, "big")

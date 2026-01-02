@@ -81,17 +81,18 @@ class SearchResponse(BaseModel):
 # Helper functions
 def generate_repo_id(repo_url: str) -> str:
     """Generate a unique, stable repo ID from URL."""
-    normalized = repo_url.lower().strip().rstrip('.git')
+    normalized = repo_url.lower().strip().rstrip(".git")
     return hashlib.sha256(normalized.encode()).hexdigest()[:12]
 
 
 def parse_repo_url(url: str) -> Dict[str, str]:
     """Extract owner and name from GitHub URL."""
     import re
-    match = re.search(r'github\.com/([^/]+)/([^/\.]+)', url)
+
+    match = re.search(r"github\.com/([^/]+)/([^/\.]+)", url)
     if match:
-        return {'owner': match.group(1), 'name': match.group(2)}
-    return {'owner': 'unknown', 'name': url.split('/')[-1]}
+        return {"owner": match.group(1), "name": match.group(2)}
+    return {"owner": "unknown", "name": url.split("/")[-1]}
 
 
 def kb_to_listing(kb: KnowledgeBase) -> RepositoryListing:
@@ -104,24 +105,28 @@ def kb_to_listing(kb: KnowledgeBase) -> RepositoryListing:
         try:
             price_str = kb.market_config.target_price
             # Handle formats like "0.05 ETH" or "0.05"
-            price_eth = float(price_str.replace(' ETH', '').replace('ETH', '').strip())
+            price_eth = float(price_str.replace(" ETH", "").replace("ETH", "").strip())
         except (ValueError, AttributeError):
             pass
 
     # Handle description - get_summary() may return dict or string
     summary = kb.get_summary()
-    description = summary.get('description', 'No description') if isinstance(summary, dict) else str(summary)
+    description = (
+        summary.get("description", "No description") if isinstance(summary, dict) else str(summary)
+    )
 
     return RepositoryListing(
         id=generate_repo_id(kb.repo_url),
         url=kb.repo_url,
-        name=parsed['name'],
-        owner=parsed['owner'],
+        name=parsed["name"],
+        owner=parsed["owner"],
         description=description,
-        kb_path=str(kb.kb_path) if hasattr(kb, 'kb_path') else '',
-        updated_at=kb.updated_at.isoformat() if hasattr(kb, 'updated_at') else datetime.now().isoformat(),
-        languages=kb.statistics.get('languages', []),
-        files=kb.statistics.get('code_files', 0),
+        kb_path=str(kb.kb_path) if hasattr(kb, "kb_path") else "",
+        updated_at=(
+            kb.updated_at.isoformat() if hasattr(kb, "updated_at") else datetime.now().isoformat()
+        ),
+        languages=kb.statistics.get("languages", []),
+        files=kb.statistics.get("code_files", 0),
         stars=None,  # Would need GitHub API integration
         forks=None,
         price_eth=price_eth,
@@ -131,16 +136,24 @@ def kb_to_listing(kb: KnowledgeBase) -> RepositoryListing:
 def market_config_to_response(config: MarketConfig) -> MarketConfigResponse:
     """Convert a MarketConfig to response model."""
     # Use license_model as identifier since MarketConfig doesn't have separate identifier
-    license_id = config.license_model.value if hasattr(config.license_model, 'value') else str(config.license_model)
+    license_id = (
+        config.license_model.value
+        if hasattr(config.license_model, "value")
+        else str(config.license_model)
+    )
     return MarketConfigResponse(
         license_identifier=license_id,
         license_model=license_id,
         target_price=config.target_price,
         floor_price=config.floor_price,
-        negotiation_style=config.negotiation_style.value if hasattr(config, 'negotiation_style') and hasattr(config.negotiation_style, 'value') else None,
-        features=config.features or [] if hasattr(config, 'features') else [],
-        developer_wallet=config.developer_wallet if hasattr(config, 'developer_wallet') else None,
-        copyright_holder=config.copyright_holder if hasattr(config, 'copyright_holder') else None,
+        negotiation_style=(
+            config.negotiation_style.value
+            if hasattr(config, "negotiation_style") and hasattr(config.negotiation_style, "value")
+            else None
+        ),
+        features=config.features or [] if hasattr(config, "features") else [],
+        developer_wallet=config.developer_wallet if hasattr(config, "developer_wallet") else None,
+        copyright_holder=config.copyright_holder if hasattr(config, "copyright_holder") else None,
     )
 
 
@@ -182,7 +195,9 @@ async def list_marketplace_repos(
             # Apply filters
             if q:
                 q_lower = q.lower()
-                searchable = f"{listing.name} {listing.description} {' '.join(listing.languages)}".lower()
+                searchable = (
+                    f"{listing.name} {listing.description} {' '.join(listing.languages)}".lower()
+                )
                 if q_lower not in searchable:
                     continue
 
@@ -193,7 +208,7 @@ async def list_marketplace_repos(
             # Price filtering would need market_config
             if kb.market_config and (price_min is not None or price_max is not None):
                 try:
-                    price = float(kb.market_config.target_price.replace(' ETH', ''))
+                    price = float(kb.market_config.target_price.replace(" ETH", ""))
                     if price_min is not None and price < price_min:
                         continue
                     if price_max is not None and price > price_max:
@@ -278,7 +293,7 @@ async def get_categories(
         for kb_file in kb_dir.glob("*_kb.json"):
             try:
                 kb = KnowledgeBase.load(kb_file)
-                categories.update(kb.statistics.get('languages', []))
+                categories.update(kb.statistics.get("languages", []))
             except Exception as e:
                 logger.debug(f"Failed to extract categories from {kb_file}: {e}")
                 continue
@@ -320,10 +335,10 @@ async def get_agent_details(
                     repository=listing,
                     market_config=market_config_response,
                     statistics={
-                        "code_files": kb.statistics.get('code_files', 0),
-                        "languages": kb.statistics.get('languages', []),
-                        "total_lines": kb.statistics.get('total_lines', 0),
-                        "test_coverage": kb.statistics.get('test_coverage'),
+                        "code_files": kb.statistics.get("code_files", 0),
+                        "languages": kb.statistics.get("languages", []),
+                        "total_lines": kb.statistics.get("total_lines", 0),
+                        "test_coverage": kb.statistics.get("test_coverage"),
                     },
                     reputation={
                         "score": 4.5,  # Placeholder - would come from reputation tracker

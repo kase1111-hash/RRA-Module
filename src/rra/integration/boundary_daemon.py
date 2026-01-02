@@ -36,6 +36,7 @@ try:
         Ed25519PublicKey,
     )
     from cryptography.hazmat.primitives import serialization
+
     HAS_CRYPTO = True
 except ImportError:
     HAS_CRYPTO = False
@@ -47,10 +48,12 @@ logger = logging.getLogger(__name__)
 # Circuit Breaker Pattern
 # =============================================================================
 
+
 class CircuitState(Enum):
     """Circuit breaker states."""
-    CLOSED = "closed"     # Normal operation, requests pass through
-    OPEN = "open"         # Circuit open, requests fail fast
+
+    CLOSED = "closed"  # Normal operation, requests pass through
+    OPEN = "open"  # Circuit open, requests fail fast
     HALF_OPEN = "half_open"  # Testing if service has recovered
 
 
@@ -64,6 +67,7 @@ class CircuitBreaker:
     - OPEN: Service is down, requests fail fast without attempting
     - HALF_OPEN: Testing recovery, allowing limited requests through
     """
+
     failure_threshold: int = 5  # Failures before opening circuit
     recovery_timeout: float = 30.0  # Seconds before trying half-open
     half_open_max_calls: int = 3  # Max calls in half-open state
@@ -129,9 +133,7 @@ class CircuitBreaker:
             elif self._state == CircuitState.CLOSED:
                 if self._failure_count >= self.failure_threshold:
                     self._state = CircuitState.OPEN
-                    logger.warning(
-                        f"Circuit breaker OPEN after {self._failure_count} failures"
-                    )
+                    logger.warning(f"Circuit breaker OPEN after {self._failure_count} failures")
 
     def reset(self) -> None:
         """Manually reset the circuit breaker."""
@@ -148,7 +150,9 @@ class CircuitBreaker:
             return {
                 "state": self._state.value,
                 "failure_count": self._failure_count,
-                "last_failure": self._last_failure_time.isoformat() if self._last_failure_time else None,
+                "last_failure": (
+                    self._last_failure_time.isoformat() if self._last_failure_time else None
+                ),
                 "half_open_calls": self._half_open_calls,
             }
 
@@ -160,28 +164,42 @@ def generate_correlation_id() -> str:
 
 class Permission(Flag):
     """Permission flags for agent capabilities."""
+
     NONE = 0
-    READ = auto()          # Read repository content
-    NEGOTIATE = auto()     # Conduct license negotiations
-    QUOTE = auto()         # Provide price quotes
-    ACCEPT = auto()        # Accept license offers
-    TRANSFER = auto()      # Transfer license ownership
-    MINT = auto()          # Mint new license NFTs
-    BURN = auto()          # Revoke/burn licenses
-    ADMIN = auto()         # Administrative operations
-    WEBHOOK = auto()       # Receive webhook callbacks
-    STREAM = auto()        # Manage payment streams
-    ANALYTICS = auto()     # Access analytics data
+    READ = auto()  # Read repository content
+    NEGOTIATE = auto()  # Conduct license negotiations
+    QUOTE = auto()  # Provide price quotes
+    ACCEPT = auto()  # Accept license offers
+    TRANSFER = auto()  # Transfer license ownership
+    MINT = auto()  # Mint new license NFTs
+    BURN = auto()  # Revoke/burn licenses
+    ADMIN = auto()  # Administrative operations
+    WEBHOOK = auto()  # Receive webhook callbacks
+    STREAM = auto()  # Manage payment streams
+    ANALYTICS = auto()  # Access analytics data
 
     # Common permission sets
     BASIC = READ | QUOTE
     STANDARD = READ | NEGOTIATE | QUOTE | ACCEPT
     FULL = READ | NEGOTIATE | QUOTE | ACCEPT | TRANSFER | MINT
-    ALL = READ | NEGOTIATE | QUOTE | ACCEPT | TRANSFER | MINT | BURN | ADMIN | WEBHOOK | STREAM | ANALYTICS
+    ALL = (
+        READ
+        | NEGOTIATE
+        | QUOTE
+        | ACCEPT
+        | TRANSFER
+        | MINT
+        | BURN
+        | ADMIN
+        | WEBHOOK
+        | STREAM
+        | ANALYTICS
+    )
 
 
 class ResourceType(Enum):
     """Types of protected resources."""
+
     REPOSITORY = "repository"
     LICENSE = "license"
     AGENT = "agent"
@@ -199,16 +217,18 @@ class BoundaryMode(str, Enum):
     Each mode represents progressively restrictive constraints on
     network access, memory classification, and tool availability.
     """
-    OPEN = "open"           # Full access, minimal restrictions
+
+    OPEN = "open"  # Full access, minimal restrictions
     RESTRICTED = "restricted"  # Limited network, monitored operations
-    TRUSTED = "trusted"     # Verified operations only
-    AIRGAP = "airgap"       # No external network access
-    COLDROOM = "coldroom"   # Isolated execution, encrypted storage
-    LOCKDOWN = "lockdown"   # Emergency mode, all operations halted
+    TRUSTED = "trusted"  # Verified operations only
+    AIRGAP = "airgap"  # No external network access
+    COLDROOM = "coldroom"  # Isolated execution, encrypted storage
+    LOCKDOWN = "lockdown"  # Emergency mode, all operations halted
 
 
 class EventSeverity(Enum):
     """Security event severity levels."""
+
     DEBUG = 0
     INFO = 1
     LOW = 2
@@ -225,6 +245,7 @@ class BoundaryEvent:
     Events are hash-chained for tamper detection and can be
     forwarded to SIEM systems in CEF format.
     """
+
     event_id: str
     timestamp: datetime
     event_type: str
@@ -321,6 +342,7 @@ class BoundaryEvent:
 @dataclass
 class ModeConstraints:
     """Constraints applied in each boundary mode."""
+
     mode: BoundaryMode
     network_allowed: bool
     external_apis_allowed: bool
@@ -408,6 +430,7 @@ class ModeConstraints:
 @dataclass
 class AccessPolicy:
     """Defines access rules for a resource."""
+
     policy_id: str
     name: str
     description: str
@@ -455,13 +478,17 @@ class AccessPolicy:
                     if "min" in expected:
                         # Type-safe comparison
                         if type(actual) != type(expected["min"]):
-                            logger.warning(f"Type mismatch in condition '{key}': {type(actual)} vs {type(expected['min'])}")
+                            logger.warning(
+                                f"Type mismatch in condition '{key}': {type(actual)} vs {type(expected['min'])}"
+                            )
                             return False
                         if actual < expected["min"]:
                             return False
                     if "max" in expected:
                         if type(actual) != type(expected["max"]):
-                            logger.warning(f"Type mismatch in condition '{key}': {type(actual)} vs {type(expected['max'])}")
+                            logger.warning(
+                                f"Type mismatch in condition '{key}': {type(actual)} vs {type(expected['max'])}"
+                            )
                             return False
                         if actual > expected["max"]:
                             return False
@@ -504,8 +531,14 @@ class AccessPolicy:
             resource_id=data["resource_id"],
             permissions=Permission(data["permissions"]),
             conditions=data.get("conditions", {}),
-            created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else datetime.now(),
-            expires_at=datetime.fromisoformat(data["expires_at"]) if data.get("expires_at") else None,
+            created_at=(
+                datetime.fromisoformat(data["created_at"])
+                if data.get("created_at")
+                else datetime.now()
+            ),
+            expires_at=(
+                datetime.fromisoformat(data["expires_at"]) if data.get("expires_at") else None
+            ),
             active=data.get("active", True),
         )
 
@@ -513,6 +546,7 @@ class AccessPolicy:
 @dataclass
 class Principal:
     """An entity that can be granted permissions."""
+
     principal_id: str
     principal_type: str  # "user", "agent", "service", "contract"
     address: Optional[str] = None  # Ethereum address if applicable
@@ -540,7 +574,11 @@ class Principal:
             address=data.get("address"),
             name=data.get("name", ""),
             policies=data.get("policies", []),
-            created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else datetime.now(),
+            created_at=(
+                datetime.fromisoformat(data["created_at"])
+                if data.get("created_at")
+                else datetime.now()
+            ),
             active=data.get("active", True),
         )
 
@@ -548,6 +586,7 @@ class Principal:
 @dataclass
 class AccessToken:
     """A temporary access token for authentication."""
+
     token_id: str
     token_hash: str  # Hashed token value
     principal_id: str
@@ -587,6 +626,7 @@ class AccessToken:
 @dataclass
 class AccessLog:
     """Log entry for access attempts."""
+
     log_id: str
     timestamp: datetime
     principal_id: str
@@ -642,9 +682,7 @@ class DaemonConnection:
         self.socket_path = socket_path or os.environ.get(
             "BOUNDARY_DAEMON_SOCKET", self.DEFAULT_SOCKET_PATH
         )
-        self.http_url = http_url or os.environ.get(
-            "BOUNDARY_DAEMON_URL", self.DEFAULT_HTTP_URL
-        )
+        self.http_url = http_url or os.environ.get("BOUNDARY_DAEMON_URL", self.DEFAULT_HTTP_URL)
         self.connect_timeout = connect_timeout
         self.read_timeout = read_timeout
         self.retry_attempts = retry_attempts
@@ -672,10 +710,8 @@ class DaemonConnection:
         # Try HTTP
         try:
             import urllib.request
-            req = urllib.request.Request(
-                f"{self.http_url}/health",
-                method="GET"
-            )
+
+            req = urllib.request.Request(f"{self.http_url}/health", method="GET")
             req.add_header("User-Agent", "RRA-Module/0.1.0")
             with urllib.request.urlopen(req, timeout=self.connect_timeout) as resp:
                 return resp.status == 200
@@ -774,7 +810,7 @@ class DaemonConnection:
 
                 if attempt < self.retry_attempts - 1:
                     # Exponential backoff: 1s, 2s, 4s, ...
-                    delay = self.retry_base_delay * (2 ** attempt)
+                    delay = self.retry_base_delay * (2**attempt)
                     time.sleep(delay)
 
         # All retries exhausted
@@ -806,14 +842,16 @@ class DaemonConnection:
                 return json.loads(response_str)
 
     # Allowed actions for external daemon API
-    ALLOWED_ACTIONS = frozenset({
-        "check_permission",
-        "get_mode",
-        "set_mode",
-        "log_event",
-        "get_policy",
-        "health",
-    })
+    ALLOWED_ACTIONS = frozenset(
+        {
+            "check_permission",
+            "get_mode",
+            "set_mode",
+            "log_event",
+            "get_policy",
+            "health",
+        }
+    )
 
     def _send_http_request(
         self,
@@ -831,7 +869,7 @@ class DaemonConnection:
             raise ValueError(f"Invalid action: {action}")
 
         # Additional safety: ensure action contains only safe characters
-        if not re.match(r'^[a-z_]+$', action):
+        if not re.match(r"^[a-z_]+$", action):
             raise ValueError(f"Action contains invalid characters: {action}")
 
         url = f"{self.http_url}/api/v1/{action}"
@@ -866,16 +904,19 @@ class DaemonConnection:
         principal_id: str,
         action: str,
         resource: str,
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
     ) -> Tuple[bool, str]:
         """Check permission with external daemon."""
         try:
-            response = self.send_request("check_permission", {
-                "principal_id": principal_id,
-                "action": action,
-                "resource": resource,
-                "context": context or {},
-            })
+            response = self.send_request(
+                "check_permission",
+                {
+                    "principal_id": principal_id,
+                    "action": action,
+                    "resource": resource,
+                    "context": context or {},
+                },
+            )
             return response.get("allowed", False), response.get("reason", "")
         except Exception as e:
             logger.warning(f"Permission check failed: {e}")
@@ -914,8 +955,7 @@ class EventSigner:
         if not self._public_key:
             return None
         return self._public_key.public_bytes(
-            encoding=serialization.Encoding.Raw,
-            format=serialization.PublicFormat.Raw
+            encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw
         )
 
     def sign_event(self, event: BoundaryEvent) -> bytes:
@@ -1023,7 +1063,7 @@ class BoundaryDaemon:
             key_bytes = private_key.private_bytes(
                 encoding=serialization.Encoding.Raw,
                 format=serialization.PrivateFormat.Raw,
-                encryption_algorithm=serialization.NoEncryption()
+                encryption_algorithm=serialization.NoEncryption(),
             )
 
             # Save with restricted permissions (owner read/write only)
@@ -1077,7 +1117,7 @@ class BoundaryDaemon:
             action=f"transition_{old_mode.value}_to_{mode.value}",
             outcome="success",
             severity=EventSeverity.INFO if mode.value <= old_mode.value else EventSeverity.MEDIUM,
-            context={"old_mode": old_mode.value, "new_mode": mode.value, "reason": reason}
+            context={"old_mode": old_mode.value, "new_mode": mode.value, "reason": reason},
         )
 
         logger.info(f"Boundary mode changed: {old_mode.value} -> {mode.value}")
@@ -1093,7 +1133,7 @@ class BoundaryDaemon:
             action="emergency_lockdown",
             outcome="success",
             severity=EventSeverity.CRITICAL,
-            context={"reason": reason, "previous_mode": self._current_mode.value}
+            context={"reason": reason, "previous_mode": self._current_mode.value},
         )
 
         self._current_mode = BoundaryMode.LOCKDOWN
@@ -1101,9 +1141,7 @@ class BoundaryDaemon:
         logger.critical(f"LOCKDOWN triggered: {reason}")
 
     def check_mode_constraint(
-        self,
-        operation: str,
-        context: Optional[Dict[str, Any]] = None
+        self, operation: str, context: Optional[Dict[str, Any]] = None
     ) -> Tuple[bool, str]:
         """
         Check if an operation is allowed under current mode constraints.
@@ -1138,8 +1176,14 @@ class BoundaryDaemon:
         # Check tool allowlist
         if operation == "tool":
             tool_name = context.get("tool_name", "")
-            if "*" not in constraints.tool_allowlist and tool_name not in constraints.tool_allowlist:
-                return False, f"Tool '{tool_name}' not in allowlist for {constraints.mode.value} mode"
+            if (
+                "*" not in constraints.tool_allowlist
+                and tool_name not in constraints.tool_allowlist
+            ):
+                return (
+                    False,
+                    f"Tool '{tool_name}' not in allowlist for {constraints.mode.value} mode",
+                )
 
         # Check transaction value limits
         if operation == "transaction":
@@ -1284,7 +1328,7 @@ class BoundaryDaemon:
         resource_id: str,
         permissions: Permission,
         conditions: Optional[Dict[str, Any]] = None,
-        expires_in_days: Optional[int] = None
+        expires_in_days: Optional[int] = None,
     ) -> AccessPolicy:
         """Create a new access policy."""
         policy = AccessPolicy(
@@ -1295,7 +1339,9 @@ class BoundaryDaemon:
             resource_id=resource_id,
             permissions=permissions,
             conditions=conditions or {},
-            expires_at=datetime.now() + timedelta(days=expires_in_days) if expires_in_days else None,
+            expires_at=(
+                datetime.now() + timedelta(days=expires_in_days) if expires_in_days else None
+            ),
         )
 
         self.policies[policy.policy_id] = policy
@@ -1318,9 +1364,7 @@ class BoundaryDaemon:
         return policy
 
     def list_policies(
-        self,
-        resource_type: Optional[ResourceType] = None,
-        active_only: bool = True
+        self, resource_type: Optional[ResourceType] = None, active_only: bool = True
     ) -> List[AccessPolicy]:
         """List policies with optional filters."""
         policies = list(self.policies.values())
@@ -1338,10 +1382,7 @@ class BoundaryDaemon:
     # =========================================================================
 
     def register_principal(
-        self,
-        principal_type: str,
-        name: str,
-        address: Optional[str] = None
+        self, principal_type: str, name: str, address: Optional[str] = None
     ) -> Principal:
         """Register a new principal (user, agent, service)."""
         principal = Principal(
@@ -1400,10 +1441,7 @@ class BoundaryDaemon:
     # =========================================================================
 
     def issue_token(
-        self,
-        principal_id: str,
-        scopes: List[str],
-        expires_in_hours: int = 24
+        self, principal_id: str, scopes: List[str], expires_in_hours: int = 24
     ) -> tuple[str, AccessToken]:
         """Issue an access token for a principal."""
         principal = self.principals.get(principal_id)
@@ -1464,7 +1502,7 @@ class BoundaryDaemon:
         resource_type: ResourceType,
         resource_id: str,
         permission: Permission,
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
     ) -> tuple[bool, str]:
         """
         Check if a principal has access to a resource.
@@ -1477,12 +1515,16 @@ class BoundaryDaemon:
         principal = self.principals.get(principal_id)
         if not principal:
             reason = "Principal not found"
-            self._log_access(principal_id, resource_type, resource_id, permission, False, reason, context)
+            self._log_access(
+                principal_id, resource_type, resource_id, permission, False, reason, context
+            )
             return False, reason
 
         if not principal.active:
             reason = "Principal is not active"
-            self._log_access(principal_id, resource_type, resource_id, permission, False, reason, context)
+            self._log_access(
+                principal_id, resource_type, resource_id, permission, False, reason, context
+            )
             return False, reason
 
         # Check each policy assigned to the principal
@@ -1505,11 +1547,15 @@ class BoundaryDaemon:
 
             # Access granted
             reason = f"Granted by policy: {policy.name}"
-            self._log_access(principal_id, resource_type, resource_id, permission, True, reason, context)
+            self._log_access(
+                principal_id, resource_type, resource_id, permission, True, reason, context
+            )
             return True, reason
 
         reason = "No matching policy found"
-        self._log_access(principal_id, resource_type, resource_id, permission, False, reason, context)
+        self._log_access(
+            principal_id, resource_type, resource_id, permission, False, reason, context
+        )
         return False, reason
 
     def check_token_access(
@@ -1518,7 +1564,7 @@ class BoundaryDaemon:
         resource_type: ResourceType,
         resource_id: str,
         permission: Permission,
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
     ) -> tuple[bool, str]:
         """Check access using a token."""
         token = self.validate_token(raw_token)
@@ -1531,11 +1577,7 @@ class BoundaryDaemon:
             return False, f"Token scope does not include: {scope_name}"
 
         return self.check_access(
-            token.principal_id,
-            resource_type,
-            resource_id,
-            permission,
-            context
+            token.principal_id, resource_type, resource_id, permission, context
         )
 
     def _log_access(
@@ -1546,7 +1588,7 @@ class BoundaryDaemon:
         permission: Permission,
         granted: bool,
         reason: str,
-        context: Dict[str, Any]
+        context: Dict[str, Any],
     ) -> None:
         """Log an access attempt."""
         log = AccessLog(
@@ -1571,10 +1613,7 @@ class BoundaryDaemon:
     # =========================================================================
 
     def grant_repository_access(
-        self,
-        principal_id: str,
-        repo_id: str,
-        permissions: Permission = Permission.STANDARD
+        self, principal_id: str, repo_id: str, permissions: Permission = Permission.STANDARD
     ) -> AccessPolicy:
         """Grant access to a repository."""
         principal = self.principals.get(principal_id)
@@ -1597,7 +1636,7 @@ class BoundaryDaemon:
         self,
         principal_id: str,
         agent_id: str,
-        permissions: Permission = Permission.NEGOTIATE | Permission.QUOTE
+        permissions: Permission = Permission.NEGOTIATE | Permission.QUOTE,
     ) -> AccessPolicy:
         """Grant access to an agent."""
         principal = self.principals.get(principal_id)
@@ -1622,7 +1661,9 @@ class BoundaryDaemon:
 
     def get_access_stats(self) -> Dict[str, Any]:
         """Get access control statistics."""
-        recent_logs = [l for l in self.access_logs if l.timestamp > datetime.now() - timedelta(hours=24)]
+        recent_logs = [
+            l for l in self.access_logs if l.timestamp > datetime.now() - timedelta(hours=24)
+        ]
 
         return {
             "total_policies": len(self.policies),
@@ -1662,9 +1703,15 @@ class BoundaryDaemon:
             with open(state_file) as f:
                 state = json.load(f)
 
-            self.policies = {pid: AccessPolicy.from_dict(p) for pid, p in state.get("policies", {}).items()}
-            self.principals = {pid: Principal.from_dict(p) for pid, p in state.get("principals", {}).items()}
-            self.tokens = {tid: AccessToken.from_dict(t) for tid, t in state.get("tokens", {}).items()}
+            self.policies = {
+                pid: AccessPolicy.from_dict(p) for pid, p in state.get("policies", {}).items()
+            }
+            self.principals = {
+                pid: Principal.from_dict(p) for pid, p in state.get("principals", {}).items()
+            }
+            self.tokens = {
+                tid: AccessToken.from_dict(t) for tid, t in state.get("tokens", {}).items()
+            }
 
             logger.info(
                 f"Loaded state: {len(self.policies)} policies, "
@@ -1677,7 +1724,7 @@ class BoundaryDaemon:
 
             # Backup corrupted file for forensic analysis
             if state_file.exists():
-                backup_file = state_file.with_suffix('.json.corrupted')
+                backup_file = state_file.with_suffix(".json.corrupted")
                 try:
                     state_file.rename(backup_file)
                     logger.info(f"Corrupted state backed up to {backup_file}")

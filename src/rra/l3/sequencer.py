@@ -63,12 +63,12 @@ class Transaction:
 
     tx_id: str
     tx_type: TransactionType
-    sender: str                   # Sender address (can be hashed)
-    payload: bytes                # Transaction data
+    sender: str  # Sender address (can be hashed)
+    payload: bytes  # Transaction data
     timestamp: datetime
-    priority: int = 0             # Higher = earlier processing
-    gas_price: int = 0            # For fee market ordering
-    nonce: int = 0                # Sender nonce
+    priority: int = 0  # Higher = earlier processing
+    gas_price: int = 0  # For fee market ordering
+    nonce: int = 0  # Sender nonce
     signature: Optional[bytes] = None
     processed: bool = False
     result: Optional[bytes] = None
@@ -105,7 +105,7 @@ class StateTransition:
     transition_id: int
     prev_state_root: bytes
     new_state_root: bytes
-    transactions: List[str]       # Transaction IDs
+    transactions: List[str]  # Transaction IDs
     timestamp: datetime
     sequencer: str
     signature: Optional[bytes] = None
@@ -128,10 +128,10 @@ class SequencerConfig:
 
     sequencer_id: str = ""
     max_transactions_per_block: int = 1000
-    block_time_ms: int = 100         # Target 100ms blocks for sub-second finality
+    block_time_ms: int = 100  # Target 100ms blocks for sub-second finality
     max_pending_transactions: int = 10000
     batch_commit_interval: int = 100  # Blocks between L2 commits
-    priority_fee_threshold: int = 0   # Min priority fee
+    priority_fee_threshold: int = 0  # Min priority fee
     max_gas_per_block: int = 30_000_000
     enable_mempool: bool = True
     enable_priority_queue: bool = True
@@ -261,10 +261,7 @@ class DisputeSequencer:
             Transaction ID or None if rejected
         """
         payload = (
-            initiator_hash
-            + counterparty_hash
-            + evidence_root
-            + stake_amount.to_bytes(32, "big")
+            initiator_hash + counterparty_hash + evidence_root + stake_amount.to_bytes(32, "big")
         )
 
         tx = Transaction(
@@ -460,9 +457,7 @@ class DisputeSequencer:
         tx_hashes = []
         for tx in transactions:
             tx_hash = keccak(
-                tx.tx_id.encode()
-                + (tx.result or b"")
-                + tx.timestamp.isoformat().encode()
+                tx.tx_id.encode() + (tx.result or b"") + tx.timestamp.isoformat().encode()
             )
             tx_hashes.append(tx_hash)
 

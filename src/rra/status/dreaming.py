@@ -28,6 +28,7 @@ from collections import deque
 
 class StatusType(Enum):
     """Type of status update."""
+
     START = "start"
     COMPLETE = "complete"
     ERROR = "error"
@@ -37,6 +38,7 @@ class StatusType(Enum):
 @dataclass
 class StatusEntry:
     """A single status entry."""
+
     operation: str
     status_type: StatusType
     timestamp: datetime

@@ -30,18 +30,20 @@ from eth_utils import keccak
 
 class ActionType(Enum):
     """Types of delegatable actions."""
-    MARKET_MATCH = auto()      # License marketplace matching
-    DISPUTE_STAKE = auto()     # ILRM dispute staking
+
+    MARKET_MATCH = auto()  # License marketplace matching
+    DISPUTE_STAKE = auto()  # ILRM dispute staking
     LICENSE_TRANSFER = auto()  # License NFT transfers
-    METADATA_UPDATE = auto()   # Metadata/URI updates
-    WITHDRAW = auto()          # Fund withdrawals
-    NEGOTIATE = auto()         # Negotiation actions
-    CUSTOM = auto()            # Custom action type
+    METADATA_UPDATE = auto()  # Metadata/URI updates
+    WITHDRAW = auto()  # Fund withdrawals
+    NEGOTIATE = auto()  # Negotiation actions
+    CUSTOM = auto()  # Custom action type
 
 
 @dataclass
 class TokenLimit:
     """Spending limit for a specific token."""
+
     token_address: str
     max_amount: int
     spent_amount: int = 0
@@ -67,19 +69,20 @@ class DelegationScope:
 
     Specifies what actions an agent can perform and with what limits.
     """
+
     delegation_id: str
-    delegator: str                         # User's address
-    agent: str                             # Agent's address
-    credential_id_hash: bytes              # Hardware credential used to create
-    allowed_actions: Set[ActionType]       # Permitted action types
-    token_limits: Dict[str, TokenLimit]    # Token address => limit
-    eth_limit: int                         # Max ETH spending (in wei)
-    eth_spent: int = 0                     # ETH spent so far
+    delegator: str  # User's address
+    agent: str  # Agent's address
+    credential_id_hash: bytes  # Hardware credential used to create
+    allowed_actions: Set[ActionType]  # Permitted action types
+    token_limits: Dict[str, TokenLimit]  # Token address => limit
+    eth_limit: int  # Max ETH spending (in wei)
+    eth_spent: int = 0  # ETH spent so far
     created_at: datetime = field(default_factory=datetime.utcnow)
     expires_at: Optional[datetime] = None
     active: bool = True
-    requires_fresh_signature: bool = False # Require new FIDO2 sig per action
-    description: str = ""                  # Human-readable scope
+    requires_fresh_signature: bool = False  # Require new FIDO2 sig per action
+    description: str = ""  # Human-readable scope
     custom_actions: Set[str] = field(default_factory=set)  # Custom action hashes
 
     @property
@@ -111,12 +114,7 @@ class DelegationScope:
             return False
         return limit.can_spend(amount)
 
-    def use(
-        self,
-        action: ActionType,
-        token_address: Optional[str] = None,
-        amount: int = 0
-    ) -> bool:
+    def use(self, action: ActionType, token_address: Optional[str] = None, amount: int = 0) -> bool:
         """
         Use delegation for an action.
 
@@ -161,10 +159,7 @@ class DelegationScope:
             "credential_id_hash": self.credential_id_hash.hex(),
             "allowed_actions": [a.name for a in self.allowed_actions],
             "token_limits": {
-                addr: {
-                    "max_amount": limit.max_amount,
-                    "spent_amount": limit.spent_amount
-                }
+                addr: {"max_amount": limit.max_amount, "spent_amount": limit.spent_amount}
                 for addr, limit in self.token_limits.items()
             },
             "eth_limit": self.eth_limit,
@@ -173,7 +168,7 @@ class DelegationScope:
             "expires_at": self.expires_at.isoformat() if self.expires_at else None,
             "active": self.active,
             "requires_fresh_signature": self.requires_fresh_signature,
-            "description": self.description
+            "description": self.description,
         }
 
 
@@ -203,7 +198,7 @@ class ScopedDelegation:
         eth_limit: int,
         duration_seconds: int,
         requires_fresh_signature: bool = False,
-        description: str = ""
+        description: str = "",
     ) -> DelegationScope:
         """
         Create a new scoped delegation.
@@ -223,10 +218,10 @@ class ScopedDelegation:
             Created DelegationScope
         """
         delegation_id = keccak(
-            delegator.encode() +
-            agent.encode() +
-            credential_id_hash +
-            str(datetime.utcnow().timestamp()).encode()
+            delegator.encode()
+            + agent.encode()
+            + credential_id_hash
+            + str(datetime.utcnow().timestamp()).encode()
         ).hex()[:16]
 
         scope = DelegationScope(
@@ -242,7 +237,7 @@ class ScopedDelegation:
             eth_limit=eth_limit,
             expires_at=datetime.utcnow() + timedelta(seconds=duration_seconds),
             requires_fresh_signature=requires_fresh_signature,
-            description=description
+            description=description,
         )
 
         self.delegations[delegation_id] = scope
@@ -262,11 +257,7 @@ class ScopedDelegation:
         """Get delegation by ID."""
         return self.delegations.get(delegation_id)
 
-    def get_agent_delegations(
-        self,
-        agent: str,
-        active_only: bool = True
-    ) -> List[DelegationScope]:
+    def get_agent_delegations(self, agent: str, active_only: bool = True) -> List[DelegationScope]:
         """Get all delegations for an agent."""
         delegation_ids = self.agent_delegations.get(agent.lower(), [])
         delegations = [self.delegations[did] for did in delegation_ids if did in self.delegations]
@@ -277,9 +268,7 @@ class ScopedDelegation:
         return delegations
 
     def get_delegator_delegations(
-        self,
-        delegator: str,
-        active_only: bool = True
+        self, delegator: str, active_only: bool = True
     ) -> List[DelegationScope]:
         """Get all delegations created by a delegator."""
         delegation_ids = self.delegator_delegations.get(delegator.lower(), [])
@@ -295,7 +284,7 @@ class ScopedDelegation:
         delegation_id: str,
         action: ActionType,
         token_address: Optional[str] = None,
-        amount: int = 0
+        amount: int = 0,
     ) -> bool:
         """
         Use a delegation for an action.
@@ -320,7 +309,7 @@ class ScopedDelegation:
         delegation_id: str,
         action: ActionType,
         token_address: Optional[str] = None,
-        amount: int = 0
+        amount: int = 0,
     ) -> Dict[str, Any]:
         """
         Check if a delegation allows an action (without consuming).
@@ -335,7 +324,7 @@ class ScopedDelegation:
         if not delegation.is_valid:
             return {
                 "allowed": False,
-                "reason": "Delegation expired" if delegation.is_expired else "Delegation revoked"
+                "reason": "Delegation expired" if delegation.is_expired else "Delegation revoked",
             }
 
         if not delegation.can_perform_action(action):
@@ -349,7 +338,7 @@ class ScopedDelegation:
                         "allowed": False,
                         "reason": f"ETH limit exceeded",
                         "requested": amount,
-                        "remaining": remaining
+                        "remaining": remaining,
                     }
             else:
                 limit = delegation.token_limits.get(token_address.lower())
@@ -360,21 +349,16 @@ class ScopedDelegation:
                         "allowed": False,
                         "reason": "Token limit exceeded",
                         "requested": amount,
-                        "remaining": limit.remaining
+                        "remaining": limit.remaining,
                     }
 
         return {
             "allowed": True,
             "delegation_id": delegation_id,
-            "requires_fresh_signature": delegation.requires_fresh_signature
+            "requires_fresh_signature": delegation.requires_fresh_signature,
         }
 
-    def revoke_delegation(
-        self,
-        delegation_id: str,
-        delegator: str,
-        reason: str = ""
-    ) -> bool:
+    def revoke_delegation(self, delegation_id: str, delegator: str, reason: str = "") -> bool:
         """
         Revoke a delegation.
 
@@ -390,12 +374,7 @@ class ScopedDelegation:
         delegation.revoke(reason)
         return True
 
-    def revoke_all_for_agent(
-        self,
-        delegator: str,
-        agent: str,
-        reason: str = ""
-    ) -> int:
+    def revoke_all_for_agent(self, delegator: str, agent: str, reason: str = "") -> int:
         """
         Revoke all delegations from a delegator to an agent.
 
@@ -409,9 +388,7 @@ class ScopedDelegation:
         return count
 
     def prepare_for_contract(
-        self,
-        delegation: DelegationScope,
-        tokens: List[str]
+        self, delegation: DelegationScope, tokens: List[str]
     ) -> Dict[str, Any]:
         """
         Prepare delegation data for smart contract creation.
@@ -428,9 +405,15 @@ class ScopedDelegation:
             "credentialIdHash": "0x" + delegation.credential_id_hash.hex(),
             "allowedActions": [a.value - 1 for a in delegation.allowed_actions],  # 0-indexed
             "tokens": tokens,
-            "tokenLimits": [delegation.token_limits.get(t.lower(), TokenLimit(t, 0)).max_amount for t in tokens],
+            "tokenLimits": [
+                delegation.token_limits.get(t.lower(), TokenLimit(t, 0)).max_amount for t in tokens
+            ],
             "ethLimit": delegation.eth_limit,
-            "duration": int((delegation.expires_at - delegation.created_at).total_seconds()) if delegation.expires_at else 0,
+            "duration": (
+                int((delegation.expires_at - delegation.created_at).total_seconds())
+                if delegation.expires_at
+                else 0
+            ),
             "requiresFreshSignature": delegation.requires_fresh_signature,
-            "scopeDescription": delegation.description
+            "scopeDescription": delegation.description,
         }

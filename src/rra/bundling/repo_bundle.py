@@ -21,6 +21,7 @@ from enum import Enum
 
 class BundleType(Enum):
     """Types of repository bundles."""
+
     PORTFOLIO = "portfolio"  # All repos from a single owner
     COLLECTION = "collection"  # Themed collection
     DEPENDENCY = "dependency"  # Repos that work together
@@ -30,6 +31,7 @@ class BundleType(Enum):
 
 class DiscountType(Enum):
     """Types of bundle discounts."""
+
     PERCENTAGE = "percentage"  # e.g., 20% off total
     FIXED = "fixed"  # e.g., $50 off total
     PER_REPO = "per_repo"  # e.g., $10 off per repo after first
@@ -39,16 +41,13 @@ class DiscountType(Enum):
 @dataclass
 class BundleDiscount:
     """Discount configuration for a bundle."""
+
     discount_type: DiscountType
     value: float  # Percentage (0-100) or fixed amount
     min_repos: int = 2  # Minimum repos for discount
     max_discount_percent: float = 50.0  # Cap on total discount
 
-    def calculate_discount(
-        self,
-        total_price: float,
-        repo_count: int
-    ) -> float:
+    def calculate_discount(self, total_price: float, repo_count: int) -> float:
         """
         Calculate the discount amount.
 
@@ -88,6 +87,7 @@ class BundleDiscount:
 @dataclass
 class BundledRepo:
     """A repository included in a bundle."""
+
     repo_id: str
     repo_url: str
     name: str
@@ -105,6 +105,7 @@ class RepoBundle:
 
     Bundles allow licensing multiple repos together at a discount.
     """
+
     bundle_id: str
     name: str
     description: str
@@ -188,12 +189,16 @@ class RepoBundle:
                 }
                 for r in self.repos
             ],
-            "discount": {
-                "discount_type": self.discount.discount_type.value,
-                "value": self.discount.value,
-                "min_repos": self.discount.min_repos,
-                "max_discount_percent": self.discount.max_discount_percent,
-            } if self.discount else None,
+            "discount": (
+                {
+                    "discount_type": self.discount.discount_type.value,
+                    "value": self.discount.value,
+                    "min_repos": self.discount.min_repos,
+                    "max_discount_percent": self.discount.max_discount_percent,
+                }
+                if self.discount
+                else None
+            ),
             "tags": self.tags,
             "is_active": self.is_active,
             "featured": self.featured,
@@ -276,23 +281,17 @@ class BundleManager:
         """Load bundles from storage."""
         if self.storage_path.exists():
             try:
-                with open(self.storage_path, 'r') as f:
+                with open(self.storage_path, "r") as f:
                     data = json.load(f)
-                    self._bundles = {
-                        k: RepoBundle.from_dict(v)
-                        for k, v in data.items()
-                    }
+                    self._bundles = {k: RepoBundle.from_dict(v) for k, v in data.items()}
             except (json.JSONDecodeError, IOError):
                 self._bundles = {}
 
     def _save_bundles(self) -> None:
         """Save bundles to storage."""
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.storage_path, 'w') as f:
-            json.dump(
-                {k: v.to_dict() for k, v in self._bundles.items()},
-                f, indent=2, default=str
-            )
+        with open(self.storage_path, "w") as f:
+            json.dump({k: v.to_dict() for k, v in self._bundles.items()}, f, indent=2, default=str)
 
     def create_bundle(
         self,
@@ -389,10 +388,7 @@ class BundleManager:
             bundles = [b for b in bundles if b.category == category]
 
         if tags:
-            bundles = [
-                b for b in bundles
-                if any(t in b.tags for t in tags)
-            ]
+            bundles = [b for b in bundles if any(t in b.tags for t in tags)]
 
         if featured_only:
             bundles = [b for b in bundles if b.featured]
@@ -414,20 +410,19 @@ class BundleManager:
         """
         query_lower = query.lower()
         return [
-            b for b in self._bundles.values()
-            if b.is_active and (
-                query_lower in b.name.lower() or
-                query_lower in b.description.lower() or
-                any(query_lower in tag.lower() for tag in b.tags)
+            b
+            for b in self._bundles.values()
+            if b.is_active
+            and (
+                query_lower in b.name.lower()
+                or query_lower in b.description.lower()
+                or any(query_lower in tag.lower() for tag in b.tags)
             )
         ]
 
     def get_bundles_containing_repo(self, repo_id: str) -> List[RepoBundle]:
         """Get all bundles containing a specific repo."""
-        return [
-            b for b in self._bundles.values()
-            if any(r.repo_id == repo_id for r in b.repos)
-        ]
+        return [b for b in self._bundles.values() if any(r.repo_id == repo_id for r in b.repos)]
 
     def get_stats(self) -> Dict[str, Any]:
         """Get bundle statistics."""
@@ -440,11 +435,13 @@ class BundleManager:
             "total_repos_bundled": sum(b.repo_count for b in active_bundles),
             "avg_repos_per_bundle": (
                 sum(b.repo_count for b in active_bundles) / len(active_bundles)
-                if active_bundles else 0
+                if active_bundles
+                else 0
             ),
             "avg_discount_percent": (
                 sum(b.savings_percent for b in active_bundles) / len(active_bundles)
-                if active_bundles else 0
+                if active_bundles
+                else 0
             ),
             "bundles_by_type": {
                 bt.value: len([b for b in active_bundles if b.bundle_type == bt])

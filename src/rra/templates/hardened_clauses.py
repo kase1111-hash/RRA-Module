@@ -124,9 +124,7 @@ class ClauseTemplate:
             if param.required and param.name not in values:
                 errors.append(f"Required parameter '{param.name}' is missing")
             elif param.name in values and not param.validate(values[param.name]):
-                errors.append(
-                    f"Parameter '{param.name}' has invalid value: {values[param.name]}"
-                )
+                errors.append(f"Parameter '{param.name}' has invalid value: {values[param.name]}")
 
         return errors
 
@@ -308,7 +306,6 @@ applicable law.
         risk_score=0.15,
         tags=["perpetual", "software", "clear-scope"],
     ),
-
     ClauseTemplate(
         id="grant_api_usage",
         name="API Usage License Grant",
@@ -365,7 +362,6 @@ credentials with third parties; (iii) use the API to build a competing service; 
         risk_score=0.12,
         tags=["api", "rate-limits", "clear-scope"],
     ),
-
     # === TERMINATION TEMPLATES ===
     ClauseTemplate(
         id="termination_for_cause",
@@ -420,7 +416,6 @@ DEFINITION OF MATERIAL BREACH. A "material breach" means any of the following:
         risk_score=0.18,
         tags=["termination", "defined-thresholds", "cure-period"],
     ),
-
     ClauseTemplate(
         id="termination_convenience",
         name="Termination for Convenience",
@@ -485,7 +480,6 @@ EFFECT OF TERMINATION. Upon termination for convenience:
         risk_score=0.10,
         tags=["termination", "convenience", "notice-procedures"],
     ),
-
     # === PAYMENT TEMPLATES ===
     ClauseTemplate(
         id="payment_subscription",
@@ -567,7 +561,6 @@ the charges.
         risk_score=0.15,
         tags=["payment", "subscription", "late-fees"],
     ),
-
     # === LIABILITY TEMPLATES ===
     ClauseTemplate(
         id="liability_limitation_cap",
@@ -616,7 +609,6 @@ BASIS OF THE BARGAIN BETWEEN THEM.
         risk_score=0.20,
         tags=["liability", "cap", "exclusions"],
     ),
-
     # === DISPUTE RESOLUTION TEMPLATES ===
     ClauseTemplate(
         id="dispute_escalation",
@@ -725,7 +717,6 @@ costs.
         risk_score=0.12,
         tags=["dispute", "arbitration", "mediation", "escalation"],
     ),
-
     # === WARRANTY TEMPLATES ===
     ClauseTemplate(
         id="warranty_limited",

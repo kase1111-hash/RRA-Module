@@ -32,12 +32,13 @@ from collections import defaultdict
 
 class DisputeType(Enum):
     """Types of license disputes."""
-    SCOPE = "scope"                   # Disagreement on license scope
-    PAYMENT = "payment"               # Payment-related disputes
-    TERMINATION = "termination"       # Termination condition disputes
-    BREACH = "breach"                 # Breach of terms
-    IP_OWNERSHIP = "ip_ownership"     # IP ownership disputes
-    PERFORMANCE = "performance"       # Performance/SLA disputes
+
+    SCOPE = "scope"  # Disagreement on license scope
+    PAYMENT = "payment"  # Payment-related disputes
+    TERMINATION = "termination"  # Termination condition disputes
+    BREACH = "breach"  # Breach of terms
+    IP_OWNERSHIP = "ip_ownership"  # IP ownership disputes
+    PERFORMANCE = "performance"  # Performance/SLA disputes
     CONFIDENTIALITY = "confidentiality"  # Confidentiality breaches
     INDEMNIFICATION = "indemnification"  # Indemnification claims
 
@@ -45,6 +46,7 @@ class DisputeType(Enum):
 @dataclass
 class PredictionFeatures:
     """Features extracted from a contract for prediction."""
+
     # Clause-level features
     avg_entropy: float = 0.0
     max_entropy: float = 0.0
@@ -102,6 +104,7 @@ class PredictionFeatures:
 @dataclass
 class DisputePrediction:
     """Prediction result for a contract."""
+
     # Core predictions
     dispute_probability: float
     expected_disputes: float  # Expected number of disputes over contract lifetime
@@ -131,16 +134,14 @@ class DisputePrediction:
             "dispute_probability": round(self.dispute_probability, 4),
             "expected_disputes": round(self.expected_disputes, 2),
             "type_probabilities": {
-                t.value: round(p, 4)
-                for t, p in self.type_probabilities.items()
+                t.value: round(p, 4) for t, p in self.type_probabilities.items()
             },
             "expected_resolution": {
                 "days": round(self.expected_resolution_days, 1),
                 "cost_usd": round(self.expected_resolution_cost, 2),
             },
             "risk_factors": [
-                {"factor": f, "weight": round(w, 4)}
-                for f, w in self.top_risk_factors
+                {"factor": f, "weight": round(w, 4)} for f, w in self.top_risk_factors
             ],
             "recommended_actions": self.recommended_actions,
             "confidence": round(self.confidence, 4),
@@ -189,9 +190,7 @@ class DisputePredictor:
         self._calibration_data: List[Tuple[float, bool]] = []
 
     def extract_features(
-        self,
-        clauses: List[str],
-        entropy_scores: Optional[List[float]] = None
+        self, clauses: List[str], entropy_scores: Optional[List[float]] = None
     ) -> PredictionFeatures:
         """
         Extract prediction features from contract clauses.
@@ -235,30 +234,43 @@ class DisputePredictor:
 
         # Count ambiguous terms
         ambiguous_terms = [
-            "reasonable", "appropriate", "material", "substantial",
-            "significant", "promptly", "timely", "best efforts"
+            "reasonable",
+            "appropriate",
+            "material",
+            "substantial",
+            "significant",
+            "promptly",
+            "timely",
+            "best efforts",
         ]
         for term in ambiguous_terms:
             features.ambiguous_term_count += all_text.count(term)
 
         # Count defined terms (words in quotes or ALL CAPS)
         import re
+
         defined = re.findall(r'"[^"]+"|\b[A-Z]{2,}\b', " ".join(clauses))
         features.defined_terms_count = len(set(defined))
 
         # Check category coverage
-        features.has_liability_limitation = "limitation of liability" in all_text or "limit liability" in all_text
+        features.has_liability_limitation = (
+            "limitation of liability" in all_text or "limit liability" in all_text
+        )
         features.has_indemnification = "indemnif" in all_text
         features.has_termination_clause = "termination" in all_text or "terminate" in all_text
         features.has_dispute_resolution = "dispute" in all_text or "arbitration" in all_text
         features.has_warranty_disclaimer = "warranty" in all_text or "as is" in all_text
 
         # Calculate conditional density
-        conditionals = sum(1 for w in words if w in ["if", "unless", "except", "provided", "however"])
+        conditionals = sum(
+            1 for w in words if w in ["if", "unless", "except", "provided", "however"]
+        )
         features.conditional_density = (conditionals / len(words)) * 100 if words else 0
 
         # Count cross-references
-        features.cross_reference_count = len(re.findall(r'section\s+\d+|article\s+\d+', all_text, re.I))
+        features.cross_reference_count = len(
+            re.findall(r"section\s+\d+|article\s+\d+", all_text, re.I)
+        )
 
         return features
 
@@ -298,9 +310,7 @@ class DisputePredictor:
         return min(max(prob, 0.01), 0.99)
 
     def _calculate_type_probabilities(
-        self,
-        features: PredictionFeatures,
-        base_prob: float
+        self, features: PredictionFeatures, base_prob: float
     ) -> Dict[DisputeType, float]:
         """Calculate probability for each dispute type."""
         type_probs = {}
@@ -334,9 +344,7 @@ class DisputePredictor:
         return type_probs
 
     def _estimate_resolution(
-        self,
-        features: PredictionFeatures,
-        base_prob: float
+        self, features: PredictionFeatures, base_prob: float
     ) -> Tuple[float, float]:
         """Estimate resolution time and cost."""
         # Base estimates
@@ -357,10 +365,7 @@ class DisputePredictor:
 
         return days, cost
 
-    def _identify_risk_factors(
-        self,
-        features: PredictionFeatures
-    ) -> List[Tuple[str, float]]:
+    def _identify_risk_factors(self, features: PredictionFeatures) -> List[Tuple[str, float]]:
         """Identify top risk factors contributing to dispute probability."""
         factors = []
 
@@ -400,9 +405,7 @@ class DisputePredictor:
         return factors[:5]
 
     def _generate_recommendations(
-        self,
-        features: PredictionFeatures,
-        risk_factors: List[Tuple[str, float]]
+        self, features: PredictionFeatures, risk_factors: List[Tuple[str, float]]
     ) -> List[str]:
         """Generate actionable recommendations."""
         recommendations = []
@@ -414,27 +417,19 @@ class DisputePredictor:
                     "Review high-entropy clauses and consider using hardened alternatives"
                 )
             elif "ambiguous" in factor.lower():
-                recommendations.append(
-                    "Replace ambiguous terms with specific, measurable language"
-                )
+                recommendations.append("Replace ambiguous terms with specific, measurable language")
             elif "dispute resolution" in factor.lower():
                 recommendations.append(
                     "Add explicit dispute resolution mechanism (arbitration recommended)"
                 )
             elif "liability" in factor.lower():
-                recommendations.append(
-                    "Include mutual liability limitation clause"
-                )
+                recommendations.append("Include mutual liability limitation clause")
             elif "termination" in factor.lower():
-                recommendations.append(
-                    "Add clear termination conditions and procedures"
-                )
+                recommendations.append("Add clear termination conditions and procedures")
 
         # General recommendations based on score
         if features.avg_entropy > 0.5:
-            recommendations.append(
-                "Consider professional legal review before execution"
-            )
+            recommendations.append("Consider professional legal review before execution")
 
         # Deduplicate
         return list(dict.fromkeys(recommendations))[:5]
@@ -444,7 +439,7 @@ class DisputePredictor:
         clauses: List[str],
         entropy_scores: Optional[List[float]] = None,
         licensee_history: int = 0,
-        licensor_history: int = 0
+        licensor_history: int = 0,
     ) -> DisputePrediction:
         """
         Predict dispute probability for a contract.
@@ -495,10 +490,7 @@ class DisputePredictor:
         )
 
     def predict_from_entropy(
-        self,
-        avg_entropy: float,
-        max_entropy: float,
-        clause_count: int
+        self, avg_entropy: float, max_entropy: float, clause_count: int
     ) -> float:
         """
         Quick prediction from entropy metrics only.

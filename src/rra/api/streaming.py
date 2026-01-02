@@ -31,7 +31,7 @@ from rra.access.stream_controller import StreamAccessController, AccessLevel
 # Input Validation Utilities
 # =============================================================================
 
-ETH_ADDRESS_PATTERN = re.compile(r'^0x[a-fA-F0-9]{40}$')
+ETH_ADDRESS_PATTERN = re.compile(r"^0x[a-fA-F0-9]{40}$")
 
 
 def validate_eth_address(address: str) -> bool:
@@ -60,23 +60,25 @@ class CreateStreamRequest(BaseModel):
     buyer_address: str
     seller_address: str
     monthly_price_usd: float = Field(..., gt=0, le=1000000)
-    token: str = Field(default="USDCx", pattern=r'^[A-Za-z0-9]+x?$')
+    token: str = Field(default="USDCx", pattern=r"^[A-Za-z0-9]+x?$")
     grace_period_hours: int = Field(default=24, ge=0, le=8760)  # Max 1 year
 
-    @field_validator('buyer_address', 'seller_address')
+    @field_validator("buyer_address", "seller_address")
     @classmethod
     def validate_eth_addresses(cls, v: str) -> str:
         """Validate Ethereum address format."""
         if not ETH_ADDRESS_PATTERN.match(v):
-            raise ValueError('Invalid Ethereum address format. Expected: 0x followed by 40 hex characters')
+            raise ValueError(
+                "Invalid Ethereum address format. Expected: 0x followed by 40 hex characters"
+            )
         return v.lower()
 
-    @field_validator('repo_id')
+    @field_validator("repo_id")
     @classmethod
     def validate_repo_id(cls, v: str) -> str:
         """Validate repo ID format."""
-        if '..' in v or '/' in v or '\\' in v:
-            raise ValueError('Invalid repo_id format')
+        if ".." in v or "/" in v or "\\" in v:
+            raise ValueError("Invalid repo_id format")
         return v
 
 
@@ -246,9 +248,13 @@ async def stop_stream(
         if license:
             result["grace_period_hours"] = license.grace_period_seconds / 3600
             result["grace_ends_at"] = (
-                license.stop_time +
-                __import__('datetime').timedelta(seconds=license.grace_period_seconds)
-            ).isoformat() if license.stop_time else None
+                (
+                    license.stop_time
+                    + __import__("datetime").timedelta(seconds=license.grace_period_seconds)
+                ).isoformat()
+                if license.stop_time
+                else None
+            )
 
         return result
 
@@ -476,10 +482,7 @@ async def get_supported_tokens(
     return {
         "network": sf_manager.network.value,
         "tokens": tokens,
-        "addresses": {
-            token: sf_manager.get_token_address(token)
-            for token in tokens
-        },
+        "addresses": {token: sf_manager.get_token_address(token) for token in tokens},
     }
 
 

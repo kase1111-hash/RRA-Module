@@ -78,14 +78,15 @@ class ReputationMetrics:
         transaction_score = min(100, (self.total_licenses_sold / 10) * 100)
 
         # Quality score (0-100)
-        quality_score = (
-            (self.bug_resolution_rate * 100 * 0.6) +
-            (min(100, (1 / (self.average_response_time_hours + 1)) * 100) * 0.4)
+        quality_score = (self.bug_resolution_rate * 100 * 0.6) + (
+            min(100, (1 / (self.average_response_time_hours + 1)) * 100) * 0.4
         )
 
         # Feedback score (0-100)
         if (self.positive_ratings + self.negative_ratings) > 0:
-            feedback_score = (self.positive_ratings / (self.positive_ratings + self.negative_ratings)) * 100
+            feedback_score = (
+                self.positive_ratings / (self.positive_ratings + self.negative_ratings)
+            ) * 100
         else:
             feedback_score = 50  # Neutral
 
@@ -97,11 +98,11 @@ class ReputationMetrics:
 
         # Calculate weighted score
         total_score = (
-            weights["transactions"] * transaction_score +
-            weights["quality"] * quality_score +
-            weights["feedback"] * feedback_score +
-            weights["negotiations"] * negotiation_score +
-            weights["uptime"] * uptime_score
+            weights["transactions"] * transaction_score
+            + weights["quality"] * quality_score
+            + weights["feedback"] * feedback_score
+            + weights["negotiations"] * negotiation_score
+            + weights["uptime"] * uptime_score
         )
 
         return round(total_score, 2)
@@ -157,7 +158,7 @@ class ReputationTracker:
         file_path = self._get_reputation_file(repo_url)
 
         if file_path.exists():
-            with open(file_path, 'r') as f:
+            with open(file_path, "r") as f:
                 data = json.load(f)
 
                 # Reconstruct datetime objects
@@ -171,11 +172,7 @@ class ReputationTracker:
         # Return new metrics if not found
         return ReputationMetrics(repo_url=repo_url)
 
-    def update_reputation(
-        self,
-        repo_url: str,
-        updates: Dict[str, Any]
-    ) -> ReputationMetrics:
+    def update_reputation(self, repo_url: str, updates: Dict[str, Any]) -> ReputationMetrics:
         """
         Update reputation metrics.
 
@@ -195,15 +192,11 @@ class ReputationTracker:
 
         # Recalculate derived metrics
         if metrics.total_licenses_sold > 0:
-            metrics.average_sale_price_eth = (
-                metrics.total_revenue_eth / metrics.total_licenses_sold
-            )
+            metrics.average_sale_price_eth = metrics.total_revenue_eth / metrics.total_licenses_sold
 
         total_negotiations = metrics.successful_negotiations + metrics.failed_negotiations
         if total_negotiations > 0:
-            metrics.negotiation_success_rate = (
-                metrics.successful_negotiations / total_negotiations
-            )
+            metrics.negotiation_success_rate = metrics.successful_negotiations / total_negotiations
 
         if (metrics.positive_ratings + metrics.negative_ratings) > 0:
             metrics.average_rating = (
@@ -214,23 +207,20 @@ class ReputationTracker:
         metrics.last_update_timestamp = datetime.now()
 
         # Record history
-        metrics.reputation_history.append({
-            "timestamp": datetime.now().isoformat(),
-            "score": metrics.calculate_reputation_score(),
-            "updates": updates,
-        })
+        metrics.reputation_history.append(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "score": metrics.calculate_reputation_score(),
+                "updates": updates,
+            }
+        )
 
         # Save
         self._save_reputation(metrics)
 
         return metrics
 
-    def record_sale(
-        self,
-        repo_url: str,
-        price_eth: float,
-        buyer_address: str
-    ) -> ReputationMetrics:
+    def record_sale(self, repo_url: str, price_eth: float, buyer_address: str) -> ReputationMetrics:
         """
         Record a license sale.
 
@@ -248,30 +238,27 @@ class ReputationTracker:
         metrics.total_revenue_eth += price_eth
 
         if metrics.total_licenses_sold > 0:
-            metrics.average_sale_price_eth = (
-                metrics.total_revenue_eth / metrics.total_licenses_sold
-            )
+            metrics.average_sale_price_eth = metrics.total_revenue_eth / metrics.total_licenses_sold
 
         metrics.last_update_timestamp = datetime.now()
 
         # Record in history
-        metrics.reputation_history.append({
-            "timestamp": datetime.now().isoformat(),
-            "event": "sale",
-            "price_eth": price_eth,
-            "buyer": buyer_address,
-            "score": metrics.calculate_reputation_score(),
-        })
+        metrics.reputation_history.append(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "event": "sale",
+                "price_eth": price_eth,
+                "buyer": buyer_address,
+                "score": metrics.calculate_reputation_score(),
+            }
+        )
 
         self._save_reputation(metrics)
 
         return metrics
 
     def record_feedback(
-        self,
-        repo_url: str,
-        rating: int,
-        comment: Optional[str] = None
+        self, repo_url: str, rating: int, comment: Optional[str] = None
     ) -> ReputationMetrics:
         """
         Record buyer feedback.
@@ -293,17 +280,17 @@ class ReputationTracker:
 
         total_ratings = metrics.positive_ratings + metrics.negative_ratings
         if total_ratings > 0:
-            metrics.average_rating = (
-                metrics.positive_ratings / total_ratings
-            ) * 5.0
+            metrics.average_rating = (metrics.positive_ratings / total_ratings) * 5.0
 
-        metrics.reputation_history.append({
-            "timestamp": datetime.now().isoformat(),
-            "event": "feedback",
-            "rating": rating,
-            "comment": comment,
-            "score": metrics.calculate_reputation_score(),
-        })
+        metrics.reputation_history.append(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "event": "feedback",
+                "rating": rating,
+                "comment": comment,
+                "score": metrics.calculate_reputation_score(),
+            }
+        )
 
         self._save_reputation(metrics)
 
@@ -323,20 +310,21 @@ class ReputationTracker:
 
         for file_path in self.storage_dir.glob("*.json"):
             try:
-                with open(file_path, 'r') as f:
+                with open(file_path, "r") as f:
                     data = json.load(f)
-                    metrics = ReputationMetrics(**{
-                        k: v for k, v in data.items()
-                        if k != "last_update_timestamp"
-                    })
+                    metrics = ReputationMetrics(
+                        **{k: v for k, v in data.items() if k != "last_update_timestamp"}
+                    )
 
-                    repos.append({
-                        "repo_url": metrics.repo_url,
-                        "score": metrics.calculate_reputation_score(),
-                        "level": metrics.get_reputation_level(),
-                        "total_sales": metrics.total_licenses_sold,
-                        "revenue_eth": metrics.total_revenue_eth,
-                    })
+                    repos.append(
+                        {
+                            "repo_url": metrics.repo_url,
+                            "score": metrics.calculate_reputation_score(),
+                            "level": metrics.get_reputation_level(),
+                            "total_sales": metrics.total_licenses_sold,
+                            "revenue_eth": metrics.total_revenue_eth,
+                        }
+                    )
             except (json.JSONDecodeError, TypeError, KeyError, OSError):
                 # Skip corrupted or invalid reputation files
                 continue
@@ -375,13 +363,12 @@ class ReputationTracker:
             "negotiation_success_rate": metrics.negotiation_success_rate,
             "uptime_percentage": metrics.uptime_percentage,
             "last_update_timestamp": (
-                metrics.last_update_timestamp.isoformat()
-                if metrics.last_update_timestamp else None
+                metrics.last_update_timestamp.isoformat() if metrics.last_update_timestamp else None
             ),
             "on_chain_verified": metrics.on_chain_verified,
             "verification_tx_hash": metrics.verification_tx_hash,
             "reputation_history": metrics.reputation_history,
         }
 
-        with open(file_path, 'w') as f:
+        with open(file_path, "w") as f:
             json.dump(data, f, indent=2)

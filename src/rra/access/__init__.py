@@ -4,4 +4,4 @@
 
 from rra.access.stream_controller import StreamAccessController
 
-__all__ = ['StreamAccessController']
+__all__ = ["StreamAccessController"]

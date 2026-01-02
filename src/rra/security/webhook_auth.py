@@ -31,17 +31,17 @@ from urllib.parse import urlparse
 
 # Networks to block for SSRF protection
 BLOCKED_NETWORKS = [
-    ipaddress.ip_network('127.0.0.0/8'),       # Localhost
-    ipaddress.ip_network('10.0.0.0/8'),        # Private (Class A)
-    ipaddress.ip_network('172.16.0.0/12'),     # Private (Class B)
-    ipaddress.ip_network('192.168.0.0/16'),    # Private (Class C)
-    ipaddress.ip_network('169.254.0.0/16'),    # Link-local (AWS/cloud metadata)
-    ipaddress.ip_network('0.0.0.0/8'),         # "This" network
-    ipaddress.ip_network('224.0.0.0/4'),       # Multicast
-    ipaddress.ip_network('240.0.0.0/4'),       # Reserved
-    ipaddress.ip_network('::1/128'),           # IPv6 localhost
-    ipaddress.ip_network('fc00::/7'),          # IPv6 private
-    ipaddress.ip_network('fe80::/10'),         # IPv6 link-local
+    ipaddress.ip_network("127.0.0.0/8"),  # Localhost
+    ipaddress.ip_network("10.0.0.0/8"),  # Private (Class A)
+    ipaddress.ip_network("172.16.0.0/12"),  # Private (Class B)
+    ipaddress.ip_network("192.168.0.0/16"),  # Private (Class C)
+    ipaddress.ip_network("169.254.0.0/16"),  # Link-local (AWS/cloud metadata)
+    ipaddress.ip_network("0.0.0.0/8"),  # "This" network
+    ipaddress.ip_network("224.0.0.0/4"),  # Multicast
+    ipaddress.ip_network("240.0.0.0/4"),  # Reserved
+    ipaddress.ip_network("::1/128"),  # IPv6 localhost
+    ipaddress.ip_network("fc00::/7"),  # IPv6 private
+    ipaddress.ip_network("fe80::/10"),  # IPv6 link-local
 ]
 
 
@@ -69,7 +69,7 @@ def validate_callback_url(url: str) -> bool:
         parsed = urlparse(url)
 
         # Only allow HTTPS
-        if parsed.scheme != 'https':
+        if parsed.scheme != "https":
             return False
 
         hostname = parsed.hostname
@@ -77,7 +77,7 @@ def validate_callback_url(url: str) -> bool:
             return False
 
         # Block localhost variants
-        if hostname.lower() in ('localhost', 'localhost.localdomain'):
+        if hostname.lower() in ("localhost", "localhost.localdomain"):
             return False
 
         # Resolve hostname to IP
@@ -95,9 +95,9 @@ def validate_callback_url(url: str) -> bool:
 
         # Block specific cloud metadata hostnames
         blocked_hostnames = [
-            'metadata.google.internal',
-            'metadata.goog',
-            'kubernetes.default',
+            "metadata.google.internal",
+            "metadata.goog",
+            "kubernetes.default",
         ]
         if any(hostname.lower().endswith(h) for h in blocked_hostnames):
             return False
@@ -111,6 +111,7 @@ def validate_callback_url(url: str) -> bool:
 # =============================================================================
 # Encryption Utilities
 # =============================================================================
+
 
 class CredentialEncryption:
     """
@@ -192,6 +193,7 @@ class CredentialEncryption:
 # Replay Attack Protection
 # =============================================================================
 
+
 class NonceTracker:
     """
     Track used nonces/timestamps to prevent replay attacks.
@@ -215,12 +217,9 @@ class NonceTracker:
         """Load nonces from storage."""
         if self.storage_path.exists():
             try:
-                with open(self.storage_path, 'r') as f:
+                with open(self.storage_path, "r") as f:
                     data = json.load(f)
-                    self._nonces = {
-                        k: datetime.fromisoformat(v)
-                        for k, v in data.items()
-                    }
+                    self._nonces = {k: datetime.fromisoformat(v) for k, v in data.items()}
             except (json.JSONDecodeError, IOError):
                 self._nonces = {}
 
@@ -230,31 +229,21 @@ class NonceTracker:
     def _save_nonces(self) -> None:
         """Save nonces to storage."""
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.storage_path, 'w') as f:
-            json.dump(
-                {k: v.isoformat() for k, v in self._nonces.items()},
-                f
-            )
+        with open(self.storage_path, "w") as f:
+            json.dump({k: v.isoformat() for k, v in self._nonces.items()}, f)
 
     def _cleanup(self) -> None:
         """Remove expired nonces."""
         cutoff = datetime.utcnow() - timedelta(seconds=self.MAX_AGE_SECONDS)
-        self._nonces = {
-            k: v for k, v in self._nonces.items()
-            if v > cutoff
-        }
+        self._nonces = {k: v for k, v in self._nonces.items() if v > cutoff}
 
         # Also limit total count
         if len(self._nonces) > self.MAX_NONCES:
             # Keep most recent
             sorted_nonces = sorted(self._nonces.items(), key=lambda x: x[1], reverse=True)
-            self._nonces = dict(sorted_nonces[:self.MAX_NONCES])
+            self._nonces = dict(sorted_nonces[: self.MAX_NONCES])
 
-    def validate_request(
-        self,
-        timestamp: str,
-        nonce: Optional[str] = None
-    ) -> tuple[bool, str]:
+    def validate_request(self, timestamp: str, nonce: Optional[str] = None) -> tuple[bool, str]:
         """
         Validate a request's timestamp and optional nonce.
 
@@ -266,7 +255,7 @@ class NonceTracker:
             Tuple of (is_valid, error_message)
         """
         try:
-            request_time = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+            request_time = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
         except (ValueError, AttributeError):
             return False, "Invalid timestamp format"
 
@@ -308,10 +297,7 @@ class RateLimiter:
     """
 
     def __init__(
-        self,
-        max_requests: int = 100,
-        window_minutes: int = 60,
-        storage_path: Optional[Path] = None
+        self, max_requests: int = 100, window_minutes: int = 60, storage_path: Optional[Path] = None
     ):
         """
         Initialize rate limiter.
@@ -331,12 +317,10 @@ class RateLimiter:
         """Load rate limit state from disk."""
         if self.storage_path and self.storage_path.exists():
             try:
-                with open(self.storage_path, 'r') as f:
+                with open(self.storage_path, "r") as f:
                     data = json.load(f)
                     for key, timestamps in data.items():
-                        self._requests[key] = [
-                            datetime.fromisoformat(ts) for ts in timestamps
-                        ]
+                        self._requests[key] = [datetime.fromisoformat(ts) for ts in timestamps]
             except (json.JSONDecodeError, IOError):
                 pass
 
@@ -348,15 +332,13 @@ class RateLimiter:
                 key: [ts.isoformat() for ts in timestamps]
                 for key, timestamps in self._requests.items()
             }
-            with open(self.storage_path, 'w') as f:
+            with open(self.storage_path, "w") as f:
                 json.dump(data, f)
 
     def _cleanup_old_requests(self, agent_id: str) -> None:
         """Remove requests outside the time window."""
         cutoff = datetime.utcnow() - timedelta(minutes=self.window_minutes)
-        self._requests[agent_id] = [
-            ts for ts in self._requests[agent_id] if ts > cutoff
-        ]
+        self._requests[agent_id] = [ts for ts in self._requests[agent_id] if ts > cutoff]
 
     def check(self, agent_id: str) -> bool:
         """
@@ -421,7 +403,9 @@ class WebhookSecurity:
         Args:
             credentials_path: Path to store webhook credentials
         """
-        self.credentials_path = credentials_path or Path("agent_knowledge_bases/webhook_credentials.json")
+        self.credentials_path = credentials_path or Path(
+            "agent_knowledge_bases/webhook_credentials.json"
+        )
         self._credentials: Dict[str, Dict[str, Any]] = {}
         self._load_credentials()
 
@@ -429,7 +413,7 @@ class WebhookSecurity:
         """Load credentials from disk."""
         if self.credentials_path.exists():
             try:
-                with open(self.credentials_path, 'r') as f:
+                with open(self.credentials_path, "r") as f:
                     self._credentials = json.load(f)
             except (json.JSONDecodeError, IOError):
                 self._credentials = {}
@@ -437,14 +421,14 @@ class WebhookSecurity:
     def _save_credentials(self) -> None:
         """Save credentials to disk."""
         self.credentials_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.credentials_path, 'w') as f:
+        with open(self.credentials_path, "w") as f:
             json.dump(self._credentials, f, indent=2, default=str)
 
     def generate_credentials(
         self,
         agent_id: str,
         base_url: str = "https://natlangchain.io",
-        allowed_ips: Optional[List[str]] = None
+        allowed_ips: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
         Generate webhook credentials for an agent.
@@ -520,17 +504,9 @@ class WebhookSecurity:
             return None
 
         # Return copy without secret
-        return {
-            k: v for k, v in creds.items()
-            if k != "secret_key"
-        }
+        return {k: v for k, v in creds.items() if k != "secret_key"}
 
-    def verify_signature(
-        self,
-        agent_id: str,
-        payload: dict,
-        signature: str
-    ) -> bool:
+    def verify_signature(self, agent_id: str, payload: dict, signature: str) -> bool:
         """
         Verify HMAC-SHA256 signature of webhook payload.
 
@@ -551,19 +527,14 @@ class WebhookSecurity:
             return False
 
         # Compute expected signature
-        payload_bytes = json.dumps(payload, sort_keys=True, separators=(',', ':')).encode()
-        expected = hmac.new(
-            secret.encode(),
-            payload_bytes,
-            hashlib.sha256
-        ).hexdigest()
+        payload_bytes = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+        expected = hmac.new(secret.encode(), payload_bytes, hashlib.sha256).hexdigest()
 
         # Compare signatures (with or without sha256= prefix)
         expected_with_prefix = f"sha256={expected}"
 
-        return (
-            hmac.compare_digest(signature, expected) or
-            hmac.compare_digest(signature, expected_with_prefix)
+        return hmac.compare_digest(signature, expected) or hmac.compare_digest(
+            signature, expected_with_prefix
         )
 
     def verify_ip(self, agent_id: str, source_ip: str) -> bool:
@@ -606,12 +577,8 @@ class WebhookSecurity:
         if not secret:
             return None
 
-        payload_bytes = json.dumps(payload, sort_keys=True, separators=(',', ':')).encode()
-        signature = hmac.new(
-            secret.encode(),
-            payload_bytes,
-            hashlib.sha256
-        ).hexdigest()
+        payload_bytes = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+        signature = hmac.new(secret.encode(), payload_bytes, hashlib.sha256).hexdigest()
 
         return f"sha256={signature}"
 

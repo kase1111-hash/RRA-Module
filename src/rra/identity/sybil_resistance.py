@@ -53,31 +53,34 @@ logger = logging.getLogger(__name__)
 
 class RiskLevel(Enum):
     """Risk level classification."""
-    LOW = "low"           # Score > 70
-    MEDIUM = "medium"     # Score 40-70
-    HIGH = "high"         # Score 20-40
-    CRITICAL = "critical" # Score < 20
+
+    LOW = "low"  # Score > 70
+    MEDIUM = "medium"  # Score 40-70
+    HIGH = "high"  # Score 20-40
+    CRITICAL = "critical"  # Score < 20
 
 
 class TrustLevel(Enum):
     """Trust level classification for identities."""
-    HIGH = "high"           # Highly trusted identity
-    MEDIUM = "medium"       # Moderately trusted
-    LOW = "low"             # Low trust, limited privileges
-    UNTRUSTED = "untrusted" # Not trusted, probationary status
+
+    HIGH = "high"  # Highly trusted identity
+    MEDIUM = "medium"  # Moderately trusted
+    LOW = "low"  # Low trust, limited privileges
+    UNTRUSTED = "untrusted"  # Not trusted, probationary status
 
 
 class ProofType(Enum):
     """Types of humanity/identity proofs."""
+
     NONE = "none"
-    STAKE = "stake"                    # Economic stake
-    POH_WORLDCOIN = "poh_worldcoin"    # Worldcoin orb verification
-    POH_BRIGHTID = "poh_brightid"      # BrightID social verification
-    POH_GITCOIN = "poh_gitcoin"        # Gitcoin Passport
-    HARDWARE = "hardware"              # FIDO2/WebAuthn
-    ENS = "ens"                        # ENS domain ownership
-    SOCIAL = "social"                  # Social account verification
-    ONCHAIN_HISTORY = "onchain"        # On-chain activity history
+    STAKE = "stake"  # Economic stake
+    POH_WORLDCOIN = "poh_worldcoin"  # Worldcoin orb verification
+    POH_BRIGHTID = "poh_brightid"  # BrightID social verification
+    POH_GITCOIN = "poh_gitcoin"  # Gitcoin Passport
+    HARDWARE = "hardware"  # FIDO2/WebAuthn
+    ENS = "ens"  # ENS domain ownership
+    SOCIAL = "social"  # Social account verification
+    ONCHAIN_HISTORY = "onchain"  # On-chain activity history
 
 
 @dataclass
@@ -88,11 +91,12 @@ class ProofOfHumanity:
     Represents verified proof that an identity is controlled
     by a unique human (not a bot or duplicate).
     """
+
     proof_type: ProofType
-    provider: str                      # e.g., "worldcoin", "brightid"
+    provider: str  # e.g., "worldcoin", "brightid"
     verified_at: datetime
     expires_at: Optional[datetime] = None
-    confidence: float = 0.0            # 0-1 confidence score
+    confidence: float = 0.0  # 0-1 confidence score
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def is_valid(self) -> bool:
@@ -121,17 +125,18 @@ class IdentityScore:
     Higher scores indicate more trustworthy identities.
     Used to weight votes in disputes and gate access to features.
     """
+
     did: str
-    score: int                         # 0-100
+    score: int  # 0-100
     risk_level: RiskLevel
-    voting_weight: float               # Multiplier for votes (0.1-2.0)
+    voting_weight: float  # Multiplier for votes (0.1-2.0)
 
     # Score components
-    proof_score: int = 0               # From PoH attestations
-    stake_score: int = 0               # From staked assets
-    age_score: int = 0                 # From account age
-    activity_score: int = 0            # From activity patterns
-    reputation_score: int = 0          # From historical behavior
+    proof_score: int = 0  # From PoH attestations
+    stake_score: int = 0  # From staked assets
+    age_score: int = 0  # From account age
+    activity_score: int = 0  # From activity patterns
+    reputation_score: int = 0  # From historical behavior
 
     # Proofs held
     proofs: List[ProofOfHumanity] = field(default_factory=list)
@@ -166,12 +171,13 @@ class SybilCheck:
     Contains analysis of whether an identity appears to be
     part of a Sybil attack.
     """
+
     did: str
     is_suspicious: bool
-    is_human: bool                      # Whether identity verified as human
+    is_human: bool  # Whether identity verified as human
     risk_level: RiskLevel
-    trust_level: TrustLevel             # Trust level for privileges
-    confidence: float                  # 0-1 how confident we are
+    trust_level: TrustLevel  # Trust level for privileges
+    confidence: float  # 0-1 how confident we are
 
     # Risk factors detected
     risk_factors: List[str] = field(default_factory=list)
@@ -210,14 +216,14 @@ class SybilResistance:
 
     # Score weights for different proof types
     PROOF_WEIGHTS = {
-        ProofType.POH_WORLDCOIN: 30,     # Orb verification is strong
-        ProofType.HARDWARE: 25,           # Hardware key is strong
-        ProofType.POH_BRIGHTID: 20,       # Social graph verification
-        ProofType.POH_GITCOIN: 15,        # Gitcoin passport
-        ProofType.ENS: 10,                # ENS ownership
-        ProofType.STAKE: 10,              # Staked assets
-        ProofType.ONCHAIN_HISTORY: 10,    # On-chain history
-        ProofType.SOCIAL: 5,              # Social accounts
+        ProofType.POH_WORLDCOIN: 30,  # Orb verification is strong
+        ProofType.HARDWARE: 25,  # Hardware key is strong
+        ProofType.POH_BRIGHTID: 20,  # Social graph verification
+        ProofType.POH_GITCOIN: 15,  # Gitcoin passport
+        ProofType.ENS: 10,  # ENS ownership
+        ProofType.STAKE: 10,  # Staked assets
+        ProofType.ONCHAIN_HISTORY: 10,  # On-chain history
+        ProofType.SOCIAL: 5,  # Social accounts
     }
 
     # Minimum age for full score (days)
@@ -244,11 +250,7 @@ class SybilResistance:
         self._flagged_ips: Set[str] = set()
         self._flagged_patterns: List[Dict] = []
 
-    async def register_identity(
-        self,
-        did: str,
-        metadata: Optional[Dict] = None
-    ) -> IdentityScore:
+    async def register_identity(self, did: str, metadata: Optional[Dict] = None) -> IdentityScore:
         """
         Register a new identity in the system.
 
@@ -267,11 +269,7 @@ class SybilResistance:
 
         return await self.get_identity_score(did)
 
-    async def add_proof(
-        self,
-        did: str,
-        proof: ProofOfHumanity
-    ) -> IdentityScore:
+    async def add_proof(self, did: str, proof: ProofOfHumanity) -> IdentityScore:
         """
         Add a proof of humanity to an identity.
 
@@ -286,10 +284,7 @@ class SybilResistance:
         return await self.get_identity_score(did)
 
     async def record_activity(
-        self,
-        did: str,
-        activity_type: str,
-        metadata: Optional[Dict] = None
+        self, did: str, activity_type: str, metadata: Optional[Dict] = None
     ) -> None:
         """
         Record an activity for an identity.
@@ -299,17 +294,16 @@ class SybilResistance:
             activity_type: Type of activity
             metadata: Activity metadata
         """
-        self._activity[did].append({
-            "type": activity_type,
-            "timestamp": datetime.utcnow(),
-            "metadata": metadata or {},
-        })
+        self._activity[did].append(
+            {
+                "type": activity_type,
+                "timestamp": datetime.utcnow(),
+                "metadata": metadata or {},
+            }
+        )
 
     async def add_relationship(
-        self,
-        did1: str,
-        did2: str,
-        relationship_type: str = "interaction"
+        self, did1: str, did2: str, relationship_type: str = "interaction"
     ) -> None:
         """
         Record a relationship between two identities.
@@ -345,11 +339,11 @@ class SybilResistance:
 
         # Combine scores (weighted average)
         total_score = (
-            proof_score * 0.35 +
-            stake_score * 0.20 +
-            age_score * 0.15 +
-            activity_score * 0.15 +
-            reputation_score * 0.15
+            proof_score * 0.35
+            + stake_score * 0.20
+            + age_score * 0.15
+            + activity_score * 0.15
+            + reputation_score * 0.15
         )
 
         # Normalize to 0-100
@@ -367,7 +361,7 @@ class SybilResistance:
         elif score >= 20:
             voting_weight = 0.3 + (score - 20) * 0.017  # 0.3-0.8
         else:
-            voting_weight = 0.1 + score * 0.01         # 0.1-0.3
+            voting_weight = 0.1 + score * 0.01  # 0.1-0.3
 
         return IdentityScore(
             did=did,
@@ -470,10 +464,7 @@ class SybilResistance:
         )
 
     async def verify_proof_of_humanity(
-        self,
-        did: str,
-        proof_type: ProofType,
-        verification_data: Dict[str, Any]
+        self, did: str, proof_type: ProofType, verification_data: Dict[str, Any]
     ) -> Optional[ProofOfHumanity]:
         """
         Verify and add a proof of humanity.
@@ -542,16 +533,14 @@ class SybilResistance:
             return 0
 
         # Get stake amount from metadata
-        total_stake = sum(
-            p.metadata.get("amount_usd", 0)
-            for p in stake_proofs
-        )
+        total_stake = sum(p.metadata.get("amount_usd", 0) for p in stake_proofs)
 
         # Logarithmic scoring: $100 = 50, $1000 = 75, $10000 = 100
         if total_stake <= 0:
             return 0
 
         import math
+
         score = min(100, int(25 * math.log10(total_stake + 1)))
         return score
 
@@ -576,10 +565,7 @@ class SybilResistance:
             return 0
 
         # Count recent activity (last 30 days)
-        recent = [
-            a for a in activity
-            if (datetime.utcnow() - a["timestamp"]).days <= 30
-        ]
+        recent = [a for a in activity if (datetime.utcnow() - a["timestamp"]).days <= 30]
 
         # Score based on activity count and diversity
         count_score = min(50, len(recent) * 5)
@@ -595,14 +581,8 @@ class SybilResistance:
         # Check for positive/negative activity outcomes
         activity = self._activity.get(did, [])
 
-        positive = sum(
-            1 for a in activity
-            if a.get("metadata", {}).get("outcome") == "positive"
-        )
-        negative = sum(
-            1 for a in activity
-            if a.get("metadata", {}).get("outcome") == "negative"
-        )
+        positive = sum(1 for a in activity if a.get("metadata", {}).get("outcome") == "positive")
+        negative = sum(1 for a in activity if a.get("metadata", {}).get("outcome") == "negative")
 
         if positive + negative == 0:
             return 50  # Neutral default
@@ -627,27 +607,17 @@ class SybilResistance:
 
     # API Configuration (can be overridden via environment variables)
     WORLDCOIN_API_URL = os.environ.get(
-        "WORLDCOIN_API_URL",
-        "https://developer.worldcoin.org/api/v2/verify"
+        "WORLDCOIN_API_URL", "https://developer.worldcoin.org/api/v2/verify"
     )
     WORLDCOIN_APP_ID = os.environ.get("WORLDCOIN_APP_ID", "")
 
-    BRIGHTID_NODE_URL = os.environ.get(
-        "BRIGHTID_NODE_URL",
-        "https://node.brightid.org/brightid/v6"
-    )
+    BRIGHTID_NODE_URL = os.environ.get("BRIGHTID_NODE_URL", "https://node.brightid.org/brightid/v6")
     BRIGHTID_APP_NAME = os.environ.get("BRIGHTID_APP_NAME", "rra-module")
 
     # Default Ethereum RPC for ENS and stake verification
-    ETH_RPC_URL = os.environ.get(
-        "ETH_RPC_URL",
-        "https://eth.llamarpc.com"
-    )
+    ETH_RPC_URL = os.environ.get("ETH_RPC_URL", "https://eth.llamarpc.com")
 
-    async def _verify_worldcoin(
-        self,
-        data: Dict[str, Any]
-    ) -> Tuple[bool, float, Dict]:
+    async def _verify_worldcoin(self, data: Dict[str, Any]) -> Tuple[bool, float, Dict]:
         """
         Verify Worldcoin World ID proof.
 
@@ -671,7 +641,11 @@ class SybilResistance:
 
         if not all([proof, merkle_root, nullifier_hash]):
             logger.warning("Worldcoin verification missing required fields")
-            return False, 0.0, {"error": "Missing required fields: proof, merkle_root, nullifier_hash"}
+            return (
+                False,
+                0.0,
+                {"error": "Missing required fields: proof, merkle_root, nullifier_hash"},
+            )
 
         app_id = data.get("app_id") or self.WORLDCOIN_APP_ID
         if not app_id:
@@ -690,7 +664,7 @@ class SybilResistance:
                         "action": action,
                         "signal_hash": signal_hash,
                     },
-                    headers={"Content-Type": "application/json"}
+                    headers={"Content-Type": "application/json"},
                 )
 
                 if response.status_code == 200:
@@ -698,15 +672,23 @@ class SybilResistance:
                     if result.get("success"):
                         # Orb verification is highest confidence, device is lower
                         confidence = 0.95 if verification_level == "orb" else 0.75
-                        return True, confidence, {
-                            "orb_verified": verification_level == "orb",
-                            "nullifier_hash": nullifier_hash,
-                            "action": result.get("action"),
-                            "created_at": result.get("created_at"),
-                        }
+                        return (
+                            True,
+                            confidence,
+                            {
+                                "orb_verified": verification_level == "orb",
+                                "nullifier_hash": nullifier_hash,
+                                "action": result.get("action"),
+                                "created_at": result.get("created_at"),
+                            },
+                        )
 
                 # Handle error responses
-                error_data = response.json() if response.headers.get("content-type", "").startswith("application/json") else {}
+                error_data = (
+                    response.json()
+                    if response.headers.get("content-type", "").startswith("application/json")
+                    else {}
+                )
                 error_code = error_data.get("code", "unknown")
                 error_detail = error_data.get("detail", response.text[:200])
 
@@ -720,10 +702,7 @@ class SybilResistance:
             logger.error(f"Worldcoin verification error: {e}")
             return False, 0.0, {"error": str(e)}
 
-    async def _verify_brightid(
-        self,
-        data: Dict[str, Any]
-    ) -> Tuple[bool, float, Dict]:
+    async def _verify_brightid(self, data: Dict[str, Any]) -> Tuple[bool, float, Dict]:
         """
         Verify BrightID proof.
 
@@ -746,7 +725,7 @@ class SybilResistance:
                 # Query the BrightID node for verification status
                 response = await client.get(
                     f"{self.BRIGHTID_NODE_URL}/verifications/{app}/{context_id}",
-                    headers={"Accept": "application/json"}
+                    headers={"Accept": "application/json"},
                 )
 
                 if response.status_code == 200:
@@ -766,13 +745,17 @@ class SybilResistance:
                         # Bonus for having multiple linked contextIds (more established)
                         confidence = min(0.95, base_confidence + len(context_ids) * 0.02)
 
-                        return True, confidence, {
-                            "unique": True,
-                            "app": app,
-                            "context_id": context_id,
-                            "linked_context_ids": len(context_ids),
-                            "timestamp": timestamp,
-                        }
+                        return (
+                            True,
+                            confidence,
+                            {
+                                "unique": True,
+                                "app": app,
+                                "context_id": context_id,
+                                "linked_context_ids": len(context_ids),
+                                "timestamp": timestamp,
+                            },
+                        )
 
                     return False, 0.0, {"error": "User not verified as unique"}
 
@@ -781,7 +764,11 @@ class SybilResistance:
                     return False, 0.0, {"error": "context_id not linked to BrightID"}
 
                 else:
-                    error_data = response.json() if response.headers.get("content-type", "").startswith("application/json") else {}
+                    error_data = (
+                        response.json()
+                        if response.headers.get("content-type", "").startswith("application/json")
+                        else {}
+                    )
                     error_msg = error_data.get("errorMessage", response.text[:200])
                     logger.warning(f"BrightID verification failed: {error_msg}")
                     return False, 0.0, {"error": error_msg}
@@ -793,10 +780,7 @@ class SybilResistance:
             logger.error(f"BrightID verification error: {e}")
             return False, 0.0, {"error": str(e)}
 
-    async def _verify_hardware(
-        self,
-        data: Dict[str, Any]
-    ) -> Tuple[bool, float, Dict]:
+    async def _verify_hardware(self, data: Dict[str, Any]) -> Tuple[bool, float, Dict]:
         """
         Verify WebAuthn/FIDO2 hardware key attestation.
 
@@ -852,12 +836,16 @@ class SybilResistance:
                 if "yubikey" in authenticator_type.lower():
                     confidence = 0.95  # Physical hardware key is highest
 
-                return True, confidence, {
-                    "credential_id": credential_id,
-                    "authenticator_type": authenticator_type,
-                    "aaguid": aaguid,
-                    "registration": True,
-                }
+                return (
+                    True,
+                    confidence,
+                    {
+                        "credential_id": credential_id,
+                        "authenticator_type": authenticator_type,
+                        "aaguid": aaguid,
+                        "registration": True,
+                    },
+                )
 
             except Exception as e:
                 logger.error(f"Hardware attestation verification error: {e}")
@@ -899,12 +887,16 @@ class SybilResistance:
                 if user_verified:
                     confidence = 0.92  # User verification (biometric/PIN) adds confidence
 
-                return True, confidence, {
-                    "credential_id": credential_id,
-                    "user_present": user_present,
-                    "user_verified": user_verified,
-                    "authentication": True,
-                }
+                return (
+                    True,
+                    confidence,
+                    {
+                        "credential_id": credential_id,
+                        "user_present": user_present,
+                        "user_verified": user_verified,
+                        "authentication": True,
+                    },
+                )
 
             except Exception as e:
                 logger.error(f"Hardware authentication verification error: {e}")
@@ -912,10 +904,7 @@ class SybilResistance:
 
         return False, 0.0, {"error": "Missing authenticator_data or signature for authentication"}
 
-    async def _verify_ens(
-        self,
-        data: Dict[str, Any]
-    ) -> Tuple[bool, float, Dict]:
+    async def _verify_ens(self, data: Dict[str, Any]) -> Tuple[bool, float, Dict]:
         """
         Verify ENS name ownership.
 
@@ -951,6 +940,7 @@ class SybilResistance:
 
             # Initialize ENS
             from ens import ENS
+
             ns = ENS.from_web3(w3)
 
             # Resolve ENS name to address
@@ -986,18 +976,26 @@ class SybilResistance:
                 elif name_length <= 6:
                     confidence = min(0.95, confidence + 0.05)
 
-                return True, confidence, {
-                    "ens_name": ens_name,
-                    "address": claimed_address,
-                    "reverse_resolution": reverse_name == ens_name,
-                    "name_length": name_length,
-                }
+                return (
+                    True,
+                    confidence,
+                    {
+                        "ens_name": ens_name,
+                        "address": claimed_address,
+                        "reverse_resolution": reverse_name == ens_name,
+                        "name_length": name_length,
+                    },
+                )
 
-            return False, 0.0, {
-                "error": "Address does not match ENS owner",
-                "expected": resolved_checksum,
-                "claimed": claimed_address,
-            }
+            return (
+                False,
+                0.0,
+                {
+                    "error": "Address does not match ENS owner",
+                    "expected": resolved_checksum,
+                    "claimed": claimed_address,
+                },
+            )
 
         except ImportError:
             logger.error("ENS module not available - install with: pip install ens")
@@ -1006,10 +1004,7 @@ class SybilResistance:
             logger.error(f"ENS verification error: {e}")
             return False, 0.0, {"error": str(e)}
 
-    async def _verify_stake(
-        self,
-        data: Dict[str, Any]
-    ) -> Tuple[bool, float, Dict]:
+    async def _verify_stake(self, data: Dict[str, Any]) -> Tuple[bool, float, Dict]:
         """
         Verify on-chain staked assets.
 
@@ -1042,7 +1037,7 @@ class SybilResistance:
             # Get ETH balance
             checksum_address = to_checksum_address(address)
             balance_wei = w3.eth.get_balance(checksum_address)
-            balance_eth = w3.from_wei(balance_wei, 'ether')
+            balance_eth = w3.from_wei(balance_wei, "ether")
 
             # Get ETH price
             eth_price_usd = data.get("eth_price_usd")
@@ -1066,26 +1061,35 @@ class SybilResistance:
             if total_value_usd >= min_stake_usd:
                 # Logarithmic confidence: more stake = more confidence
                 import math
+
                 # $100 = 0.6, $1000 = 0.75, $10000 = 0.90
                 confidence = min(0.95, 0.45 + 0.15 * math.log10(total_value_usd + 1))
 
-                return True, confidence, {
-                    "address": checksum_address,
-                    "balance_eth": float(balance_eth),
-                    "staked_eth": staked_eth,
-                    "total_eth": float(balance_eth) + staked_eth,
-                    "eth_price_usd": eth_price_usd,
-                    "balance_usd": round(balance_usd, 2),
-                    "staked_usd": round(staked_usd, 2),
-                    "total_value_usd": round(total_value_usd, 2),
-                    "min_stake_usd": min_stake_usd,
-                }
+                return (
+                    True,
+                    confidence,
+                    {
+                        "address": checksum_address,
+                        "balance_eth": float(balance_eth),
+                        "staked_eth": staked_eth,
+                        "total_eth": float(balance_eth) + staked_eth,
+                        "eth_price_usd": eth_price_usd,
+                        "balance_usd": round(balance_usd, 2),
+                        "staked_usd": round(staked_usd, 2),
+                        "total_value_usd": round(total_value_usd, 2),
+                        "min_stake_usd": min_stake_usd,
+                    },
+                )
 
-            return False, 0.0, {
-                "error": f"Insufficient stake: ${total_value_usd:.2f} < ${min_stake_usd}",
-                "balance_usd": round(balance_usd, 2),
-                "min_stake_usd": min_stake_usd,
-            }
+            return (
+                False,
+                0.0,
+                {
+                    "error": f"Insufficient stake: ${total_value_usd:.2f} < ${min_stake_usd}",
+                    "balance_usd": round(balance_usd, 2),
+                    "min_stake_usd": min_stake_usd,
+                },
+            )
 
         except Exception as e:
             logger.error(f"Stake verification error: {e}")
@@ -1115,8 +1119,7 @@ class SybilResistance:
 
         try:
             price_feed = w3.eth.contract(
-                address=to_checksum_address(CHAINLINK_ETH_USD),
-                abi=price_feed_abi
+                address=to_checksum_address(CHAINLINK_ETH_USD), abi=price_feed_abi
             )
             _, answer, _, _, _ = price_feed.functions.latestRoundData().call()
             # Chainlink returns price with 8 decimals
@@ -1138,16 +1141,18 @@ class SybilResistance:
         try:
             steth = w3.eth.contract(
                 address=to_checksum_address(LIDO_STETH),
-                abi=[{
-                    "constant": True,
-                    "inputs": [{"name": "account", "type": "address"}],
-                    "name": "balanceOf",
-                    "outputs": [{"name": "", "type": "uint256"}],
-                    "type": "function"
-                }]
+                abi=[
+                    {
+                        "constant": True,
+                        "inputs": [{"name": "account", "type": "address"}],
+                        "name": "balanceOf",
+                        "outputs": [{"name": "", "type": "uint256"}],
+                        "type": "function",
+                    }
+                ],
             )
             steth_balance = steth.functions.balanceOf(address).call()
-            total_staked += w3.from_wei(steth_balance, 'ether')
+            total_staked += w3.from_wei(steth_balance, "ether")
         except Exception:
             pass
 
@@ -1156,18 +1161,20 @@ class SybilResistance:
         try:
             reth = w3.eth.contract(
                 address=to_checksum_address(ROCKETPOOL_RETH),
-                abi=[{
-                    "constant": True,
-                    "inputs": [{"name": "account", "type": "address"}],
-                    "name": "balanceOf",
-                    "outputs": [{"name": "", "type": "uint256"}],
-                    "type": "function"
-                }]
+                abi=[
+                    {
+                        "constant": True,
+                        "inputs": [{"name": "account", "type": "address"}],
+                        "name": "balanceOf",
+                        "outputs": [{"name": "", "type": "uint256"}],
+                        "type": "function",
+                    }
+                ],
             )
             reth_balance = reth.functions.balanceOf(address).call()
             # rETH appreciates in value, so 1 rETH > 1 ETH
             # For simplicity, treat as 1:1 here
-            total_staked += w3.from_wei(reth_balance, 'ether')
+            total_staked += w3.from_wei(reth_balance, "ether")
         except Exception:
             pass
 
@@ -1201,7 +1208,7 @@ class SybilResistance:
 
         intervals = []
         for i in range(1, len(timestamps)):
-            interval = (timestamps[i] - timestamps[i-1]).total_seconds()
+            interval = (timestamps[i] - timestamps[i - 1]).total_seconds()
             intervals.append(interval)
 
         if not intervals:
@@ -1219,11 +1226,13 @@ class SybilResistance:
 
     def flag_identity(self, did: str, reason: str) -> None:
         """Manually flag an identity as suspicious."""
-        self._flagged_patterns.append({
-            "did": did,
-            "reason": reason,
-            "flagged_at": datetime.utcnow(),
-        })
+        self._flagged_patterns.append(
+            {
+                "did": did,
+                "reason": reason,
+                "flagged_at": datetime.utcnow(),
+            }
+        )
 
     def get_flagged_identities(self) -> List[Dict]:
         """Get all manually flagged identities."""

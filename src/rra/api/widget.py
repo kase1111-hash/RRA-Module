@@ -70,6 +70,7 @@ def _validate_session_token(widget_id: str, provided_token: str) -> bool:
         True if token is valid
     """
     import hmac
+
     session = _widget_sessions.get(widget_id)
     if not session:
         return False
@@ -81,11 +82,15 @@ def _validate_session_token(widget_id: str, provided_token: str) -> bool:
 # Widget Configuration Models
 # =============================================================================
 
+
 class WidgetConfig(BaseModel):
     """Configuration for embeddable widget."""
+
     agent_id: str
     theme: str = Field(default="default", pattern="^(default|minimal|dark|light)$")
-    position: str = Field(default="bottom-right", pattern="^(inline|bottom-right|bottom-left|top-right|top-left)$")
+    position: str = Field(
+        default="bottom-right", pattern="^(inline|bottom-right|bottom-left|top-right|top-left)$"
+    )
     primary_color: str = Field(default="#0066ff", pattern="^#[a-fA-F0-9]{6}$")
     language: str = Field(default="en", pattern="^(en|es|zh|ja|de|fr)$")
     auto_open: bool = False
@@ -95,6 +100,7 @@ class WidgetConfig(BaseModel):
 
 class WidgetInitResponse(BaseModel):
     """Response for widget initialization."""
+
     widget_id: str
     agent_id: str
     config: Dict[str, Any]
@@ -105,6 +111,7 @@ class WidgetInitResponse(BaseModel):
 
 class WidgetEventRequest(BaseModel):
     """Widget analytics event."""
+
     widget_id: str
     event_type: str
     event_data: Optional[Dict[str, Any]] = None
@@ -122,6 +129,7 @@ _widget_analytics: List[Dict[str, Any]] = []
 # =============================================================================
 # Widget Endpoints
 # =============================================================================
+
 
 @router.post("/init", response_model=WidgetInitResponse)
 async def initialize_widget(
@@ -205,7 +213,7 @@ async def get_widget_script() -> Response:
 
     This is a minimal loader that loads the full widget from CDN.
     """
-    script = '''
+    script = """
 (function() {
     'use strict';
 
@@ -664,14 +672,14 @@ async def get_widget_script() -> Response:
     };
 
 })();
-'''
+"""
     return Response(
         content=script,
         media_type="application/javascript",
         headers={
             "Cache-Control": "public, max-age=3600",
             "Access-Control-Allow-Origin": "*",
-        }
+        },
     )
 
 
@@ -709,7 +717,8 @@ async def widget_message(
         repo_url = mapping["repo_url"]
         # Extract repo name from URL
         import re
-        match = re.search(r'github\.com/([^/]+)/([^/]+)', repo_url)
+
+        match = re.search(r"github\.com/([^/]+)/([^/]+)", repo_url)
         if match:
             repo_name = f"{match.group(1)}_{match.group(2)}"
             kb_path = kb_dir / f"{repo_name}_kb.json"
@@ -721,7 +730,9 @@ async def widget_message(
         for kb_file in kb_dir.glob("*_kb.json"):
             try:
                 temp_kb = KnowledgeBase.load(kb_file)
-                if agent_id in str(kb_file) or agent_id == link_service.generate_repo_id(temp_kb.repo_url):
+                if agent_id in str(kb_file) or agent_id == link_service.generate_repo_id(
+                    temp_kb.repo_url
+                ):
                     kb = temp_kb
                     break
             except Exception:
@@ -745,12 +756,14 @@ async def widget_message(
     response = negotiator.respond(message)
 
     # Track message
-    session["events"].append({
-        "type": "message",
-        "user_message": message,
-        "agent_response": response,
-        "timestamp": datetime.utcnow().isoformat(),
-    })
+    session["events"].append(
+        {
+            "type": "message",
+            "user_message": message,
+            "agent_response": response,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    )
 
     return {
         "response": response,
@@ -766,10 +779,7 @@ async def get_widget_analytics(
 ) -> Dict[str, Any]:
     """Get widget analytics for an agent."""
     # Filter analytics for this agent
-    agent_events = [
-        e for e in _widget_analytics
-        if e.get("agent_id") == agent_id
-    ]
+    agent_events = [e for e in _widget_analytics if e.get("agent_id") == agent_id]
 
     # Calculate metrics
     total_opens = sum(1 for e in agent_events if e["event_type"] == "widget_opened")
@@ -783,7 +793,9 @@ async def get_widget_analytics(
             "total_opens": total_opens,
             "total_messages": total_messages,
             "unique_sessions": unique_sessions,
-            "avg_messages_per_session": total_messages / unique_sessions if unique_sessions > 0 else 0,
+            "avg_messages_per_session": (
+                total_messages / unique_sessions if unique_sessions > 0 else 0
+            ),
         },
         "recent_events": agent_events[-20:],  # Last 20 events
     }
@@ -792,7 +804,7 @@ async def get_widget_analytics(
 @router.get("/demo")
 async def widget_demo_page() -> HTMLResponse:
     """Demo page showing the widget in action."""
-    html = '''
+    html = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -871,5 +883,5 @@ async def widget_demo_page() -> HTMLResponse:
     </script>
 </body>
 </html>
-'''
+"""
     return HTMLResponse(content=html)

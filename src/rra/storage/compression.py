@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 class CompressionAlgorithm(str, Enum):
     """Supported compression algorithms."""
+
     NONE = "none"
     GZIP = "gzip"
     # Future: ZSTD, LZ4, BROTLI
@@ -33,6 +34,7 @@ class CompressionAlgorithm(str, Enum):
 @dataclass
 class CompressionConfig:
     """Configuration for compression operations."""
+
     algorithm: CompressionAlgorithm = CompressionAlgorithm.GZIP
     level: int = 6  # gzip level 1-9 (6 is default, good balance)
     min_size: int = 1024  # Minimum bytes to compress (skip small data)
@@ -47,6 +49,7 @@ class CompressionConfig:
 @dataclass
 class CompressionResult:
     """Result of a compression operation."""
+
     original_size: int
     compressed_size: int
     algorithm: CompressionAlgorithm
@@ -68,12 +71,14 @@ class CompressionResult:
             "algorithm": self.algorithm.value,
             "was_compressed": self.was_compressed,
             "compression_ratio": round(self.compression_ratio, 4),
-            "savings_bytes": self.original_size - self.compressed_size if self.was_compressed else 0,
+            "savings_bytes": (
+                self.original_size - self.compressed_size if self.was_compressed else 0
+            ),
         }
 
 
 # Magic bytes for detecting compression
-GZIP_MAGIC = b'\x1f\x8b'
+GZIP_MAGIC = b"\x1f\x8b"
 
 
 def is_gzip_compressed(data: bytes) -> bool:
@@ -149,9 +154,7 @@ def compress(
 
         # Only use compressed version if it's actually smaller
         if compressed_size >= original_size:
-            logger.debug(
-                f"Compression not beneficial: {original_size} -> {compressed_size}"
-            )
+            logger.debug(f"Compression not beneficial: {original_size} -> {compressed_size}")
             return data, CompressionResult(
                 original_size=original_size,
                 compressed_size=original_size,
@@ -207,7 +210,9 @@ def decompress(data: bytes, expected_algorithm: Optional[CompressionAlgorithm] =
     raise ValueError(f"Unsupported compression algorithm: {expected_algorithm}")
 
 
-def compress_json(json_bytes: bytes, config: Optional[CompressionConfig] = None) -> Tuple[bytes, CompressionResult]:
+def compress_json(
+    json_bytes: bytes, config: Optional[CompressionConfig] = None
+) -> Tuple[bytes, CompressionResult]:
     """
     Compress JSON data with optimized settings.
 
@@ -271,7 +276,7 @@ class StreamingCompressor:
 
         if self._compressor is None:
             self._compressor = gzip.GzipFile(
-                mode='wb',
+                mode="wb",
                 fileobj=self._buffer,
                 compresslevel=self.config.level,
             )

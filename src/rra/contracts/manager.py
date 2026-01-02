@@ -37,11 +37,7 @@ class ContractManager:
     different networks.
     """
 
-    def __init__(
-        self,
-        network: str = "mainnet",
-        provider_url: Optional[str] = None
-    ):
+    def __init__(self, network: str = "mainnet", provider_url: Optional[str] = None):
         """
         Initialize ContractManager.
 
@@ -102,14 +98,9 @@ class ContractManager:
                 if "RepoLicense" in deployments:
                     address = deployments["RepoLicense"]
                     logger.debug(f"Initializing RepoLicense contract at {address}")
-                    self.license_contract = LicenseNFTContract(
-                        self.w3,
-                        contract_address=address
-                    )
+                    self.license_contract = LicenseNFTContract(self.w3, contract_address=address)
         except json.JSONDecodeError as e:
-            logger.error(
-                f"Failed to parse deployments file {deployments_file}: {e}"
-            )
+            logger.error(f"Failed to parse deployments file {deployments_file}: {e}")
             raise ConfigurationError(
                 message=f"Invalid JSON in deployments file: {deployments_file}",
                 config_key="deployments_file",
@@ -137,14 +128,11 @@ class ContractManager:
 
         deployments[contract_name] = address
 
-        with open(deployments_file, 'w') as f:
+        with open(deployments_file, "w") as f:
             json.dump(deployments, f, indent=2)
 
     def deploy_license_contract(
-        self,
-        deployer_address: str,
-        private_key: str,
-        registrar_address: Optional[str] = None
+        self, deployer_address: str, private_key: str, registrar_address: Optional[str] = None
     ) -> str:
         """
         Deploy the RepoLicense contract.
@@ -183,7 +171,7 @@ class ContractManager:
         if not self.w3.is_connected():
             raise ConfigurationError(
                 message=f"Not connected to blockchain network '{self.network}'. "
-                        f"Check your provider URL and network connectivity.",
+                f"Check your provider URL and network connectivity.",
                 config_key="provider_url",
             )
 
@@ -211,7 +199,7 @@ class ContractManager:
             contract_address = self.license_contract.deploy(
                 deployer_address=deployer_address,
                 private_key=private_key,
-                registrar_address=registrar_address
+                registrar_address=registrar_address,
             )
 
             logger.info(f"RepoLicense deployed successfully at {contract_address}")
@@ -235,7 +223,7 @@ class ContractManager:
         target_price: str,
         floor_price: str,
         developer_address: str,
-        private_key: str
+        private_key: str,
     ) -> str:
         """
         Register a repository on-chain.
@@ -300,17 +288,12 @@ class ContractManager:
             )
 
         logger.info(
-            f"Registering repository: {repo_url} "
-            f"(target: {target_price}, floor: {floor_price})"
+            f"Registering repository: {repo_url} " f"(target: {target_price}, floor: {floor_price})"
         )
 
         try:
             tx_hash = self.license_contract.register_repository(
-                repo_url,
-                target_wei,
-                floor_wei,
-                developer_address,
-                private_key
+                repo_url, target_wei, floor_wei, developer_address, private_key
             )
             logger.info(f"Repository registered successfully. TX: {tx_hash}")
             return tx_hash
@@ -339,7 +322,7 @@ class ContractManager:
         repo_url: str,
         license_params: Dict[str, Any],
         payment: str,
-        buyer_private_key: str
+        buyer_private_key: str,
     ) -> str:
         """
         Issue a license NFT.
@@ -409,7 +392,7 @@ class ContractManager:
                 license_params.get("royalty_basis_points", 0),
                 license_params.get("token_uri", ""),
                 payment_wei,
-                buyer_private_key
+                buyer_private_key,
             )
             logger.info(f"License issued successfully. TX: {tx_hash}")
             return tx_hash
@@ -503,7 +486,7 @@ class ContractManager:
         currency = parts[1].upper() if len(parts) > 1 else "ETH"
 
         if currency in ["ETH", "ETHER"]:
-            return Web3.to_wei(amount, 'ether')
+            return Web3.to_wei(amount, "ether")
 
         # Default to wei
         return int(amount)
@@ -521,6 +504,10 @@ class ContractManager:
             "chain_id": self.w3.eth.chain_id if self.w3.is_connected() else None,
             "block_number": self.w3.eth.block_number if self.w3.is_connected() else None,
             "contracts": {
-                "RepoLicense": self.license_contract.contract.address if self.license_contract and self.license_contract.contract else None
-            }
+                "RepoLicense": (
+                    self.license_contract.contract.address
+                    if self.license_contract and self.license_contract.contract
+                    else None
+                )
+            },
         }

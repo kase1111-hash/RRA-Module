@@ -32,7 +32,7 @@ from rra.defi.yield_tokens import (
 # Input Validation
 # =============================================================================
 
-ETH_ADDRESS_PATTERN = re.compile(r'^0x[a-fA-F0-9]{40}$')
+ETH_ADDRESS_PATTERN = re.compile(r"^0x[a-fA-F0-9]{40}$")
 
 
 def validate_eth_address(address: str) -> bool:
@@ -50,8 +50,10 @@ staking_manager = create_staking_manager("data/staking")
 # Request/Response Models
 # =============================================================================
 
+
 class CreatePoolRequest(BaseModel):
     """Request model for creating a yield pool."""
+
     name: str = Field(..., min_length=1, max_length=100)
     description: str = Field(..., min_length=1, max_length=500)
     strategy: str = Field(default="hybrid")
@@ -59,18 +61,19 @@ class CreatePoolRequest(BaseModel):
     min_stake_duration_days: int = Field(default=0, ge=0, le=365)
     max_stakes: int = Field(default=0, ge=0)  # 0 = unlimited
 
-    @field_validator('strategy')
+    @field_validator("strategy")
     @classmethod
     def validate_strategy(cls, v: str) -> str:
         """Validate yield strategy."""
         valid = [s.value for s in YieldStrategy]
         if v not in valid:
-            raise ValueError(f'Invalid strategy. Must be one of: {valid}')
+            raise ValueError(f"Invalid strategy. Must be one of: {valid}")
         return v
 
 
 class PoolResponse(BaseModel):
     """Response model for pool information."""
+
     pool_id: str
     name: str
     description: str
@@ -88,6 +91,7 @@ class PoolResponse(BaseModel):
 
 class StakeLicenseRequest(BaseModel):
     """Request model for staking a license."""
+
     pool_id: str = Field(..., min_length=1, max_length=50)
     license_id: str = Field(..., min_length=1, max_length=100)
     token_id: int = Field(..., ge=0)
@@ -96,25 +100,26 @@ class StakeLicenseRequest(BaseModel):
     staker_address: str
     lock_days: int = Field(default=0, ge=0, le=365)
 
-    @field_validator('staker_address')
+    @field_validator("staker_address")
     @classmethod
     def validate_staker_address(cls, v: str) -> str:
         """Validate Ethereum address format."""
         if not ETH_ADDRESS_PATTERN.match(v):
-            raise ValueError('Invalid Ethereum address format')
+            raise ValueError("Invalid Ethereum address format")
         return v.lower()
 
-    @field_validator('repo_url')
+    @field_validator("repo_url")
     @classmethod
     def validate_repo_url(cls, v: str) -> str:
         """Validate repository URL."""
-        if not (v.startswith('http://') or v.startswith('https://')):
-            raise ValueError('Invalid repository URL format')
+        if not (v.startswith("http://") or v.startswith("https://")):
+            raise ValueError("Invalid repository URL format")
         return v
 
 
 class StakeResponse(BaseModel):
     """Response model for stake information."""
+
     stake_id: str
     license_id: str
     token_id: int
@@ -133,6 +138,7 @@ class StakeResponse(BaseModel):
 
 class ClaimYieldResponse(BaseModel):
     """Response model for yield claim."""
+
     stake_id: str
     claimed_amount: float
     new_balance: float
@@ -142,6 +148,7 @@ class ClaimYieldResponse(BaseModel):
 
 class StakerSummaryResponse(BaseModel):
     """Response model for staker summary."""
+
     staker_address: str
     active_stakes: int
     total_stakes: int
@@ -154,6 +161,7 @@ class StakerSummaryResponse(BaseModel):
 
 class PoolStatsResponse(BaseModel):
     """Response model for pool statistics."""
+
     pool_id: str
     name: str
     strategy: str
@@ -169,11 +177,13 @@ class PoolStatsResponse(BaseModel):
 
 class AddRevenueRequest(BaseModel):
     """Request model for adding revenue to a pool."""
+
     amount: float = Field(..., gt=0, le=1000000)
 
 
 class DistributionResponse(BaseModel):
     """Response model for revenue distribution."""
+
     pool_id: str
     total_distributed: float
     stake_count: int
@@ -184,6 +194,7 @@ class DistributionResponse(BaseModel):
 # =============================================================================
 # Pool Management Endpoints
 # =============================================================================
+
 
 @router.post("/pools", response_model=PoolResponse)
 async def create_pool(
@@ -358,6 +369,7 @@ async def distribute_pool_revenue(
 # Staking Endpoints
 # =============================================================================
 
+
 @router.post("/stake", response_model=StakeResponse)
 async def stake_license(
     request: StakeLicenseRequest,
@@ -498,6 +510,7 @@ async def claim_yield(
 # Staker Analytics Endpoints
 # =============================================================================
 
+
 @router.get("/staker/{staker_address}", response_model=StakerSummaryResponse)
 async def get_staker_summary(
     staker_address: str,
@@ -555,6 +568,7 @@ async def get_staker_stakes(
 # =============================================================================
 # Overview Endpoints
 # =============================================================================
+
 
 @router.get("/overview")
 async def get_yield_overview(

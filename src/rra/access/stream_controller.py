@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 class AccessLevel(Enum):
     """Repository access levels."""
+
     NONE = "none"
     READ = "read"
     FULL = "full"
@@ -34,6 +35,7 @@ class AccessLevel(Enum):
 @dataclass
 class AccessGrant:
     """Represents an access grant for a buyer."""
+
     license_id: str
     repo_id: str
     buyer_address: str
@@ -115,14 +117,15 @@ class StreamAccessController:
         }
 
         if has_access:
-            result["reason"] = "active_stream" if license.status == StreamStatus.ACTIVE else "grace_period"
+            result["reason"] = (
+                "active_stream" if license.status == StreamStatus.ACTIVE else "grace_period"
+            )
 
             if license.status == StreamStatus.STOPPED and license.stop_time:
                 grace_end = license.stop_time + timedelta(seconds=license.grace_period_seconds)
                 result["grace_ends_at"] = grace_end.isoformat()
                 result["grace_remaining_seconds"] = max(
-                    0,
-                    int((grace_end - datetime.utcnow()).total_seconds())
+                    0, int((grace_end - datetime.utcnow()).total_seconds())
                 )
         else:
             if license.status == StreamStatus.REVOKED:
@@ -134,11 +137,7 @@ class StreamAccessController:
 
         return result
 
-    async def check_access_by_buyer(
-        self,
-        repo_id: str,
-        buyer_address: str
-    ) -> Dict[str, Any]:
+    async def check_access_by_buyer(self, repo_id: str, buyer_address: str) -> Dict[str, Any]:
         """
         Check if a buyer has access to a specific repository.
 
@@ -196,7 +195,7 @@ class StreamAccessController:
                 message=f"License not found: {license_id}",
                 field="license_id",
                 value=license_id,
-                constraint="must exist in SuperfluidManager"
+                constraint="must exist in SuperfluidManager",
             )
 
         grant = AccessGrant(
@@ -288,10 +287,7 @@ class StreamAccessController:
 
     def get_grants_for_repo(self, repo_id: str) -> List[AccessGrant]:
         """Get all grants for a repository."""
-        return [
-            grant for grant in self._access_grants.values()
-            if grant.repo_id == repo_id
-        ]
+        return [grant for grant in self._access_grants.values() if grant.repo_id == repo_id]
 
     async def get_access_summary(self, repo_id: str) -> Dict[str, Any]:
         """
@@ -310,11 +306,7 @@ class StreamAccessController:
         stopped_count = len([l for l in licenses if l.status == StreamStatus.STOPPED])
         revoked_count = len([l for l in licenses if l.status == StreamStatus.REVOKED])
 
-        total_mrr = sum(
-            l.monthly_cost_usd
-            for l in licenses
-            if l.status == StreamStatus.ACTIVE
-        )
+        total_mrr = sum(l.monthly_cost_usd for l in licenses if l.status == StreamStatus.ACTIVE)
 
         return {
             "repo_id": repo_id,
@@ -347,10 +339,7 @@ class AccessVerificationMiddleware:
         self.controller = controller
 
     async def verify(
-        self,
-        repo_id: str,
-        buyer_address: str,
-        required_level: AccessLevel = AccessLevel.READ
+        self, repo_id: str, buyer_address: str, required_level: AccessLevel = AccessLevel.READ
     ) -> bool:
         """
         Verify buyer has required access level.
@@ -366,11 +355,7 @@ class AccessVerificationMiddleware:
         result = await self.controller.check_access_by_buyer(repo_id, buyer_address)
         return result.get("has_access", False)
 
-    async def get_access_token(
-        self,
-        license_id: str,
-        duration_hours: int = 24
-    ) -> Optional[str]:
+    async def get_access_token(self, license_id: str, duration_hours: int = 24) -> Optional[str]:
         """
         Generate a temporary access token for a valid license.
 

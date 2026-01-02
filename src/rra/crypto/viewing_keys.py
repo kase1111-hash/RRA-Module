@@ -42,6 +42,7 @@ from cryptography.hazmat.primitives import serialization
 
 class KeyPurpose(str, Enum):
     """Purpose of viewing key determines its derivation path."""
+
     DISPUTE_EVIDENCE = "dispute_evidence"
     LICENSE_METADATA = "license_metadata"
     AUDIT_TRAIL = "audit_trail"
@@ -53,55 +54,56 @@ class EncryptedData:
     """
     ECIES-encrypted data with all components needed for decryption.
     """
+
     ephemeral_public_key: bytes  # 65 bytes uncompressed
-    iv: bytes                     # 12 bytes for AES-GCM
-    ciphertext: bytes             # Encrypted data
-    auth_tag: bytes               # 16 bytes authentication tag
-    key_commitment: bytes         # 32 bytes - hash of viewing key for verification
+    iv: bytes  # 12 bytes for AES-GCM
+    ciphertext: bytes  # Encrypted data
+    auth_tag: bytes  # 16 bytes authentication tag
+    key_commitment: bytes  # 32 bytes - hash of viewing key for verification
 
     def to_bytes(self) -> bytes:
         """Serialize to bytes for storage."""
         return (
-            len(self.ephemeral_public_key).to_bytes(1, 'big') +
-            self.ephemeral_public_key +
-            self.iv +
-            len(self.ciphertext).to_bytes(4, 'big') +
-            self.ciphertext +
-            self.auth_tag +
-            self.key_commitment
+            len(self.ephemeral_public_key).to_bytes(1, "big")
+            + self.ephemeral_public_key
+            + self.iv
+            + len(self.ciphertext).to_bytes(4, "big")
+            + self.ciphertext
+            + self.auth_tag
+            + self.key_commitment
         )
 
     @classmethod
-    def from_bytes(cls, data: bytes) -> 'EncryptedData':
+    def from_bytes(cls, data: bytes) -> "EncryptedData":
         """Deserialize from bytes."""
         offset = 0
 
         pk_len = data[offset]
         offset += 1
 
-        ephemeral_pk = data[offset:offset + pk_len]
+        ephemeral_pk = data[offset : offset + pk_len]
         offset += pk_len
 
-        iv = data[offset:offset + 12]
+        iv = data[offset : offset + 12]
         offset += 12
 
-        ct_len = int.from_bytes(data[offset:offset + 4], 'big')
+        ct_len = int.from_bytes(data[offset : offset + 4], "big")
         offset += 4
 
-        ciphertext = data[offset:offset + ct_len]
+        ciphertext = data[offset : offset + ct_len]
         offset += ct_len
 
-        auth_tag = data[offset:offset + 16]
+        auth_tag = data[offset : offset + 16]
         offset += 16
 
-        key_commitment = data[offset:offset + 32]
+        key_commitment = data[offset : offset + 32]
 
         return cls(
             ephemeral_public_key=ephemeral_pk,
             iv=iv,
             ciphertext=ciphertext,
             auth_tag=auth_tag,
-            key_commitment=key_commitment
+            key_commitment=key_commitment,
         )
 
     def to_dict(self) -> Dict[str, str]:
@@ -115,7 +117,7 @@ class EncryptedData:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, str]) -> 'EncryptedData':
+    def from_dict(cls, data: Dict[str, str]) -> "EncryptedData":
         """Create from dictionary with hex-encoded values."""
         return cls(
             ephemeral_public_key=bytes.fromhex(data["ephemeral_public_key"]),
@@ -134,6 +136,7 @@ class ViewingKey:
     Generated per-dispute or per-context, allowing selective
     decryption of private data.
     """
+
     private_key: PrivateKey
     public_key: PublicKey
     purpose: KeyPurpose
@@ -148,8 +151,8 @@ class ViewingKey:
         purpose: KeyPurpose,
         context_id: str,
         expires_in_days: Optional[int] = None,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> 'ViewingKey':
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> "ViewingKey":
         """
         Generate a new viewing key for a specific context.
 
@@ -171,6 +174,7 @@ class ViewingKey:
         expires_at = None
         if expires_in_days:
             from datetime import timedelta
+
             expires_at = created_at + timedelta(days=expires_in_days)
 
         return cls(
@@ -180,17 +184,13 @@ class ViewingKey:
             context_id=context_id,
             created_at=created_at,
             expires_at=expires_at,
-            metadata=metadata or {}
+            metadata=metadata or {},
         )
 
     @classmethod
     def derive(
-        cls,
-        master_key: bytes,
-        purpose: KeyPurpose,
-        context_id: str,
-        index: int = 0
-    ) -> 'ViewingKey':
+        cls, master_key: bytes, purpose: KeyPurpose, context_id: str, index: int = 0
+    ) -> "ViewingKey":
         """
         Derive a viewing key from a master key using HKDF.
 
@@ -213,7 +213,7 @@ class ViewingKey:
             length=32,
             salt=b"rra-viewing-key-v1",
             info=info,
-            backend=default_backend()
+            backend=default_backend(),
         )
 
         derived_bytes = hkdf.derive(master_key)
@@ -225,7 +225,7 @@ class ViewingKey:
             purpose=purpose,
             context_id=context_id,
             created_at=datetime.utcnow(),
-            metadata={"derived": True, "index": index}
+            metadata={"derived": True, "index": index},
         )
 
     @property
@@ -277,8 +277,7 @@ class ViewingKey:
         # SECURITY FIX MED-004: Enforce expiration before decryption
         if self.is_expired:
             raise ValueError(
-                "Cannot decrypt with expired viewing key. "
-                f"Key expired at {self.expires_at}."
+                "Cannot decrypt with expired viewing key. " f"Key expired at {self.expires_at}."
             )
         return ViewingKeyManager.decrypt_with_key(encrypted, self.private_key)
 
@@ -328,7 +327,7 @@ class ViewingKey:
             length=32,
             salt=salt,
             iterations=600000,  # OWASP recommended minimum
-            backend=default_backend()
+            backend=default_backend(),
         )
         encryption_key = kdf.derive(password)
 
@@ -342,12 +341,8 @@ class ViewingKey:
 
     @classmethod
     def import_private_encrypted(
-        cls,
-        encrypted_data: bytes,
-        password: bytes,
-        purpose: 'KeyPurpose',
-        context_id: str
-    ) -> 'ViewingKey':
+        cls, encrypted_data: bytes, password: bytes, purpose: "KeyPurpose", context_id: str
+    ) -> "ViewingKey":
         """
         Import a private key from encrypted export.
 
@@ -379,7 +374,7 @@ class ViewingKey:
             length=32,
             salt=salt,
             iterations=600000,
-            backend=default_backend()
+            backend=default_backend(),
         )
         decryption_key = kdf.derive(password)
 
@@ -394,11 +389,8 @@ class ViewingKey:
 
     @classmethod
     def from_private_bytes(
-        cls,
-        private_bytes: bytes,
-        purpose: KeyPurpose,
-        context_id: str
-    ) -> 'ViewingKey':
+        cls, private_bytes: bytes, purpose: KeyPurpose, context_id: str
+    ) -> "ViewingKey":
         """Restore viewing key from private key bytes."""
         private_key = keys.PrivateKey(private_bytes)
         return cls(
@@ -423,7 +415,7 @@ class ViewingKeyManager:
 
     # AES-GCM parameters
     AES_KEY_SIZE = 32  # 256 bits
-    AES_IV_SIZE = 12   # 96 bits for GCM
+    AES_IV_SIZE = 12  # 96 bits for GCM
     AES_TAG_SIZE = 16  # 128 bits
 
     # SECURITY FIX MED-003: Class-level IV counter for uniqueness enforcement
@@ -443,6 +435,7 @@ class ViewingKeyManager:
             12-byte unique IV
         """
         import threading
+
         if cls._iv_counter_lock is None:
             cls._iv_counter_lock = threading.Lock()
 
@@ -455,14 +448,10 @@ class ViewingKeyManager:
 
         # Hybrid IV: 8 random bytes + 4 counter bytes
         random_part = os.urandom(8)
-        counter_part = counter.to_bytes(4, 'big')
+        counter_part = counter.to_bytes(4, "big")
         return random_part + counter_part
 
-    def __init__(
-        self,
-        master_key: Optional[bytes] = None,
-        storage_backend: Optional[Any] = None
-    ):
+    def __init__(self, master_key: Optional[bytes] = None, storage_backend: Optional[Any] = None):
         """
         Initialize ViewingKeyManager.
 
@@ -474,11 +463,7 @@ class ViewingKeyManager:
         self.storage = storage_backend
         self._key_cache: Dict[str, ViewingKey] = {}
 
-    def generate_for_dispute(
-        self,
-        dispute_id: str,
-        expires_in_days: int = 365
-    ) -> ViewingKey:
+    def generate_for_dispute(self, dispute_id: str, expires_in_days: int = 365) -> ViewingKey:
         """
         Generate a viewing key for a specific dispute.
 
@@ -493,18 +478,13 @@ class ViewingKeyManager:
             purpose=KeyPurpose.DISPUTE_EVIDENCE,
             context_id=dispute_id,
             expires_in_days=expires_in_days,
-            metadata={"dispute_id": dispute_id}
+            metadata={"dispute_id": dispute_id},
         )
 
         self._key_cache[dispute_id] = key
         return key
 
-    def derive_key(
-        self,
-        purpose: KeyPurpose,
-        context_id: str,
-        index: int = 0
-    ) -> ViewingKey:
+    def derive_key(self, purpose: KeyPurpose, context_id: str, index: int = 0) -> ViewingKey:
         """
         Derive a viewing key from the master key.
 
@@ -521,12 +501,7 @@ class ViewingKeyManager:
         if cache_key in self._key_cache:
             return self._key_cache[cache_key]
 
-        key = ViewingKey.derive(
-            self.master_key,
-            purpose,
-            context_id,
-            index
-        )
+        key = ViewingKey.derive(self.master_key, purpose, context_id, index)
 
         self._key_cache[cache_key] = key
         return key
@@ -536,20 +511,17 @@ class ViewingKeyManager:
         """Convert eth_keys PublicKey to cryptography EC public key."""
         # eth_keys public key is 64 bytes (uncompressed without prefix)
         # cryptography expects 65 bytes (04 prefix + x + y)
-        pub_bytes = b'\x04' + eth_public.to_bytes()
+        pub_bytes = b"\x04" + eth_public.to_bytes()
         return ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256K1(), pub_bytes)
 
     @staticmethod
     def _eth_privkey_to_ec_private(eth_private: PrivateKey) -> ec.EllipticCurvePrivateKey:
         """Convert eth_keys PrivateKey to cryptography EC private key."""
-        private_int = int.from_bytes(eth_private.to_bytes(), 'big')
+        private_int = int.from_bytes(eth_private.to_bytes(), "big")
         return ec.derive_private_key(private_int, ec.SECP256K1(), default_backend())
 
     @staticmethod
-    def encrypt_to_key(
-        plaintext: bytes,
-        recipient_public_key: PublicKey
-    ) -> EncryptedData:
+    def encrypt_to_key(plaintext: bytes, recipient_public_key: PublicKey) -> EncryptedData:
         """
         Encrypt data to a recipient's public key using ECIES.
 
@@ -573,7 +545,7 @@ class ViewingKeyManager:
         # Get ephemeral public key bytes (uncompressed)
         ephemeral_public_bytes = ephemeral_public_ec.public_bytes(
             encoding=serialization.Encoding.X962,
-            format=serialization.PublicFormat.UncompressedPoint
+            format=serialization.PublicFormat.UncompressedPoint,
         )
         # Remove the 04 prefix to match eth_keys format (64 bytes)
         ephemeral_public_bytes_64 = ephemeral_public_bytes[1:]
@@ -590,7 +562,7 @@ class ViewingKeyManager:
             length=32,
             salt=ephemeral_public_bytes_64[:16],
             info=b"rra-ecies-v1",
-            backend=default_backend()
+            backend=default_backend(),
         )
         aes_key = hkdf.derive(shared_secret)
 
@@ -613,14 +585,11 @@ class ViewingKeyManager:
             iv=iv,
             ciphertext=ciphertext,
             auth_tag=auth_tag,
-            key_commitment=key_commitment
+            key_commitment=key_commitment,
         )
 
     @staticmethod
-    def decrypt_with_key(
-        encrypted: EncryptedData,
-        private_key: PrivateKey
-    ) -> bytes:
+    def decrypt_with_key(encrypted: EncryptedData, private_key: PrivateKey) -> bytes:
         """
         Decrypt ECIES-encrypted data using private key.
 
@@ -641,7 +610,7 @@ class ViewingKeyManager:
 
         # Convert ephemeral public key bytes to cryptography EC public key
         # The stored bytes are 64 bytes (no 04 prefix), need to add it
-        ephemeral_public_bytes = b'\x04' + encrypted.ephemeral_public_key
+        ephemeral_public_bytes = b"\x04" + encrypted.ephemeral_public_key
         ephemeral_public_ec = ec.EllipticCurvePublicKey.from_encoded_point(
             ec.SECP256K1(), ephemeral_public_bytes
         )
@@ -658,7 +627,7 @@ class ViewingKeyManager:
             length=32,
             salt=encrypted.ephemeral_public_key[:16],
             info=b"rra-ecies-v1",
-            backend=default_backend()
+            backend=default_backend(),
         )
         aes_key = hkdf.derive(shared_secret)
 
@@ -672,11 +641,7 @@ class ViewingKeyManager:
         except Exception as e:
             raise ValueError(f"Decryption failed: {e}")
 
-    def encrypt_for_dispute(
-        self,
-        dispute_id: str,
-        evidence: bytes
-    ) -> Tuple[EncryptedData, bytes]:
+    def encrypt_for_dispute(self, dispute_id: str, evidence: bytes) -> Tuple[EncryptedData, bytes]:
         """
         Encrypt evidence for a dispute.
 
@@ -698,11 +663,7 @@ class ViewingKeyManager:
         encrypted = key.encrypt(evidence)
         return encrypted, key.commitment
 
-    def decrypt_dispute_evidence(
-        self,
-        dispute_id: str,
-        encrypted: EncryptedData
-    ) -> bytes:
+    def decrypt_dispute_evidence(self, dispute_id: str, encrypted: EncryptedData) -> bytes:
         """
         Decrypt dispute evidence.
 
@@ -770,11 +731,7 @@ class ViewingKeyManager:
 
         return self._key_cache[dispute_id].export_private()
 
-    def import_key_from_escrow(
-        self,
-        dispute_id: str,
-        private_bytes: bytes
-    ) -> ViewingKey:
+    def import_key_from_escrow(self, dispute_id: str, private_bytes: bytes) -> ViewingKey:
         """
         Import a key from escrow storage.
 
@@ -785,11 +742,7 @@ class ViewingKeyManager:
         Returns:
             Restored ViewingKey
         """
-        key = ViewingKey.from_private_bytes(
-            private_bytes,
-            KeyPurpose.DISPUTE_EVIDENCE,
-            dispute_id
-        )
+        key = ViewingKey.from_private_bytes(private_bytes, KeyPurpose.DISPUTE_EVIDENCE, dispute_id)
 
         self._key_cache[dispute_id] = key
         return key
@@ -806,8 +759,6 @@ def generate_viewing_key_for_dispute(dispute_id: str) -> Tuple[ViewingKey, bytes
         Tuple of (ViewingKey, commitment_bytes)
     """
     key = ViewingKey.generate(
-        purpose=KeyPurpose.DISPUTE_EVIDENCE,
-        context_id=dispute_id,
-        expires_in_days=365
+        purpose=KeyPurpose.DISPUTE_EVIDENCE, context_id=dispute_id, expires_in_days=365
     )
     return key, key.commitment

@@ -55,15 +55,18 @@ nonce_tracker = NonceTracker()
 # SECURITY FIX MED-012-014: Authentication Helpers
 # =============================================================================
 
+
 def _generate_owner_api_key() -> str:
     """Generate a cryptographically secure owner API key."""
     import secrets
+
     return f"rra_owner_{secrets.token_urlsafe(32)}"
 
 
 def _generate_session_token() -> str:
     """Generate a cryptographically secure session access token."""
     import secrets
+
     return f"rra_session_{secrets.token_urlsafe(32)}"
 
 
@@ -81,6 +84,7 @@ def _verify_owner_api_key(agent_id: str, provided_key: str) -> bool:
         True if key is valid for this agent
     """
     import hmac
+
     # Get the full credentials including owner key (internal only)
     creds = webhook_security._credentials.get(agent_id)
     if not creds:
@@ -107,6 +111,7 @@ def _verify_session_token(session_id: str, provided_token: str) -> bool:
         True if token is valid for this session
     """
     import hmac
+
     session = _webhook_sessions.get(session_id)
     if not session:
         return False
@@ -128,8 +133,11 @@ _session_messages: Dict[str, List[Dict[str, Any]]] = {}
 # Request/Response models
 class WebhookTriggerRequest(BaseModel):
     """Incoming webhook trigger payload."""
+
     message: Optional[str] = None
-    email: Optional[str] = Field(default=None, pattern=r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
+    email: Optional[str] = Field(
+        default=None, pattern=r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+    )
     name: Optional[str] = None
     company: Optional[str] = None
     budget: Optional[str] = None
@@ -140,6 +148,7 @@ class WebhookTriggerRequest(BaseModel):
 
 class WebhookTriggerResponse(BaseModel):
     """Response from webhook trigger."""
+
     status: str
     session_id: str
     session_token: str  # SECURITY FIX MED-013: Token required for session access
@@ -149,12 +158,14 @@ class WebhookTriggerResponse(BaseModel):
 
 class WebhookCredentialsRequest(BaseModel):
     """Request to generate webhook credentials."""
+
     agent_id: str
     allowed_ips: Optional[List[str]] = None
 
 
 class WebhookCredentialsResponse(BaseModel):
     """Webhook credentials response."""
+
     agent_id: str
     webhook_url: str
     secret_key: str
@@ -165,6 +176,7 @@ class WebhookCredentialsResponse(BaseModel):
 
 class SessionStatusResponse(BaseModel):
     """Webhook session status."""
+
     session_id: str
     agent_id: str
     status: str
@@ -176,11 +188,13 @@ class SessionStatusResponse(BaseModel):
 
 class SessionMessageRequest(BaseModel):
     """Message to send to a webhook session."""
+
     content: str
 
 
 class SessionMessageResponse(BaseModel):
     """Response from session message."""
+
     session_id: str
     response: str
     phase: str
@@ -194,6 +208,7 @@ def generate_session_id() -> str:
     Uses 256 bits of entropy for security against brute-force attacks.
     """
     import secrets
+
     return f"wh_{secrets.token_urlsafe(32)}"
 
 
@@ -208,6 +223,7 @@ def validate_session_id(session_id: str) -> bool:
         True if valid format
     """
     import re
+
     if not session_id:
         return False
 
@@ -220,7 +236,7 @@ def validate_session_id(session_id: str) -> bool:
         return False
 
     # Must be URL-safe characters only
-    if not re.match(r'^[\w\-]+$', token_part):
+    if not re.match(r"^[\w\-]+$", token_part):
         return False
 
     return True
@@ -238,7 +254,7 @@ async def load_knowledge_base(agent_id: str) -> Optional[KnowledgeBase]:
         try:
             kb = KnowledgeBase.load(kb_file)
             # Generate ID from URL and compare
-            normalized = kb.repo_url.lower().strip().rstrip('.git')
+            normalized = kb.repo_url.lower().strip().rstrip(".git")
             generated_id = hashlib.sha256(normalized.encode()).hexdigest()[:12]
             if generated_id == agent_id:
                 return kb
@@ -297,21 +313,25 @@ async def process_webhook_negotiation(
         # If buyer sent an initial message, respond to it
         if payload.message:
             # Record buyer message
-            _session_messages[session_id].append({
-                "id": str(uuid.uuid4()),
-                "role": "buyer",
-                "content": payload.message,
-                "timestamp": datetime.utcnow().isoformat(),
-            })
+            _session_messages[session_id].append(
+                {
+                    "id": str(uuid.uuid4()),
+                    "role": "buyer",
+                    "content": payload.message,
+                    "timestamp": datetime.utcnow().isoformat(),
+                }
+            )
 
             # Get agent response
             response = negotiator.respond(payload.message)
-            _session_messages[session_id].append({
-                "id": str(uuid.uuid4()),
-                "role": "agent",
-                "content": response,
-                "timestamp": datetime.utcnow().isoformat(),
-            })
+            _session_messages[session_id].append(
+                {
+                    "id": str(uuid.uuid4()),
+                    "role": "agent",
+                    "content": response,
+                    "timestamp": datetime.utcnow().isoformat(),
+                }
+            )
             _webhook_sessions[session_id]["phase"] = negotiator.current_phase.value
 
             # Send callback if provided
@@ -323,7 +343,7 @@ async def process_webhook_negotiation(
                         "agent_id": agent_id,
                         "response": response,
                         "phase": negotiator.current_phase.value,
-                    }
+                    },
                 )
 
             return response
@@ -400,8 +420,7 @@ async def webhook_trigger(
     # Replay attack protection (if headers provided)
     if x_request_timestamp:
         is_valid, error_msg = nonce_tracker.validate_request(
-            timestamp=x_request_timestamp,
-            nonce=x_request_nonce
+            timestamp=x_request_timestamp, nonce=x_request_nonce
         )
         if not is_valid:
             raise HTTPException(400, f"Request rejected: {error_msg}")
@@ -435,7 +454,7 @@ async def webhook_trigger(
         reset_time = rate_limiter.get_reset_time(agent_id)
         raise HTTPException(
             429,
-            f"Rate limit exceeded. Remaining: {remaining}. Reset: {reset_time.isoformat() if reset_time else 'N/A'}"
+            f"Rate limit exceeded. Remaining: {remaining}. Reset: {reset_time.isoformat() if reset_time else 'N/A'}",
         )
 
     # Generate session
@@ -581,23 +600,27 @@ async def send_session_message(
     if session_id not in _session_messages:
         _session_messages[session_id] = []
 
-    _session_messages[session_id].append({
-        "id": str(uuid.uuid4()),
-        "role": "buyer",
-        "content": message.content,
-        "timestamp": datetime.utcnow().isoformat(),
-    })
+    _session_messages[session_id].append(
+        {
+            "id": str(uuid.uuid4()),
+            "role": "buyer",
+            "content": message.content,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    )
 
     # Get response
     response = agent.respond(message.content)
 
     # Record agent response
-    _session_messages[session_id].append({
-        "id": str(uuid.uuid4()),
-        "role": "agent",
-        "content": response,
-        "timestamp": datetime.utcnow().isoformat(),
-    })
+    _session_messages[session_id].append(
+        {
+            "id": str(uuid.uuid4()),
+            "role": "agent",
+            "content": response,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    )
 
     # Update session
     session["phase"] = agent.current_phase.value

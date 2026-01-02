@@ -46,7 +46,7 @@ class LocalIntentLogger:
             "agent_id": self.agent_id,
             "timestamp": datetime.now().isoformat(),
             "intent": intent,
-            "context": context
+            "context": context,
         }
 
         self._append_log(entry)
@@ -58,15 +58,15 @@ class LocalIntentLogger:
             "agent_id": self.agent_id,
             "timestamp": datetime.now().isoformat(),
             "decision": decision,
-            "rationale": rationale
+            "rationale": rationale,
         }
 
         self._append_log(entry)
 
     def _append_log(self, entry: Dict[str, Any]) -> None:
         """Append entry to log file (JSONL format)."""
-        with open(self.log_file, 'a') as f:
-            f.write(json.dumps(entry) + '\n')
+        with open(self.log_file, "a") as f:
+            f.write(json.dumps(entry) + "\n")
 
     def get_logs(self, limit: int = 100) -> List[Dict[str, Any]]:
         """Retrieve recent log entries."""
@@ -74,7 +74,7 @@ class LocalIntentLogger:
             return []
 
         logs = []
-        with open(self.log_file, 'r') as f:
+        with open(self.log_file, "r") as f:
             for line in f:
                 logs.append(json.loads(line.strip()))
 
@@ -102,6 +102,7 @@ class IntentLogService:
         # Try to import IntentLog client
         try:
             from intent_log import IntentLogClient  # type: ignore
+
             self.client = IntentLogClient(url=self.service_url, agent_id=agent_id)
             self.available = True
         except ImportError:
@@ -115,14 +116,10 @@ class IntentLogService:
             return
 
         try:
-            self.client.record_intent(
-                intent=intent,
-                context=context,
-                timestamp=datetime.now()
-            )
+            self.client.record_intent(intent=intent, context=context, timestamp=datetime.now())
         except Exception as e:
             print(f"Warning: Failed to log intent to IntentLog: {e}")
-            if not hasattr(self, '_fallback'):
+            if not hasattr(self, "_fallback"):
                 self._fallback = LocalIntentLogger(self.agent_id)
             self._fallback.log_intent(intent, context)
 
@@ -134,21 +131,16 @@ class IntentLogService:
 
         try:
             self.client.record_decision(
-                decision=decision,
-                rationale=rationale,
-                timestamp=datetime.now()
+                decision=decision, rationale=rationale, timestamp=datetime.now()
             )
         except Exception as e:
             print(f"Warning: Failed to log decision to IntentLog: {e}")
-            if not hasattr(self, '_fallback'):
+            if not hasattr(self, "_fallback"):
                 self._fallback = LocalIntentLogger(self.agent_id)
             self._fallback.log_decision(decision, rationale)
 
 
-def get_intent_logger(
-    agent_id: str,
-    prefer_service: bool = True
-) -> IntentLoggerProtocol:
+def get_intent_logger(agent_id: str, prefer_service: bool = True) -> IntentLoggerProtocol:
     """
     Get appropriate intent logger based on configuration.
 

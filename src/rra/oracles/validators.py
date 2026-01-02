@@ -23,6 +23,7 @@ from pathlib import Path
 
 class ValidationResult(Enum):
     """Result of event validation."""
+
     VALID = "valid"
     INVALID = "invalid"
     UNCERTAIN = "uncertain"
@@ -32,6 +33,7 @@ class ValidationResult(Enum):
 @dataclass
 class ValidationReport:
     """Detailed validation report."""
+
     result: ValidationResult
     confidence: float  # 0.0 to 1.0
     checks_passed: List[str]
@@ -184,10 +186,7 @@ class HashValidator(EventValidator):
         self.algorithm = algorithm
 
     def validate(
-        self,
-        event_data: Dict[str, Any],
-        expected_hash: Optional[str] = None,
-        **kwargs
+        self, event_data: Dict[str, Any], expected_hash: Optional[str] = None, **kwargs
     ) -> ValidationReport:
         """Validate data hash."""
         passed = []
@@ -198,9 +197,7 @@ class HashValidator(EventValidator):
         # Calculate hash
         try:
             data_str = json.dumps(event_data, sort_keys=True)
-            calculated_hash = hashlib.new(
-                self.algorithm, data_str.encode()
-            ).hexdigest()
+            calculated_hash = hashlib.new(self.algorithm, data_str.encode()).hexdigest()
             passed.append("hash_calculation")
         except Exception as e:
             errors.append(f"Hash calculation failed: {e}")
@@ -263,10 +260,7 @@ class TimestampValidator(EventValidator):
         self.future_tolerance = timedelta(minutes=future_tolerance_minutes)
 
     def validate(
-        self,
-        event_data: Dict[str, Any],
-        timestamp_field: str = "timestamp",
-        **kwargs
+        self, event_data: Dict[str, Any], timestamp_field: str = "timestamp", **kwargs
     ) -> ValidationReport:
         """Validate timestamp."""
         passed = []
@@ -358,7 +352,7 @@ class SignatureValidator(EventValidator):
         event_data: Dict[str, Any],
         signature: Optional[str] = None,
         signer: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> ValidationReport:
         """Validate signature."""
         passed = []
@@ -482,7 +476,9 @@ class CompositeValidator(EventValidator):
         pass_ratio = valid_count / total_count if total_count > 0 else 0.0
 
         if self.require_all:
-            result = ValidationResult.VALID if valid_count == total_count else ValidationResult.INVALID
+            result = (
+                ValidationResult.VALID if valid_count == total_count else ValidationResult.INVALID
+            )
         else:
             if pass_ratio >= self.min_pass_ratio:
                 result = ValidationResult.VALID
@@ -524,9 +520,18 @@ class GitHubEventValidator(EventValidator):
     """
 
     VALID_EVENT_TYPES = {
-        "push", "pull_request", "issues", "issue_comment",
-        "release", "create", "delete", "fork", "star",
-        "commit_comment", "pull_request_review", "workflow_run",
+        "push",
+        "pull_request",
+        "issues",
+        "issue_comment",
+        "release",
+        "create",
+        "delete",
+        "fork",
+        "star",
+        "commit_comment",
+        "pull_request_review",
+        "workflow_run",
     }
 
     def validate(self, event_data: Dict[str, Any], **kwargs) -> ValidationReport:
@@ -651,7 +656,9 @@ class FinancialEventValidator(EventValidator):
             warnings.append("No currency specified")
 
         # Check transaction ID
-        tx_id = event_data.get("transaction_id") or event_data.get("tx_hash") or event_data.get("id")
+        tx_id = (
+            event_data.get("transaction_id") or event_data.get("tx_hash") or event_data.get("id")
+        )
         if tx_id:
             passed.append("transaction_id")
         else:
@@ -691,6 +698,7 @@ class FinancialEventValidator(EventValidator):
 # =============================================================================
 # Validator Factory
 # =============================================================================
+
 
 def create_schema_validator(schema: Dict[str, Any]) -> SchemaValidator:
     """Create a schema validator."""

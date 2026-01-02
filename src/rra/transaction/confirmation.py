@@ -38,16 +38,18 @@ from eth_utils import keccak
 
 class TransactionStatus(str, Enum):
     """Transaction lifecycle states."""
+
     PENDING_CONFIRMATION = "pending_confirmation"  # Awaiting user confirmation
-    CONFIRMED = "confirmed"                        # User confirmed, ready to execute
-    EXECUTED = "executed"                          # Transaction completed
-    CANCELLED = "cancelled"                        # User cancelled
-    EXPIRED = "expired"                            # Auto-cancelled due to timeout
-    FAILED = "failed"                              # Execution failed
+    CONFIRMED = "confirmed"  # User confirmed, ready to execute
+    EXECUTED = "executed"  # Transaction completed
+    CANCELLED = "cancelled"  # User cancelled
+    EXPIRED = "expired"  # Auto-cancelled due to timeout
+    FAILED = "failed"  # Execution failed
 
 
 class CancellationReason(str, Enum):
     """Reasons for transaction cancellation."""
+
     USER_CANCELLED = "user_cancelled"
     TIMEOUT_EXPIRED = "timeout_expired"
     PRICE_CHANGED = "price_changed"
@@ -62,13 +64,14 @@ class PriceCommitment:
 
     Prevents price manipulation between agreement and execution.
     """
+
     amount: float
     currency: str
     commitment_hash: bytes
     created_at: datetime
 
     @classmethod
-    def create(cls, price_str: str) -> 'PriceCommitment':
+    def create(cls, price_str: str) -> "PriceCommitment":
         """
         Create a price commitment from price string.
 
@@ -79,7 +82,7 @@ class PriceCommitment:
             PriceCommitment with hash binding
         """
         # Parse price string
-        match = re.match(r'([\d.]+)\s*(\w+)', price_str.strip())
+        match = re.match(r"([\d.]+)\s*(\w+)", price_str.strip())
         if not match:
             raise ValueError(f"Invalid price format: {price_str}")
 
@@ -99,15 +102,12 @@ class PriceCommitment:
         commitment_hash = keccak(commitment_data.encode())
 
         return cls(
-            amount=amount,
-            currency=currency,
-            commitment_hash=commitment_hash,
-            created_at=timestamp
+            amount=amount, currency=currency, commitment_hash=commitment_hash, created_at=timestamp
         )
 
     def verify(self, price_str: str) -> bool:
         """Verify a price matches this commitment."""
-        match = re.match(r'([\d.]+)\s*(\w+)', price_str.strip())
+        match = re.match(r"([\d.]+)\s*(\w+)", price_str.strip())
         if not match:
             return False
 
@@ -128,6 +128,7 @@ class PendingTransaction:
 
     Holds all details in a locked state until user confirms or timeout expires.
     """
+
     transaction_id: str
     buyer_id: str
     seller_id: str
@@ -267,7 +268,7 @@ class TransactionConfirmation:
         on_expired: Optional[Callable[[PendingTransaction], None]] = None,
         on_confirmed: Optional[Callable[[PendingTransaction], None]] = None,
         require_double_confirmation: bool = False,
-        min_timeout: Optional[int] = None  # Override for testing
+        min_timeout: Optional[int] = None,  # Override for testing
     ):
         """
         Initialize transaction confirmation manager.
@@ -281,8 +282,7 @@ class TransactionConfirmation:
         """
         self._min_timeout = min_timeout if min_timeout is not None else self.MIN_TIMEOUT_SECONDS
         self.default_timeout = min(
-            max(default_timeout, self._min_timeout),
-            self.MAX_TIMEOUT_SECONDS
+            max(default_timeout, self._min_timeout), self.MAX_TIMEOUT_SECONDS
         )
         self.on_expired = on_expired
         self.on_confirmed = on_confirmed
@@ -300,9 +300,7 @@ class TransactionConfirmation:
         """Start background thread to cleanup expired transactions."""
         self._running = True
         self._cleanup_thread = threading.Thread(
-            target=self._cleanup_loop,
-            args=(interval_seconds,),
-            daemon=True
+            target=self._cleanup_loop, args=(interval_seconds,), daemon=True
         )
         self._cleanup_thread.start()
 
@@ -315,6 +313,7 @@ class TransactionConfirmation:
     def _cleanup_loop(self, interval: int) -> None:
         """Background loop to cleanup expired transactions."""
         import time
+
         while self._running:
             self.cleanup_expired()
             time.sleep(interval)
@@ -329,7 +328,7 @@ class TransactionConfirmation:
         floor_price: str,
         target_price: str,
         timeout_seconds: Optional[int] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> PendingTransaction:
         """
         Create a new pending transaction (Step 1).
@@ -356,8 +355,8 @@ class TransactionConfirmation:
         # Parse prices
         price_commitment = PriceCommitment.create(agreed_price)
 
-        floor_match = re.match(r'([\d.]+)', floor_price)
-        target_match = re.match(r'([\d.]+)', target_price)
+        floor_match = re.match(r"([\d.]+)", floor_price)
+        target_match = re.match(r"([\d.]+)", target_price)
 
         floor_value = float(floor_match.group(1)) if floor_match else 0
         target_value = float(target_match.group(1)) if target_match else price_commitment.amount
@@ -371,8 +370,8 @@ class TransactionConfirmation:
 
         # Generate transaction ID
         tx_id = keccak(
-            f"{buyer_id}:{seller_id}:{repo_url}:{datetime.utcnow().isoformat()}".encode() +
-            os.urandom(8)
+            f"{buyer_id}:{seller_id}:{repo_url}:{datetime.utcnow().isoformat()}".encode()
+            + os.urandom(8)
         ).hex()[:16]
 
         # Calculate expiry
@@ -393,7 +392,7 @@ class TransactionConfirmation:
             created_at=datetime.utcnow(),
             expires_at=expires_at,
             required_confirmations=2 if self.require_double_confirmation else 1,
-            metadata=metadata or {}
+            metadata=metadata or {},
         )
 
         # Validate and add warnings
@@ -404,17 +403,16 @@ class TransactionConfirmation:
         with self._lock:
             self.pending_transactions[tx_id] = pending
 
-        self._log_action("created", pending, {
-            "timeout_seconds": timeout,
-            "price_warnings": validation["warnings"]
-        })
+        self._log_action(
+            "created",
+            pending,
+            {"timeout_seconds": timeout, "price_warnings": validation["warnings"]},
+        )
 
         return pending
 
     def confirm_transaction(
-        self,
-        transaction_id: str,
-        confirmation_code: Optional[str] = None
+        self, transaction_id: str, confirmation_code: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Confirm a pending transaction (Step 2).
@@ -433,7 +431,7 @@ class TransactionConfirmation:
                 return {
                     "success": False,
                     "error": "Transaction not found",
-                    "error_code": "NOT_FOUND"
+                    "error_code": "NOT_FOUND",
                 }
 
             # Check expiry
@@ -442,7 +440,7 @@ class TransactionConfirmation:
                 return {
                     "success": False,
                     "error": "Transaction has expired",
-                    "error_code": "EXPIRED"
+                    "error_code": "EXPIRED",
                 }
 
             # Check status
@@ -450,7 +448,7 @@ class TransactionConfirmation:
                 return {
                     "success": False,
                     "error": f"Transaction is {pending.status.value}",
-                    "error_code": "INVALID_STATUS"
+                    "error_code": "INVALID_STATUS",
                 }
 
             # Increment confirmation count
@@ -476,7 +474,7 @@ class TransactionConfirmation:
                     "success": True,
                     "transaction": pending,
                     "message": "Transaction confirmed and ready for execution",
-                    "next_step": "execute"
+                    "next_step": "execute",
                 }
             else:
                 # Need more confirmations
@@ -487,13 +485,11 @@ class TransactionConfirmation:
                     "success": True,
                     "transaction": pending,
                     "message": f"Confirmation received. {remaining} more confirmation(s) required.",
-                    "next_step": "confirm_again"
+                    "next_step": "confirm_again",
                 }
 
     def cancel_transaction(
-        self,
-        transaction_id: str,
-        reason: CancellationReason = CancellationReason.USER_CANCELLED
+        self, transaction_id: str, reason: CancellationReason = CancellationReason.USER_CANCELLED
     ) -> Dict[str, Any]:
         """
         Cancel a pending transaction.
@@ -519,15 +515,9 @@ class TransactionConfirmation:
 
         self._log_action("cancelled", pending, {"reason": reason.value})
 
-        return {
-            "success": True,
-            "message": "Transaction cancelled successfully"
-        }
+        return {"success": True, "message": "Transaction cancelled successfully"}
 
-    def get_pending_transaction(
-        self,
-        transaction_id: str
-    ) -> Optional[PendingTransaction]:
+    def get_pending_transaction(self, transaction_id: str) -> Optional[PendingTransaction]:
         """Get a pending transaction by ID."""
         with self._lock:
             pending = self.pending_transactions.get(transaction_id)
@@ -540,9 +530,7 @@ class TransactionConfirmation:
             return pending
 
     def get_all_pending(
-        self,
-        buyer_id: Optional[str] = None,
-        seller_id: Optional[str] = None
+        self, buyer_id: Optional[str] = None, seller_id: Optional[str] = None
     ) -> List[PendingTransaction]:
         """Get all pending transactions, optionally filtered."""
         with self._lock:
@@ -570,10 +558,7 @@ class TransactionConfirmation:
 
     def _cleanup_expired_internal(self) -> int:
         """Internal cleanup (must hold lock)."""
-        expired_ids = [
-            tx_id for tx_id, tx in self.pending_transactions.items()
-            if tx.is_expired
-        ]
+        expired_ids = [tx_id for tx_id, tx in self.pending_transactions.items() if tx.is_expired]
 
         for tx_id in expired_ids:
             self._expire_transaction(self.pending_transactions[tx_id])
@@ -601,10 +586,7 @@ class TransactionConfirmation:
                 self._log_action("callback_error", pending, {"error": str(e)})
 
     def _log_action(
-        self,
-        action: str,
-        transaction: PendingTransaction,
-        extra: Optional[Dict[str, Any]] = None
+        self, action: str, transaction: PendingTransaction, extra: Optional[Dict[str, Any]] = None
     ) -> None:
         """Log an action to the audit trail."""
         entry = {
@@ -623,9 +605,7 @@ class TransactionConfirmation:
         self.audit_log.append(entry)
 
     def get_audit_log(
-        self,
-        transaction_id: Optional[str] = None,
-        limit: int = 100
+        self, transaction_id: Optional[str] = None, limit: int = 100
     ) -> List[Dict[str, Any]]:
         """Get audit log entries."""
         logs = self.audit_log

@@ -13,11 +13,7 @@ from rra.contracts.artifacts import (
     is_compiled,
     available_contracts,
 )
-from rra.contracts.story_protocol import (
-    StoryProtocolClient,
-    IPAssetMetadata,
-    PILTerms
-)
+from rra.contracts.story_protocol import StoryProtocolClient, IPAssetMetadata, PILTerms
 
 __all__ = [
     # Core contract interfaces

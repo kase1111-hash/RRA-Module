@@ -37,6 +37,7 @@ from eth_utils import keccak
 @dataclass
 class ViewingKey:
     """A viewing key pair for evidence encryption."""
+
     private_key: bytes
     public_key: bytes
     commitment: bytes  # On-chain commitment (hash)
@@ -46,6 +47,7 @@ class ViewingKey:
 @dataclass
 class EncryptedEvidence:
     """Encrypted evidence package."""
+
     ciphertext: bytes
     ephemeral_public_key: bytes
     nonce: bytes
@@ -77,6 +79,7 @@ class ECIESCipher:
             12-byte unique nonce
         """
         import threading
+
         if cls._iv_counter_lock is None:
             cls._iv_counter_lock = threading.Lock()
 
@@ -87,7 +90,7 @@ class ECIESCipher:
                 cls._iv_counter = 0
 
         # Hybrid: 8 random bytes + 4 counter bytes
-        return os.urandom(8) + counter.to_bytes(4, 'big')
+        return os.urandom(8) + counter.to_bytes(4, "big")
 
     @classmethod
     def generate_key_pair(cls) -> Tuple[bytes, bytes]:
@@ -99,10 +102,10 @@ class ECIESCipher:
         """
         private_key = ec.generate_private_key(cls.CURVE, default_backend())
 
-        private_bytes = private_key.private_numbers().private_value.to_bytes(32, 'big')
+        private_bytes = private_key.private_numbers().private_value.to_bytes(32, "big")
         public_bytes = private_key.public_key().public_bytes(
             encoding=serialization.Encoding.X962,
-            format=serialization.PublicFormat.UncompressedPoint
+            format=serialization.PublicFormat.UncompressedPoint,
         )
 
         return private_bytes, public_bytes
@@ -136,14 +139,14 @@ class ECIESCipher:
         # Without salt, HKDF is weakened against certain attacks
         ephemeral_pub_bytes = ephemeral_public.public_bytes(
             encoding=serialization.Encoding.X962,
-            format=serialization.PublicFormat.UncompressedPoint
+            format=serialization.PublicFormat.UncompressedPoint,
         )
         derived_key = HKDF(
             algorithm=hashes.SHA256(),
             length=32,
             salt=ephemeral_pub_bytes[:16],  # Use first 16 bytes of ephemeral pubkey as salt
             info=b"viewing_key_encryption_v2",
-            backend=default_backend()
+            backend=default_backend(),
         ).derive(shared_key)
 
         # SECURITY FIX MED-003: Use unique nonce to prevent catastrophic IV reuse
@@ -157,14 +160,11 @@ class ECIESCipher:
 
         ephemeral_public_bytes = ephemeral_public.public_bytes(
             encoding=serialization.Encoding.X962,
-            format=serialization.PublicFormat.UncompressedPoint
+            format=serialization.PublicFormat.UncompressedPoint,
         )
 
         return EncryptedEvidence(
-            ciphertext=ciphertext,
-            ephemeral_public_key=ephemeral_public_bytes,
-            nonce=nonce,
-            tag=tag
+            ciphertext=ciphertext, ephemeral_public_key=ephemeral_public_bytes, nonce=nonce, tag=tag
         )
 
     @classmethod
@@ -180,7 +180,7 @@ class ECIESCipher:
             Decrypted plaintext
         """
         # Load private key
-        private_value = int.from_bytes(private_key, 'big')
+        private_value = int.from_bytes(private_key, "big")
         private_key_obj = ec.derive_private_key(private_value, cls.CURVE, default_backend())
 
         # Load ephemeral public key
@@ -198,7 +198,7 @@ class ECIESCipher:
             length=32,
             salt=encrypted.ephemeral_public_key[:16],  # Same salt derivation as encrypt
             info=b"viewing_key_encryption_v2",
-            backend=default_backend()
+            backend=default_backend(),
         ).derive(shared_key)
 
         # Decrypt with AES-GCM
@@ -236,7 +236,7 @@ class ViewingKeyManager:
             private_key=private_key,
             public_key=public_key,
             commitment=commitment,
-            blinding_factor=blinding_factor
+            blinding_factor=blinding_factor,
         )
 
     def _compute_commitment(self, key: bytes, blinding: bytes) -> bytes:
@@ -252,10 +252,7 @@ class ViewingKeyManager:
         return keccak(combined)
 
     def encrypt_evidence(
-        self,
-        evidence: Dict[str, Any],
-        viewing_key: ViewingKey,
-        dispute_id: int
+        self, evidence: Dict[str, Any], viewing_key: ViewingKey, dispute_id: int
     ) -> Tuple[EncryptedEvidence, bytes]:
         """
         Encrypt evidence with viewing key.
@@ -279,7 +276,7 @@ class ViewingKeyManager:
         evidence_data = {
             "dispute_id": dispute_id,
             "evidence": evidence,
-            "timestamp": int(os.urandom(4).hex(), 16)  # Random timestamp for uniqueness
+            "timestamp": int(os.urandom(4).hex(), 16),  # Random timestamp for uniqueness
         }
         plaintext = json.dumps(evidence_data, sort_keys=True).encode()
 
@@ -289,9 +286,7 @@ class ViewingKeyManager:
         return encrypted, evidence_hash
 
     def decrypt_evidence(
-        self,
-        encrypted: EncryptedEvidence,
-        viewing_key: ViewingKey
+        self, encrypted: EncryptedEvidence, viewing_key: ViewingKey
     ) -> Dict[str, Any]:
         """
         Decrypt evidence using viewing key.
@@ -308,12 +303,14 @@ class ViewingKeyManager:
 
     def serialize_encrypted(self, encrypted: EncryptedEvidence) -> bytes:
         """Serialize encrypted evidence for storage (IPFS/Arweave)."""
-        return json.dumps({
-            "ciphertext": encrypted.ciphertext.hex(),
-            "ephemeral_public_key": encrypted.ephemeral_public_key.hex(),
-            "nonce": encrypted.nonce.hex(),
-            "tag": encrypted.tag.hex()
-        }).encode()
+        return json.dumps(
+            {
+                "ciphertext": encrypted.ciphertext.hex(),
+                "ephemeral_public_key": encrypted.ephemeral_public_key.hex(),
+                "nonce": encrypted.nonce.hex(),
+                "tag": encrypted.tag.hex(),
+            }
+        ).encode()
 
     def deserialize_encrypted(self, data: bytes) -> EncryptedEvidence:
         """Deserialize encrypted evidence from storage."""
@@ -322,7 +319,7 @@ class ViewingKeyManager:
             ciphertext=bytes.fromhex(obj["ciphertext"]),
             ephemeral_public_key=bytes.fromhex(obj["ephemeral_public_key"]),
             nonce=bytes.fromhex(obj["nonce"]),
-            tag=bytes.fromhex(obj["tag"])
+            tag=bytes.fromhex(obj["tag"]),
         )
 
     def export_viewing_key(self, key: ViewingKey, include_private: bool = False) -> Dict[str, str]:
@@ -342,7 +339,7 @@ class ViewingKeyManager:
         result = {
             "public_key": key.public_key.hex(),
             "commitment": key.commitment.hex(),
-            "blinding_factor": key.blinding_factor.hex()
+            "blinding_factor": key.blinding_factor.hex(),
         }
 
         if include_private:
@@ -375,7 +372,7 @@ class ViewingKeyManager:
             length=32,
             salt=salt,
             iterations=600000,  # OWASP recommended minimum
-            backend=default_backend()
+            backend=default_backend(),
         )
         encryption_key = kdf.derive(password)
 
@@ -422,7 +419,7 @@ class ViewingKeyManager:
             length=32,
             salt=salt,
             iterations=600000,
-            backend=default_backend()
+            backend=default_backend(),
         )
         decryption_key = kdf.derive(password)
 
@@ -437,7 +434,7 @@ class ViewingKeyManager:
             private_key=private_key,
             public_key=bytes.fromhex(data["public_key"]),
             commitment=bytes.fromhex(data["commitment"]),
-            blinding_factor=bytes.fromhex(data["blinding_factor"])
+            blinding_factor=bytes.fromhex(data["blinding_factor"]),
         )
 
     def import_viewing_key(self, data: Dict[str, str]) -> ViewingKey:
@@ -446,7 +443,7 @@ class ViewingKeyManager:
             private_key=bytes.fromhex(data.get("private_key", "00" * 32)),
             public_key=bytes.fromhex(data["public_key"]),
             commitment=bytes.fromhex(data["commitment"]),
-            blinding_factor=bytes.fromhex(data["blinding_factor"])
+            blinding_factor=bytes.fromhex(data["blinding_factor"]),
         )
 
 
@@ -458,19 +455,14 @@ def generate_viewing_key() -> ViewingKey:
 
 
 def encrypt_evidence(
-    evidence: Dict[str, Any],
-    viewing_key: ViewingKey,
-    dispute_id: int
+    evidence: Dict[str, Any], viewing_key: ViewingKey, dispute_id: int
 ) -> Tuple[EncryptedEvidence, bytes]:
     """Encrypt evidence with viewing key."""
     manager = ViewingKeyManager()
     return manager.encrypt_evidence(evidence, viewing_key, dispute_id)
 
 
-def decrypt_evidence(
-    encrypted: EncryptedEvidence,
-    viewing_key: ViewingKey
-) -> Dict[str, Any]:
+def decrypt_evidence(encrypted: EncryptedEvidence, viewing_key: ViewingKey) -> Dict[str, Any]:
     """Decrypt evidence using viewing key."""
     manager = ViewingKeyManager()
     return manager.decrypt_evidence(encrypted, viewing_key)

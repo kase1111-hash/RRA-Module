@@ -190,7 +190,7 @@ class ArtifactLoader:
 
     def _load_from_path(self, path: Path, contract_name: str) -> ContractArtifact:
         """Load artifact from a specific path."""
-        with open(path, 'r') as f:
+        with open(path, "r") as f:
             data = json.load(f)
 
         # Extract fields (Foundry format or pre-built format)

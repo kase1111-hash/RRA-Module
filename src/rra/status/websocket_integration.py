@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class DreamingMessage:
     """Message format for dreaming WebSocket updates."""
+
     type: str = "dreaming"
     payload: Dict[str, Any] = None
     timestamp: str = ""
@@ -71,12 +72,15 @@ class DreamingWebSocketManager:
         # Send current status on connect
         current = self._dreaming.current_status
         if current:
-            await self._send_to_client(websocket, DreamingMessage(
-                payload={
-                    "status": current,
-                    "operation": self._dreaming.current_operation,
-                }
-            ))
+            await self._send_to_client(
+                websocket,
+                DreamingMessage(
+                    payload={
+                        "status": current,
+                        "operation": self._dreaming.current_operation,
+                    }
+                ),
+            )
 
     def disconnect(self, websocket: WebSocket) -> None:
         """Remove a WebSocket connection."""
@@ -107,10 +111,7 @@ class DreamingWebSocketManager:
         )
 
         # Create tasks for all connections
-        tasks = [
-            self._send_to_client(ws, message)
-            for ws in list(self._connections)
-        ]
+        tasks = [self._send_to_client(ws, message) for ws in list(self._connections)]
 
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
@@ -129,10 +130,7 @@ class DreamingWebSocketManager:
             }
         )
 
-        tasks = [
-            self._send_to_client(ws, message)
-            for ws in list(self._connections)
-        ]
+        tasks = [self._send_to_client(ws, message) for ws in list(self._connections)]
 
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)

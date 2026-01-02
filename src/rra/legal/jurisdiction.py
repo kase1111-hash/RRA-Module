@@ -21,67 +21,69 @@ import re
 
 class JurisdictionCode(Enum):
     """ISO 3166-1 alpha-2 jurisdiction codes with regional groupings."""
+
     # North America
-    US = "US"       # United States
-    CA = "CA"       # Canada
-    MX = "MX"       # Mexico
-    
+    US = "US"  # United States
+    CA = "CA"  # Canada
+    MX = "MX"  # Mexico
+
     # European Union
-    DE = "DE"       # Germany
-    FR = "FR"       # France
-    IT = "IT"       # Italy
-    ES = "ES"       # Spain
-    NL = "NL"       # Netherlands
-    BE = "BE"       # Belgium
-    AT = "AT"       # Austria
-    IE = "IE"       # Ireland
-    PT = "PT"       # Portugal
-    PL = "PL"       # Poland
-    SE = "SE"       # Sweden
-    DK = "DK"       # Denmark
-    FI = "FI"       # Finland
-    
+    DE = "DE"  # Germany
+    FR = "FR"  # France
+    IT = "IT"  # Italy
+    ES = "ES"  # Spain
+    NL = "NL"  # Netherlands
+    BE = "BE"  # Belgium
+    AT = "AT"  # Austria
+    IE = "IE"  # Ireland
+    PT = "PT"  # Portugal
+    PL = "PL"  # Poland
+    SE = "SE"  # Sweden
+    DK = "DK"  # Denmark
+    FI = "FI"  # Finland
+
     # Europe (non-EU)
-    GB = "GB"       # United Kingdom
-    CH = "CH"       # Switzerland
-    NO = "NO"       # Norway
-    
+    GB = "GB"  # United Kingdom
+    CH = "CH"  # Switzerland
+    NO = "NO"  # Norway
+
     # Asia-Pacific
-    JP = "JP"       # Japan
-    KR = "KR"       # South Korea
-    CN = "CN"       # China
-    HK = "HK"       # Hong Kong
-    SG = "SG"       # Singapore
-    AU = "AU"       # Australia
-    NZ = "NZ"       # New Zealand
-    IN = "IN"       # India
-    
+    JP = "JP"  # Japan
+    KR = "KR"  # South Korea
+    CN = "CN"  # China
+    HK = "HK"  # Hong Kong
+    SG = "SG"  # Singapore
+    AU = "AU"  # Australia
+    NZ = "NZ"  # New Zealand
+    IN = "IN"  # India
+
     # Offshore/Special
-    KY = "KY"       # Cayman Islands
-    VG = "VG"       # British Virgin Islands
-    BM = "BM"       # Bermuda
-    GI = "GI"       # Gibraltar
-    
+    KY = "KY"  # Cayman Islands
+    VG = "VG"  # British Virgin Islands
+    BM = "BM"  # Bermuda
+    GI = "GI"  # Gibraltar
+
     # Other
-    BR = "BR"       # Brazil
-    AE = "AE"       # UAE
-    IL = "IL"       # Israel
-    
+    BR = "BR"  # Brazil
+    AE = "AE"  # UAE
+    IL = "IL"  # Israel
+
     # Restricted
-    KP = "KP"       # North Korea (restricted)
-    IR = "IR"       # Iran (restricted)
-    CU = "CU"       # Cuba (restricted)
-    SY = "SY"       # Syria (restricted)
-    RU = "RU"       # Russia (restricted for some purposes)
-    BY = "BY"       # Belarus (restricted)
-    
+    KP = "KP"  # North Korea (restricted)
+    IR = "IR"  # Iran (restricted)
+    CU = "CU"  # Cuba (restricted)
+    SY = "SY"  # Syria (restricted)
+    RU = "RU"  # Russia (restricted for some purposes)
+    BY = "BY"  # Belarus (restricted)
+
     # Unknown/International
-    XX = "XX"       # Unknown
-    INT = "INT"     # International/Multi-jurisdiction
+    XX = "XX"  # Unknown
+    INT = "INT"  # International/Multi-jurisdiction
 
 
 class JurisdictionRegion(Enum):
     """Regional groupings for jurisdiction."""
+
     NORTH_AMERICA = "north_america"
     EUROPEAN_UNION = "european_union"
     EUROPE_NON_EU = "europe_non_eu"
@@ -94,6 +96,7 @@ class JurisdictionRegion(Enum):
 
 class DetectionMethod(Enum):
     """Methods used to detect jurisdiction."""
+
     IP_GEOLOCATION = "ip_geolocation"
     REGISTRATION_DATA = "registration_data"
     ASSET_AUTHORITY = "asset_authority"
@@ -107,15 +110,17 @@ class DetectionMethod(Enum):
 
 class ConfidenceLevel(Enum):
     """Confidence level of jurisdiction detection."""
-    LOW = "low"           # < 50% confidence
-    MEDIUM = "medium"     # 50-80% confidence
-    HIGH = "high"         # 80-95% confidence
-    VERIFIED = "verified" # > 95% confidence (KYC verified)
+
+    LOW = "low"  # < 50% confidence
+    MEDIUM = "medium"  # 50-80% confidence
+    HIGH = "high"  # 80-95% confidence
+    VERIFIED = "verified"  # > 95% confidence (KYC verified)
 
 
 @dataclass
 class JurisdictionSignal:
     """A signal indicating a potential jurisdiction."""
+
     jurisdiction: JurisdictionCode
     method: DetectionMethod
     confidence: float  # 0.0 - 1.0
@@ -127,6 +132,7 @@ class JurisdictionSignal:
 @dataclass
 class JurisdictionResult:
     """Result of jurisdiction detection."""
+
     primary_jurisdiction: JurisdictionCode
     secondary_jurisdictions: List[JurisdictionCode]
     confidence_level: ConfidenceLevel
@@ -142,27 +148,28 @@ class JurisdictionResult:
 @dataclass
 class ParticipantJurisdiction:
     """Jurisdiction profile for a participant."""
+
     participant_id: str
     wallet_address: Optional[str]
-    
+
     # Primary jurisdiction (residence/incorporation)
     primary_jurisdiction: JurisdictionCode
-    
+
     # Additional jurisdictions (citizenship, business presence)
     additional_jurisdictions: List[JurisdictionCode] = field(default_factory=list)
-    
+
     # Detection results
     detection_history: List[JurisdictionResult] = field(default_factory=list)
-    
+
     # Explicit declarations
     declared_residence: Optional[JurisdictionCode] = None
     declared_citizenship: Optional[JurisdictionCode] = None
     declared_incorporation: Optional[JurisdictionCode] = None
-    
+
     # Verification status
     kyc_verified: bool = False
     kyc_jurisdiction: Optional[JurisdictionCode] = None
-    
+
     # Timestamps
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
@@ -171,20 +178,19 @@ class ParticipantJurisdiction:
 class JurisdictionDetector:
     """
     Detector for participant and asset jurisdictions.
-    
+
     Uses multiple signals to determine applicable jurisdictions
     for licensing, compliance, and legal wrapper selection.
     """
-    
+
     def __init__(self):
         self._participants: Dict[str, ParticipantJurisdiction] = {}
-        
+
         # Region mappings
         self._region_map: Dict[JurisdictionCode, JurisdictionRegion] = {
             JurisdictionCode.US: JurisdictionRegion.NORTH_AMERICA,
             JurisdictionCode.CA: JurisdictionRegion.NORTH_AMERICA,
             JurisdictionCode.MX: JurisdictionRegion.NORTH_AMERICA,
-            
             JurisdictionCode.DE: JurisdictionRegion.EUROPEAN_UNION,
             JurisdictionCode.FR: JurisdictionRegion.EUROPEAN_UNION,
             JurisdictionCode.IT: JurisdictionRegion.EUROPEAN_UNION,
@@ -198,11 +204,9 @@ class JurisdictionDetector:
             JurisdictionCode.SE: JurisdictionRegion.EUROPEAN_UNION,
             JurisdictionCode.DK: JurisdictionRegion.EUROPEAN_UNION,
             JurisdictionCode.FI: JurisdictionRegion.EUROPEAN_UNION,
-            
             JurisdictionCode.GB: JurisdictionRegion.EUROPE_NON_EU,
             JurisdictionCode.CH: JurisdictionRegion.EUROPE_NON_EU,
             JurisdictionCode.NO: JurisdictionRegion.EUROPE_NON_EU,
-            
             JurisdictionCode.JP: JurisdictionRegion.ASIA_PACIFIC,
             JurisdictionCode.KR: JurisdictionRegion.ASIA_PACIFIC,
             JurisdictionCode.CN: JurisdictionRegion.ASIA_PACIFIC,
@@ -211,27 +215,23 @@ class JurisdictionDetector:
             JurisdictionCode.AU: JurisdictionRegion.ASIA_PACIFIC,
             JurisdictionCode.NZ: JurisdictionRegion.ASIA_PACIFIC,
             JurisdictionCode.IN: JurisdictionRegion.ASIA_PACIFIC,
-            
             JurisdictionCode.KY: JurisdictionRegion.OFFSHORE,
             JurisdictionCode.VG: JurisdictionRegion.OFFSHORE,
             JurisdictionCode.BM: JurisdictionRegion.OFFSHORE,
             JurisdictionCode.GI: JurisdictionRegion.OFFSHORE,
-            
             JurisdictionCode.KP: JurisdictionRegion.RESTRICTED,
             JurisdictionCode.IR: JurisdictionRegion.RESTRICTED,
             JurisdictionCode.CU: JurisdictionRegion.RESTRICTED,
             JurisdictionCode.SY: JurisdictionRegion.RESTRICTED,
             JurisdictionCode.RU: JurisdictionRegion.RESTRICTED,
             JurisdictionCode.BY: JurisdictionRegion.RESTRICTED,
-            
             JurisdictionCode.BR: JurisdictionRegion.OTHER,
             JurisdictionCode.AE: JurisdictionRegion.OTHER,
             JurisdictionCode.IL: JurisdictionRegion.OTHER,
-            
             JurisdictionCode.XX: JurisdictionRegion.INTERNATIONAL,
             JurisdictionCode.INT: JurisdictionRegion.INTERNATIONAL,
         }
-        
+
         # Restricted jurisdictions
         self._restricted: Set[JurisdictionCode] = {
             JurisdictionCode.KP,
@@ -239,13 +239,13 @@ class JurisdictionDetector:
             JurisdictionCode.CU,
             JurisdictionCode.SY,
         }
-        
+
         # Partially restricted (sanctions)
         self._partially_restricted: Dict[JurisdictionCode, str] = {
             JurisdictionCode.RU: "Subject to various sectoral sanctions",
             JurisdictionCode.BY: "Subject to various sectoral sanctions",
         }
-        
+
         # IP registration authority to jurisdiction mapping
         self._authority_jurisdiction: Dict[str, JurisdictionCode] = {
             "USPTO": JurisdictionCode.US,
@@ -261,7 +261,7 @@ class JurisdictionDetector:
             "INPI_FR": JurisdictionCode.FR,
             "DPMA": JurisdictionCode.DE,
         }
-        
+
         # Phone prefix to jurisdiction
         self._phone_prefixes: Dict[str, JurisdictionCode] = {
             "+1": JurisdictionCode.US,  # Also CA
@@ -283,31 +283,29 @@ class JurisdictionDetector:
             "+55": JurisdictionCode.BR,
             "+852": JurisdictionCode.HK,
         }
-    
+
     def detect_from_ip(
-        self,
-        ip_address: str,
-        geolocation_data: Optional[Dict[str, Any]] = None
+        self, ip_address: str, geolocation_data: Optional[Dict[str, Any]] = None
     ) -> JurisdictionSignal:
         """
         Detect jurisdiction from IP address.
-        
+
         Note: In production, this would use a real geolocation service.
         """
         # Mock implementation - would use MaxMind, IP2Location, etc.
         country_code = "US"  # Default
         confidence = 0.7
-        
+
         if geolocation_data:
             country_code = geolocation_data.get("country_code", "US")
             confidence = geolocation_data.get("accuracy", 0.7)
-        
+
         try:
             jurisdiction = JurisdictionCode(country_code)
         except ValueError:
             jurisdiction = JurisdictionCode.XX
             confidence = 0.3
-        
+
         return JurisdictionSignal(
             jurisdiction=jurisdiction,
             method=DetectionMethod.IP_GEOLOCATION,
@@ -316,12 +314,12 @@ class JurisdictionDetector:
             source=ip_address,
             metadata=geolocation_data or {},
         )
-    
+
     def detect_from_phone(self, phone_number: str) -> Optional[JurisdictionSignal]:
         """Detect jurisdiction from phone number prefix."""
         # Normalize phone number
-        phone = re.sub(r'[^\d+]', '', phone_number)
-        
+        phone = re.sub(r"[^\d+]", "", phone_number)
+
         for prefix, jurisdiction in self._phone_prefixes.items():
             if phone.startswith(prefix):
                 return JurisdictionSignal(
@@ -332,17 +330,17 @@ class JurisdictionDetector:
                     source=phone_number,
                     metadata={"prefix": prefix},
                 )
-        
+
         return None
-    
+
     def detect_from_address(self, address: str) -> Optional[JurisdictionSignal]:
         """
         Detect jurisdiction from postal address.
-        
+
         Uses simple pattern matching for country names/codes.
         """
         address_upper = address.upper()
-        
+
         # Country name patterns
         country_patterns: Dict[str, JurisdictionCode] = {
             "UNITED STATES": JurisdictionCode.US,
@@ -365,7 +363,7 @@ class JurisdictionDetector:
             "SOUTH KOREA": JurisdictionCode.KR,
             "KOREA": JurisdictionCode.KR,
         }
-        
+
         for pattern, jurisdiction in country_patterns.items():
             if pattern in address_upper:
                 return JurisdictionSignal(
@@ -376,9 +374,9 @@ class JurisdictionDetector:
                     source=address,
                     metadata={"matched_pattern": pattern},
                 )
-        
+
         # Check for US state abbreviations with ZIP codes
-        us_pattern = re.search(r'\b[A-Z]{2}\s+\d{5}(-\d{4})?\b', address_upper)
+        us_pattern = re.search(r"\b[A-Z]{2}\s+\d{5}(-\d{4})?\b", address_upper)
         if us_pattern:
             return JurisdictionSignal(
                 jurisdiction=JurisdictionCode.US,
@@ -388,16 +386,13 @@ class JurisdictionDetector:
                 source=address,
                 metadata={"matched_pattern": "US_ZIP"},
             )
-        
+
         return None
-    
-    def detect_from_authority(
-        self,
-        authority: str
-    ) -> Optional[JurisdictionSignal]:
+
+    def detect_from_authority(self, authority: str) -> Optional[JurisdictionSignal]:
         """Detect jurisdiction from IP registration authority."""
         authority_upper = authority.upper().replace(" ", "_")
-        
+
         if authority_upper in self._authority_jurisdiction:
             return JurisdictionSignal(
                 jurisdiction=self._authority_jurisdiction[authority_upper],
@@ -407,14 +402,14 @@ class JurisdictionDetector:
                 source=authority,
                 metadata={"authority": authority_upper},
             )
-        
+
         return None
-    
+
     def declare_jurisdiction(
         self,
         participant_id: str,
         jurisdiction: JurisdictionCode,
-        declaration_type: str = "residence"
+        declaration_type: str = "residence",
     ) -> JurisdictionSignal:
         """Record an explicit jurisdiction declaration."""
         return JurisdictionSignal(
@@ -425,12 +420,9 @@ class JurisdictionDetector:
             source=f"declaration:{participant_id}",
             metadata={"declaration_type": declaration_type},
         )
-    
+
     def verify_from_kyc(
-        self,
-        participant_id: str,
-        kyc_jurisdiction: JurisdictionCode,
-        kyc_provider: str
+        self, participant_id: str, kyc_jurisdiction: JurisdictionCode, kyc_provider: str
     ) -> JurisdictionSignal:
         """Record KYC-verified jurisdiction."""
         return JurisdictionSignal(
@@ -441,11 +433,8 @@ class JurisdictionDetector:
             source=f"kyc:{kyc_provider}",
             metadata={"provider": kyc_provider, "participant": participant_id},
         )
-    
-    def aggregate_signals(
-        self,
-        signals: List[JurisdictionSignal]
-    ) -> JurisdictionResult:
+
+    def aggregate_signals(self, signals: List[JurisdictionSignal]) -> JurisdictionResult:
         """Aggregate multiple jurisdiction signals into a result."""
         if not signals:
             return JurisdictionResult(
@@ -458,7 +447,7 @@ class JurisdictionDetector:
                 is_restricted=False,
                 restriction_reason=None,
             )
-        
+
         # Weight signals by confidence and method
         method_weights = {
             DetectionMethod.KYC_VERIFICATION: 1.0,
@@ -471,31 +460,27 @@ class JurisdictionDetector:
             DetectionMethod.SMART_CONTRACT_EVENT: 0.5,
             DetectionMethod.DOCUMENT_ANALYSIS: 0.75,
         }
-        
+
         # Calculate weighted scores per jurisdiction
         jurisdiction_scores: Dict[JurisdictionCode, float] = {}
         for signal in signals:
             weight = method_weights.get(signal.method, 0.5)
             score = signal.confidence * weight
-            
+
             if signal.jurisdiction not in jurisdiction_scores:
                 jurisdiction_scores[signal.jurisdiction] = 0
             jurisdiction_scores[signal.jurisdiction] += score
-        
+
         # Sort by score
-        sorted_jurisdictions = sorted(
-            jurisdiction_scores.items(),
-            key=lambda x: x[1],
-            reverse=True
-        )
-        
+        sorted_jurisdictions = sorted(jurisdiction_scores.items(), key=lambda x: x[1], reverse=True)
+
         primary = sorted_jurisdictions[0][0]
         primary_score = sorted_jurisdictions[0][1]
-        
+
         # Normalize score
         total_score = sum(jurisdiction_scores.values())
         confidence_score = primary_score / total_score if total_score > 0 else 0
-        
+
         # Determine confidence level
         if any(s.method == DetectionMethod.KYC_VERIFICATION for s in signals):
             confidence_level = ConfidenceLevel.VERIFIED
@@ -505,10 +490,10 @@ class JurisdictionDetector:
             confidence_level = ConfidenceLevel.MEDIUM
         else:
             confidence_level = ConfidenceLevel.LOW
-        
+
         # Get secondary jurisdictions
         secondary = [j for j, _ in sorted_jurisdictions[1:4]]
-        
+
         # Check restrictions
         is_restricted = primary in self._restricted
         restriction_reason = None
@@ -516,7 +501,7 @@ class JurisdictionDetector:
             restriction_reason = "OFAC sanctioned jurisdiction"
         elif primary in self._partially_restricted:
             restriction_reason = self._partially_restricted[primary]
-        
+
         return JurisdictionResult(
             primary_jurisdiction=primary,
             secondary_jurisdictions=secondary,
@@ -527,81 +512,76 @@ class JurisdictionDetector:
             is_restricted=is_restricted,
             restriction_reason=restriction_reason,
         )
-    
+
     def register_participant(
         self,
         participant_id: str,
         wallet_address: Optional[str] = None,
-        initial_signals: Optional[List[JurisdictionSignal]] = None
+        initial_signals: Optional[List[JurisdictionSignal]] = None,
     ) -> ParticipantJurisdiction:
         """Register a participant for jurisdiction tracking."""
         signals = initial_signals or []
-        
+
         if signals:
             result = self.aggregate_signals(signals)
             primary = result.primary_jurisdiction
         else:
             primary = JurisdictionCode.XX
-        
+
         profile = ParticipantJurisdiction(
             participant_id=participant_id,
             wallet_address=wallet_address,
             primary_jurisdiction=primary,
             detection_history=[self.aggregate_signals(signals)] if signals else [],
         )
-        
+
         self._participants[participant_id] = profile
         return profile
-    
+
     def get_participant(self, participant_id: str) -> Optional[ParticipantJurisdiction]:
         """Get participant jurisdiction profile."""
         return self._participants.get(participant_id)
-    
+
     def update_participant_jurisdiction(
-        self,
-        participant_id: str,
-        signals: List[JurisdictionSignal]
+        self, participant_id: str, signals: List[JurisdictionSignal]
     ) -> ParticipantJurisdiction:
         """Update participant jurisdiction with new signals."""
         profile = self._participants.get(participant_id)
         if not profile:
             raise ValueError(f"Participant {participant_id} not found")
-        
+
         result = self.aggregate_signals(signals)
         profile.primary_jurisdiction = result.primary_jurisdiction
         profile.additional_jurisdictions = result.secondary_jurisdictions
         profile.detection_history.append(result)
         profile.updated_at = datetime.utcnow()
-        
+
         return profile
-    
+
     def set_kyc_verification(
-        self,
-        participant_id: str,
-        jurisdiction: JurisdictionCode,
-        provider: str
+        self, participant_id: str, jurisdiction: JurisdictionCode, provider: str
     ) -> ParticipantJurisdiction:
         """Set KYC-verified jurisdiction for participant."""
         profile = self._participants.get(participant_id)
         if not profile:
             raise ValueError(f"Participant {participant_id} not found")
-        
+
         profile.kyc_verified = True
         profile.kyc_jurisdiction = jurisdiction
         profile.primary_jurisdiction = jurisdiction  # KYC overrides other signals
         profile.updated_at = datetime.utcnow()
-        
+
         # Add KYC signal to history
         signal = self.verify_from_kyc(participant_id, jurisdiction, provider)
         result = self.aggregate_signals([signal])
         profile.detection_history.append(result)
-        
+
         return profile
-    
+
     def get_region(self, jurisdiction: JurisdictionCode) -> JurisdictionRegion:
         """Get the region for a jurisdiction."""
         return self._region_map.get(jurisdiction, JurisdictionRegion.OTHER)
-    
+
     def is_restricted(self, jurisdiction: JurisdictionCode) -> Tuple[bool, Optional[str]]:
         """Check if a jurisdiction is restricted."""
         if jurisdiction in self._restricted:
@@ -609,38 +589,33 @@ class JurisdictionDetector:
         if jurisdiction in self._partially_restricted:
             return False, self._partially_restricted[jurisdiction]
         return False, None
-    
+
     def get_eu_jurisdictions(self) -> List[JurisdictionCode]:
         """Get list of EU member state jurisdictions."""
-        return [
-            j for j, r in self._region_map.items()
-            if r == JurisdictionRegion.EUROPEAN_UNION
-        ]
-    
+        return [j for j, r in self._region_map.items() if r == JurisdictionRegion.EUROPEAN_UNION]
+
     def are_compatible(
-        self,
-        jurisdiction1: JurisdictionCode,
-        jurisdiction2: JurisdictionCode
+        self, jurisdiction1: JurisdictionCode, jurisdiction2: JurisdictionCode
     ) -> Tuple[bool, Optional[str]]:
         """
         Check if two jurisdictions are compatible for transactions.
-        
+
         Returns (compatible, reason_if_not).
         """
         # Check if either is restricted
         is_restricted1, reason1 = self.is_restricted(jurisdiction1)
         is_restricted2, reason2 = self.is_restricted(jurisdiction2)
-        
+
         if is_restricted1:
             return False, f"{jurisdiction1.value} is restricted: {reason1}"
         if is_restricted2:
             return False, f"{jurisdiction2.value} is restricted: {reason2}"
-        
+
         # Both in EU - highly compatible
         eu_jurisdictions = set(self.get_eu_jurisdictions())
         if jurisdiction1 in eu_jurisdictions and jurisdiction2 in eu_jurisdictions:
             return True, None
-        
+
         # Generally compatible unless there are specific restrictions
         return True, None
 

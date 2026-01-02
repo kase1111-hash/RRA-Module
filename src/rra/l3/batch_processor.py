@@ -32,13 +32,13 @@ from eth_utils import keccak
 class BatchStatus(Enum):
     """Status of a batch."""
 
-    PENDING = "pending"          # Collecting disputes
-    FULL = "full"                # Ready for processing
-    PROCESSING = "processing"    # Being processed
-    COMMITTED = "committed"      # State root submitted to L2
-    CHALLENGED = "challenged"    # Under fraud proof challenge
-    FINALIZED = "finalized"      # Finalized on L2
-    REJECTED = "rejected"        # Fraud proof succeeded
+    PENDING = "pending"  # Collecting disputes
+    FULL = "full"  # Ready for processing
+    PROCESSING = "processing"  # Being processed
+    COMMITTED = "committed"  # State root submitted to L2
+    CHALLENGED = "challenged"  # Under fraud proof challenge
+    FINALIZED = "finalized"  # Finalized on L2
+    REJECTED = "rejected"  # Fraud proof succeeded
 
 
 @dataclass
@@ -137,13 +137,13 @@ class Batch:
 class BatchConfig:
     """Configuration for batch processing."""
 
-    min_batch_size: int = 10          # Minimum disputes per batch
-    max_batch_size: int = 1000        # Maximum disputes per batch
+    min_batch_size: int = 10  # Minimum disputes per batch
+    max_batch_size: int = 1000  # Maximum disputes per batch
     batch_interval_seconds: float = 60.0  # Max time before forcing batch
     challenge_period_seconds: float = 604800.0  # 7 days
-    max_pending_batches: int = 100    # Maximum batches awaiting finalization
-    compression_enabled: bool = True   # Use calldata compression
-    parallel_processing: bool = True   # Process disputes in parallel
+    max_pending_batches: int = 100  # Maximum batches awaiting finalization
+    compression_enabled: bool = True  # Use calldata compression
+    parallel_processing: bool = True  # Process disputes in parallel
 
 
 @dataclass
@@ -364,9 +364,7 @@ class BatchProcessor:
 
             # Compute new state root
             state_root = keccak(
-                batch.prev_state_root
-                + dispute_root
-                + int(time.time()).to_bytes(8, "big")
+                batch.prev_state_root + dispute_root + int(time.time()).to_bytes(8, "big")
             )
             batch.state_root = state_root
 

@@ -33,13 +33,13 @@ from .voting import (
 class DisputePhase(Enum):
     """Phases of a multi-party dispute."""
 
-    CREATED = "created"           # Awaiting party stakes
-    ACTIVE = "active"             # All parties staked, proposals accepted
-    VOTING = "voting"             # Voting on proposals
-    MEDIATION = "mediation"       # Escalated to mediator
-    ARBITRATION = "arbitration"   # Escalated to arbitrator
-    RESOLVED = "resolved"         # Settlement reached
-    DISMISSED = "dismissed"       # Dispute dismissed/expired
+    CREATED = "created"  # Awaiting party stakes
+    ACTIVE = "active"  # All parties staked, proposals accepted
+    VOTING = "voting"  # Voting on proposals
+    MEDIATION = "mediation"  # Escalated to mediator
+    ARBITRATION = "arbitration"  # Escalated to arbitrator
+    RESOLVED = "resolved"  # Settlement reached
+    DISMISSED = "dismissed"  # Dispute dismissed/expired
 
 
 class PartyRole(Enum):
@@ -258,9 +258,7 @@ class MultiPartyOrchestrator:
         now = datetime.now(timezone.utc)
 
         # Calculate initiator weight
-        initiator_weight = self._calculate_voting_weight(
-            initiator_stake, now, now
-        )
+        initiator_weight = self._calculate_voting_weight(initiator_stake, now, now)
 
         # Create parties
         parties: Dict[str, DisputeParty] = {}
@@ -356,9 +354,7 @@ class MultiPartyOrchestrator:
             raise ValueError("Party has already staked")
 
         # Calculate voting weight
-        weight = self._calculate_voting_weight(
-            stake_amount, now, dispute.created_at
-        )
+        weight = self._calculate_voting_weight(stake_amount, now, dispute.created_at)
 
         # Update party
         party.stake_amount = stake_amount
@@ -682,15 +678,13 @@ class MultiPartyOrchestrator:
 
     def get_party_disputes(self, party_hash: str) -> List[MultiPartyDispute]:
         """Get all disputes involving a party."""
-        return [
-            d for d in self._disputes.values()
-            if party_hash in d.parties
-        ]
+        return [d for d in self._disputes.values() if party_hash in d.parties]
 
     def get_active_disputes(self) -> List[MultiPartyDispute]:
         """Get all active disputes."""
         return [
-            d for d in self._disputes.values()
+            d
+            for d in self._disputes.values()
             if d.phase not in (DisputePhase.RESOLVED, DisputePhase.DISMISSED)
         ]
 

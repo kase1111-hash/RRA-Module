@@ -21,6 +21,7 @@ from enum import Enum
 
 class VerificationStatus(str, Enum):
     """Verification status levels."""
+
     PASSED = "passed"
     WARNING = "warning"
     FAILED = "failed"
@@ -30,6 +31,7 @@ class VerificationStatus(str, Enum):
 @dataclass
 class CheckResult:
     """Result of a single verification check."""
+
     name: str
     status: VerificationStatus
     message: str
@@ -39,6 +41,7 @@ class CheckResult:
 @dataclass
 class VerificationResult:
     """Complete verification result for a repository."""
+
     repo_path: str
     repo_url: str
     overall_status: VerificationStatus
@@ -82,8 +85,8 @@ class CodeVerifier:
     SECURITY_PATTERNS = {
         "hardcoded_secrets": [
             r'(?i)(password|secret|api_key|token|credential)\s*=\s*["\'][^"\']+["\']',
-            r'(?i)aws_secret_access_key\s*=',
-            r'-----BEGIN (RSA |DSA |EC )?PRIVATE KEY-----',
+            r"(?i)aws_secret_access_key\s*=",
+            r"-----BEGIN (RSA |DSA |EC )?PRIVATE KEY-----",
         ],
         "sql_injection": [
             r'execute\s*\(\s*["\'][^"\']*%s',
@@ -93,11 +96,11 @@ class CodeVerifier:
         "command_injection": [
             r'os\.system\s*\(\s*f["\']',
             r'subprocess\.\w+\s*\(\s*f["\']',
-            r'eval\s*\(\s*(?:input|request)',
+            r"eval\s*\(\s*(?:input|request)",
         ],
         "path_traversal": [
-            r'open\s*\(\s*(?:request|input|user)',
-            r'\.\./',
+            r"open\s*\(\s*(?:request|input|user)",
+            r"\.\./",
         ],
     }
 
@@ -205,9 +208,15 @@ class CodeVerifier:
     def _check_tests(self, repo_path: Path) -> CheckResult:
         """Check for test files and optionally run them."""
         test_patterns = [
-            "test_*.py", "*_test.py", "tests/*.py",
-            "*.test.js", "*.spec.js", "*.test.ts", "*.spec.ts",
-            "*_test.go", "*_test.rs",
+            "test_*.py",
+            "*_test.py",
+            "tests/*.py",
+            "*.test.js",
+            "*.spec.js",
+            "*.test.ts",
+            "*.spec.ts",
+            "*_test.go",
+            "*_test.rs",
         ]
 
         test_files = []
@@ -226,12 +235,11 @@ class CodeVerifier:
         test_count = 0
         for tf in test_files[:50]:  # Limit for performance
             try:
-                content = tf.read_text(encoding='utf-8', errors='ignore')
+                content = tf.read_text(encoding="utf-8", errors="ignore")
                 # Count test functions
-                test_count += len(re.findall(
-                    r'(def test_|test\(|it\(|describe\(|#\[test\]|func Test)',
-                    content
-                ))
+                test_count += len(
+                    re.findall(r"(def test_|test\(|it\(|describe\(|#\[test\]|func Test)", content)
+                )
             except Exception:
                 pass
 
@@ -283,9 +291,15 @@ class CodeVerifier:
 
         # Check for linting config files
         lint_configs = [
-            ".eslintrc", ".eslintrc.js", ".eslintrc.json",
-            "pyproject.toml", "setup.cfg", ".flake8", "ruff.toml",
-            "clippy.toml", ".golangci.yml",
+            ".eslintrc",
+            ".eslintrc.js",
+            ".eslintrc.json",
+            "pyproject.toml",
+            "setup.cfg",
+            ".flake8",
+            "ruff.toml",
+            "clippy.toml",
+            ".golangci.yml",
         ]
 
         has_lint_config = any((repo_path / cfg).exists() for cfg in lint_configs)
@@ -297,8 +311,12 @@ class CodeVerifier:
             return CheckResult(
                 name="linting",
                 status=VerificationStatus.PASSED,
-                message="Code passes linting checks" + (" (config found)" if has_lint_config else ""),
-                details={"has_config": has_lint_config, "output": lint_result.get("output", "")[:500]},
+                message="Code passes linting checks"
+                + (" (config found)" if has_lint_config else ""),
+                details={
+                    "has_config": has_lint_config,
+                    "output": lint_result.get("output", "")[:500],
+                },
             )
         elif lint_result.get("skipped"):
             return CheckResult(
@@ -324,16 +342,18 @@ class CodeVerifier:
         """Scan for common security issues."""
         issues: List[Dict[str, Any]] = []
 
-        code_extensions = {'.py', '.js', '.ts', '.java', '.go', '.rs', '.rb', '.php'}
+        code_extensions = {".py", ".js", ".ts", ".java", ".go", ".rs", ".rb", ".php"}
 
         files_scanned = 0
-        for file_path in repo_path.rglob('*'):
+        for file_path in repo_path.rglob("*"):
             if not file_path.is_file():
                 continue
             if file_path.suffix not in code_extensions:
                 continue
-            if any(part.startswith('.') or part in {'node_modules', 'venv', '__pycache__'}
-                   for part in file_path.parts):
+            if any(
+                part.startswith(".") or part in {"node_modules", "venv", "__pycache__"}
+                for part in file_path.parts
+            ):
                 continue
 
             files_scanned += 1
@@ -341,17 +361,19 @@ class CodeVerifier:
                 break
 
             try:
-                content = file_path.read_text(encoding='utf-8', errors='ignore')
+                content = file_path.read_text(encoding="utf-8", errors="ignore")
 
                 for category, patterns in self.SECURITY_PATTERNS.items():
                     for pattern in patterns:
                         matches = re.findall(pattern, content)
                         if matches:
-                            issues.append({
-                                "file": str(file_path.relative_to(repo_path)),
-                                "category": category,
-                                "count": len(matches),
-                            })
+                            issues.append(
+                                {
+                                    "file": str(file_path.relative_to(repo_path)),
+                                    "category": category,
+                                    "count": len(matches),
+                                }
+                            )
             except Exception:
                 pass
 
@@ -496,10 +518,14 @@ class CodeVerifier:
             )
 
         # Check README quality
-        readme_path = repo_path / "README.md" if (repo_path / "README.md").exists() else repo_path / "README.rst"
+        readme_path = (
+            repo_path / "README.md"
+            if (repo_path / "README.md").exists()
+            else repo_path / "README.rst"
+        )
         try:
-            readme_content = readme_path.read_text(encoding='utf-8', errors='ignore')
-            readme_lines = len(readme_content.split('\n'))
+            readme_content = readme_path.read_text(encoding="utf-8", errors="ignore")
+            readme_lines = len(readme_content.split("\n"))
 
             if readme_lines < 10:
                 return CheckResult(
@@ -509,8 +535,8 @@ class CodeVerifier:
                     details={"doc_files": len(doc_files), "readme_lines": readme_lines},
                 )
 
-            has_sections = bool(re.search(r'^#+\s+', readme_content, re.MULTILINE))
-            has_code_blocks = '```' in readme_content or '    ' in readme_content
+            has_sections = bool(re.search(r"^#+\s+", readme_content, re.MULTILINE))
+            has_code_blocks = "```" in readme_content or "    " in readme_content
 
             if has_sections and has_code_blocks:
                 return CheckResult(
@@ -545,19 +571,21 @@ class CodeVerifier:
         for lf in license_files:
             if (repo_path / lf).exists():
                 try:
-                    content = (repo_path / lf).read_text(encoding='utf-8', errors='ignore')
-                    # Detect common licenses
+                    content = (repo_path / lf).read_text(encoding="utf-8", errors="ignore")
+                    # Detect common licenses (check specific licenses first)
                     license_type = "Unknown"
-                    if "MIT" in content:
-                        license_type = "MIT"
+                    if "FSL-1.1-ALv2" in content or "FSL-1.1" in content:
+                        license_type = "FSL-1.1-ALv2"
+                    elif "FSL" in content:
+                        license_type = "FSL"
                     elif "Apache" in content:
                         license_type = "Apache 2.0"
                     elif "GPL" in content:
                         license_type = "GPL"
                     elif "BSD" in content:
                         license_type = "BSD"
-                    elif "FSL" in content:
-                        license_type = "FSL"
+                    elif "MIT" in content:
+                        license_type = "MIT"
 
                     return CheckResult(
                         name="license",
@@ -578,22 +606,23 @@ class CodeVerifier:
         """Detect programming languages in the repository."""
         extensions = {}
 
-        for file_path in repo_path.rglob('*'):
+        for file_path in repo_path.rglob("*"):
             if file_path.is_file() and not any(
-                part.startswith('.') or part in {'node_modules', 'venv', '__pycache__', 'target', 'dist'}
+                part.startswith(".")
+                or part in {"node_modules", "venv", "__pycache__", "target", "dist"}
                 for part in file_path.parts
             ):
                 ext = file_path.suffix
                 extensions[ext] = extensions.get(ext, 0) + 1
 
         language_map = {
-            '.py': 'python',
-            '.js': 'javascript',
-            '.ts': 'typescript',
-            '.rs': 'rust',
-            '.go': 'go',
-            '.java': 'java',
-            '.rb': 'ruby',
+            ".py": "python",
+            ".js": "javascript",
+            ".ts": "typescript",
+            ".rs": "rust",
+            ".go": "go",
+            ".java": "java",
+            ".rb": "ruby",
         }
 
         languages = []
@@ -657,7 +686,7 @@ class CodeVerifier:
                     else:
                         # Count issues from output
                         output = result.stdout + result.stderr
-                        issue_count = output.count('\n')
+                        issue_count = output.count("\n")
                         return {
                             "success": False,
                             "issues": issue_count,
@@ -682,7 +711,11 @@ class CodeVerifier:
                     # Check if pyproject.toml/setup.py is valid
                     if (repo_path / "pyproject.toml").exists():
                         result = subprocess.run(
-                            ["python", "-c", "import tomli; tomli.load(open('pyproject.toml', 'rb'))"],
+                            [
+                                "python",
+                                "-c",
+                                "import tomli; tomli.load(open('pyproject.toml', 'rb'))",
+                            ],
                             cwd=repo_path,
                             capture_output=True,
                             timeout=30,
@@ -694,6 +727,7 @@ class CodeVerifier:
                     # Validate package.json
                     if (repo_path / "package.json").exists():
                         import json
+
                         with open(repo_path / "package.json") as f:
                             json.load(f)  # Just validate JSON
                         return {"success": True}
@@ -722,9 +756,9 @@ class CodeVerifier:
 
         # Look for feature claims
         feature_patterns = [
-            r'[-*]\s+(?:Support[s]? for|Provides?|Includes?|Features?:?)\s+(.+)',
-            r'[-*]\s+(.+?)\s+support',
-            r'(?:can|will|does)\s+(.+)',
+            r"[-*]\s+(?:Support[s]? for|Provides?|Includes?|Features?:?)\s+(.+)",
+            r"[-*]\s+(.+?)\s+support",
+            r"(?:can|will|does)\s+(.+)",
         ]
 
         for pattern in feature_patterns:
@@ -733,7 +767,7 @@ class CodeVerifier:
                 claims.append({"type": "feature", "claim": match.strip()})
 
         # Look for language/technology mentions
-        tech_pattern = r'(?:written in|built with|uses?|requires?)\s+([A-Z][a-z]+(?:\s+\d+\.?\d*)?)'
+        tech_pattern = r"(?:written in|built with|uses?|requires?)\s+([A-Z][a-z]+(?:\s+\d+\.?\d*)?)"
         tech_matches = re.findall(tech_pattern, readme_content)
         for match in tech_matches[:3]:
             claims.append({"type": "technology", "claim": match.strip()})
@@ -763,13 +797,13 @@ class CodeVerifier:
                         return True
 
         # Generic claim verification - search for keywords in code
-        keywords = re.findall(r'\b\w{4,}\b', claim_text)
+        keywords = re.findall(r"\b\w{4,}\b", claim_text)
         for keyword in keywords:
-            if keyword in {'with', 'that', 'this', 'from', 'into', 'have', 'been'}:
+            if keyword in {"with", "that", "this", "from", "into", "have", "been"}:
                 continue
             for code_file in repo_path.rglob("*.py"):
                 try:
-                    if keyword in code_file.read_text(encoding='utf-8', errors='ignore').lower():
+                    if keyword in code_file.read_text(encoding="utf-8", errors="ignore").lower():
                         return True
                 except Exception:
                     pass
@@ -806,9 +840,7 @@ class CodeVerifier:
 
         # Normalize to 0-100
         max_score = sum(
-            weights.get(c.name, 10)
-            for c in checks
-            if c.status != VerificationStatus.SKIPPED
+            weights.get(c.name, 10) for c in checks if c.status != VerificationStatus.SKIPPED
         )
 
         if max_score > 0:

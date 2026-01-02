@@ -40,6 +40,7 @@ class RateLimitExceeded(Exception):
 @dataclass
 class RateLimitConfig:
     """Configuration for rate limiting."""
+
     # Default limits
     requests_per_minute: int = 60
     requests_per_hour: int = 1000
@@ -132,10 +133,7 @@ class InMemoryBackend(RateLimitBackend):
         async with self._lock:
             now = time.time()
             # Clean tokens older than 1 day
-            self._tokens = {
-                k: v for k, v in self._tokens.items()
-                if now - v[1] < 86400
-            }
+            self._tokens = {k: v for k, v in self._tokens.items() if now - v[1] < 86400}
             # Clean counters older than 1 day
             cutoff = now - 86400
             for key in list(self._counters.keys()):
@@ -156,6 +154,7 @@ class RedisBackend(RateLimitBackend):
         if self._redis is None:
             try:
                 import redis.asyncio as redis
+
                 self._redis = redis.from_url(self.redis_url)
             except ImportError:
                 raise ImportError("redis package required for Redis backend")
@@ -166,20 +165,14 @@ class RedisBackend(RateLimitBackend):
         r = await self._get_redis()
         data = await r.hgetall(f"ratelimit:tokens:{key}")
         if data:
-            return (
-                int(data.get(b"tokens", 0)),
-                float(data.get(b"timestamp", 0))
-            )
+            return (int(data.get(b"tokens", 0)), float(data.get(b"timestamp", 0)))
         return (0, 0.0)
 
     async def set_tokens(self, key: str, tokens: int, timestamp: float, ttl: int) -> None:
         """Set token count and timestamp in Redis."""
         r = await self._get_redis()
         pipe = r.pipeline()
-        pipe.hset(f"ratelimit:tokens:{key}", mapping={
-            "tokens": tokens,
-            "timestamp": timestamp
-        })
+        pipe.hset(f"ratelimit:tokens:{key}", mapping={"tokens": tokens, "timestamp": timestamp})
         pipe.expire(f"ratelimit:tokens:{key}", ttl)
         await pipe.execute()
 
@@ -300,26 +293,18 @@ class RateLimiter:
         # Allow burst_size requests instantly, then rate tokens/second
         rate_per_second = self.config.requests_per_minute / 60.0
         self.token_bucket = TokenBucketLimiter(
-            self.backend,
-            rate=rate_per_second,
-            bucket_size=self.config.burst_size
+            self.backend, rate=rate_per_second, bucket_size=self.config.burst_size
         )
 
         # Sliding windows for different time periods
         self.minute_limiter = SlidingWindowLimiter(
-            self.backend,
-            limit=self.config.requests_per_minute,
-            window=60
+            self.backend, limit=self.config.requests_per_minute, window=60
         )
         self.hour_limiter = SlidingWindowLimiter(
-            self.backend,
-            limit=self.config.requests_per_hour,
-            window=3600
+            self.backend, limit=self.config.requests_per_hour, window=3600
         )
         self.day_limiter = SlidingWindowLimiter(
-            self.backend,
-            limit=self.config.requests_per_day,
-            window=86400
+            self.backend, limit=self.config.requests_per_day, window=86400
         )
 
     def _get_client_key(self, request: Request) -> str:
@@ -368,12 +353,15 @@ class RateLimiter:
         )
 
         if not bucket_ok:
-            return (False, {
-                "X-RateLimit-Limit": str(self.config.burst_size),
-                "X-RateLimit-Remaining": "0",
-                "X-RateLimit-Reset": str(int(time.time()) + bucket_retry),
-                "Retry-After": str(bucket_retry),
-            })
+            return (
+                False,
+                {
+                    "X-RateLimit-Limit": str(self.config.burst_size),
+                    "X-RateLimit-Remaining": "0",
+                    "X-RateLimit-Reset": str(int(time.time()) + bucket_retry),
+                    "Retry-After": str(bucket_retry),
+                },
+            )
 
         # Check minute window
         minute_ok, minute_remaining, minute_retry = await self.minute_limiter.check(
@@ -381,45 +369,53 @@ class RateLimiter:
         )
 
         if not minute_ok:
-            return (False, {
-                "X-RateLimit-Limit": str(self.config.requests_per_minute),
-                "X-RateLimit-Remaining": "0",
-                "X-RateLimit-Reset": str(int(time.time()) + minute_retry),
-                "Retry-After": str(minute_retry),
-            })
+            return (
+                False,
+                {
+                    "X-RateLimit-Limit": str(self.config.requests_per_minute),
+                    "X-RateLimit-Remaining": "0",
+                    "X-RateLimit-Reset": str(int(time.time()) + minute_retry),
+                    "Retry-After": str(minute_retry),
+                },
+            )
 
         # Check hour window
-        hour_ok, hour_remaining, hour_retry = await self.hour_limiter.check(
-            f"hour:{client_key}"
-        )
+        hour_ok, hour_remaining, hour_retry = await self.hour_limiter.check(f"hour:{client_key}")
 
         if not hour_ok:
-            return (False, {
-                "X-RateLimit-Limit": str(self.config.requests_per_hour),
-                "X-RateLimit-Remaining": "0",
-                "X-RateLimit-Reset": str(int(time.time()) + hour_retry),
-                "Retry-After": str(hour_retry),
-            })
+            return (
+                False,
+                {
+                    "X-RateLimit-Limit": str(self.config.requests_per_hour),
+                    "X-RateLimit-Remaining": "0",
+                    "X-RateLimit-Reset": str(int(time.time()) + hour_retry),
+                    "Retry-After": str(hour_retry),
+                },
+            )
 
         # Check day window
-        day_ok, day_remaining, day_retry = await self.day_limiter.check(
-            f"day:{client_key}"
-        )
+        day_ok, day_remaining, day_retry = await self.day_limiter.check(f"day:{client_key}")
 
         if not day_ok:
-            return (False, {
-                "X-RateLimit-Limit": str(self.config.requests_per_day),
-                "X-RateLimit-Remaining": "0",
-                "X-RateLimit-Reset": str(int(time.time()) + day_retry),
-                "Retry-After": str(day_retry),
-            })
+            return (
+                False,
+                {
+                    "X-RateLimit-Limit": str(self.config.requests_per_day),
+                    "X-RateLimit-Remaining": "0",
+                    "X-RateLimit-Reset": str(int(time.time()) + day_retry),
+                    "Retry-After": str(day_retry),
+                },
+            )
 
         # All checks passed
-        return (True, {
-            "X-RateLimit-Limit": str(self.config.requests_per_minute),
-            "X-RateLimit-Remaining": str(minute_remaining),
-            "X-RateLimit-Reset": str(int(time.time()) + 60),
-        })
+        return (
+            True,
+            {
+                "X-RateLimit-Limit": str(self.config.requests_per_minute),
+                "X-RateLimit-Remaining": str(minute_remaining),
+                "X-RateLimit-Reset": str(int(time.time()) + 60),
+            },
+        )
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -445,7 +441,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             response = Response(
                 content='{"detail": "Rate limit exceeded"}',
                 status_code=429,
-                media_type="application/json"
+                media_type="application/json",
             )
             for key, value in headers.items():
                 response.headers[key] = value
@@ -462,9 +458,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
 
 def rate_limit(
-    requests: int = 10,
-    window: int = 60,
-    key_func: Optional[Callable[[Request], str]] = None
+    requests: int = 10, window: int = 60, key_func: Optional[Callable[[Request], str]] = None
 ):
     """
     Decorator for endpoint-specific rate limiting.
@@ -513,12 +507,13 @@ def rate_limit(
                 raise HTTPException(
                     status_code=429,
                     detail=f"Rate limit exceeded. Retry after {retry_after} seconds.",
-                    headers={"Retry-After": str(retry_after)}
+                    headers={"Retry-After": str(retry_after)},
                 )
 
             return await func(*args, **kwargs)
 
         return wrapper
+
     return decorator
 
 

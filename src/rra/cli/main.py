@@ -22,7 +22,12 @@ from rich.panel import Panel
 from rich.markdown import Markdown
 
 from rra import __version__
-from rra.config.market_config import MarketConfig, create_default_config, LicenseModel, NegotiationStyle
+from rra.config.market_config import (
+    MarketConfig,
+    create_default_config,
+    LicenseModel,
+    NegotiationStyle,
+)
 from rra.ingestion.repo_ingester import RepoIngester
 from rra.agents.negotiator import NegotiatorAgent
 from rra.agents.buyer import BuyerAgent
@@ -35,7 +40,7 @@ console = Console()
 
 @click.group()
 @click.version_option(version=__version__)
-@click.option('--dreaming/--no-dreaming', default=True, help='Show dreaming status updates')
+@click.option("--dreaming/--no-dreaming", default=True, help="Show dreaming status updates")
 @click.pass_context
 def cli(ctx, dreaming):
     """
@@ -44,36 +49,46 @@ def cli(ctx, dreaming):
     Transform dormant repositories into autonomous licensing agents.
     """
     ctx.ensure_object(dict)
-    ctx.obj['dreaming'] = dreaming
+    ctx.obj["dreaming"] = dreaming
 
     if dreaming:
         enable_dreaming_output(console)
 
 
 @cli.command()
-@click.argument('repo_path', type=click.Path(exists=True, path_type=Path))
-@click.option('--target-price', default='0.05 ETH', help='Target price for licensing')
-@click.option('--floor-price', default='0.02 ETH', help='Minimum acceptable price')
-@click.option('--license-model', type=click.Choice(['per-seat', 'subscription', 'one-time', 'perpetual', 'custom']), default='per-seat')
-@click.option('--negotiation-style', type=click.Choice(['concise', 'persuasive', 'strict', 'adaptive']), default='concise')
-@click.option('--wallet', help='Ethereum wallet address for payments')
+@click.argument("repo_path", type=click.Path(exists=True, path_type=Path))
+@click.option("--target-price", default="0.05 ETH", help="Target price for licensing")
+@click.option("--floor-price", default="0.02 ETH", help="Minimum acceptable price")
+@click.option(
+    "--license-model",
+    type=click.Choice(["per-seat", "subscription", "one-time", "perpetual", "custom"]),
+    default="per-seat",
+)
+@click.option(
+    "--negotiation-style",
+    type=click.Choice(["concise", "persuasive", "strict", "adaptive"]),
+    default="concise",
+)
+@click.option("--wallet", help="Ethereum wallet address for payments")
 def init(
     repo_path: Path,
     target_price: str,
     floor_price: str,
     license_model: str,
     negotiation_style: str,
-    wallet: Optional[str]
+    wallet: Optional[str],
 ):
     """
     Initialize a repository with RRA configuration.
 
     Creates a .market.yaml file with the specified settings.
     """
-    console.print(Panel.fit(
-        f"[bold blue]Initializing RRA for repository[/bold blue]\n{repo_path}",
-        border_style="blue"
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold blue]Initializing RRA for repository[/bold blue]\n{repo_path}",
+            border_style="blue",
+        )
+    )
 
     # Create configuration
     config = MarketConfig(
@@ -101,14 +116,32 @@ def init(
 
 
 @cli.command()
-@click.argument('repo_url')
-@click.option('--workspace', type=click.Path(path_type=Path), default=Path('./cloned_repos'), help='Directory for cloned repos')
-@click.option('--force', is_flag=True, help='Force refresh by re-cloning')
-@click.option('--verify/--no-verify', default=True, help='Run code verification')
-@click.option('--categorize/--no-categorize', default=True, help='Auto-categorize the repository')
-@click.option('--wallet', help='Ethereum wallet address for blockchain links')
-@click.option('--network', type=click.Choice(['mainnet', 'testnet', 'localhost']), default='testnet', help='Blockchain network')
-def ingest(repo_url: str, workspace: Path, force: bool, verify: bool, categorize: bool, wallet: Optional[str], network: str):
+@click.argument("repo_url")
+@click.option(
+    "--workspace",
+    type=click.Path(path_type=Path),
+    default=Path("./cloned_repos"),
+    help="Directory for cloned repos",
+)
+@click.option("--force", is_flag=True, help="Force refresh by re-cloning")
+@click.option("--verify/--no-verify", default=True, help="Run code verification")
+@click.option("--categorize/--no-categorize", default=True, help="Auto-categorize the repository")
+@click.option("--wallet", help="Ethereum wallet address for blockchain links")
+@click.option(
+    "--network",
+    type=click.Choice(["mainnet", "testnet", "localhost"]),
+    default="testnet",
+    help="Blockchain network",
+)
+def ingest(
+    repo_url: str,
+    workspace: Path,
+    force: bool,
+    verify: bool,
+    categorize: bool,
+    wallet: Optional[str],
+    network: str,
+):
     """
     Ingest a repository and generate its knowledge base.
 
@@ -120,10 +153,9 @@ def ingest(repo_url: str, workspace: Path, force: bool, verify: bool, categorize
     - Automatic categorization
     - Blockchain purchase link generation
     """
-    console.print(Panel.fit(
-        f"[bold blue]Ingesting Repository[/bold blue]\n{repo_url}",
-        border_style="blue"
-    ))
+    console.print(
+        Panel.fit(f"[bold blue]Ingesting Repository[/bold blue]\n{repo_url}", border_style="blue")
+    )
 
     try:
         with console.status("[bold blue]Ingesting repository...", spinner="dots"):
@@ -149,31 +181,39 @@ def ingest(repo_url: str, workspace: Path, force: bool, verify: bool, categorize
         # Show verification results
         if kb.verification:
             console.print("\n[bold]Verification Results:[/bold]")
-            score = kb.verification.get('score', 0)
-            status = kb.verification.get('overall_status', 'unknown')
+            score = kb.verification.get("score", 0)
+            status = kb.verification.get("overall_status", "unknown")
             color = "green" if status == "passed" else ("yellow" if status == "warning" else "red")
             console.print(f"  Score: [{color}]{score}/100[/{color}]")
             console.print(f"  Status: [{color}]{status}[/{color}]")
 
-            for check in kb.verification.get('checks', []):
-                check_color = "green" if check['status'] == "passed" else ("yellow" if check['status'] == "warning" else "red")
-                console.print(f"    [{check_color}]•[/{check_color}] {check['name']}: {check['message']}")
+            for check in kb.verification.get("checks", []):
+                check_color = (
+                    "green"
+                    if check["status"] == "passed"
+                    else ("yellow" if check["status"] == "warning" else "red")
+                )
+                console.print(
+                    f"    [{check_color}]•[/{check_color}] {check['name']}: {check['message']}"
+                )
 
         # Show category
         if kb.category:
             console.print("\n[bold]Category:[/bold]")
-            console.print(f"  Primary: [cyan]{kb.category.get('primary_category', 'unknown')}[/cyan]")
-            if kb.category.get('subcategory'):
+            console.print(
+                f"  Primary: [cyan]{kb.category.get('primary_category', 'unknown')}[/cyan]"
+            )
+            if kb.category.get("subcategory"):
                 console.print(f"  Subcategory: {kb.category.get('subcategory')}")
-            if kb.category.get('tags'):
-                tags = ', '.join(kb.category.get('tags', [])[:5])
+            if kb.category.get("tags"):
+                tags = ", ".join(kb.category.get("tags", [])[:5])
                 console.print(f"  Tags: {tags}")
 
         # Show blockchain links
         if kb.blockchain_links:
             console.print("\n[bold]Blockchain Links:[/bold]")
             console.print(f"  IP Asset ID: [cyan]{kb.blockchain_links.get('ip_asset_id')}[/cyan]")
-            for link in kb.blockchain_links.get('purchase_links', []):
+            for link in kb.blockchain_links.get("purchase_links", []):
                 console.print(f"  {link['tier'].capitalize()}: {link['url']}")
 
         # Show negotiation context
@@ -189,9 +229,9 @@ def ingest(repo_url: str, workspace: Path, force: bool, verify: bool, categorize
 
 
 @cli.command()
-@click.argument('kb_path', type=click.Path(exists=True, path_type=Path))
-@click.option('--interactive', is_flag=True, help='Start interactive negotiation session')
-@click.option('--simulate', is_flag=True, help='Run simulation with buyer agent')
+@click.argument("kb_path", type=click.Path(exists=True, path_type=Path))
+@click.option("--interactive", is_flag=True, help="Start interactive negotiation session")
+@click.option("--simulate", is_flag=True, help="Run simulation with buyer agent")
 def agent(kb_path: Path, interactive: bool, simulate: bool):
     """
     Start a negotiation agent for a repository.
@@ -200,10 +240,9 @@ def agent(kb_path: Path, interactive: bool, simulate: bool):
     """
     from rra.ingestion.knowledge_base import KnowledgeBase
 
-    console.print(Panel.fit(
-        f"[bold blue]Starting Negotiation Agent[/bold blue]",
-        border_style="blue"
-    ))
+    console.print(
+        Panel.fit(f"[bold blue]Starting Negotiation Agent[/bold blue]", border_style="blue")
+    )
 
     try:
         # Load knowledge base
@@ -247,7 +286,7 @@ def agent(kb_path: Path, interactive: bool, simulate: bool):
                 # Get user input
                 user_input = console.input("[green]You:[/green] ")
 
-                if user_input.lower() in ['quit', 'exit', 'q']:
+                if user_input.lower() in ["quit", "exit", "q"]:
                     break
 
                 # Get response
@@ -276,7 +315,9 @@ def agent(kb_path: Path, interactive: bool, simulate: bool):
 
 
 @cli.command()
-@click.option('--workspace', type=click.Path(path_type=Path), default=Path('./agent_knowledge_bases'))
+@click.option(
+    "--workspace", type=click.Path(path_type=Path), default=Path("./agent_knowledge_bases")
+)
 def list(workspace: Path):
     """
     List all ingested repositories and their knowledge bases.
@@ -285,7 +326,7 @@ def list(workspace: Path):
         console.print("[yellow]No knowledge bases found[/yellow]")
         return
 
-    kb_files = list(workspace.glob('*_kb.json'))
+    kb_files = list(workspace.glob("*_kb.json"))
 
     if not kb_files:
         console.print("[yellow]No knowledge bases found[/yellow]")
@@ -303,10 +344,10 @@ def list(workspace: Path):
         try:
             kb = KnowledgeBase.load(kb_file)
 
-            repo_name = kb.repo_url.split('/')[-1]
-            files = kb.statistics.get('code_files', 0)
-            languages = ', '.join(kb.statistics.get('languages', [])[:3])
-            updated = kb.updated_at.strftime('%Y-%m-%d')
+            repo_name = kb.repo_url.split("/")[-1]
+            files = kb.statistics.get("code_files", 0)
+            languages = ", ".join(kb.statistics.get("languages", [])[:3])
+            updated = kb.updated_at.strftime("%Y-%m-%d")
 
             table.add_row(repo_name, str(files), languages, updated)
         except (json.JSONDecodeError, KeyError, AttributeError, OSError) as e:
@@ -317,7 +358,7 @@ def list(workspace: Path):
 
 
 @cli.command()
-@click.argument('kb_path', type=click.Path(exists=True, path_type=Path))
+@click.argument("kb_path", type=click.Path(exists=True, path_type=Path))
 def info(kb_path: Path):
     """
     Display detailed information about a knowledge base.
@@ -384,11 +425,7 @@ metadata:
   maturity: "production"
 """
 
-    console.print(Panel(
-        Markdown(example_yaml),
-        title="Example .market.yaml",
-        border_style="blue"
-    ))
+    console.print(Panel(Markdown(example_yaml), title="Example .market.yaml", border_style="blue"))
 
     console.print("\n[bold]Quick Start:[/bold]")
     console.print("  1. Create .market.yaml in your repo root")
@@ -397,9 +434,15 @@ metadata:
 
 
 @cli.command()
-@click.argument('repo_url')
-@click.option('--format', 'output_format', type=click.Choice(['table', 'json', 'markdown']), default='table', help='Output format')
-@click.option('--register', is_flag=True, help='Register the repository for permanent linking')
+@click.argument("repo_url")
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["table", "json", "markdown"]),
+    default="table",
+    help="Output format",
+)
+@click.option("--register", is_flag=True, help="Register the repository for permanent linking")
 def links(repo_url: str, output_format: str, register: bool):
     """
     Generate shareable deep links for a repository.
@@ -415,10 +458,9 @@ def links(repo_url: str, output_format: str, register: bool):
     from rra.services.deep_links import DeepLinkService
     import json
 
-    console.print(Panel.fit(
-        f"[bold blue]Generating Deep Links[/bold blue]\n{repo_url}",
-        border_style="blue"
-    ))
+    console.print(
+        Panel.fit(f"[bold blue]Generating Deep Links[/bold blue]\n{repo_url}", border_style="blue")
+    )
 
     service = DeepLinkService()
 
@@ -430,10 +472,10 @@ def links(repo_url: str, output_format: str, register: bool):
     # Get all links
     all_links = service.get_all_links(repo_url)
 
-    if output_format == 'json':
+    if output_format == "json":
         console.print(json.dumps(all_links, indent=2))
 
-    elif output_format == 'markdown':
+    elif output_format == "markdown":
         md = f"""# Deep Links for Repository
 
 **Repository ID:** `{all_links['repo_id']}`
@@ -472,27 +514,27 @@ def links(repo_url: str, output_format: str, register: bool):
         table.add_column("Type", style="cyan", width=20)
         table.add_column("URL/Value", style="green")
 
-        table.add_row("Repository ID", all_links['repo_id'])
-        table.add_row("Agent Page", all_links['agent_page'])
-        table.add_row("Direct Chat", all_links['chat_direct'])
-        table.add_row("Individual License", all_links['license_individual'])
-        table.add_row("Team License", all_links['license_team'])
-        table.add_row("Enterprise License", all_links['license_enterprise'])
-        table.add_row("QR Code (PNG)", all_links['qr_code'])
+        table.add_row("Repository ID", all_links["repo_id"])
+        table.add_row("Agent Page", all_links["agent_page"])
+        table.add_row("Direct Chat", all_links["chat_direct"])
+        table.add_row("Individual License", all_links["license_individual"])
+        table.add_row("Team License", all_links["license_team"])
+        table.add_row("Enterprise License", all_links["license_enterprise"])
+        table.add_row("QR Code (PNG)", all_links["qr_code"])
 
         console.print(table)
 
         # Badge section
         console.print("\n[bold]README Badge (Markdown):[/bold]")
-        console.print(Panel(all_links['badge_markdown'], border_style="dim"))
+        console.print(Panel(all_links["badge_markdown"], border_style="dim"))
 
         # Embed section
         console.print("\n[bold]Embed Code (HTML):[/bold]")
-        console.print(Panel(all_links['embed_script'], border_style="dim"))
+        console.print(Panel(all_links["embed_script"], border_style="dim"))
 
 
 @cli.command()
-@click.argument('repo_id')
+@click.argument("repo_id")
 def resolve(repo_id: str):
     """
     Resolve a repository ID to its original URL.
@@ -515,14 +557,21 @@ def resolve(repo_id: str):
         console.print(table)
     else:
         console.print(f"[yellow]Repository ID not found: {repo_id}[/yellow]")
-        console.print("\nThis ID may not be registered. Use 'rra links <repo-url> --register' to register a repository.")
+        console.print(
+            "\nThis ID may not be registered. Use 'rra links <repo-url> --register' to register a repository."
+        )
 
 
 @cli.command()
-@click.argument('repo_url')
-@click.option('--skip-tests', is_flag=True, help='Skip running actual tests')
-@click.option('--skip-security', is_flag=True, help='Skip security scanning')
-@click.option('--workspace', type=click.Path(path_type=Path), default=Path('./cloned_repos'), help='Directory for cloned repos')
+@click.argument("repo_url")
+@click.option("--skip-tests", is_flag=True, help="Skip running actual tests")
+@click.option("--skip-security", is_flag=True, help="Skip security scanning")
+@click.option(
+    "--workspace",
+    type=click.Path(path_type=Path),
+    default=Path("./cloned_repos"),
+    help="Directory for cloned repos",
+)
 def verify(repo_url: str, skip_tests: bool, skip_security: bool, workspace: Path):
     """
     Verify a GitHub repository's code quality.
@@ -536,10 +585,9 @@ def verify(repo_url: str, skip_tests: bool, skip_security: bool, workspace: Path
     """
     from rra.verification.verifier import CodeVerifier
 
-    console.print(Panel.fit(
-        f"[bold blue]Verifying Repository[/bold blue]\n{repo_url}",
-        border_style="blue"
-    ))
+    console.print(
+        Panel.fit(f"[bold blue]Verifying Repository[/bold blue]\n{repo_url}", border_style="blue")
+    )
 
     try:
         # Clone the repo first
@@ -568,7 +616,9 @@ def verify(repo_url: str, skip_tests: bool, skip_security: bool, workspace: Path
         # Display results
         score = result.score
         status = result.overall_status.value
-        status_color = "green" if status == "passed" else ("yellow" if status == "warning" else "red")
+        status_color = (
+            "green" if status == "passed" else ("yellow" if status == "warning" else "red")
+        )
 
         console.print(f"[bold]Overall Score:[/bold] [{status_color}]{score}/100[/{status_color}]")
         console.print(f"[bold]Status:[/bold] [{status_color}]{status.upper()}[/{status_color}]")
@@ -581,8 +631,16 @@ def verify(repo_url: str, skip_tests: bool, skip_security: bool, workspace: Path
         table.add_column("Message", style="dim")
 
         for check in result.checks:
-            check_color = "green" if check.status.value == "passed" else ("yellow" if check.status.value == "warning" else "red")
-            status_icon = "✓" if check.status.value == "passed" else ("⚠" if check.status.value == "warning" else "✗")
+            check_color = (
+                "green"
+                if check.status.value == "passed"
+                else ("yellow" if check.status.value == "warning" else "red")
+            )
+            status_icon = (
+                "✓"
+                if check.status.value == "passed"
+                else ("⚠" if check.status.value == "warning" else "✗")
+            )
             table.add_row(
                 check.name.replace("_", " ").title(),
                 f"[{check_color}]{status_icon} {check.status.value}[/{check_color}]",
@@ -604,14 +662,35 @@ def verify(repo_url: str, skip_tests: bool, skip_security: bool, workspace: Path
 
 
 @cli.command()
-@click.argument('repo_url')
-@click.option('--wallet', required=True, help='Your Ethereum wallet address')
-@click.option('--network', type=click.Choice(['mainnet', 'testnet', 'localhost']), default='testnet', help='Blockchain network')
-@click.option('--standard-price', type=float, default=0.05, help='Price for standard license (ETH)')
-@click.option('--premium-price', type=float, default=0.15, help='Price for premium license (ETH)')
-@click.option('--enterprise-price', type=float, default=0.50, help='Price for enterprise license (ETH)')
-@click.option('--format', 'output_format', type=click.Choice(['table', 'json', 'markdown']), default='table', help='Output format')
-def purchase_link(repo_url: str, wallet: str, network: str, standard_price: float, premium_price: float, enterprise_price: float, output_format: str):
+@click.argument("repo_url")
+@click.option("--wallet", required=True, help="Your Ethereum wallet address")
+@click.option(
+    "--network",
+    type=click.Choice(["mainnet", "testnet", "localhost"]),
+    default="testnet",
+    help="Blockchain network",
+)
+@click.option("--standard-price", type=float, default=0.05, help="Price for standard license (ETH)")
+@click.option("--premium-price", type=float, default=0.15, help="Price for premium license (ETH)")
+@click.option(
+    "--enterprise-price", type=float, default=0.50, help="Price for enterprise license (ETH)"
+)
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["table", "json", "markdown"]),
+    default="table",
+    help="Output format",
+)
+def purchase_link(
+    repo_url: str,
+    wallet: str,
+    network: str,
+    standard_price: float,
+    premium_price: float,
+    enterprise_price: float,
+    output_format: str,
+):
     """
     Generate blockchain purchase links for a repository.
 
@@ -624,10 +703,11 @@ def purchase_link(repo_url: str, wallet: str, network: str, standard_price: floa
     from rra.verification.blockchain_link import BlockchainLinkGenerator, NetworkType
     import json
 
-    console.print(Panel.fit(
-        f"[bold blue]Generating Purchase Links[/bold blue]\n{repo_url}",
-        border_style="blue"
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold blue]Generating Purchase Links[/bold blue]\n{repo_url}", border_style="blue"
+        )
+    )
 
     try:
         network_type = NetworkType(network)
@@ -655,7 +735,7 @@ def purchase_link(repo_url: str, wallet: str, network: str, standard_price: floa
     # Generate explorer link
     explorer_url = generator.generate_explorer_link(ip_asset_id)
 
-    if output_format == 'json':
+    if output_format == "json":
         data = {
             "ip_asset_id": ip_asset_id,
             "explorer_url": explorer_url,
@@ -664,7 +744,7 @@ def purchase_link(repo_url: str, wallet: str, network: str, standard_price: floa
         }
         console.print(json.dumps(data, indent=2))
 
-    elif output_format == 'markdown':
+    elif output_format == "markdown":
         md = f"""# Purchase Links for {repo_url.split('/')[-1]}
 
 **IP Asset ID:** `{ip_asset_id}`
@@ -723,8 +803,13 @@ def purchase_link(repo_url: str, wallet: str, network: str, standard_price: floa
 
 
 @cli.command()
-@click.argument('repo_url')
-@click.option('--workspace', type=click.Path(path_type=Path), default=Path('./cloned_repos'), help='Directory for cloned repos')
+@click.argument("repo_url")
+@click.option(
+    "--workspace",
+    type=click.Path(path_type=Path),
+    default=Path("./cloned_repos"),
+    help="Directory for cloned repos",
+)
 def categorize(repo_url: str, workspace: Path):
     """
     Categorize a repository based on its structure and content.
@@ -737,10 +822,11 @@ def categorize(repo_url: str, workspace: Path):
     """
     from rra.verification.categorizer import CodeCategorizer
 
-    console.print(Panel.fit(
-        f"[bold blue]Categorizing Repository[/bold blue]\n{repo_url}",
-        border_style="blue"
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold blue]Categorizing Repository[/bold blue]\n{repo_url}", border_style="blue"
+        )
+    )
 
     try:
         # Clone and analyze
@@ -759,28 +845,36 @@ def categorize(repo_url: str, workspace: Path):
 
         # Display results
         category = kb.category
-        confidence_color = "green" if category.get('confidence', 0) > 0.7 else ("yellow" if category.get('confidence', 0) > 0.4 else "red")
+        confidence_color = (
+            "green"
+            if category.get("confidence", 0) > 0.7
+            else ("yellow" if category.get("confidence", 0) > 0.4 else "red")
+        )
 
-        console.print(f"\n[bold]Primary Category:[/bold] [cyan]{category.get('primary_category', 'unknown')}[/cyan]")
-        if category.get('subcategory'):
+        console.print(
+            f"\n[bold]Primary Category:[/bold] [cyan]{category.get('primary_category', 'unknown')}[/cyan]"
+        )
+        if category.get("subcategory"):
             console.print(f"[bold]Subcategory:[/bold] {category.get('subcategory')}")
-        console.print(f"[bold]Confidence:[/bold] [{confidence_color}]{category.get('confidence', 0):.0%}[/{confidence_color}]")
+        console.print(
+            f"[bold]Confidence:[/bold] [{confidence_color}]{category.get('confidence', 0):.0%}[/{confidence_color}]"
+        )
 
-        if category.get('technologies'):
+        if category.get("technologies"):
             console.print(f"\n[bold]Technologies:[/bold]")
-            for tech in category.get('technologies', []):
+            for tech in category.get("technologies", []):
                 console.print(f"  • {tech}")
 
-        if category.get('frameworks'):
+        if category.get("frameworks"):
             console.print(f"\n[bold]Frameworks:[/bold]")
-            for framework in category.get('frameworks', []):
+            for framework in category.get("frameworks", []):
                 console.print(f"  • {framework}")
 
-        if category.get('tags'):
-            tags = ', '.join(category.get('tags', [])[:10])
+        if category.get("tags"):
+            tags = ", ".join(category.get("tags", [])[:10])
             console.print(f"\n[bold]Tags:[/bold] {tags}")
 
-        if category.get('reasoning'):
+        if category.get("reasoning"):
             console.print(f"\n[bold]Reasoning:[/bold] {category.get('reasoning')}")
 
     except Exception as e:
@@ -789,7 +883,7 @@ def categorize(repo_url: str, workspace: Path):
 
 
 @cli.command()
-@click.option('--history', '-n', default=10, help='Number of recent entries to show')
+@click.option("--history", "-n", default=10, help="Number of recent entries to show")
 def dreaming(history: int):
     """
     Show dreaming status - what the system is doing.
@@ -800,10 +894,7 @@ def dreaming(history: int):
     """
     dreaming_status = get_dreaming_status()
 
-    console.print(Panel.fit(
-        "[bold blue]Dreaming Status[/bold blue]",
-        border_style="blue"
-    ))
+    console.print(Panel.fit("[bold blue]Dreaming Status[/bold blue]", border_style="blue"))
 
     # Show current status
     current = dreaming_status.current_status
@@ -824,8 +915,10 @@ def dreaming(history: int):
     console.print(get_dreaming_summary(console))
 
     # Show configuration
-    console.print(f"\n[dim]Throttle: {dreaming_status.throttle_seconds}s | "
-                  f"Enabled: {'Yes' if dreaming_status.enabled else 'No'}[/dim]")
+    console.print(
+        f"\n[dim]Throttle: {dreaming_status.throttle_seconds}s | "
+        f"Enabled: {'Yes' if dreaming_status.enabled else 'No'}[/dim]"
+    )
 
 
 @cli.group()
@@ -848,10 +941,7 @@ def status():
     """
     from rra.contracts.story_protocol import StoryProtocolClient
 
-    console.print(Panel.fit(
-        "[bold blue]Story Protocol Status[/bold blue]",
-        border_style="blue"
-    ))
+    console.print(Panel.fit("[bold blue]Story Protocol Status[/bold blue]", border_style="blue"))
 
     # Get deployment status
     deployment = StoryProtocolClient.get_deployment_status()
@@ -887,18 +977,39 @@ def status():
     console.print("  PILicenseTemplate: 0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316")
     console.print("  RoyaltyModule:     0xD2f60c40fEbccf6311f8B47c4f2Ec6b040400086")
 
-    console.print("\n[dim]Source: https://docs.story.foundation/developers/deployed-smart-contracts[/dim]")
+    console.print(
+        "\n[dim]Source: https://docs.story.foundation/developers/deployed-smart-contracts[/dim]"
+    )
 
 
 @story.command()
-@click.argument('repo_url')
-@click.option('--wallet', required=True, help='Owner wallet address')
-@click.option('--private-key', envvar='STORY_PRIVATE_KEY', help='Private key for signing (or set STORY_PRIVATE_KEY env var)')
-@click.option('--network', type=click.Choice(['mainnet', 'testnet', 'localhost']), default='testnet', help='Network to deploy on')
-@click.option('--rpc-url', envvar='STORY_RPC_URL', help='RPC endpoint URL (or set STORY_RPC_URL env var)')
-@click.option('--description', help='Repository description for IP Asset metadata')
-@click.option('--dry-run', is_flag=True, help='Simulate registration without executing')
-def register(repo_url: str, wallet: str, private_key: Optional[str], network: str, rpc_url: Optional[str], description: Optional[str], dry_run: bool):
+@click.argument("repo_url")
+@click.option("--wallet", required=True, help="Owner wallet address")
+@click.option(
+    "--private-key",
+    envvar="STORY_PRIVATE_KEY",
+    help="Private key for signing (or set STORY_PRIVATE_KEY env var)",
+)
+@click.option(
+    "--network",
+    type=click.Choice(["mainnet", "testnet", "localhost"]),
+    default="testnet",
+    help="Network to deploy on",
+)
+@click.option(
+    "--rpc-url", envvar="STORY_RPC_URL", help="RPC endpoint URL (or set STORY_RPC_URL env var)"
+)
+@click.option("--description", help="Repository description for IP Asset metadata")
+@click.option("--dry-run", is_flag=True, help="Simulate registration without executing")
+def register(
+    repo_url: str,
+    wallet: str,
+    private_key: Optional[str],
+    network: str,
+    rpc_url: Optional[str],
+    description: Optional[str],
+    dry_run: bool,
+):
     """
     Register a repository as an IP Asset on Story Protocol.
 
@@ -916,14 +1027,18 @@ def register(repo_url: str, wallet: str, private_key: Optional[str], network: st
     from rra.integrations.story_integration import StoryIntegrationManager
     from rra.config.market_config import MarketConfig
 
-    console.print(Panel.fit(
-        f"[bold blue]Register IP Asset on Story Protocol[/bold blue]\n{repo_url}",
-        border_style="blue"
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold blue]Register IP Asset on Story Protocol[/bold blue]\n{repo_url}",
+            border_style="blue",
+        )
+    )
 
     # Check prerequisites
     if not private_key and not dry_run:
-        console.print("[red]✗[/red] Private key required. Set STORY_PRIVATE_KEY env var or use --private-key")
+        console.print(
+            "[red]✗[/red] Private key required. Set STORY_PRIVATE_KEY env var or use --private-key"
+        )
         console.print("  Example: export STORY_PRIVATE_KEY=0x...")
         sys.exit(1)
 
@@ -947,35 +1062,50 @@ def register(repo_url: str, wallet: str, private_key: Optional[str], network: st
         if config_path.exists():
             # Parse the YAML manually to get story_protocol settings
             import yaml
+
             with open(config_path) as f:
                 raw_config = yaml.safe_load(f)
 
             # Create a MarketConfig with the Story Protocol settings
-            defi = raw_config.get('defi_integrations', {})
-            story_config = defi.get('story_protocol', {})
+            defi = raw_config.get("defi_integrations", {})
+            story_config = defi.get("story_protocol", {})
 
-            if not story_config.get('enabled', False):
+            if not story_config.get("enabled", False):
                 console.print("\n[yellow]⚠ Story Protocol not enabled in .market.yaml[/yellow]")
                 console.print("  Set defi_integrations.story_protocol.enabled: true")
 
             # Build MarketConfig
             market_config = MarketConfig(
-                target_price=raw_config.get('target_price', '0.05 ETH'),
-                floor_price=raw_config.get('floor_price', '0.02 ETH'),
-                story_protocol_enabled=story_config.get('enabled', True),
-                pil_commercial_use=story_config.get('pil_terms', {}).get('commercial_use', True),
-                pil_derivatives_allowed=story_config.get('pil_terms', {}).get('derivatives_allowed', True),
-                pil_derivatives_attribution=story_config.get('pil_terms', {}).get('derivatives_attribution', True),
-                pil_derivatives_reciprocal=story_config.get('pil_terms', {}).get('derivatives_reciprocal', False),
-                derivative_royalty_percentage=story_config.get('derivative_royalty_percentage', 0.15),
-                description=description or raw_config.get('description', f"Repository: {repo_url}"),
+                target_price=raw_config.get("target_price", "0.05 ETH"),
+                floor_price=raw_config.get("floor_price", "0.02 ETH"),
+                story_protocol_enabled=story_config.get("enabled", True),
+                pil_commercial_use=story_config.get("pil_terms", {}).get("commercial_use", True),
+                pil_derivatives_allowed=story_config.get("pil_terms", {}).get(
+                    "derivatives_allowed", True
+                ),
+                pil_derivatives_attribution=story_config.get("pil_terms", {}).get(
+                    "derivatives_attribution", True
+                ),
+                pil_derivatives_reciprocal=story_config.get("pil_terms", {}).get(
+                    "derivatives_reciprocal", False
+                ),
+                derivative_royalty_percentage=story_config.get(
+                    "derivative_royalty_percentage", 0.15
+                ),
+                description=description or raw_config.get("description", f"Repository: {repo_url}"),
             )
 
             console.print(f"\n[bold]PIL Terms from .market.yaml:[/bold]")
             console.print(f"  Commercial Use:   {'✓' if market_config.pil_commercial_use else '✗'}")
-            console.print(f"  Derivatives:      {'✓' if market_config.pil_derivatives_allowed else '✗'}")
-            console.print(f"  Attribution:      {'✓' if market_config.pil_derivatives_attribution else '✗'}")
-            console.print(f"  Royalty:          {(market_config.derivative_royalty_percentage or 0) * 100:.0f}%")
+            console.print(
+                f"  Derivatives:      {'✓' if market_config.pil_derivatives_allowed else '✗'}"
+            )
+            console.print(
+                f"  Attribution:      {'✓' if market_config.pil_derivatives_attribution else '✗'}"
+            )
+            console.print(
+                f"  Royalty:          {(market_config.derivative_royalty_percentage or 0) * 100:.0f}%"
+            )
 
         else:
             console.print("\n[yellow]⚠ No .market.yaml found, using defaults[/yellow]")
@@ -1030,10 +1160,10 @@ def register(repo_url: str, wallet: str, private_key: Optional[str], network: st
             console.print(f"  TX Hash:     {result['tx_hash']}")
             console.print(f"  Block:       {result['block_number']}")
 
-            if result.get('pil_terms_tx'):
+            if result.get("pil_terms_tx"):
                 console.print(f"  PIL Terms TX: {result['pil_terms_tx']}")
 
-            if result.get('royalty_tx'):
+            if result.get("royalty_tx"):
                 console.print(f"  Royalty TX:  {result['royalty_tx']}")
 
             # Update .market.yaml
@@ -1042,14 +1172,16 @@ def register(repo_url: str, wallet: str, private_key: Optional[str], network: st
                     with open(config_path) as f:
                         raw_config = yaml.safe_load(f)
 
-                    if 'defi_integrations' not in raw_config:
-                        raw_config['defi_integrations'] = {}
-                    if 'story_protocol' not in raw_config['defi_integrations']:
-                        raw_config['defi_integrations']['story_protocol'] = {}
+                    if "defi_integrations" not in raw_config:
+                        raw_config["defi_integrations"] = {}
+                    if "story_protocol" not in raw_config["defi_integrations"]:
+                        raw_config["defi_integrations"]["story_protocol"] = {}
 
-                    raw_config['defi_integrations']['story_protocol']['ip_asset_id'] = result['ip_asset_id']
+                    raw_config["defi_integrations"]["story_protocol"]["ip_asset_id"] = result[
+                        "ip_asset_id"
+                    ]
 
-                    with open(config_path, 'w') as f:
+                    with open(config_path, "w") as f:
                         yaml.dump(raw_config, f, default_flow_style=False, sort_keys=False)
 
                 console.print(f"[green]✓[/green] Updated .market.yaml with IP Asset ID")
@@ -1064,7 +1196,9 @@ def register(repo_url: str, wallet: str, private_key: Optional[str], network: st
             console.print(f"  {explorer}")
 
         else:
-            console.print(f"[red]✗[/red] Registration failed: {result.get('error', 'Unknown error')}")
+            console.print(
+                f"[red]✗[/red] Registration failed: {result.get('error', 'Unknown error')}"
+            )
             sys.exit(1)
 
     except Exception as e:
@@ -1073,9 +1207,14 @@ def register(repo_url: str, wallet: str, private_key: Optional[str], network: st
 
 
 @story.command()
-@click.argument('ip_asset_id')
-@click.option('--network', type=click.Choice(['mainnet', 'testnet', 'localhost']), default='testnet', help='Network to query')
-@click.option('--rpc-url', envvar='STORY_RPC_URL', help='RPC endpoint URL')
+@click.argument("ip_asset_id")
+@click.option(
+    "--network",
+    type=click.Choice(["mainnet", "testnet", "localhost"]),
+    default="testnet",
+    help="Network to query",
+)
+@click.option("--rpc-url", envvar="STORY_RPC_URL", help="RPC endpoint URL")
 def info(ip_asset_id: str, network: str, rpc_url: Optional[str]):
     """
     Get information about an IP Asset on Story Protocol.
@@ -1085,10 +1224,11 @@ def info(ip_asset_id: str, network: str, rpc_url: Optional[str]):
     from web3 import Web3
     from rra.integrations.story_integration import StoryIntegrationManager
 
-    console.print(Panel.fit(
-        f"[bold blue]IP Asset Information[/bold blue]\n{ip_asset_id}",
-        border_style="blue"
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold blue]IP Asset Information[/bold blue]\n{ip_asset_id}", border_style="blue"
+        )
+    )
 
     # Set default RPC URLs
     if not rpc_url:
@@ -1112,9 +1252,9 @@ def info(ip_asset_id: str, network: str, rpc_url: Optional[str]):
         console.print(f"  Owner:    {asset_info.get('owner', 'Unknown')}")
         console.print(f"  Active:   {'✓' if asset_info.get('is_active') else '✗'}")
 
-        if asset_info.get('metadata'):
+        if asset_info.get("metadata"):
             console.print(f"\n[bold]Metadata:[/bold]")
-            for key, value in asset_info.get('metadata', {}).items():
+            for key, value in asset_info.get("metadata", {}).items():
                 console.print(f"  {key}: {value}")
 
         # Get royalty info
@@ -1132,8 +1272,8 @@ def info(ip_asset_id: str, network: str, rpc_url: Optional[str]):
         console.print(f"\n[bold]Derivatives:[/bold]")
         console.print(f"  Count: {derivatives.get('derivative_count', 0)}")
 
-        if derivatives.get('derivatives'):
-            for deriv in derivatives.get('derivatives', [])[:5]:
+        if derivatives.get("derivatives"):
+            for deriv in derivatives.get("derivatives", [])[:5]:
                 console.print(f"    • {deriv.get('id', 'Unknown')}")
 
     except Exception as e:
@@ -1142,9 +1282,14 @@ def info(ip_asset_id: str, network: str, rpc_url: Optional[str]):
 
 
 @story.command()
-@click.argument('ip_asset_id')
-@click.option('--network', type=click.Choice(['mainnet', 'testnet', 'localhost']), default='testnet', help='Network to query')
-@click.option('--rpc-url', envvar='STORY_RPC_URL', help='RPC endpoint URL')
+@click.argument("ip_asset_id")
+@click.option(
+    "--network",
+    type=click.Choice(["mainnet", "testnet", "localhost"]),
+    default="testnet",
+    help="Network to query",
+)
+@click.option("--rpc-url", envvar="STORY_RPC_URL", help="RPC endpoint URL")
 def royalties(ip_asset_id: str, network: str, rpc_url: Optional[str]):
     """
     Get royalty statistics for an IP Asset.
@@ -1155,10 +1300,9 @@ def royalties(ip_asset_id: str, network: str, rpc_url: Optional[str]):
     from rra.integrations.story_integration import StoryIntegrationManager
     from datetime import datetime
 
-    console.print(Panel.fit(
-        f"[bold blue]Royalty Statistics[/bold blue]\n{ip_asset_id}",
-        border_style="blue"
-    ))
+    console.print(
+        Panel.fit(f"[bold blue]Royalty Statistics[/bold blue]\n{ip_asset_id}", border_style="blue")
+    )
 
     # Set default RPC URLs
     if not rpc_url:
@@ -1182,11 +1326,13 @@ def royalties(ip_asset_id: str, network: str, rpc_url: Optional[str]):
         console.print(f"  Payment Token:   {stats.get('payment_token', 'ETH')}")
 
         console.print(f"\n[bold]Earnings:[/bold]")
-        console.print(f"  Total Collected: [green]{stats.get('total_collected_eth', 0):.6f} ETH[/green]")
+        console.print(
+            f"  Total Collected: [green]{stats.get('total_collected_eth', 0):.6f} ETH[/green]"
+        )
         console.print(f"  Wei Amount:      {stats.get('total_collected_wei', 0)}")
 
-        if stats.get('last_payment_timestamp'):
-            last_payment = datetime.fromtimestamp(stats['last_payment_timestamp'])
+        if stats.get("last_payment_timestamp"):
+            last_payment = datetime.fromtimestamp(stats["last_payment_timestamp"])
             console.print(f"  Last Payment:    {last_payment.strftime('%Y-%m-%d %H:%M:%S')}")
 
     except Exception as e:
@@ -1194,5 +1340,5 @@ def royalties(ip_asset_id: str, network: str, rpc_url: Optional[str]):
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli()

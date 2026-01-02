@@ -17,6 +17,7 @@ from enum import Enum
 
 class NetworkType(str, Enum):
     """Supported blockchain networks."""
+
     MAINNET = "mainnet"
     TESTNET = "testnet"
     LOCALHOST = "localhost"
@@ -24,6 +25,7 @@ class NetworkType(str, Enum):
 
 class LicenseTier(str, Enum):
     """Available license tiers."""
+
     STANDARD = "standard"
     PREMIUM = "premium"
     ENTERPRISE = "enterprise"
@@ -33,6 +35,7 @@ class LicenseTier(str, Enum):
 @dataclass
 class PurchaseLink:
     """Generated purchase link for blockchain licensing."""
+
     url: str
     network: NetworkType
     ip_asset_id: str
@@ -61,23 +64,26 @@ class PurchaseLink:
 
     def to_markdown(self) -> str:
         """Generate markdown-formatted link."""
-        return f"[Purchase {self.tier.value.capitalize()} License - {self.price_display}]({self.url})"
+        return (
+            f"[Purchase {self.tier.value.capitalize()} License - {self.price_display}]({self.url})"
+        )
 
     def to_html(self) -> str:
         """Generate HTML button for embedding."""
-        return f'''<a href="{self.url}"
+        return f"""<a href="{self.url}"
             class="rra-purchase-btn"
             data-tier="{self.tier.value}"
             data-price="{self.price_display}"
             target="_blank"
             rel="noopener noreferrer">
             Purchase {self.tier.value.capitalize()} License - {self.price_display}
-        </a>'''
+        </a>"""
 
 
 @dataclass
 class MarketplaceListing:
     """Complete marketplace listing for a repository."""
+
     repo_url: str
     repo_name: str
     description: str
@@ -378,13 +384,12 @@ class BlockchainLinkGenerator:
             HTML string for embedding
         """
         links_html = "\n".join(
-            f'<div class="rra-tier">{link.to_html()}</div>'
-            for link in listing.purchase_links
+            f'<div class="rra-tier">{link.to_html()}</div>' for link in listing.purchase_links
         )
 
         explorer_link = self.generate_explorer_link(listing.ip_asset_id)
 
-        return f'''
+        return f"""
 <div class="rra-widget" data-theme="{theme}">
     <div class="rra-header">
         <h3>{listing.repo_name}</h3>
@@ -472,11 +477,11 @@ class BlockchainLinkGenerator:
     color: #94a3b8;
 }}
 </style>
-'''
+"""
 
     def _generate_repo_id(self, repo_url: str) -> str:
         """Generate a short repository ID from URL."""
-        normalized = repo_url.lower().strip().rstrip('.git')
+        normalized = repo_url.lower().strip().rstrip(".git")
         return hashlib.sha256(normalized.encode()).hexdigest()[:12]
 
     def generate_deep_link(
@@ -516,10 +521,12 @@ class BlockchainLinkGenerator:
         Returns:
             JSON string for QR code
         """
-        return json.dumps({
-            "url": purchase_link.url,
-            "network": purchase_link.network.value,
-            "tier": purchase_link.tier.value,
-            "price": purchase_link.price_display,
-            "asset": purchase_link.ip_asset_id,
-        })
+        return json.dumps(
+            {
+                "url": purchase_link.url,
+                "network": purchase_link.network.value,
+                "tier": purchase_link.tier.value,
+                "price": purchase_link.price_display,
+                "asset": purchase_link.ip_asset_id,
+            }
+        )

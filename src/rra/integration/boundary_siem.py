@@ -40,15 +40,17 @@ logger = logging.getLogger(__name__)
 
 class SIEMProtocol(str, Enum):
     """Supported SIEM ingestion protocols."""
-    CEF_UDP = "cef_udp"       # CEF over UDP (port 514)
-    CEF_TCP = "cef_tcp"       # CEF over TCP (port 1514)
-    JSON_HTTP = "json_http"   # JSON over HTTP REST API
+
+    CEF_UDP = "cef_udp"  # CEF over UDP (port 514)
+    CEF_TCP = "cef_tcp"  # CEF over TCP (port 1514)
+    JSON_HTTP = "json_http"  # JSON over HTTP REST API
     SYSLOG_UDP = "syslog_udp"  # RFC 5424 syslog over UDP
     SYSLOG_TCP = "syslog_tcp"  # RFC 5424 syslog over TCP
 
 
 class AlertSeverity(str, Enum):
     """SIEM alert severity levels."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -57,6 +59,7 @@ class AlertSeverity(str, Enum):
 
 class AlertStatus(str, Enum):
     """Alert lifecycle status."""
+
     OPEN = "open"
     ACKNOWLEDGED = "acknowledged"
     INVESTIGATING = "investigating"
@@ -67,6 +70,7 @@ class AlertStatus(str, Enum):
 @dataclass
 class SIEMAlert:
     """Alert received from Boundary-SIEM."""
+
     alert_id: str
     rule_name: str
     severity: AlertSeverity
@@ -112,6 +116,7 @@ class DetectionRule:
 
     Maps to Boundary-SIEM's blockchain-specific detection capabilities.
     """
+
     rule_id: str
     name: str
     description: str
@@ -149,6 +154,7 @@ class DetectionRule:
 @dataclass
 class SIEMConfig:
     """Configuration for Boundary-SIEM connection."""
+
     host: str = "localhost"
     port: int = 8514
     protocol: SIEMProtocol = SIEMProtocol.JSON_HTTP
@@ -272,7 +278,7 @@ class PersistentEventQueue:
             return
 
         try:
-            with open(self._disk_queue_file, 'r') as f:
+            with open(self._disk_queue_file, "r") as f:
                 for line in f:
                     if line.strip():
                         self._disk_event_count += 1
@@ -307,7 +313,7 @@ class PersistentEventQueue:
             return False
 
         try:
-            with open(self._disk_queue_file, 'a') as f:
+            with open(self._disk_queue_file, "a") as f:
                 f.write(json.dumps(event.to_json()) + "\n")
             self._disk_event_count += 1
             return True
@@ -348,7 +354,7 @@ class PersistentEventQueue:
         remaining_lines: List[str] = []
 
         try:
-            with open(self._disk_queue_file, 'r') as f:
+            with open(self._disk_queue_file, "r") as f:
                 lines = f.readlines()
 
             for i, line in enumerate(lines):
@@ -377,7 +383,7 @@ class PersistentEventQueue:
                     remaining_lines.append(line)
 
             # Rewrite file with remaining lines
-            with open(self._disk_queue_file, 'w') as f:
+            with open(self._disk_queue_file, "w") as f:
                 f.writelines(remaining_lines)
 
             self._disk_event_count = len(remaining_lines)
@@ -676,8 +682,7 @@ class BoundarySIEMClient:
         for attempt in range(self.config.retry_attempts):
             try:
                 with urllib.request.urlopen(
-                    req,
-                    timeout=self.config.connect_timeout_seconds
+                    req, timeout=self.config.connect_timeout_seconds
                 ) as resp:
                     if resp.status == 200:
                         logger.debug(f"Sent {len(events)} events to SIEM")
@@ -843,7 +848,7 @@ class BoundarySIEMClient:
             raise ValueError(f"Empty {name}")
 
         # Only allow alphanumeric, underscore, hyphen
-        if not re.match(r'^[a-zA-Z0-9_-]+$', identifier):
+        if not re.match(r"^[a-zA-Z0-9_-]+$", identifier):
             raise ValueError(f"Invalid {name} format: contains forbidden characters")
 
         # Limit length to prevent DoS
@@ -852,19 +857,14 @@ class BoundarySIEMClient:
 
         return identifier
 
-    def _update_alert_status(
-        self,
-        alert_id: str,
-        status: AlertStatus,
-        note: str = ""
-    ) -> bool:
+    def _update_alert_status(self, alert_id: str, status: AlertStatus, note: str = "") -> bool:
         """Update alert status in SIEM."""
         import urllib.request
         import urllib.error
 
         # Validate alert_id to prevent path injection
         safe_alert_id = self._validate_identifier(alert_id, "alert_id")
-        safe_alert_id = urllib.parse.quote(safe_alert_id, safe='')
+        safe_alert_id = urllib.parse.quote(safe_alert_id, safe="")
 
         url = f"{'https' if self.config.tls_enabled else 'http'}://{self.config.host}:{self.config.port}/api/v1/alerts/{safe_alert_id}"
 
@@ -889,10 +889,7 @@ class BoundarySIEMClient:
             logger.error(f"Failed to update alert {alert_id}: {e}")
             return False
 
-    def register_alert_callback(
-        self,
-        callback: Callable[[SIEMAlert], None]
-    ) -> None:
+    def register_alert_callback(self, callback: Callable[[SIEMAlert], None]) -> None:
         """Register a callback for real-time alerts."""
         self._alert_callbacks.append(callback)
 
@@ -916,16 +913,18 @@ class BoundarySIEMClient:
                 data = json.loads(resp.read().decode())
                 rules = []
                 for r in data.get("rules", []):
-                    rules.append(DetectionRule(
-                        rule_id=r["rule_id"],
-                        name=r["name"],
-                        description=r.get("description", ""),
-                        severity=AlertSeverity(r.get("severity", "medium")),
-                        mitre_techniques=r.get("mitre_techniques", []),
-                        event_types=r.get("event_types", []),
-                        conditions=r.get("conditions", {}),
-                        enabled=r.get("enabled", True),
-                    ))
+                    rules.append(
+                        DetectionRule(
+                            rule_id=r["rule_id"],
+                            name=r["name"],
+                            description=r.get("description", ""),
+                            severity=AlertSeverity(r.get("severity", "medium")),
+                            mitre_techniques=r.get("mitre_techniques", []),
+                            event_types=r.get("event_types", []),
+                            conditions=r.get("conditions", {}),
+                            enabled=r.get("enabled", True),
+                        )
+                    )
                 return rules
         except Exception as e:
             logger.error(f"Failed to retrieve detection rules: {e}")
@@ -993,6 +992,7 @@ class BoundarySIEMClient:
         req = urllib.request.Request(url, method="GET")
         req.add_header("User-Agent", "RRA-Module/0.1.0")
 
+        error_msg = "unknown"
         try:
             with urllib.request.urlopen(req, timeout=self.config.connect_timeout_seconds) as resp:
                 if resp.status == 200:
@@ -1003,9 +1003,14 @@ class BoundarySIEMClient:
                         "version": data.get("version", "unknown"),
                     }
         except Exception as e:
+            error_msg = str(e)
             logger.warning(f"SIEM health check failed: {e}")
 
-        return {"connected": False, "status": "unreachable", "error": str(e) if 'e' in dir() else "unknown"}
+        return {
+            "connected": False,
+            "status": "unreachable",
+            "error": error_msg,
+        }
 
     def get_stats(self) -> Dict[str, Any]:
         """Get SIEM statistics."""
@@ -1120,9 +1125,7 @@ def create_siem_client(config: Optional[SIEMConfig] = None) -> BoundarySIEMClien
     return BoundarySIEMClient(config=config)
 
 
-def create_siem_event_callback(
-    client: BoundarySIEMClient
-) -> Callable[[BoundaryEvent], None]:
+def create_siem_event_callback(client: BoundarySIEMClient) -> Callable[[BoundaryEvent], None]:
     """
     Create a callback function for forwarding events to SIEM.
 
@@ -1134,6 +1137,7 @@ def create_siem_event_callback(
     Returns:
         Callback function
     """
+
     def callback(event: BoundaryEvent) -> None:
         client.send_event(event)
 

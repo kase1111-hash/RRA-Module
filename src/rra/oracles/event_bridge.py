@@ -24,7 +24,10 @@ import aiohttp
 from abc import ABC, abstractmethod
 
 from rra.integration.network_resilience import (
-    RetryConfig, CircuitBreaker, CircuitBreakerConfig, calculate_delay
+    RetryConfig,
+    CircuitBreaker,
+    CircuitBreakerConfig,
+    calculate_delay,
 )
 
 logger = logging.getLogger(__name__)
@@ -32,6 +35,7 @@ logger = logging.getLogger(__name__)
 
 class EventSource(Enum):
     """Types of event sources."""
+
     API = "api"
     IPFS = "ipfs"
     GITHUB = "github"
@@ -44,6 +48,7 @@ class EventSource(Enum):
 
 class EventStatus(Enum):
     """Event verification status."""
+
     PENDING = "pending"
     VERIFIED = "verified"
     DISPUTED = "disputed"
@@ -53,6 +58,7 @@ class EventStatus(Enum):
 
 class AttestationChoice(Enum):
     """Attestation validity choice."""
+
     VALID = "valid"
     INVALID = "invalid"
 
@@ -60,6 +66,7 @@ class AttestationChoice(Enum):
 @dataclass
 class EventData:
     """Raw event data from source."""
+
     source: EventSource
     source_uri: str
     raw_data: Dict[str, Any]
@@ -81,6 +88,7 @@ class EventData:
 @dataclass
 class Attestation:
     """Validator attestation for an event."""
+
     validator_address: str
     event_id: str
     is_valid: bool
@@ -106,6 +114,7 @@ class Attestation:
 @dataclass
 class BridgedEvent:
     """Event bridged from off-chain source."""
+
     event_id: str
     source: EventSource
     status: EventStatus
@@ -126,8 +135,8 @@ class BridgedEvent:
     @property
     def has_consensus(self) -> bool:
         return (
-            self.valid_count >= self.consensus_threshold or
-            self.invalid_count >= self.consensus_threshold
+            self.valid_count >= self.consensus_threshold
+            or self.invalid_count >= self.consensus_threshold
         )
 
     def add_attestation(self, attestation: Attestation) -> bool:
@@ -145,9 +154,9 @@ class BridgedEvent:
         # Check consensus - dispute takes precedence if there's disagreement
         # Check for DISPUTED first when both valid and invalid attestations exist
         if (
-            self.valid_count > 0 and
-            self.invalid_count > 0 and
-            self.total_attestations >= self.consensus_threshold * 2
+            self.valid_count > 0
+            and self.invalid_count > 0
+            and self.total_attestations >= self.consensus_threshold * 2
         ):
             self.status = EventStatus.DISPUTED
             self.validated_at = datetime.now()
@@ -209,7 +218,7 @@ class APIEventFetcher(EventFetcher):
         retry_config = RetryConfig(
             max_retries=3,
             base_delay=1.0,
-            retryable_exceptions=(aiohttp.ClientError, asyncio.TimeoutError)
+            retryable_exceptions=(aiohttp.ClientError, asyncio.TimeoutError),
         )
 
         last_exception = None
@@ -245,10 +254,14 @@ class APIEventFetcher(EventFetcher):
                 last_exception = e
                 if attempt < retry_config.max_retries:
                     delay = calculate_delay(attempt, retry_config)
-                    logger.warning(f"API fetch retry {attempt + 1}/{retry_config.max_retries} for {uri}: {e}")
+                    logger.warning(
+                        f"API fetch retry {attempt + 1}/{retry_config.max_retries} for {uri}: {e}"
+                    )
                     await asyncio.sleep(delay)
                 else:
-                    logger.error(f"API fetch failed after {retry_config.max_retries} retries for {uri}: {e}")
+                    logger.error(
+                        f"API fetch failed after {retry_config.max_retries} retries for {uri}: {e}"
+                    )
                     raise
 
     def _extract_json_path(self, data: Any, path: str) -> Any:
@@ -291,9 +304,7 @@ class IPFSEventFetcher(EventFetcher):
                 else:
                     data = {"content": await response.text()}
 
-                data_hash = hashlib.sha256(
-                    json.dumps(data, sort_keys=True).encode()
-                ).hexdigest()
+                data_hash = hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
 
                 return EventData(
                     source=EventSource.IPFS,
@@ -316,10 +327,10 @@ class IPFSEventFetcher(EventFetcher):
 
     def validate_uri(self, uri: str) -> bool:
         return (
-            uri.startswith("ipfs://") or
-            uri.startswith("/ipfs/") or
-            uri.startswith("Qm") or
-            uri.startswith("bafy")
+            uri.startswith("ipfs://")
+            or uri.startswith("/ipfs/")
+            or uri.startswith("Qm")
+            or uri.startswith("bafy")
         )
 
 
@@ -348,9 +359,7 @@ class GitHubEventFetcher(EventFetcher):
                 response.raise_for_status()
                 data = await response.json()
 
-                data_hash = hashlib.sha256(
-                    json.dumps(data, sort_keys=True).encode()
-                ).hexdigest()
+                data_hash = hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
 
                 return EventData(
                     source=EventSource.GITHUB,
@@ -375,9 +384,9 @@ class GitHubEventFetcher(EventFetcher):
 
     def validate_uri(self, uri: str) -> bool:
         return (
-            uri.startswith("github://") or
-            uri.startswith("https://github.com/") or
-            uri.startswith("repos/")
+            uri.startswith("github://")
+            or uri.startswith("https://github.com/")
+            or uri.startswith("repos/")
         )
 
 
@@ -789,9 +798,7 @@ class EventBridge:
 
             config = state.get("config", {})
             self.consensus_threshold = config.get("consensus_threshold", 2)
-            self.attestation_window = timedelta(
-                hours=config.get("attestation_window_hours", 24)
-            )
+            self.attestation_window = timedelta(hours=config.get("attestation_window_hours", 24))
 
         except (json.JSONDecodeError, KeyError):
             pass

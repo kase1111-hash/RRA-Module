@@ -44,6 +44,7 @@ logger = logging.getLogger(__name__)
 
 class Environment(Enum):
     """Application environments."""
+
     DEVELOPMENT = "development"
     STAGING = "staging"
     PRODUCTION = "production"
@@ -68,6 +69,7 @@ class Environment(Enum):
 
 class LogLevel(Enum):
     """Logging levels."""
+
     DEBUG = "DEBUG"
     INFO = "INFO"
     WARNING = "WARNING"
@@ -78,6 +80,7 @@ class LogLevel(Enum):
 @dataclass
 class DatabaseConfig:
     """Database configuration."""
+
     driver: str = "sqlite"
     host: str = "localhost"
     port: int = 5432
@@ -104,6 +107,7 @@ class DatabaseConfig:
 @dataclass
 class CacheConfig:
     """Cache configuration."""
+
     backend: str = "memory"  # memory, redis, memcached
     host: str = "localhost"
     port: int = 6379
@@ -122,6 +126,7 @@ class CacheConfig:
 @dataclass
 class BlockchainConfig:
     """Blockchain configuration."""
+
     default_chain: str = "sepolia"  # Default chain for development
     rpc_timeout: int = 30
     max_retries: int = 3
@@ -139,6 +144,7 @@ class BlockchainConfig:
 @dataclass
 class SecurityConfig:
     """Security configuration."""
+
     # API Authentication
     auth_enabled: bool = True
     jwt_secret_key: str = ""
@@ -167,6 +173,7 @@ class SecurityConfig:
 @dataclass
 class FeatureFlags:
     """Feature flags for gradual rollout."""
+
     # Core features
     enable_story_protocol: bool = True
     enable_superfluid_streaming: bool = False
@@ -192,6 +199,7 @@ class FeatureFlags:
 @dataclass
 class MonitoringConfig:
     """Monitoring and observability configuration."""
+
     # Metrics
     metrics_enabled: bool = True
     metrics_port: int = 9090
@@ -215,6 +223,7 @@ class EnvironmentConfig:
 
     This class aggregates all configuration for a specific environment.
     """
+
     # Core settings
     environment: Environment = Environment.DEVELOPMENT
     app_name: str = "rra-module"

@@ -29,6 +29,7 @@ from rra.reputation.weighted import (
 
 class ProposalStatus(Enum):
     """Status of a governance proposal."""
+
     DRAFT = "draft"
     ACTIVE = "active"
     PASSED = "passed"
@@ -40,6 +41,7 @@ class ProposalStatus(Enum):
 
 class VoteChoice(Enum):
     """Voting options."""
+
     FOR = "for"
     AGAINST = "against"
     ABSTAIN = "abstain"
@@ -48,6 +50,7 @@ class VoteChoice(Enum):
 @dataclass
 class WeightedVote:
     """A reputation-weighted vote."""
+
     voter_address: str
     choice: VoteChoice
     stake: int
@@ -77,6 +80,7 @@ class WeightedVote:
 @dataclass
 class RepWeightedProposal:
     """A reputation-weighted governance proposal."""
+
     proposal_id: str
     title: str
     description: str
@@ -103,26 +107,17 @@ class RepWeightedProposal:
     @property
     def power_for(self) -> int:
         """Total power voting for."""
-        return sum(
-            v.effective_power for v in self.votes.values()
-            if v.choice == VoteChoice.FOR
-        )
+        return sum(v.effective_power for v in self.votes.values() if v.choice == VoteChoice.FOR)
 
     @property
     def power_against(self) -> int:
         """Total power voting against."""
-        return sum(
-            v.effective_power for v in self.votes.values()
-            if v.choice == VoteChoice.AGAINST
-        )
+        return sum(v.effective_power for v in self.votes.values() if v.choice == VoteChoice.AGAINST)
 
     @property
     def power_abstain(self) -> int:
         """Total power abstaining."""
-        return sum(
-            v.effective_power for v in self.votes.values()
-            if v.choice == VoteChoice.ABSTAIN
-        )
+        return sum(v.effective_power for v in self.votes.values() if v.choice == VoteChoice.ABSTAIN)
 
     @property
     def total_power(self) -> int:
@@ -143,10 +138,7 @@ class RepWeightedProposal:
     def is_active(self) -> bool:
         """Check if voting is currently active."""
         now = datetime.now()
-        return (
-            self.status == ProposalStatus.ACTIVE and
-            self.voting_start <= now <= self.voting_end
-        )
+        return self.status == ProposalStatus.ACTIVE and self.voting_start <= now <= self.voting_end
 
     @property
     def early_voting_deadline(self) -> datetime:
@@ -380,9 +372,7 @@ class RepWeightedGovernance:
             return None
 
         # Calculate voting power
-        voting_power = self.reputation_manager.calculate_voting_power(
-            voter_address, voter_stake
-        )
+        voting_power = self.reputation_manager.calculate_voting_power(voter_address, voter_stake)
 
         # Check if early vote
         now = datetime.now()
@@ -423,9 +413,7 @@ class RepWeightedGovernance:
             return False
         return voter_address.lower() in proposal.votes
 
-    def get_vote(
-        self, proposal_id: str, voter_address: str
-    ) -> Optional[WeightedVote]:
+    def get_vote(self, proposal_id: str, voter_address: str) -> Optional[WeightedVote]:
         """Get vote for a proposal by address."""
         proposal = self.proposals.get(proposal_id)
         if not proposal:
@@ -533,10 +521,7 @@ class RepWeightedGovernance:
     def get_dispute_proposals(self, dispute_id: str) -> List[RepWeightedProposal]:
         """Get all proposals for a dispute."""
         proposal_ids = self.dispute_proposals.get(dispute_id, [])
-        return [
-            self.proposals[pid] for pid in proposal_ids
-            if pid in self.proposals
-        ]
+        return [self.proposals[pid] for pid in proposal_ids if pid in self.proposals]
 
     def record_dispute_resolution(
         self,
@@ -561,26 +546,25 @@ class RepWeightedGovernance:
         for proposal in proposals:
             if proposal.proposal_id == winning_proposal_id:
                 # This proposal won
-                winners.extend([
-                    v.voter_address for v in proposal.votes.values()
-                    if v.choice == VoteChoice.FOR
-                ])
-                losers.extend([
-                    v.voter_address for v in proposal.votes.values()
-                    if v.choice == VoteChoice.AGAINST
-                ])
+                winners.extend(
+                    [v.voter_address for v in proposal.votes.values() if v.choice == VoteChoice.FOR]
+                )
+                losers.extend(
+                    [
+                        v.voter_address
+                        for v in proposal.votes.values()
+                        if v.choice == VoteChoice.AGAINST
+                    ]
+                )
             else:
                 # This proposal lost
-                losers.extend([
-                    v.voter_address for v in proposal.votes.values()
-                    if v.choice == VoteChoice.FOR
-                ])
+                losers.extend(
+                    [v.voter_address for v in proposal.votes.values() if v.choice == VoteChoice.FOR]
+                )
 
         # Update reputations
         if winners or losers:
-            self.reputation_manager.record_dispute_resolution(
-                dispute_id, winners, losers
-            )
+            self.reputation_manager.record_dispute_resolution(dispute_id, winners, losers)
 
     # =========================================================================
     # Analytics
@@ -590,10 +574,7 @@ class RepWeightedGovernance:
         """Get voting statistics for an address."""
         address = address.lower()
 
-        proposals_voted = [
-            p for p in self.proposals.values()
-            if address in p.votes
-        ]
+        proposals_voted = [p for p in self.proposals.values() if address in p.votes]
 
         if not proposals_voted:
             return {
@@ -602,24 +583,17 @@ class RepWeightedGovernance:
                 "total_power_used": 0,
             }
 
-        total_power = sum(
-            p.votes[address].effective_power
-            for p in proposals_voted
-        )
+        total_power = sum(p.votes[address].effective_power for p in proposals_voted)
 
-        early_votes = sum(
-            1 for p in proposals_voted
-            if p.votes[address].early_vote
-        )
+        early_votes = sum(1 for p in proposals_voted if p.votes[address].early_vote)
 
         winning_votes = sum(
-            1 for p in proposals_voted
-            if (
-                p.status == ProposalStatus.PASSED and
-                p.votes[address].choice == VoteChoice.FOR
-            ) or (
-                p.status == ProposalStatus.REJECTED and
-                p.votes[address].choice == VoteChoice.AGAINST
+            1
+            for p in proposals_voted
+            if (p.status == ProposalStatus.PASSED and p.votes[address].choice == VoteChoice.FOR)
+            or (
+                p.status == ProposalStatus.REJECTED
+                and p.votes[address].choice == VoteChoice.AGAINST
             )
         )
 
@@ -644,13 +618,9 @@ class RepWeightedGovernance:
             "rejected": len([p for p in proposals if p.status == ProposalStatus.REJECTED]),
             "executed": len([p for p in proposals if p.status == ProposalStatus.EXECUTED]),
             "total_staked": self.total_staked,
-            "unique_voters": len(set(
-                addr for p in proposals
-                for addr in p.votes.keys()
-            )),
+            "unique_voters": len(set(addr for p in proposals for addr in p.votes.keys())),
             "avg_participation": (
-                sum(len(p.votes) for p in proposals) / len(proposals)
-                if proposals else 0
+                sum(len(p.votes) for p in proposals) / len(proposals) if proposals else 0
             ),
         }
 

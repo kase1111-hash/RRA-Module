@@ -21,6 +21,7 @@ class ErrorCode(Enum):
 
     Format: DOMAIN_SPECIFIC_ERROR (e.g., CONTRACT_NOT_FOUND)
     """
+
     # General errors (1xxx)
     UNKNOWN_ERROR = 1000
     VALIDATION_ERROR = 1001
@@ -168,6 +169,7 @@ class RRAError(Exception):
 # Validation Errors
 # =============================================================================
 
+
 class ValidationError(RRAError):
     """Raised when input validation fails."""
 
@@ -225,6 +227,7 @@ class ConfigurationError(RRAError):
 # =============================================================================
 # Contract Errors
 # =============================================================================
+
 
 class ContractError(RRAError):
     """Base exception for contract-related errors."""
@@ -357,6 +360,7 @@ class ContractCallError(ContractError):
 # Transaction Errors
 # =============================================================================
 
+
 class TransactionError(RRAError):
     """Base exception for transaction-related errors."""
 
@@ -437,6 +441,7 @@ class InsufficientFundsError(TransactionError):
 # =============================================================================
 # Storage Errors
 # =============================================================================
+
 
 class StorageError(RRAError):
     """Base exception for storage-related errors."""
@@ -520,7 +525,8 @@ class EncryptionError(StorageError):
         cause: Optional[Exception] = None,
     ):
         error_code = (
-            ErrorCode.STORAGE_ENCRYPTION_FAILED if operation == "encrypt"
+            ErrorCode.STORAGE_ENCRYPTION_FAILED
+            if operation == "encrypt"
             else ErrorCode.STORAGE_DECRYPTION_FAILED
         )
 
@@ -536,6 +542,7 @@ class EncryptionError(StorageError):
 # =============================================================================
 # Dispute Errors
 # =============================================================================
+
 
 class DisputeError(RRAError):
     """Base exception for dispute-related errors."""
@@ -592,8 +599,8 @@ class DisputeStateError(DisputeError):
 
         super().__init__(
             message=f"Cannot {operation} dispute {dispute_id}: "
-                    f"current status is '{current_status}'"
-                    f"{f', required: {required_status}' if required_status else ''}",
+            f"current status is '{current_status}'"
+            f"{f', required: {required_status}' if required_status else ''}",
             error_code=ErrorCode.DISPUTE_INVALID_STATE,
             dispute_id=dispute_id,
             current_status=current_status,
@@ -614,7 +621,7 @@ class InsufficientStakeError(DisputeError):
     ):
         super().__init__(
             message=f"Insufficient stake for dispute {dispute_id}: "
-                    f"required {required} wei, provided {provided} wei",
+            f"required {required} wei, provided {provided} wei",
             error_code=ErrorCode.DISPUTE_STAKE_INSUFFICIENT,
             dispute_id=dispute_id,
             cause=cause,
@@ -626,6 +633,7 @@ class InsufficientStakeError(DisputeError):
 # =============================================================================
 # Integration Errors
 # =============================================================================
+
 
 class IntegrationError(RRAError):
     """Base exception for external integration errors."""
@@ -731,6 +739,7 @@ class TimeoutError(IntegrationError):
 # L3/Batch Processing Errors
 # =============================================================================
 
+
 class BatchProcessingError(RRAError):
     """Base exception for batch processing errors."""
 
@@ -794,6 +803,7 @@ class SequencerError(BatchProcessingError):
 # Oracle/Bridge Errors
 # =============================================================================
 
+
 class OracleError(RRAError):
     """Base exception for oracle-related errors."""
 
@@ -853,7 +863,7 @@ class ConsensusError(OracleError):
     ):
         super().__init__(
             message=f"Consensus failed for event '{event_id}': "
-                    f"{valid_count} valid, {invalid_count} invalid, threshold {threshold}",
+            f"{valid_count} valid, {invalid_count} invalid, threshold {threshold}",
             error_code=ErrorCode.BRIDGE_CONSENSUS_FAILED,
             event_id=event_id,
             cause=cause,
@@ -866,6 +876,7 @@ class ConsensusError(OracleError):
 # =============================================================================
 # Negotiation Errors
 # =============================================================================
+
 
 class NegotiationError(RRAError):
     """Base exception for negotiation-related errors."""
@@ -927,6 +938,7 @@ class NegotiationExpiredError(NegotiationError):
 # =============================================================================
 # Helper Functions
 # =============================================================================
+
 
 def wrap_exception(
     exception: Exception,

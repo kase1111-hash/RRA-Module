@@ -114,7 +114,9 @@ class StakedLicense:
             "staked_at": self.staked_at.isoformat(),
             "unlock_time": self.unlock_time.isoformat() if self.unlock_time else None,
             "earned_yield": self.earned_yield,
-            "last_yield_claim": self.last_yield_claim.isoformat() if self.last_yield_claim else None,
+            "last_yield_claim": (
+                self.last_yield_claim.isoformat() if self.last_yield_claim else None
+            ),
             "total_claimed": self.total_claimed,
             "active": self.active,
             "stake_duration_days": self.stake_duration_days,
@@ -133,9 +135,15 @@ class StakedLicense:
             staker_address=data["staker_address"],
             pool_id=data["pool_id"],
             staked_at=datetime.fromisoformat(data["staked_at"]),
-            unlock_time=datetime.fromisoformat(data["unlock_time"]) if data.get("unlock_time") else None,
+            unlock_time=(
+                datetime.fromisoformat(data["unlock_time"]) if data.get("unlock_time") else None
+            ),
             earned_yield=data.get("earned_yield", 0.0),
-            last_yield_claim=datetime.fromisoformat(data["last_yield_claim"]) if data.get("last_yield_claim") else None,
+            last_yield_claim=(
+                datetime.fromisoformat(data["last_yield_claim"])
+                if data.get("last_yield_claim")
+                else None
+            ),
             total_claimed=data.get("total_claimed", 0.0),
             active=data.get("active", True),
         )
@@ -168,7 +176,7 @@ class YieldPool:
     active: bool = True
 
     # Bonus multipliers
-    lock_bonus_30d: float = 1.1   # 10% bonus for 30-day lock
+    lock_bonus_30d: float = 1.1  # 10% bonus for 30-day lock
     lock_bonus_90d: float = 1.25  # 25% bonus for 90-day lock
     lock_bonus_365d: float = 1.5  # 50% bonus for 365-day lock
 
@@ -211,11 +219,7 @@ class YieldPool:
             return self.lock_bonus_30d
         return 1.0
 
-    def calculate_fixed_apy_yield(
-        self,
-        stake: StakedLicense,
-        days: float
-    ) -> float:
+    def calculate_fixed_apy_yield(self, stake: StakedLicense, days: float) -> float:
         """Calculate yield for fixed APY strategy."""
         # Daily rate from annual rate
         daily_rate = self.base_apy / 365
@@ -271,7 +275,11 @@ class YieldPool:
             pending_revenue=data.get("pending_revenue", 0.0),
             total_value_locked=data.get("total_value_locked", 0.0),
             stake_count=data.get("stake_count", 0),
-            created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else datetime.now(),
+            created_at=(
+                datetime.fromisoformat(data["created_at"])
+                if data.get("created_at")
+                else datetime.now()
+            ),
             active=data.get("active", True),
             lock_bonus_30d=data.get("lock_bonus_30d", 1.1),
             lock_bonus_90d=data.get("lock_bonus_90d", 1.25),
@@ -286,10 +294,7 @@ class YieldDistributor:
         self.distribution_history: List[Dict[str, Any]] = []
 
     def calculate_yield(
-        self,
-        pool: YieldPool,
-        stake: StakedLicense,
-        period_days: Optional[float] = None
+        self, pool: YieldPool, stake: StakedLicense, period_days: Optional[float] = None
     ) -> float:
         """
         Calculate yield for a stake.
@@ -325,7 +330,11 @@ class YieldDistributor:
             share = pool.calculate_share(stake)
             return pool.pending_revenue * share
 
-        elif pool.strategy in (YieldStrategy.TIME_WEIGHTED, YieldStrategy.VALUE_WEIGHTED, YieldStrategy.HYBRID):
+        elif pool.strategy in (
+            YieldStrategy.TIME_WEIGHTED,
+            YieldStrategy.VALUE_WEIGHTED,
+            YieldStrategy.HYBRID,
+        ):
             # Combination of fixed APY and revenue share
             fixed_yield = pool.calculate_fixed_apy_yield(stake, period_days)
             share = pool.calculate_share(stake)
@@ -334,11 +343,7 @@ class YieldDistributor:
 
         return 0.0
 
-    def distribute_revenue(
-        self,
-        pool: YieldPool,
-        stakes: List[StakedLicense]
-    ) -> Dict[str, float]:
+    def distribute_revenue(self, pool: YieldPool, stakes: List[StakedLicense]) -> Dict[str, float]:
         """
         Distribute pending revenue to all stakes in a pool.
 
@@ -380,21 +385,20 @@ class YieldDistributor:
         pool.pending_revenue -= total_distributed
 
         # Record distribution
-        self.distribution_history.append({
-            "pool_id": pool.pool_id,
-            "timestamp": datetime.now().isoformat(),
-            "total_distributed": total_distributed,
-            "stake_count": len(active_stakes),
-            "distributions": distributions,
-        })
+        self.distribution_history.append(
+            {
+                "pool_id": pool.pool_id,
+                "timestamp": datetime.now().isoformat(),
+                "total_distributed": total_distributed,
+                "stake_count": len(active_stakes),
+                "distributions": distributions,
+            }
+        )
 
         return distributions
 
     def get_projected_yield(
-        self,
-        pool: YieldPool,
-        stake: StakedLicense,
-        days: int = 365
+        self, pool: YieldPool, stake: StakedLicense, days: int = 365
     ) -> Dict[str, float]:
         """
         Project future yield for a stake.
@@ -446,7 +450,7 @@ class StakingManager:
         strategy: YieldStrategy = YieldStrategy.HYBRID,
         base_apy: float = 0.05,
         min_stake_duration_days: int = 0,
-        max_stakes: int = 0
+        max_stakes: int = 0,
     ) -> YieldPool:
         """
         Create a new yield pool.
@@ -496,7 +500,7 @@ class StakingManager:
         repo_url: str,
         license_value: float,
         staker_address: str,
-        lock_days: int = 0
+        lock_days: int = 0,
     ) -> StakedLicense:
         """
         Stake a license in a pool.
@@ -527,9 +531,7 @@ class StakingManager:
             raise ValueError(f"Pool has reached maximum stakes: {pool.max_stakes}")
 
         if lock_days < pool.min_stake_duration_days:
-            raise ValueError(
-                f"Lock period must be at least {pool.min_stake_duration_days} days"
-            )
+            raise ValueError(f"Lock period must be at least {pool.min_stake_duration_days} days")
 
         # Check if license already staked
         for stake in self.stakes.values():
@@ -582,9 +584,7 @@ class StakingManager:
             raise ValueError(f"Stake already inactive: {stake_id}")
 
         if stake.is_locked:
-            raise ValueError(
-                f"Stake is locked until {stake.unlock_time.isoformat()}"
-            )
+            raise ValueError(f"Stake is locked until {stake.unlock_time.isoformat()}")
 
         # Claim any remaining yield first
         pool = self.pools.get(stake.pool_id)
@@ -639,8 +639,7 @@ class StakingManager:
     def get_stakes_by_staker(self, staker_address: str) -> List[StakedLicense]:
         """Get all stakes for a staker."""
         return [
-            s for s in self.stakes.values()
-            if s.staker_address.lower() == staker_address.lower()
+            s for s in self.stakes.values() if s.staker_address.lower() == staker_address.lower()
         ]
 
     def get_stakes_by_pool(self, pool_id: str) -> List[StakedLicense]:
@@ -746,7 +745,9 @@ class StakingManager:
         total_earned = sum(s.earned_yield + s.total_claimed for s in stakes)
         avg_stake_duration = 0.0
         if active_stakes:
-            avg_stake_duration = sum(s.stake_duration_days for s in active_stakes) / len(active_stakes)
+            avg_stake_duration = sum(s.stake_duration_days for s in active_stakes) / len(
+                active_stakes
+            )
 
         return {
             **pool.to_dict(),
@@ -783,8 +784,7 @@ class StakingManager:
                 state = json.load(f)
 
             self.pools = {
-                pid: YieldPool.from_dict(pdata)
-                for pid, pdata in state.get("pools", {}).items()
+                pid: YieldPool.from_dict(pdata) for pid, pdata in state.get("pools", {}).items()
             }
 
             self.stakes = {

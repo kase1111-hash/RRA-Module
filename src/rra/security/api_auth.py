@@ -32,10 +32,7 @@ AUTH_ENABLED = os.environ.get("RRA_AUTH_ENABLED", "false").lower() == "true"
 ADMIN_API_KEY = os.environ.get("RRA_ADMIN_API_KEY", None)
 
 # API key storage path
-API_KEYS_PATH = Path(os.environ.get(
-    "RRA_API_KEYS_PATH",
-    "data/api_keys.json"
-))
+API_KEYS_PATH = Path(os.environ.get("RRA_API_KEYS_PATH", "data/api_keys.json"))
 
 
 # Security schemes
@@ -46,6 +43,7 @@ bearer_scheme = HTTPBearer(auto_error=False)
 # =============================================================================
 # API Key Manager
 # =============================================================================
+
 
 class APIKeyManager:
     """
@@ -68,7 +66,7 @@ class APIKeyManager:
         """Load API keys from storage."""
         if self.storage_path.exists():
             try:
-                with open(self.storage_path, 'r') as f:
+                with open(self.storage_path, "r") as f:
                     self._keys = json.load(f)
             except (json.JSONDecodeError, IOError):
                 self._keys = {}
@@ -76,14 +74,11 @@ class APIKeyManager:
     def _save_keys(self) -> None:
         """Save API keys to storage."""
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.storage_path, 'w') as f:
+        with open(self.storage_path, "w") as f:
             json.dump(self._keys, f, indent=2, default=str)
 
     def create_key(
-        self,
-        name: str,
-        scopes: List[str] = None,
-        expires_in_days: Optional[int] = None
+        self, name: str, scopes: List[str] = None, expires_in_days: Optional[int] = None
     ) -> Dict[str, str]:
         """
         Create a new API key.
@@ -195,6 +190,7 @@ api_key_manager = APIKeyManager()
 # Authentication Dependencies
 # =============================================================================
 
+
 async def get_api_key(
     api_key: Optional[str] = Security(api_key_header),
 ) -> Optional[Dict[str, Any]]:
@@ -264,6 +260,7 @@ async def require_scope(scope: str):
     Usage:
         @app.get("/endpoint", dependencies=[Depends(require_scope("write"))])
     """
+
     async def check_scope(
         api_key: Dict[str, Any] = Depends(require_auth),
     ) -> Dict[str, Any]:
@@ -280,6 +277,7 @@ async def require_scope(scope: str):
 # =============================================================================
 # Optional Auth (for public endpoints that benefit from auth)
 # =============================================================================
+
 
 async def optional_auth(
     api_key: Optional[Dict[str, Any]] = Depends(get_api_key),

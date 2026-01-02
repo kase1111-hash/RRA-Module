@@ -4,4 +4,4 @@
 
 from rra.services.deep_links import DeepLinkService
 
-__all__ = ['DeepLinkService']
+__all__ = ["DeepLinkService"]

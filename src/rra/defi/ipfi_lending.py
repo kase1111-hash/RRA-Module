@@ -18,6 +18,7 @@ import secrets
 
 class LoanStatus(Enum):
     """Status of a loan."""
+
     PENDING = "pending"
     ACTIVE = "active"
     REPAID = "repaid"
@@ -28,6 +29,7 @@ class LoanStatus(Enum):
 
 class CollateralType(Enum):
     """Types of collateral accepted."""
+
     LICENSE_NFT = "license_nft"
     IP_ASSET = "ip_asset"
     REVENUE_STREAM = "revenue_stream"
@@ -36,6 +38,7 @@ class CollateralType(Enum):
 @dataclass
 class LoanTerms:
     """Terms for a loan offer."""
+
     principal: float  # Loan amount in ETH
     interest_rate: float  # Annual interest rate (0.05 = 5%)
     duration_days: int  # Loan duration
@@ -75,6 +78,7 @@ class LoanTerms:
 @dataclass
 class Collateral:
     """Collateral for a loan."""
+
     collateral_id: str
     collateral_type: CollateralType
     asset_id: str  # License ID or IP Asset ID
@@ -110,6 +114,7 @@ class Collateral:
 @dataclass
 class Loan:
     """Represents an active or historical loan."""
+
     loan_id: str
     borrower_address: str
     lender_address: str
@@ -141,7 +146,7 @@ class Loan:
     def current_ltv(self) -> float:
         """Current loan-to-value ratio."""
         if self.collateral.estimated_value == 0:
-            return float('inf')
+            return float("inf")
         outstanding = self.terms.total_repayment - self.amount_repaid
         return outstanding / self.collateral.estimated_value
 
@@ -183,6 +188,7 @@ class Loan:
 @dataclass
 class LoanOffer:
     """A loan offer from a lender."""
+
     offer_id: str
     lender_address: str
     terms: LoanTerms
@@ -217,7 +223,9 @@ class LoanOffer:
             offer_id=data["offer_id"],
             lender_address=data["lender_address"],
             terms=LoanTerms.from_dict(data["terms"]),
-            accepted_collateral_types=[CollateralType(t) for t in data["accepted_collateral_types"]],
+            accepted_collateral_types=[
+                CollateralType(t) for t in data["accepted_collateral_types"]
+            ],
             min_collateral_value=data["min_collateral_value"],
             max_collateral_value=data["max_collateral_value"],
             created_at=datetime.fromisoformat(data["created_at"]),
@@ -239,7 +247,7 @@ class CollateralValuator:
         original_price: float,
         license_age_days: int,
         revenue_generated: float = 0.0,
-        reputation_score: float = 0.5
+        reputation_score: float = 0.5,
     ) -> float:
         """
         Estimate the current value of a license.
@@ -282,7 +290,7 @@ class CollateralValuator:
         total_licenses_sold: int,
         total_revenue: float,
         fork_count: int = 0,
-        star_count: int = 0
+        star_count: int = 0,
     ) -> float:
         """
         Estimate value of an IP asset (repository).
@@ -333,7 +341,7 @@ class IPFiLendingManager:
         collateral_type: CollateralType,
         asset_id: str,
         owner_address: str,
-        estimated_value: float
+        estimated_value: float,
     ) -> Collateral:
         """Register an asset as potential collateral."""
         collateral = Collateral(
@@ -349,11 +357,7 @@ class IPFiLendingManager:
 
         return collateral
 
-    def update_collateral_value(
-        self,
-        collateral_id: str,
-        new_value: float
-    ) -> Collateral:
+    def update_collateral_value(self, collateral_id: str, new_value: float) -> Collateral:
         """Update the estimated value of collateral."""
         collateral = self.collaterals.get(collateral_id)
         if not collateral:
@@ -405,7 +409,7 @@ class IPFiLendingManager:
         min_collateral_value: float,
         max_collateral_value: float,
         ltv_ratio: float = 0.5,
-        expires_in_days: int = 7
+        expires_in_days: int = 7,
     ) -> LoanOffer:
         """Create a new loan offer."""
         terms = LoanTerms(
@@ -437,7 +441,7 @@ class IPFiLendingManager:
         active_only: bool = True,
         collateral_type: Optional[CollateralType] = None,
         min_principal: Optional[float] = None,
-        max_principal: Optional[float] = None
+        max_principal: Optional[float] = None,
     ) -> List[LoanOffer]:
         """List available loan offers."""
         offers = list(self.offers.values())
@@ -471,12 +475,7 @@ class IPFiLendingManager:
     # Loan Operations
     # =========================================================================
 
-    def request_loan(
-        self,
-        offer_id: str,
-        borrower_address: str,
-        collateral_id: str
-    ) -> Loan:
+    def request_loan(self, offer_id: str, borrower_address: str, collateral_id: str) -> Loan:
         """Request a loan by accepting an offer."""
         offer = self.offers.get(offer_id)
         if not offer:
@@ -498,7 +497,9 @@ class IPFiLendingManager:
         if collateral.collateral_type not in offer.accepted_collateral_types:
             raise ValueError("Collateral type not accepted by this offer")
 
-        if not (offer.min_collateral_value <= collateral.estimated_value <= offer.max_collateral_value):
+        if not (
+            offer.min_collateral_value <= collateral.estimated_value <= offer.max_collateral_value
+        ):
             raise ValueError("Collateral value out of accepted range")
 
         # Create loan
@@ -588,7 +589,7 @@ class IPFiLendingManager:
         self,
         borrower_address: Optional[str] = None,
         lender_address: Optional[str] = None,
-        status: Optional[LoanStatus] = None
+        status: Optional[LoanStatus] = None,
     ) -> List[Loan]:
         """List loans with optional filters."""
         loans = list(self.loans.values())
@@ -627,7 +628,9 @@ class IPFiLendingManager:
             "total_value_locked": total_value_locked,
             "total_borrowed": total_borrowed,
             "total_repaid": total_repaid,
-            "active_offers": len([o for o in self.offers.values() if o.active and not o.is_expired]),
+            "active_offers": len(
+                [o for o in self.offers.values() if o.active and not o.is_expired]
+            ),
             "registered_collaterals": len(self.collaterals),
             "locked_collaterals": len([c for c in self.collaterals.values() if c.locked]),
         }
@@ -659,8 +662,12 @@ class IPFiLendingManager:
                 state = json.load(f)
 
             self.loans = {lid: Loan.from_dict(l) for lid, l in state.get("loans", {}).items()}
-            self.offers = {oid: LoanOffer.from_dict(o) for oid, o in state.get("offers", {}).items()}
-            self.collaterals = {cid: Collateral.from_dict(c) for cid, c in state.get("collaterals", {}).items()}
+            self.offers = {
+                oid: LoanOffer.from_dict(o) for oid, o in state.get("offers", {}).items()
+            }
+            self.collaterals = {
+                cid: Collateral.from_dict(c) for cid, c in state.get("collaterals", {}).items()
+            }
         except (json.JSONDecodeError, KeyError):
             pass
 

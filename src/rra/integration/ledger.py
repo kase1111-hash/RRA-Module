@@ -19,6 +19,7 @@ from rra.integration.config import get_integration_config
 @dataclass
 class Transaction:
     """Represents a licensing transaction."""
+
     transaction_id: str
     agent_id: str
     buyer_id: str
@@ -57,7 +58,7 @@ class LocalLedger:
         repo_url: str,
         price: str,
         license_model: str,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> Transaction:
         """Record a new transaction."""
         transaction = Transaction(
@@ -69,20 +70,16 @@ class LocalLedger:
             license_model=license_model,
             timestamp=datetime.now().isoformat(),
             status="pending",
-            metadata=metadata or {}
+            metadata=metadata or {},
         )
 
         # Append to ledger
-        with open(self.ledger_file, 'a') as f:
-            f.write(json.dumps(asdict(transaction)) + '\n')
+        with open(self.ledger_file, "a") as f:
+            f.write(json.dumps(asdict(transaction)) + "\n")
 
         return transaction
 
-    def update_transaction_status(
-        self,
-        transaction_id: str,
-        status: str
-    ) -> None:
+    def update_transaction_status(self, transaction_id: str, status: str) -> None:
         """Update transaction status."""
         # Read all transactions
         transactions = self.get_transactions()
@@ -94,21 +91,19 @@ class LocalLedger:
                 tx["updated_at"] = datetime.now().isoformat()
 
         # Rewrite file
-        with open(self.ledger_file, 'w') as f:
+        with open(self.ledger_file, "w") as f:
             for tx in transactions:
-                f.write(json.dumps(tx) + '\n')
+                f.write(json.dumps(tx) + "\n")
 
     def get_transactions(
-        self,
-        limit: Optional[int] = None,
-        status: Optional[str] = None
+        self, limit: Optional[int] = None, status: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """Retrieve transactions."""
         if not self.ledger_file.exists():
             return []
 
         transactions = []
-        with open(self.ledger_file, 'r') as f:
+        with open(self.ledger_file, "r") as f:
             for line in f:
                 tx = json.loads(line.strip())
                 if status is None or tx.get("status") == status:
@@ -142,7 +137,7 @@ class LocalLedger:
             "total_transactions": len(transactions),
             "total_revenue": total_revenue,
             "revenue_by_model": by_model,
-            "agent_id": self.agent_id
+            "agent_id": self.agent_id,
         }
 
 
@@ -167,6 +162,7 @@ class ValueLedgerService:
         # Try to import value-ledger client
         try:
             from value_ledger import LedgerClient  # type: ignore
+
             self.client = LedgerClient(url=self.ledger_url, agent_id=agent_id)
             self.available = True
         except ImportError:
@@ -180,7 +176,7 @@ class ValueLedgerService:
         repo_url: str,
         price: str,
         license_model: str,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> Transaction:
         """Record transaction to value-ledger service."""
         if not self.available:
@@ -195,22 +191,18 @@ class ValueLedgerService:
                 repo_url=repo_url,
                 price=price,
                 license_model=license_model,
-                metadata=metadata or {}
+                metadata=metadata or {},
             )
             return Transaction(**result)
         except Exception as e:
             print(f"Warning: Failed to record to value-ledger: {e}")
-            if not hasattr(self, '_fallback'):
+            if not hasattr(self, "_fallback"):
                 self._fallback = LocalLedger(self.agent_id)
             return self._fallback.record_transaction(
                 transaction_id, buyer_id, repo_url, price, license_model, metadata
             )
 
-    def update_transaction_status(
-        self,
-        transaction_id: str,
-        status: str
-    ) -> None:
+    def update_transaction_status(self, transaction_id: str, status: str) -> None:
         """Update transaction status in value-ledger."""
         if not self.available:
             self._fallback.update_transaction_status(transaction_id, status)
@@ -220,14 +212,12 @@ class ValueLedgerService:
             self.client.update_status(transaction_id, status)
         except Exception as e:
             print(f"Warning: Failed to update in value-ledger: {e}")
-            if not hasattr(self, '_fallback'):
+            if not hasattr(self, "_fallback"):
                 self._fallback = LocalLedger(self.agent_id)
             self._fallback.update_transaction_status(transaction_id, status)
 
     def get_transactions(
-        self,
-        limit: Optional[int] = None,
-        status: Optional[str] = None
+        self, limit: Optional[int] = None, status: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """Retrieve transactions from value-ledger."""
         if not self.available:
@@ -236,7 +226,7 @@ class ValueLedgerService:
         try:
             return self.client.query(limit=limit, status=status)
         except Exception:
-            if not hasattr(self, '_fallback'):
+            if not hasattr(self, "_fallback"):
                 self._fallback = LocalLedger(self.agent_id)
             return self._fallback.get_transactions(limit, status)
 
@@ -248,15 +238,12 @@ class ValueLedgerService:
         try:
             return self.client.get_stats(self.agent_id)
         except Exception:
-            if not hasattr(self, '_fallback'):
+            if not hasattr(self, "_fallback"):
                 self._fallback = LocalLedger(self.agent_id)
             return self._fallback.get_revenue_stats()
 
 
-def get_ledger(
-    agent_id: str,
-    prefer_service: bool = True
-):
+def get_ledger(agent_id: str, prefer_service: bool = True):
     """
     Get appropriate ledger based on configuration.
 
