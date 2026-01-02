@@ -27,6 +27,7 @@ import os
 import logging
 import threading
 import time
+import uuid
 from contextlib import contextmanager
 
 try:
@@ -40,6 +41,121 @@ except ImportError:
     HAS_CRYPTO = False
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Circuit Breaker Pattern
+# =============================================================================
+
+class CircuitState(Enum):
+    """Circuit breaker states."""
+    CLOSED = "closed"     # Normal operation, requests pass through
+    OPEN = "open"         # Circuit open, requests fail fast
+    HALF_OPEN = "half_open"  # Testing if service has recovered
+
+
+@dataclass
+class CircuitBreaker:
+    """
+    Circuit breaker to prevent cascade failures when external services fail.
+
+    Implements the circuit breaker pattern:
+    - CLOSED: Normal operation, all requests pass through
+    - OPEN: Service is down, requests fail fast without attempting
+    - HALF_OPEN: Testing recovery, allowing limited requests through
+    """
+    failure_threshold: int = 5  # Failures before opening circuit
+    recovery_timeout: float = 30.0  # Seconds before trying half-open
+    half_open_max_calls: int = 3  # Max calls in half-open state
+
+    _state: CircuitState = field(default=CircuitState.CLOSED, init=False)
+    _failure_count: int = field(default=0, init=False)
+    _last_failure_time: Optional[datetime] = field(default=None, init=False)
+    _half_open_calls: int = field(default=0, init=False)
+    _lock: threading.Lock = field(default_factory=threading.Lock, init=False)
+
+    @property
+    def state(self) -> CircuitState:
+        """Get current circuit state, auto-transitioning if needed."""
+        with self._lock:
+            if self._state == CircuitState.OPEN:
+                # Check if recovery timeout has passed
+                if self._last_failure_time:
+                    elapsed = (datetime.now() - self._last_failure_time).total_seconds()
+                    if elapsed >= self.recovery_timeout:
+                        self._state = CircuitState.HALF_OPEN
+                        self._half_open_calls = 0
+                        logger.info("Circuit breaker transitioning to HALF_OPEN")
+            return self._state
+
+    def allow_request(self) -> bool:
+        """Check if request should be allowed through."""
+        state = self.state
+
+        if state == CircuitState.CLOSED:
+            return True
+        elif state == CircuitState.OPEN:
+            return False
+        else:  # HALF_OPEN
+            with self._lock:
+                if self._half_open_calls < self.half_open_max_calls:
+                    self._half_open_calls += 1
+                    return True
+                return False
+
+    def record_success(self) -> None:
+        """Record a successful request."""
+        with self._lock:
+            if self._state == CircuitState.HALF_OPEN:
+                # Service recovered, close circuit
+                self._state = CircuitState.CLOSED
+                self._failure_count = 0
+                self._last_failure_time = None
+                logger.info("Circuit breaker CLOSED - service recovered")
+            elif self._state == CircuitState.CLOSED:
+                # Reset failure count on success
+                self._failure_count = 0
+
+    def record_failure(self) -> None:
+        """Record a failed request."""
+        with self._lock:
+            self._failure_count += 1
+            self._last_failure_time = datetime.now()
+
+            if self._state == CircuitState.HALF_OPEN:
+                # Failed during recovery test, reopen circuit
+                self._state = CircuitState.OPEN
+                logger.warning("Circuit breaker OPEN - recovery failed")
+            elif self._state == CircuitState.CLOSED:
+                if self._failure_count >= self.failure_threshold:
+                    self._state = CircuitState.OPEN
+                    logger.warning(
+                        f"Circuit breaker OPEN after {self._failure_count} failures"
+                    )
+
+    def reset(self) -> None:
+        """Manually reset the circuit breaker."""
+        with self._lock:
+            self._state = CircuitState.CLOSED
+            self._failure_count = 0
+            self._last_failure_time = None
+            self._half_open_calls = 0
+            logger.info("Circuit breaker manually reset")
+
+    def get_status(self) -> Dict[str, Any]:
+        """Get circuit breaker status."""
+        with self._lock:
+            return {
+                "state": self._state.value,
+                "failure_count": self._failure_count,
+                "last_failure": self._last_failure_time.isoformat() if self._last_failure_time else None,
+                "half_open_calls": self._half_open_calls,
+            }
+
+
+def generate_correlation_id() -> str:
+    """Generate a unique correlation ID for request tracing."""
+    return f"rra-{uuid.uuid4().hex[:16]}"
 
 
 class Permission(Flag):
@@ -502,6 +618,11 @@ class DaemonConnection:
     Supports connection via:
     - Unix socket (preferred for local deployment)
     - HTTP REST API (for remote deployment)
+
+    Features:
+    - Circuit breaker to prevent cascade failures
+    - Exponential backoff retry logic
+    - Correlation IDs for request tracing
     """
 
     DEFAULT_SOCKET_PATH = "/var/run/boundary-daemon/boundary.sock"
@@ -513,6 +634,10 @@ class DaemonConnection:
         http_url: Optional[str] = None,
         connect_timeout: float = 5.0,
         read_timeout: float = 30.0,
+        retry_attempts: int = 3,
+        retry_base_delay: float = 1.0,
+        circuit_failure_threshold: int = 5,
+        circuit_recovery_timeout: float = 30.0,
     ):
         self.socket_path = socket_path or os.environ.get(
             "BOUNDARY_DAEMON_SOCKET", self.DEFAULT_SOCKET_PATH
@@ -522,9 +647,17 @@ class DaemonConnection:
         )
         self.connect_timeout = connect_timeout
         self.read_timeout = read_timeout
+        self.retry_attempts = retry_attempts
+        self.retry_base_delay = retry_base_delay
         self._socket: Optional[socket.socket] = None
         self._connected = False
         self._lock = threading.Lock()
+
+        # Circuit breaker for fault tolerance
+        self._circuit_breaker = CircuitBreaker(
+            failure_threshold=circuit_failure_threshold,
+            recovery_timeout=circuit_recovery_timeout,
+        )
 
     def is_available(self) -> bool:
         """Check if external daemon is available."""
@@ -563,32 +696,93 @@ class DaemonConnection:
         finally:
             sock.close()
 
-    def send_request(self, action: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    @property
+    def circuit_status(self) -> Dict[str, Any]:
+        """Get circuit breaker status."""
+        return self._circuit_breaker.get_status()
+
+    def reset_circuit(self) -> None:
+        """Manually reset the circuit breaker."""
+        self._circuit_breaker.reset()
+
+    def send_request(
+        self,
+        action: str,
+        payload: Dict[str, Any],
+        correlation_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """
-        Send request to external daemon.
+        Send request to external daemon with circuit breaker and retry logic.
 
         Args:
             action: The action to perform (e.g., "check_access", "get_mode")
             payload: Request payload
+            correlation_id: Optional correlation ID for tracing (auto-generated if not provided)
 
         Returns:
             Response from daemon
+
+        Raises:
+            RuntimeError: If circuit is open or all retries exhausted
         """
+        # Generate correlation ID if not provided
+        corr_id = correlation_id or generate_correlation_id()
+
+        # Check circuit breaker
+        if not self._circuit_breaker.allow_request():
+            status = self._circuit_breaker.get_status()
+            raise RuntimeError(
+                f"Circuit breaker OPEN - daemon unavailable "
+                f"(failures: {status['failure_count']}, correlation_id: {corr_id})"
+            )
+
         request_data = {
             "action": action,
             "payload": payload,
             "timestamp": datetime.now().isoformat(),
+            "correlation_id": corr_id,
         }
 
-        # Try Unix socket first
-        if os.path.exists(self.socket_path):
-            try:
-                return self._send_socket_request(request_data)
-            except Exception as e:
-                logger.warning(f"Socket request failed: {e}, falling back to HTTP")
+        last_error: Optional[Exception] = None
 
-        # Fall back to HTTP
-        return self._send_http_request(action, payload)
+        # Retry with exponential backoff
+        for attempt in range(self.retry_attempts):
+            try:
+                # Try Unix socket first
+                if os.path.exists(self.socket_path):
+                    try:
+                        result = self._send_socket_request(request_data)
+                        self._circuit_breaker.record_success()
+                        return result
+                    except Exception as e:
+                        logger.warning(
+                            f"Socket request failed (correlation_id: {corr_id}): {e}, "
+                            f"falling back to HTTP"
+                        )
+
+                # Fall back to HTTP
+                result = self._send_http_request(action, payload, corr_id)
+                self._circuit_breaker.record_success()
+                return result
+
+            except Exception as e:
+                last_error = e
+                logger.warning(
+                    f"Daemon request failed (attempt {attempt + 1}/{self.retry_attempts}, "
+                    f"correlation_id: {corr_id}): {e}"
+                )
+
+                if attempt < self.retry_attempts - 1:
+                    # Exponential backoff: 1s, 2s, 4s, ...
+                    delay = self.retry_base_delay * (2 ** attempt)
+                    time.sleep(delay)
+
+        # All retries exhausted
+        self._circuit_breaker.record_failure()
+        raise RuntimeError(
+            f"Daemon request failed after {self.retry_attempts} attempts "
+            f"(correlation_id: {corr_id}): {last_error}"
+        )
 
     def _send_socket_request(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
         """Send request via Unix socket."""
@@ -621,7 +815,12 @@ class DaemonConnection:
         "health",
     })
 
-    def _send_http_request(self, action: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    def _send_http_request(
+        self,
+        action: str,
+        payload: Dict[str, Any],
+        correlation_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """Send request via HTTP API."""
         import urllib.request
         import urllib.error
@@ -641,6 +840,8 @@ class DaemonConnection:
         req = urllib.request.Request(url, data=data, method="POST")
         req.add_header("Content-Type", "application/json")
         req.add_header("User-Agent", "RRA-Module/0.1.0")
+        if correlation_id:
+            req.add_header("X-Correlation-ID", correlation_id)
 
         try:
             with urllib.request.urlopen(req, timeout=self.read_timeout) as resp:

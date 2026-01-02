@@ -51,6 +51,9 @@ from rra.integration.boundary_daemon import (
     ModeConstraints,
     DaemonConnection,
     EventSigner,
+    CircuitBreaker,
+    CircuitState,
+    generate_correlation_id,
     create_boundary_daemon,
     create_connected_boundary_daemon,
 )
@@ -64,6 +67,7 @@ from rra.integration.boundary_siem import (
     AlertStatus,
     DetectionRule,
     RRA_DETECTION_RULES,
+    PersistentEventQueue,
     create_siem_client,
     create_siem_event_callback,
 )
@@ -110,6 +114,9 @@ __all__ = [
     "ModeConstraints",
     "DaemonConnection",
     "EventSigner",
+    "CircuitBreaker",
+    "CircuitState",
+    "generate_correlation_id",
     "create_boundary_daemon",
     "create_connected_boundary_daemon",
     # Boundary SIEM
@@ -121,6 +128,7 @@ __all__ = [
     "AlertStatus",
     "DetectionRule",
     "RRA_DETECTION_RULES",
+    "PersistentEventQueue",
     "create_siem_client",
     "create_siem_event_callback",
     # Synth Mind

@@ -238,21 +238,253 @@ class EventBuffer:
             return len(self._buffer)
 
 
+class PersistentEventQueue:
+    """
+    Persistent event queue that spills to disk when memory buffer is full.
+
+    Prevents event loss during SIEM outages or high event volume.
+    """
+
+    def __init__(
+        self,
+        data_dir: Optional[Path] = None,
+        memory_limit: int = 1000,
+        disk_limit: int = 100000,
+    ):
+        self.data_dir = data_dir or Path("data/siem_queue")
+        self.memory_limit = memory_limit
+        self.disk_limit = disk_limit
+        self._memory_buffer: List[BoundaryEvent] = []
+        self._lock = threading.Lock()
+        self._disk_queue_file: Optional[Path] = None
+        self._disk_event_count = 0
+
+        # Create data directory if needed
+        self.data_dir.mkdir(parents=True, exist_ok=True)
+        self._disk_queue_file = self.data_dir / "pending_events.jsonl"
+
+        # Load any existing events from disk on startup
+        self._load_from_disk()
+
+    def _load_from_disk(self) -> None:
+        """Load pending events from disk on startup."""
+        if not self._disk_queue_file or not self._disk_queue_file.exists():
+            return
+
+        try:
+            with open(self._disk_queue_file, 'r') as f:
+                for line in f:
+                    if line.strip():
+                        self._disk_event_count += 1
+
+            if self._disk_event_count > 0:
+                logger.info(f"Loaded {self._disk_event_count} pending events from disk queue")
+        except Exception as e:
+            logger.error(f"Failed to load disk queue: {e}")
+
+    def add(self, event: BoundaryEvent) -> bool:
+        """
+        Add event to queue. Returns True if added, False if queue is full.
+
+        Events are first added to memory. When memory is full, they spill to disk.
+        """
+        with self._lock:
+            # Try memory buffer first
+            if len(self._memory_buffer) < self.memory_limit:
+                self._memory_buffer.append(event)
+                return True
+
+            # Spill to disk
+            if self._disk_event_count >= self.disk_limit:
+                logger.warning("Persistent event queue full - event dropped")
+                return False
+
+            return self._write_to_disk(event)
+
+    def _write_to_disk(self, event: BoundaryEvent) -> bool:
+        """Write event to disk queue."""
+        if not self._disk_queue_file:
+            return False
+
+        try:
+            with open(self._disk_queue_file, 'a') as f:
+                f.write(json.dumps(event.to_json()) + "\n")
+            self._disk_event_count += 1
+            return True
+        except Exception as e:
+            logger.error(f"Failed to write event to disk: {e}")
+            return False
+
+    def get_batch(self, batch_size: int = 100) -> List[BoundaryEvent]:
+        """
+        Get a batch of events for sending.
+
+        Prioritizes memory events, then reads from disk.
+        """
+        events: List[BoundaryEvent] = []
+
+        with self._lock:
+            # Get from memory first
+            if self._memory_buffer:
+                events = self._memory_buffer[:batch_size]
+                self._memory_buffer = self._memory_buffer[batch_size:]
+                remaining = batch_size - len(events)
+            else:
+                remaining = batch_size
+
+            # If we need more, read from disk
+            if remaining > 0 and self._disk_event_count > 0:
+                disk_events = self._read_from_disk(remaining)
+                events.extend(disk_events)
+
+        return events
+
+    def _read_from_disk(self, count: int) -> List[BoundaryEvent]:
+        """Read events from disk queue."""
+        if not self._disk_queue_file or not self._disk_queue_file.exists():
+            return []
+
+        events: List[BoundaryEvent] = []
+        remaining_lines: List[str] = []
+
+        try:
+            with open(self._disk_queue_file, 'r') as f:
+                lines = f.readlines()
+
+            for i, line in enumerate(lines):
+                if i < count and line.strip():
+                    try:
+                        data = json.loads(line.strip())
+                        event = BoundaryEvent(
+                            event_id=data["event_id"],
+                            timestamp=datetime.fromisoformat(data["timestamp"]),
+                            event_type=data["event_type"],
+                            source=data["source"],
+                            action=data["action"],
+                            outcome=data["outcome"],
+                            severity=EventSeverity[data["severity"]],
+                            mode=BoundaryMode(data["mode"]),
+                            principal_id=data.get("principal_id"),
+                            resource_type=data.get("resource_type"),
+                            resource_id=data.get("resource_id"),
+                            context=data.get("context", {}),
+                            previous_hash=data.get("previous_hash"),
+                        )
+                        events.append(event)
+                    except Exception as e:
+                        logger.warning(f"Failed to parse disk event: {e}")
+                else:
+                    remaining_lines.append(line)
+
+            # Rewrite file with remaining lines
+            with open(self._disk_queue_file, 'w') as f:
+                f.writelines(remaining_lines)
+
+            self._disk_event_count = len(remaining_lines)
+
+        except Exception as e:
+            logger.error(f"Failed to read from disk queue: {e}")
+
+        return events
+
+    def acknowledge(self, events: List[BoundaryEvent]) -> None:
+        """
+        Acknowledge that events were successfully sent.
+
+        In the current implementation, events are removed when get_batch is called,
+        so this is a no-op. Future versions may implement two-phase commit.
+        """
+        pass
+
+    def requeue(self, events: List[BoundaryEvent]) -> None:
+        """Requeue events that failed to send."""
+        with self._lock:
+            # Add back to front of memory buffer
+            self._memory_buffer = events + self._memory_buffer
+
+            # If memory overflows, spill excess to disk
+            while len(self._memory_buffer) > self.memory_limit:
+                event = self._memory_buffer.pop()
+                self._write_to_disk(event)
+
+    def size(self) -> int:
+        """Get total queue size (memory + disk)."""
+        with self._lock:
+            return len(self._memory_buffer) + self._disk_event_count
+
+    def memory_size(self) -> int:
+        """Get memory buffer size."""
+        with self._lock:
+            return len(self._memory_buffer)
+
+    def disk_size(self) -> int:
+        """Get disk queue size."""
+        with self._lock:
+            return self._disk_event_count
+
+    def clear(self) -> int:
+        """Clear all events and return count of cleared events."""
+        with self._lock:
+            count = len(self._memory_buffer) + self._disk_event_count
+            self._memory_buffer = []
+            self._disk_event_count = 0
+
+            if self._disk_queue_file and self._disk_queue_file.exists():
+                self._disk_queue_file.unlink()
+
+            return count
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Get queue statistics."""
+        with self._lock:
+            return {
+                "memory_count": len(self._memory_buffer),
+                "disk_count": self._disk_event_count,
+                "total_count": len(self._memory_buffer) + self._disk_event_count,
+                "memory_limit": self.memory_limit,
+                "disk_limit": self.disk_limit,
+                "disk_queue_path": str(self._disk_queue_file) if self._disk_queue_file else None,
+            }
+
+
 class BoundarySIEMClient:
     """
     Client for Boundary-SIEM integration.
 
     Handles event forwarding, alert retrieval, and real-time subscriptions.
+
+    Features:
+    - Optional persistent queue for event overflow
+    - Graceful shutdown with event draining
+    - Correlation ID propagation
     """
 
-    def __init__(self, config: Optional[SIEMConfig] = None):
+    def __init__(
+        self,
+        config: Optional[SIEMConfig] = None,
+        use_persistent_queue: bool = False,
+        queue_data_dir: Optional[Path] = None,
+    ):
         self.config = config or SIEMConfig.from_env()
-        self._buffer = EventBuffer()
+        self._use_persistent_queue = use_persistent_queue
+
+        if use_persistent_queue:
+            self._queue: PersistentEventQueue = PersistentEventQueue(
+                data_dir=queue_data_dir,
+            )
+            self._buffer = None
+        else:
+            self._buffer = EventBuffer()
+            self._queue = None
+
         self._running = False
         self._flush_thread: Optional[threading.Thread] = None
         self._alert_callbacks: List[Callable[[SIEMAlert], None]] = []
         self._websocket = None
         self._connected = False
+        self._shutdown_event = threading.Event()
+        self._events_sent = 0
+        self._events_failed = 0
 
     def start(self) -> None:
         """Start the SIEM client background processing."""
@@ -260,22 +492,59 @@ class BoundarySIEMClient:
             return
 
         self._running = True
+        self._shutdown_event.clear()
         self._flush_thread = threading.Thread(target=self._flush_loop, daemon=True)
         self._flush_thread.start()
         logger.info(f"SIEM client started, forwarding to {self.config.host}:{self.config.port}")
 
-    def stop(self) -> None:
-        """Stop the SIEM client and flush remaining events."""
+    def stop(self, drain_timeout: float = 30.0) -> int:
+        """
+        Stop the SIEM client and flush remaining events.
+
+        Args:
+            drain_timeout: Maximum seconds to wait for event draining
+
+        Returns:
+            Number of events remaining in queue (0 if fully drained)
+        """
         self._running = False
+        self._shutdown_event.set()
+
         if self._flush_thread:
-            self._flush_thread.join(timeout=5.0)
+            self._flush_thread.join(timeout=drain_timeout)
 
-        # Final flush
-        events = self._buffer.flush()
-        if events:
-            self._send_events(events)
+        # Final flush - drain as many events as possible
+        remaining = 0
+        start_time = time.time()
 
-        logger.info("SIEM client stopped")
+        while time.time() - start_time < drain_timeout:
+            if self._use_persistent_queue and self._queue:
+                events = self._queue.get_batch(self.config.batch_size)
+                if not events:
+                    break
+                if not self._send_events(events):
+                    self._queue.requeue(events)
+                    remaining = self._queue.size()
+                    break
+            elif self._buffer:
+                events = self._buffer.flush()
+                if not events:
+                    break
+                if not self._send_events(events):
+                    remaining = len(events)
+                    break
+            else:
+                break
+
+        if self._use_persistent_queue and self._queue:
+            remaining = self._queue.size()
+
+        if remaining > 0:
+            logger.warning(f"SIEM client stopped with {remaining} events remaining in queue")
+        else:
+            logger.info("SIEM client stopped, all events drained")
+
+        return remaining
 
     def send_event(self, event: BoundaryEvent) -> bool:
         """
@@ -285,13 +554,17 @@ class BoundarySIEMClient:
             event: The security event to forward
 
         Returns:
-            True if event was queued, False if buffer is full
+            True if event was queued, False if buffer/queue is full
         """
         # Apply filters
         if not self._should_forward(event):
             return True  # Filtered out, but not an error
 
-        return self._buffer.add(event)
+        if self._use_persistent_queue and self._queue:
+            return self._queue.add(event)
+        elif self._buffer:
+            return self._buffer.add(event)
+        return False
 
     def _should_forward(self, event: BoundaryEvent) -> bool:
         """Check if event should be forwarded based on filters."""
@@ -314,9 +587,19 @@ class BoundarySIEMClient:
     def _flush_loop(self) -> None:
         """Background loop for flushing buffered events."""
         while self._running:
-            time.sleep(self.config.flush_interval_seconds)
+            # Use event-based wait for responsive shutdown
+            self._shutdown_event.wait(timeout=self.config.flush_interval_seconds)
 
-            if self._buffer.size() >= self.config.batch_size:
+            if not self._running:
+                break
+
+            if self._use_persistent_queue and self._queue:
+                if self._queue.size() >= self.config.batch_size:
+                    events = self._queue.get_batch(self.config.batch_size)
+                    if events:
+                        if not self._send_events(events):
+                            self._queue.requeue(events)
+            elif self._buffer and self._buffer.size() >= self.config.batch_size:
                 events = self._buffer.flush()
                 if events:
                     self._send_events(events)
@@ -327,20 +610,47 @@ class BoundarySIEMClient:
             return True
 
         protocol = self.config.protocol
+        success = False
 
         try:
             if protocol == SIEMProtocol.JSON_HTTP:
-                return self._send_json_http(events)
+                success = self._send_json_http(events)
             elif protocol in (SIEMProtocol.CEF_UDP, SIEMProtocol.CEF_TCP):
-                return self._send_cef(events, use_tcp=(protocol == SIEMProtocol.CEF_TCP))
+                success = self._send_cef(events, use_tcp=(protocol == SIEMProtocol.CEF_TCP))
             elif protocol in (SIEMProtocol.SYSLOG_UDP, SIEMProtocol.SYSLOG_TCP):
-                return self._send_syslog(events, use_tcp=(protocol == SIEMProtocol.SYSLOG_TCP))
+                success = self._send_syslog(events, use_tcp=(protocol == SIEMProtocol.SYSLOG_TCP))
             else:
                 logger.error(f"Unknown protocol: {protocol}")
-                return False
+                success = False
         except Exception as e:
             logger.error(f"Failed to send events to SIEM: {e}")
-            return False
+            success = False
+
+        # Track metrics
+        if success:
+            self._events_sent += len(events)
+        else:
+            self._events_failed += len(events)
+
+        return success
+
+    def get_client_stats(self) -> Dict[str, Any]:
+        """Get client statistics."""
+        stats = {
+            "running": self._running,
+            "events_sent": self._events_sent,
+            "events_failed": self._events_failed,
+            "protocol": self.config.protocol.value,
+            "host": self.config.host,
+            "port": self.config.port,
+        }
+
+        if self._use_persistent_queue and self._queue:
+            stats["queue"] = self._queue.get_stats()
+        elif self._buffer:
+            stats["buffer_size"] = self._buffer.size()
+
+        return stats
 
     def _send_json_http(self, events: List[BoundaryEvent]) -> bool:
         """Send events via JSON HTTP API."""
