@@ -55,7 +55,7 @@ async function main() {
         const client = StoryClient.newClient({
             account: account,
             transport: http(STORY_MAINNET_RPC),
-            chainId: 'mainnet',  // CORRECT: Use 'mainnet' for Story Protocol mainnet
+            chainId: 'story',  // Per Grok: Use 'story' for mainnet (Chain ID 1514)
         });
 
         console.log('  Connected successfully!');
@@ -123,7 +123,7 @@ async function main() {
         }
 
         if (error.message.includes('ChainId')) {
-            console.error('\nChain ID issue. Supported values: "mainnet", "aeneid"');
+            console.error('\nChain ID issue. Supported values: "story" (mainnet), "odyssey" (testnet)');
         }
 
         process.exit(1);
