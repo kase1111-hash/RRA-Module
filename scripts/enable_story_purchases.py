@@ -124,9 +124,7 @@ def convert_market_yaml_to_pil_terms(market_config: Dict[str, Any]) -> PILTermsC
     target_price = market_config.get("target_price", "0.05 ETH")
     minting_fee_wei = parse_price_to_wei(target_price)
 
-    # Calculate revenue share from floor/target price ratio or derivative royalty
-    floor_price = market_config.get("floor_price", "0.02 ETH")
-    floor_wei = parse_price_to_wei(floor_price)
+    # Calculate revenue share from derivative royalty percentage
     derivative_royalty = story_config.get("derivative_royalty_percentage", 0.09)
 
     # Revenue share in basis points (0-10000)
@@ -409,7 +407,7 @@ class StoryProtocolPurchaseEnabler:
         Returns:
             Dictionary with transaction details
         """
-        print(f"\nAttaching license terms to IP Asset...")
+        print("\nAttaching license terms to IP Asset...")
         print(f"  IP Asset: {ip_asset_id}")
         print(f"  License Terms ID: {license_terms_id}")
 
@@ -781,7 +779,7 @@ async def enable_purchases(
 
     # Convert to PIL terms
     pil_terms = convert_market_yaml_to_pil_terms(market_config)
-    print(f"\nConverted market.yaml to PIL terms")
+    print("\nConverted market.yaml to PIL terms")
 
     # Initialize enabler
     enabler = StoryProtocolPurchaseEnabler(
@@ -812,7 +810,7 @@ async def enable_purchases(
         output_path=output_path,
     )
 
-    print(f"\n" + "=" * 60)
+    print("\n" + "=" * 60)
     print("LICENSE PURCHASES ENABLED!")
     print("=" * 60)
     print(f"\nIP Asset ID: {ip_asset_id}")
@@ -820,11 +818,11 @@ async def enable_purchases(
     print(f"Network: {network}")
     print(f"\nBuyer Interface: {interface_path}")
     print(f"\nStoryScan URL: https://www.storyscan.io/token/{ip_asset_id}")
-    print(f"\nBuyers can now mint license tokens by:")
-    print(f"  1. Opening the buyer interface HTML file")
-    print(f"  2. Connecting their wallet")
+    print("\nBuyers can now mint license tokens by:")
+    print("  1. Opening the buyer interface HTML file")
+    print("  2. Connecting their wallet")
     print(f"  3. Paying the minting fee ({market_config.get('target_price', '0.05 ETH')})")
-    print(f"  4. Receiving their license NFT")
+    print("  4. Receiving their license NFT")
 
     return {
         "ip_asset_id": ip_asset_id,

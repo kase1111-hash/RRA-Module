@@ -181,7 +181,7 @@ def claim_royalties(ip_asset_id: str, private_key: str, network: str = "mainnet"
         # Try to get pending vault amount
         pending = vault.functions.pendingVaultAmount().call()
         print(f"  Pending in vault: {w3.from_wei(pending, 'ether')} ETH/IP")
-    except:
+    except Exception:
         print("  Could not read pending amount")
 
     # Check claimable for common tokens
@@ -194,14 +194,14 @@ def claim_royalties(ip_asset_id: str, private_key: str, network: str = "mainnet"
             if claimable > 0:
                 print(f"  Claimable {token_name}: {w3.from_wei(claimable, 'ether')}")
                 tokens_to_claim.append((token_name, token_address, claimable))
-        except Exception as e:
+        except Exception:
             # Try without token parameter
             try:
                 claimable = vault.functions.claimableRevenue().call()
                 if claimable > 0:
                     print(f"  Claimable (native): {w3.from_wei(claimable, 'ether')}")
                     tokens_to_claim.append(("NATIVE", TOKENS["ETH"], claimable))
-            except:
+            except Exception:
                 pass
 
     if not tokens_to_claim:
