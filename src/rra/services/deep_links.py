@@ -35,14 +35,16 @@ class DeepLinkService:
     - /user/{username}                    # Developer profile
     """
 
-    DEFAULT_BASE_URL = "https://natlangchain.io"
+    # TODO: Change back to "https://natlangchain.io" when platform is live
+    DEFAULT_BASE_URL = "http://localhost:3000"
 
     def __init__(self, base_url: Optional[str] = None, mappings_path: Optional[Path] = None):
         """
         Initialize the deep link service.
 
         Args:
-            base_url: Base URL for generated links (default: https://natlangchain.io)
+            base_url: Base URL for generated links (default: http://localhost:3000)
+                      Set to https://natlangchain.io when platform is live
             mappings_path: Path to store repo ID mappings (default: agent_knowledge_bases/repo_mappings.json)
         """
         self.base_url = (base_url or self.DEFAULT_BASE_URL).rstrip("/")
