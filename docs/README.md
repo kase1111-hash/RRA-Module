@@ -17,6 +17,7 @@ Complete documentation for the Revenant Repo Agent Module.
 #### Licensing
 - **[LICENSE](../LICENSE.md)** - FSL-1.1-ALv2 license text
 - **[Licensing Guide](../LICENSING.md)** - License compliance, SPDX headers, and verification
+- **[Selling Licenses Guide](SELLING-LICENSES.md)** - Complete guide to monetizing your repo with Story Protocol
 - **[Blockchain Licensing](BLOCKCHAIN-LICENSING.md)** - Complete blockchain monetization integration guide
 
 #### Integration Guides
