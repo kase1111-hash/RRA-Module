@@ -10,7 +10,6 @@ and that all GitHub work is properly linked to the FSL-1.1-ALv2 license.
 import unittest
 from pathlib import Path
 import sys
-import os
 import subprocess
 
 # Add parent directory to path for imports
