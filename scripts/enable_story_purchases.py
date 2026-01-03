@@ -34,17 +34,18 @@ from web3 import Web3
 STORY_MAINNET_CHAIN_ID = 1514
 STORY_MAINNET_RPC = "https://mainnet.storyrpc.io"
 
-# Story Protocol Mainnet Contract Addresses
+# Story Protocol Mainnet Contract Addresses (Updated Jan 2026)
 STORY_MAINNET_CONTRACTS = {
     "licensing_module": "0xd81fd78f557b457b4350cB95D20b547bFEb4D857",
     "pil_template": "0x0752B15Ee7303033854bdE1B32bc7A4008752Dc0",
     "ip_asset_registry": "0x77319B4031e6eF1250907aa00018B8B1c67a244b",
     "license_registry": "0xedf6aF51e95B6E5B9C0E68b77a3E4C3D2E3cD13F",
-    "royalty_module": "0x3C27b2D7d30131D4B58C3584FD7c86e104C67883",
+    "royalty_module": "0xD2f60c40fEbccf6311f8B47c4f2Ec6b040400086",  # Correct mainnet address
+    "royalty_policy_lap": "0xBe54FB168b3c982b7AaE60dB6CF75Bd8447b390E",  # LAP policy
     "dispute_module": "0x692B47fa72eE7Ac0Ec617ea384875c93d0000000",
     # WIP (Wrapped IP) token - Story's native payment token
     "wip_token": "0x1514000000000000000000000000000000000000",
-    # Zero address for ETH payments
+    # Zero address for native IP payments
     "zero_address": "0x0000000000000000000000000000000000000000",
 }
 
@@ -55,6 +56,7 @@ STORY_TESTNET_CONTRACTS = {
     "ip_asset_registry": "0x1a9d0d28a0422F26D31Be72Edc6f13ea4371E11B",
     "license_registry": "0x529a750E02d8E2f0Be4B0a9e9f6B6b8fB9B8E9F9",
     "royalty_module": "0x3C27b2D7d30131D4B58C3584FD7c86e104C67883",
+    "royalty_policy_lap": "0xBe54FB168b3c982b7AaE60dB6CF75Bd8447b390E",  # LAP policy
     "wip_token": "0x1514000000000000000000000000000000000000",
     "zero_address": "0x0000000000000000000000000000000000000000",
 }
@@ -227,27 +229,170 @@ class StoryProtocolPurchaseEnabler:
         This creates a new license terms entry that can be attached to IP Assets.
         Returns the license_terms_id for use in attaching to IP Assets.
         """
-        print("\nRegistering PIL terms...")
+        print("\nRegistering custom PIL terms...")
         print(f"  Commercial Use: {terms.commercial_use}")
         print(f"  Derivatives Allowed: {terms.derivatives_allowed}")
-        print(f"  Minting Fee: {terms.minting_fee / 10**18:.4f} ETH")
+        print(f"  Minting Fee: {terms.minting_fee / 10**18:.4f} IP")
         print(f"  Revenue Share: {terms.revenue_share / 100:.1f}%")
 
-        # For now, use pre-registered PIL flavor that matches our terms
-        pil_flavor = get_pil_flavor(terms)
-        license_terms_id = PIL_FLAVOR_IDS.get(pil_flavor, 1)
+        # PILTerms struct ABI for registerLicenseTerms
+        # struct PILTerms {
+        #     bool transferable;
+        #     address royaltyPolicy;
+        #     uint256 defaultMintingFee;
+        #     uint256 expiration;
+        #     bool commercialUse;
+        #     bool commercialAttribution;
+        #     address commercializerChecker;
+        #     bytes commercializerCheckerData;
+        #     uint32 commercialRevShare;
+        #     uint256 commercialRevCeiling;
+        #     bool derivativesAllowed;
+        #     bool derivativesAttribution;
+        #     bool derivativesApproval;
+        #     bool derivativesReciprocal;
+        #     uint256 derivativeRevCeiling;
+        #     address currency;
+        #     string uri;
+        # }
 
-        # In production, we would call registerLicenseTerms on PILicenseTemplate
-        # to create custom terms with our exact parameters.
-        # For now, we use the pre-registered terms and note the minting fee
-        # should be configured via the IP Asset's royalty policy.
+        pil_template_abi = [
+            {
+                "inputs": [
+                    {
+                        "components": [
+                            {"name": "transferable", "type": "bool"},
+                            {"name": "royaltyPolicy", "type": "address"},
+                            {"name": "defaultMintingFee", "type": "uint256"},
+                            {"name": "expiration", "type": "uint256"},
+                            {"name": "commercialUse", "type": "bool"},
+                            {"name": "commercialAttribution", "type": "bool"},
+                            {"name": "commercializerChecker", "type": "address"},
+                            {"name": "commercializerCheckerData", "type": "bytes"},
+                            {"name": "commercialRevShare", "type": "uint32"},
+                            {"name": "commercialRevCeiling", "type": "uint256"},
+                            {"name": "derivativesAllowed", "type": "bool"},
+                            {"name": "derivativesAttribution", "type": "bool"},
+                            {"name": "derivativesApproval", "type": "bool"},
+                            {"name": "derivativesReciprocal", "type": "bool"},
+                            {"name": "derivativeRevCeiling", "type": "uint256"},
+                            {"name": "currency", "type": "address"},
+                            {"name": "uri", "type": "string"},
+                        ],
+                        "name": "terms",
+                        "type": "tuple",
+                    }
+                ],
+                "name": "registerLicenseTerms",
+                "outputs": [{"name": "selectedLicenseTermsId", "type": "uint256"}],
+                "stateMutability": "nonpayable",
+                "type": "function",
+            },
+            {
+                "inputs": [
+                    {
+                        "components": [
+                            {"name": "transferable", "type": "bool"},
+                            {"name": "royaltyPolicy", "type": "address"},
+                            {"name": "defaultMintingFee", "type": "uint256"},
+                            {"name": "expiration", "type": "uint256"},
+                            {"name": "commercialUse", "type": "bool"},
+                            {"name": "commercialAttribution", "type": "bool"},
+                            {"name": "commercializerChecker", "type": "address"},
+                            {"name": "commercializerCheckerData", "type": "bytes"},
+                            {"name": "commercialRevShare", "type": "uint32"},
+                            {"name": "commercialRevCeiling", "type": "uint256"},
+                            {"name": "derivativesAllowed", "type": "bool"},
+                            {"name": "derivativesAttribution", "type": "bool"},
+                            {"name": "derivativesApproval", "type": "bool"},
+                            {"name": "derivativesReciprocal", "type": "bool"},
+                            {"name": "derivativeRevCeiling", "type": "uint256"},
+                            {"name": "currency", "type": "address"},
+                            {"name": "uri", "type": "string"},
+                        ],
+                        "name": "terms",
+                        "type": "tuple",
+                    }
+                ],
+                "name": "getLicenseTermsId",
+                "outputs": [{"name": "selectedLicenseTermsId", "type": "uint256"}],
+                "stateMutability": "view",
+                "type": "function",
+            },
+        ]
 
-        return {
-            "license_terms_id": license_terms_id,
-            "pil_flavor": pil_flavor,
-            "terms": terms,
-            "note": "Using pre-registered PIL terms. Custom terms registration requires additional SDK support.",
-        }
+        pil_template = self.w3.eth.contract(
+            address=Web3.to_checksum_address(self.contracts["pil_template"]),
+            abi=pil_template_abi,
+        )
+
+        # Build the PILTerms tuple
+        pil_terms = (
+            terms.transferable,  # transferable
+            Web3.to_checksum_address(self.contracts["royalty_policy_lap"]),  # royaltyPolicy
+            terms.minting_fee,  # defaultMintingFee (in wei)
+            terms.expiration,  # expiration (0 = never)
+            terms.commercial_use,  # commercialUse
+            True,  # commercialAttribution
+            Web3.to_checksum_address(self.contracts["zero_address"]),  # commercializerChecker
+            b"",  # commercializerCheckerData
+            terms.revenue_share,  # commercialRevShare (basis points, e.g., 900 = 9%)
+            0,  # commercialRevCeiling (0 = unlimited)
+            terms.derivatives_allowed,  # derivativesAllowed
+            terms.derivatives_attribution,  # derivativesAttribution
+            False,  # derivativesApproval
+            terms.derivatives_reciprocal,  # derivativesReciprocal
+            0,  # derivativeRevCeiling (0 = unlimited)
+            Web3.to_checksum_address(self.contracts["wip_token"]),  # currency (WIP token)
+            "",  # uri (empty for on-chain terms)
+        )
+
+        # First check if these terms already exist
+        try:
+            existing_id = pil_template.functions.getLicenseTermsId(pil_terms).call()
+            if existing_id > 0:
+                print(f"  Terms already registered with ID: {existing_id}")
+                return {
+                    "license_terms_id": existing_id,
+                    "status": "existing",
+                    "terms": terms,
+                }
+        except Exception:
+            pass  # Terms don't exist, we'll register them
+
+        # Register the terms
+        print("  Registering new license terms on-chain...")
+        nonce = self.w3.eth.get_transaction_count(self.owner_address)
+        gas_price = self.w3.eth.gas_price
+
+        tx = pil_template.functions.registerLicenseTerms(pil_terms).build_transaction({
+            "from": self.owner_address,
+            "nonce": nonce,
+            "gasPrice": gas_price,
+            "gas": 500000,
+        })
+
+        signed_tx = self.w3.eth.account.sign_transaction(tx, self.private_key)
+        tx_hash = self.w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+        print(f"  Transaction sent: {tx_hash.hex()}")
+
+        receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+
+        if receipt["status"] == 1:
+            # Get the license terms ID from the transaction
+            # The ID is returned from the function, we can get it by calling getLicenseTermsId
+            license_terms_id = pil_template.functions.getLicenseTermsId(pil_terms).call()
+            print(f"  Terms registered with ID: {license_terms_id}")
+            print(f"  Block: {receipt['blockNumber']}")
+            return {
+                "license_terms_id": license_terms_id,
+                "status": "registered",
+                "tx_hash": tx_hash.hex(),
+                "block": receipt["blockNumber"],
+                "terms": terms,
+            }
+        else:
+            raise Exception(f"Transaction failed: {tx_hash.hex()}")
 
     def attach_license_terms(
         self,

@@ -23,8 +23,8 @@ from web3 import Web3
 STORY_MAINNET_CHAIN_ID = 1514
 STORY_MAINNET_RPC = "https://mainnet.storyrpc.io"
 
-# Story Protocol Contract Addresses (Mainnet)
-ROYALTY_MODULE = "0x3C27b2D7d30131D4B58C3584FD7c86e104C67883"
+# Story Protocol Contract Addresses (Mainnet) - Updated Jan 2026
+ROYALTY_MODULE = "0xD2f60c40fEbccf6311f8B47c4f2Ec6b040400086"
 IP_ASSET_REGISTRY = "0x77319B4031e6eF1250907aa00018B8B1c67a244b"
 
 # Royalty Module ABI (minimal for claiming)
