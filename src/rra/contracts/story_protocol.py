@@ -158,23 +158,12 @@ class StoryProtocolClient:
             # Ensure we have an SPG NFT collection
             spg_nft_contract = self._ensure_spg_collection(owner_address, private_key)
 
-            # Prepare IP metadata
-            ip_metadata = {
-                "title": metadata.name,
-                "description": metadata.description,
-                "ipType": metadata.ipType,
-                "createdAt": str(metadata.createdAt),
-            }
-
-            if metadata.externalUrl:
-                ip_metadata["externalUrl"] = metadata.externalUrl
-
             # Register using SDK - mints NFT and registers as IP in one tx
-            # Using simpler mint_and_register_ip first, then attach terms separately
+            # Note: ip_metadata requires IPFS URIs - skipping for now to get registration working
+            # TODO: Add IPFS upload for full metadata support
             # See: https://docs.story.foundation/sdk-reference/ipasset
             result = self._story_client.IPAsset.mint_and_register_ip(
                 spg_nft_contract=spg_nft_contract,
-                ip_metadata=ip_metadata,
                 recipient=owner_address,
             )
 
