@@ -170,11 +170,10 @@ class StoryProtocolClient:
                 ip_metadata["externalUrl"] = metadata.externalUrl
 
             # Register using SDK - mints NFT and registers as IP in one tx
-            # terms=[{licenseTermsId: 1}] uses pre-registered "Non-Commercial Social Remixing"
-            # See: https://docs.story.foundation/concepts/programmable-ip-license/pil-flavors
-            result = self._story_client.IPAsset.mint_and_register_ip_asset_with_pil_terms(
+            # Using simpler mint_and_register_ip first, then attach terms separately
+            # See: https://docs.story.foundation/sdk-reference/ipasset
+            result = self._story_client.IPAsset.mint_and_register_ip(
                 spg_nft_contract=spg_nft_contract,
-                terms=[{"licenseTermsId": 1}],  # Non-Commercial Social Remixing (pre-registered)
                 ip_metadata=ip_metadata,
                 recipient=owner_address,
             )
