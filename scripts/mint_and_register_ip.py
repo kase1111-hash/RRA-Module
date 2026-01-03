@@ -14,7 +14,6 @@ Usage:
 import argparse
 import os
 import sys
-import time
 from web3 import Web3
 
 # Story Protocol Mainnet
@@ -233,16 +232,24 @@ def main():
         # Alternative: Just register directly using IPAssetRegistry
         # This requires an existing NFT - let's check if we can use a simpler approach
         print("\n" + "=" * 60)
-        print("ALTERNATIVE: Use Story Protocol Web Interface")
+        print("ALTERNATIVE: Use StoryScan Contract Interface")
         print("=" * 60)
         print("""
-The easiest way to register an IP Asset is:
+The easiest way to register an IP Asset is via StoryScan:
 
-1. Go to: https://app.story.foundation
-2. Connect wallet: {0}
-3. Click "Register IP"
-4. Upload an image/file representing RRA-Module
-5. Complete the registration
+1. Go to StoryScan IP Asset Registry:
+   https://www.storyscan.io/address/0x77319B4031e6eF1250907aa00018B8B1c67a244b#writeContract
+
+2. Connect your wallet: {0}
+
+3. Use the 'register' function with:
+   - chainId: 1514
+   - tokenContract: <your ERC-721 NFT contract>
+   - tokenId: <your NFT token ID>
+
+If you don't have an NFT yet, you can mint one first on any
+NFT platform that supports Story mainnet, or use the Story
+Playground (testnet only): https://play.story.foundation
 
 After registration, copy the IP Asset ID and run:
   python scripts/attach_terms.py --ip-asset <NEW_IP_ASSET_ID>
