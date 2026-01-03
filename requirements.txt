@@ -20,6 +20,7 @@ cryptography>=43.0.1  # Fixes CVE-2023-50782, CVE-2024-0727, PYSEC-2024-225, GHS
 
 # DeFi Protocol Integrations
 # Story Protocol - Programmable IP licensing
+story-protocol-python-sdk>=0.3.0  # Official Story Protocol SDK
 eth-abi>=4.0.0  # For Story Protocol contract interactions
 eth-utils>=2.3.0
 
