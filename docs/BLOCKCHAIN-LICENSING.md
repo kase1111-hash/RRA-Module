@@ -111,9 +111,9 @@ target_price: "0.05 ETH"            → Initial NFT mint price
 floor_price: "0.02 ETH"             → Minimum acceptable offer
 license_terms: [...]                → Encoded in NFT metadata
 revenue_split:                      → On-chain payment distribution
-  developer: 85
-  platform: 10
-  community: 5
+  developer: 91
+  platform: 8
+  community: 1
 ```
 
 ### 4. GitHub Work → Blockchain Asset
@@ -187,9 +187,9 @@ When a license is sold for 0.05 ETH:
 Smart Contract Receives
   ↓
 Automatic Distribution:
-  • 0.0425 ETH (85%) → Developer Wallet
-  • 0.005 ETH  (10%) → NatLangChain Platform
-  • 0.0025 ETH (5%)  → Community Treasury
+  • 0.0455 ETH (91%) → Developer Wallet
+  • 0.004 ETH  (8%)  → NatLangChain Platform
+  • 0.0005 ETH (1%)  → Community Treasury
   ↓
 NFT Minted & Transferred to Buyer
   ↓

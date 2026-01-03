@@ -61,6 +61,14 @@ if errorlevel 1 (
     exit /b 1
 )
 
+REM Install Story Protocol SDK (for blockchain IP registration)
+echo.
+echo Installing Story Protocol SDK...
+pip install story-protocol-python-sdk
+if errorlevel 1 (
+    echo Warning: Failed to install Story Protocol SDK. Blockchain features may be limited.
+)
+
 REM Install the package in development mode
 echo.
 echo Installing RRA Module in development mode...

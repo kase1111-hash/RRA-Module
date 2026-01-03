@@ -56,9 +56,9 @@ blockchain:
 
   # Revenue distribution (on-chain splits)
   revenue_split:
-    developer: 85  # Percentage to original developer
-    platform: 10   # Percentage to NatLangChain platform
-    community: 5   # Percentage to community treasury
+    developer: 91  # Percentage to original developer
+    platform: 8    # Percentage to NatLangChain platform
+    community: 1   # Percentage to community treasury
 
   # NFT License Token Configuration
   nft_config:
