@@ -3,18 +3,28 @@
 """
 Dependency installer for isolated verification.
 
-Creates temporary virtual environments and installs dependencies
+Creates virtual environments and installs dependencies
 to enable running tests and linting without affecting the host system.
+
+Features:
+- Dependency caching based on requirements hash
+- Parallel test execution support via pytest-xdist
+- Automatic cleanup of temp environments
 """
 
 import subprocess
 import sys
 import shutil
 import tempfile
+import hashlib
 import os
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Optional
 from dataclasses import dataclass
+
+
+# Default cache directory
+DEFAULT_CACHE_DIR = Path.home() / ".rra_cache" / "venvs"
 
 
 @dataclass
@@ -26,30 +36,105 @@ class IsolatedEnvironment:
     pip_path: Path
     activate_env: Dict[str, str]
     language: str
+    is_cached: bool = False  # Whether this env came from cache
 
     def cleanup(self) -> None:
-        """Remove the temporary virtual environment."""
-        if self.venv_path.exists():
+        """Remove the virtual environment (only if not cached)."""
+        if not self.is_cached and self.venv_path.exists():
             shutil.rmtree(self.venv_path, ignore_errors=True)
 
 
 class DependencyInstaller:
     """
-    Manages temporary virtual environments for dependency isolation.
+    Manages virtual environments for dependency isolation.
 
-    Creates a temp venv, installs dependencies, and provides paths
-    for running verification commands in the isolated environment.
+    Features:
+    - Creates cached venvs based on requirements hash
+    - Installs dependencies from requirements.txt/pyproject.toml
+    - Supports parallel test execution with pytest-xdist
     """
 
-    def __init__(self, timeout: int = 300):
+    def __init__(
+        self,
+        timeout: int = 300,
+        use_cache: bool = True,
+        cache_dir: Optional[Path] = None,
+        parallel_tests: bool = True,
+    ):
         """
         Initialize the dependency installer.
 
         Args:
             timeout: Maximum time (seconds) for dependency installation
+            use_cache: Whether to cache and reuse virtual environments
+            cache_dir: Directory for cached venvs (default: ~/.rra_cache/venvs)
+            parallel_tests: Whether to install pytest-xdist for parallel tests
         """
         self.timeout = timeout
+        self.use_cache = use_cache
+        self.cache_dir = cache_dir or DEFAULT_CACHE_DIR
+        self.parallel_tests = parallel_tests
         self._active_envs: list[IsolatedEnvironment] = []
+
+        # Ensure cache directory exists
+        if self.use_cache:
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+
+    def _compute_deps_hash(self, repo_path: Path) -> str:
+        """Compute a hash of dependency files to use as cache key."""
+        hasher = hashlib.sha256()
+
+        # Hash requirements.txt if exists
+        requirements_txt = repo_path / "requirements.txt"
+        if requirements_txt.exists():
+            hasher.update(requirements_txt.read_bytes())
+
+        # Hash pyproject.toml if exists
+        pyproject_toml = repo_path / "pyproject.toml"
+        if pyproject_toml.exists():
+            hasher.update(pyproject_toml.read_bytes())
+
+        # Include Python version in hash
+        hasher.update(f"py{sys.version_info.major}{sys.version_info.minor}".encode())
+
+        return hasher.hexdigest()[:16]
+
+    def _get_cached_env(self, cache_key: str) -> Optional[IsolatedEnvironment]:
+        """Get a cached environment if it exists and is valid."""
+        if not self.use_cache:
+            return None
+
+        cache_path = self.cache_dir / cache_key
+        if not cache_path.exists():
+            return None
+
+        # Check if the venv is still valid
+        if sys.platform == "win32":
+            python_path = cache_path / "venv" / "Scripts" / "python.exe"
+            pip_path = cache_path / "venv" / "Scripts" / "pip.exe"
+        else:
+            python_path = cache_path / "venv" / "bin" / "python"
+            pip_path = cache_path / "venv" / "bin" / "pip"
+
+        if not python_path.exists():
+            # Invalid cache, remove it
+            shutil.rmtree(cache_path, ignore_errors=True)
+            return None
+
+        # Create environment dict
+        activate_env = os.environ.copy()
+        activate_env["VIRTUAL_ENV"] = str(cache_path / "venv")
+        activate_env["PATH"] = str(python_path.parent) + os.pathsep + activate_env.get("PATH", "")
+
+        env = IsolatedEnvironment(
+            venv_path=cache_path,
+            python_path=python_path,
+            pip_path=pip_path,
+            activate_env=activate_env,
+            language="python",
+            is_cached=True,
+        )
+        return env
 
     def create_isolated_env(
         self,
@@ -58,6 +143,8 @@ class DependencyInstaller:
     ) -> Optional[IsolatedEnvironment]:
         """
         Create an isolated environment and install dependencies.
+
+        Uses caching to avoid reinstalling if dependencies haven't changed.
 
         Args:
             repo_path: Path to the repository
@@ -75,9 +162,23 @@ class DependencyInstaller:
 
     def _create_python_env(self, repo_path: Path) -> Optional[IsolatedEnvironment]:
         """Create a Python virtual environment and install dependencies."""
-        # Create temp directory for venv
-        temp_dir = Path(tempfile.mkdtemp(prefix="rra_verify_"))
-        venv_path = temp_dir / "venv"
+        # Check cache first
+        cache_key = self._compute_deps_hash(repo_path)
+        cached_env = self._get_cached_env(cache_key)
+        if cached_env:
+            self._active_envs.append(cached_env)
+            return cached_env
+
+        # Create new environment
+        if self.use_cache:
+            # Use cache directory
+            base_dir = self.cache_dir / cache_key
+            base_dir.mkdir(parents=True, exist_ok=True)
+        else:
+            # Use temp directory
+            base_dir = Path(tempfile.mkdtemp(prefix="rra_verify_"))
+
+        venv_path = base_dir / "venv"
 
         try:
             # Create virtual environment
@@ -89,7 +190,7 @@ class DependencyInstaller:
             )
 
             if result.returncode != 0:
-                shutil.rmtree(temp_dir, ignore_errors=True)
+                shutil.rmtree(base_dir, ignore_errors=True)
                 return None
 
             # Determine paths based on OS
@@ -117,21 +218,24 @@ class DependencyInstaller:
             installed = self._install_python_deps(repo_path, pip_path, activate_env)
 
             if not installed:
-                shutil.rmtree(temp_dir, ignore_errors=True)
+                if not self.use_cache:
+                    shutil.rmtree(base_dir, ignore_errors=True)
                 return None
 
             env = IsolatedEnvironment(
-                venv_path=temp_dir,
+                venv_path=base_dir,
                 python_path=python_path,
                 pip_path=pip_path,
                 activate_env=activate_env,
                 language="python",
+                is_cached=self.use_cache,
             )
             self._active_envs.append(env)
             return env
 
         except Exception:
-            shutil.rmtree(temp_dir, ignore_errors=True)
+            if not self.use_cache:
+                shutil.rmtree(base_dir, ignore_errors=True)
             return None
 
     def _install_python_deps(
@@ -147,7 +251,7 @@ class DependencyInstaller:
         try:
             # Install from requirements.txt if it exists
             if requirements_txt.exists():
-                result = subprocess.run(
+                subprocess.run(
                     [str(pip_path), "install", "-r", str(requirements_txt), "-q"],
                     capture_output=True,
                     text=True,
@@ -170,7 +274,7 @@ class DependencyInstaller:
                 )
                 # If [dev] extras fail, try without
                 if result.returncode != 0:
-                    result = subprocess.run(
+                    subprocess.run(
                         [str(pip_path), "install", "-e", ".", "-q"],
                         capture_output=True,
                         text=True,
@@ -179,9 +283,13 @@ class DependencyInstaller:
                         cwd=repo_path,
                     )
 
-            # Install common testing tools if not already present
+            # Install testing tools
+            test_tools = ["pytest", "pytest-asyncio", "ruff"]
+            if self.parallel_tests:
+                test_tools.append("pytest-xdist")  # For parallel test execution
+
             subprocess.run(
-                [str(pip_path), "install", "pytest", "pytest-asyncio", "ruff", "-q"],
+                [str(pip_path), "install"] + test_tools + ["-q"],
                 capture_output=True,
                 timeout=120,
                 env=env,
@@ -238,19 +346,52 @@ class DependencyInstaller:
             return None
 
     def cleanup_all(self) -> None:
-        """Clean up all active environments."""
+        """Clean up all non-cached environments."""
         for env in self._active_envs:
-            env.cleanup()
+            if not env.is_cached:
+                env.cleanup()
         self._active_envs.clear()
+
+    def clear_cache(self) -> None:
+        """Clear all cached virtual environments."""
+        if self.cache_dir.exists():
+            shutil.rmtree(self.cache_dir, ignore_errors=True)
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+
+    def get_cache_size(self) -> int:
+        """Get total size of cached environments in bytes."""
+        if not self.cache_dir.exists():
+            return 0
+
+        total = 0
+        for path in self.cache_dir.rglob("*"):
+            if path.is_file():
+                total += path.stat().st_size
+        return total
 
     def get_test_command(
         self,
         env: IsolatedEnvironment,
         language: str,
+        parallel: bool = True,
     ) -> list[str]:
-        """Get the test command for the isolated environment."""
+        """
+        Get the test command for the isolated environment.
+
+        Args:
+            env: The isolated environment
+            language: Programming language
+            parallel: Whether to run tests in parallel (uses pytest-xdist)
+
+        Returns:
+            Command list to execute
+        """
         if language == "python":
-            return [str(env.python_path), "-m", "pytest"]
+            cmd = [str(env.python_path), "-m", "pytest"]
+            if parallel and self.parallel_tests:
+                # Use all available CPU cores
+                cmd.extend(["-n", "auto"])
+            return cmd
         elif language in ("javascript", "typescript"):
             return ["npm", "test"]
         else:

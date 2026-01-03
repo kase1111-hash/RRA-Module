@@ -148,6 +148,16 @@ def init(
     is_flag=True,
     help="Show verbose output including full test/lint errors",
 )
+@click.option(
+    "--no-cache",
+    is_flag=True,
+    help="Disable dependency caching (create fresh venv each time)",
+)
+@click.option(
+    "--clear-cache",
+    is_flag=True,
+    help="Clear dependency cache before running",
+)
 def ingest(
     repo_url: str,
     workspace: Path,
@@ -159,6 +169,8 @@ def ingest(
     timeout: int,
     auto_install_deps: bool,
     verbose: bool,
+    no_cache: bool,
+    clear_cache: bool,
 ):
     """
     Ingest a repository and generate its knowledge base.
@@ -176,6 +188,15 @@ def ingest(
     )
 
     try:
+        # Handle cache clearing
+        if clear_cache:
+            from rra.verification.dependency_installer import DependencyInstaller
+            console.print("[bold blue]Clearing dependency cache...[/bold blue]")
+            installer = DependencyInstaller()
+            cache_size = installer.get_cache_size()
+            installer.clear_cache()
+            console.print(f"[green]✓[/green] Cleared {cache_size / 1024 / 1024:.1f} MB from cache")
+
         with console.status("[bold blue]Ingesting repository...", spinner="dots"):
             ingester = RepoIngester(
                 workspace_dir=workspace,
@@ -186,6 +207,7 @@ def ingest(
                 network=network,
                 test_timeout=timeout,
                 auto_install_deps=auto_install_deps,
+                use_cache=not no_cache,
             )
             kb = ingester.ingest(repo_url, force_refresh=force)
 
@@ -693,7 +715,17 @@ def resolve(repo_id: str):
     is_flag=True,
     help="Show verbose output including full test/lint errors",
 )
-def verify(repo_url: str, skip_tests: bool, skip_security: bool, workspace: Path, timeout: int, auto_install_deps: bool, verbose: bool):
+@click.option(
+    "--no-cache",
+    is_flag=True,
+    help="Disable dependency caching (create fresh venv each time)",
+)
+@click.option(
+    "--clear-cache",
+    is_flag=True,
+    help="Clear dependency cache before running",
+)
+def verify(repo_url: str, skip_tests: bool, skip_security: bool, workspace: Path, timeout: int, auto_install_deps: bool, verbose: bool, no_cache: bool, clear_cache: bool):
     """
     Verify a GitHub repository's code quality.
 
@@ -711,6 +743,15 @@ def verify(repo_url: str, skip_tests: bool, skip_security: bool, workspace: Path
     )
 
     try:
+        # Handle cache clearing
+        if clear_cache:
+            from rra.verification.dependency_installer import DependencyInstaller
+            console.print("[bold blue]Clearing dependency cache...[/bold blue]")
+            installer = DependencyInstaller()
+            cache_size = installer.get_cache_size()
+            installer.clear_cache()
+            console.print(f"[green]✓[/green] Cleared {cache_size / 1024 / 1024:.1f} MB from cache")
+
         # Clone the repo first
         with console.status("[bold blue]Cloning repository...", spinner="dots"):
             ingester = RepoIngester(
@@ -729,6 +770,7 @@ def verify(repo_url: str, skip_tests: bool, skip_security: bool, workspace: Path
             skip_tests=skip_tests,
             skip_security=skip_security,
             auto_install_deps=auto_install_deps,
+            use_cache=not no_cache,
         )
 
         readme_content = kb.documentation.get("README.md", "")
