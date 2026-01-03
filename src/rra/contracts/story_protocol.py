@@ -171,7 +171,7 @@ class StoryProtocolClient:
 
             # Register using SDK - mints NFT and registers as IP in one tx
             result = self._story_client.IPAsset.mint_and_register_ip_asset_with_pil_terms(
-                nft_contract=spg_nft_contract,
+                spg_nft_contract=spg_nft_contract,
                 pil_type="non_commercial_social_remixing",  # Default, can be customized
                 metadata=ip_metadata,
                 recipient=owner_address,
