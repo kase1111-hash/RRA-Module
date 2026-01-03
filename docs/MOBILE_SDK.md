@@ -251,75 +251,13 @@ val payment = rra.payments.create(
 
 ---
 
-## React Native Integration
+## Other Platforms
 
-### Installation
+React Native and Flutter SDKs are planned for future releases. See [FUTURE.md](../FUTURE.md) for the roadmap.
 
-```bash
-npm install @rra/react-native-sdk
-# or
-yarn add @rra/react-native-sdk
-```
-
-### Usage
-
-```typescript
-import { RRAClient, DIDManager } from '@rra/react-native-sdk';
-
-// Initialize
-const rra = new RRAClient({
-  baseUrl: 'https://api.rra.io',
-  apiKey: 'your-api-key',
-});
-
-// Get repository
-const repo = await rra.repositories.get('https://github.com/user/repo');
-
-// Purchase license
-const license = await rra.licenses.purchase({
-  repositoryId: 'repo-123',
-  tier: 'standard',
-  paymentMethod: { type: 'ethereum', wallet: userWallet },
-});
-
-// DID Authentication
-const didManager = new DIDManager();
-const did = await didManager.create('nlc');
-const auth = await rra.auth.authenticate(did, challenge, signature);
-```
-
----
-
-## Flutter Integration
-
-### Installation
-
-```yaml
-dependencies:
-  rra_flutter_sdk: ^1.0.0
-```
-
-### Usage
-
-```dart
-import 'package:rra_flutter_sdk/rra_flutter_sdk.dart';
-
-// Initialize
-final rra = RRAClient(
-  baseUrl: 'https://api.rra.io',
-  apiKey: 'your-api-key',
-);
-
-// Get repository
-final repo = await rra.repositories.get('https://github.com/user/repo');
-
-// Purchase license
-final license = await rra.licenses.purchase(
-  repositoryId: 'repo-123',
-  tier: LicenseTier.standard,
-  paymentMethod: EthereumPayment(wallet: userWallet),
-);
-```
+Currently supported:
+- **iOS** (Swift) - Full feature support
+- **Android** (Kotlin) - Full feature support
 
 ---
 

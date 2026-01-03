@@ -490,26 +490,22 @@ python scripts/claim_royalties.py --ip-asset 0xYourIPAssetID
 - [DeFi Integration Feasibility](DEFI-INTEGRATION.md)
 - [Full Documentation Index](README.md)
 
-## Roadmap
+## Implementation Status
 
-### Phase 3 (Current - Q1 2025)
+All core Story Protocol features are implemented and live:
+
 - ✅ Story Protocol contract integration
 - ✅ IP Asset registration
 - ✅ PIL terms implementation
 - ✅ Derivative tracking
 - ✅ Royalty enforcement
+- ✅ License purchase enablement
+- ✅ Royalty claiming
+- ✅ Multi-chain support (Ethereum, Polygon, Arbitrum, Base, Optimism)
+- ✅ DeFi features (IPFi lending, yield tokens, fractional IP)
+- ✅ Marketplace UI
 
-### Phase 4 (Q2 2025)
-- ⏳ Multi-chain support (Ethereum, Polygon, Arbitrum)
-- ⏳ Automated derivative detection (GitHub webhooks)
-- ⏳ Story Protocol L1 native deployment
-- ⏳ IPFi lending integration (NFTfi)
-
-### Phase 5 (Q3 2025)
-- ⏳ Fractional IP ownership
-- ⏳ Yield-bearing license tokens
-- ⏳ DAO governance for IP portfolios
-- ⏳ Marketplace UI integration
+See [FUTURE.md](../FUTURE.md) for planned enhancements.
 
 ## License
 
