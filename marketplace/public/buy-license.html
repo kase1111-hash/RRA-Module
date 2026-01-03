@@ -102,15 +102,16 @@
     </div>
 
     <script>
-        const IP_ASSET_ID = "0xb77ABcfFbf063a3e6BACA37D72353750475D4E70";
+        // Use lowercase addresses to avoid checksum issues - ethers will normalize them
+        const IP_ASSET_ID = ethers.getAddress("0xb77ABcfFbf063a3e6BACA37D72353750475D4E70");
         const LICENSE_TERMS_ID = 3;
         const PRICE_WEI = "50000000000000000";
         const STORY_CHAIN_ID = 1514;
         const STORY_RPC = "https://mainnet.storyrpc.io";
 
-        // Story Protocol Licensing Module Address
-        const LICENSING_MODULE = "0xd81fd78f557b457b4350cB95D20b547bFEb4D857";
-        const PIL_TEMPLATE = "0x0752B15Ee7303033854bdE1B32bc7A4008752Dc0";
+        // Story Protocol Licensing Module Address (checksummed by ethers)
+        const LICENSING_MODULE = ethers.getAddress("0xd81fd78f557b457b4350cb95d20b547bfeb4d857");
+        const PIL_TEMPLATE = ethers.getAddress("0x0752b15ee7303033854bde1b32bc7a4008752dc0");
 
         let provider;
         let signer;
