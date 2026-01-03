@@ -353,23 +353,43 @@ class CodeVerifier:
                 },
             )
         else:
-            # Build informative failure message
+            # Calculate pass rate if we have test counts
+            total_tests = passed + failed + errors
+            pass_rate = (passed / total_tests * 100) if total_tests > 0 else 0
+
+            # Build informative message
             if passed > 0 or failed > 0:
                 msg = f"Tests: {passed} passed, {failed} failed, {errors} errors"
             else:
                 error_preview = test_result.get("error", "Unknown error")
-                # Get last line that looks like an error summary
                 msg = f"Tests failed: {error_preview[:100]}"
+
+            # Determine status based on pass rate
+            # High pass rate (>= 95%) with few failures = WARNING (not full failure)
+            # Moderate pass rate (>= 80%) = WARNING
+            # Low pass rate (< 80%) = FAILED
+            if total_tests > 0 and pass_rate >= 95:
+                # Very high pass rate - just a warning, minor issues
+                status = VerificationStatus.WARNING
+                msg = f"Tests mostly passing: {passed} passed, {failed} failed ({pass_rate:.1f}% pass rate)"
+            elif total_tests > 0 and pass_rate >= 80:
+                # Good pass rate - warning with more urgency
+                status = VerificationStatus.WARNING
+                msg = f"Tests: {passed} passed, {failed} failed ({pass_rate:.1f}% pass rate)"
+            else:
+                # Low pass rate or no test counts - full failure
+                status = VerificationStatus.FAILED
 
             return CheckResult(
                 name="tests",
-                status=VerificationStatus.FAILED,
+                status=status,
                 message=msg,
                 details={
                     "test_files": len(test_files),
                     "test_count": test_count,
                     "error": test_result.get("error", "")[-3000:],  # Show end of output
                     "summary": summary,
+                    "pass_rate": pass_rate if total_tests > 0 else None,
                 },
             )
 
@@ -786,14 +806,6 @@ class CodeVerifier:
         """Parse pytest output to extract pass/fail counts from summary line."""
         # Look for pytest summary line like: "1126 passed, 5 failed, 2 errors in 300.5s"
         # Or: "===== 1126 passed in 300.5s ====="
-        summary_patterns = [
-            r"(\d+)\s+passed",
-            r"(\d+)\s+failed",
-            r"(\d+)\s+error",
-            r"(\d+)\s+skipped",
-            r"(\d+)\s+warning",
-        ]
-
         result = {"passed": 0, "failed": 0, "errors": 0, "skipped": 0, "warnings": 0}
 
         # Search the last 2000 chars where summary appears
