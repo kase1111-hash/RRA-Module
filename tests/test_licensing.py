@@ -11,6 +11,7 @@ import unittest
 from pathlib import Path
 import sys
 import os
+import subprocess
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -214,13 +215,17 @@ class TestLicenseIntegration(unittest.TestCase):
         """Test that license verification can run."""
         verify_script = self.repo_root / "scripts" / "verify_license.py"
 
-        # Run verification script
-        exit_code = os.system(f"python {verify_script} > /dev/null 2>&1")
+        # Run verification script using subprocess for cross-platform compatibility
+        result = subprocess.run(
+            [sys.executable, str(verify_script)],
+            capture_output=True,
+            text=True,
+        )
 
         self.assertEqual(
-            exit_code,
+            result.returncode,
             0,
-            "License verification script should exit with code 0"
+            f"License verification script should exit with code 0. stderr: {result.stderr}"
         )
 
 

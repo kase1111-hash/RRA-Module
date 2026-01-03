@@ -365,19 +365,19 @@ class CodeVerifier:
                 msg = f"Tests failed: {error_preview[:100]}"
 
             # Determine status based on pass rate
-            # High pass rate (>= 95%) with few failures = WARNING (not full failure)
-            # Moderate pass rate (>= 80%) = WARNING
-            # Low pass rate (< 80%) = FAILED
-            if total_tests > 0 and pass_rate >= 95:
-                # Very high pass rate - just a warning, minor issues
-                status = VerificationStatus.WARNING
-                msg = f"Tests mostly passing: {passed} passed, {failed} failed ({pass_rate:.1f}% pass rate)"
-            elif total_tests > 0 and pass_rate >= 80:
-                # Good pass rate - warning with more urgency
+            # >= 97% = PASSED (essentially perfect)
+            # < 97% = PARTIAL (score proportional to pass rate)
+            # 0% or no tests = FAILED
+            if total_tests > 0 and pass_rate >= 97:
+                # Near-perfect pass rate counts as passed
+                status = VerificationStatus.PASSED
+                msg = f"Tests passed: {passed} passed, {failed} failed ({pass_rate:.1f}% pass rate)"
+            elif total_tests > 0 and pass_rate > 0:
+                # Partial pass - score will be proportional to pass rate
                 status = VerificationStatus.WARNING
                 msg = f"Tests: {passed} passed, {failed} failed ({pass_rate:.1f}% pass rate)"
             else:
-                # Low pass rate or no test counts - full failure
+                # No passes or no test counts - full failure
                 status = VerificationStatus.FAILED
 
             return CheckResult(
@@ -1125,7 +1125,12 @@ class CodeVerifier:
             if check.status == VerificationStatus.PASSED:
                 score += weight
             elif check.status == VerificationStatus.WARNING:
-                score += weight * 0.5
+                # For tests, use proportional scoring based on pass rate
+                if check.name == "tests" and check.details and check.details.get("pass_rate") is not None:
+                    pass_rate = check.details["pass_rate"]
+                    score += weight * (pass_rate / 100)  # Proportional to pass rate
+                else:
+                    score += weight * 0.5  # Default: half points for warnings
                 has_warning = True
             elif check.status == VerificationStatus.FAILED:
                 has_failure = True
