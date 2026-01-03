@@ -113,14 +113,18 @@ class StoryProtocolClient:
         if self.DEFAULT_SPG_COLLECTIONS.get(self.network):
             return self.DEFAULT_SPG_COLLECTIONS[self.network]
 
-        # Create new SPG NFT collection
+        # Create new SPG NFT collection with all required parameters
         result = self._story_client.NFTClient.create_nft_collection(
             name="RRA Repository Licenses",
             symbol="RRA-LICENSE",
             max_supply=1000000,
             mint_fee=0,
             mint_fee_token="0x0000000000000000000000000000000000000000",
+            mint_fee_recipient=owner_address,
             owner=owner_address,
+            is_public_minting=True,
+            mint_open=True,
+            contract_uri="",
         )
 
         nft_contract = result.get("nft_contract") or result.get("nftContract")
