@@ -33,7 +33,33 @@ CONTRACTS = {
 LICENSE_TERMS_ID = 28437
 
 # ABIs
+# createCollection is on RegistrationWorkflows, takes InitParams tuple
 REGISTRATION_WORKFLOWS_ABI = [
+    {
+        "inputs": [
+            {
+                "name": "spgNftInitParams",
+                "type": "tuple",
+                "components": [
+                    {"name": "name", "type": "string"},
+                    {"name": "symbol", "type": "string"},
+                    {"name": "baseURI", "type": "string"},
+                    {"name": "contractURI", "type": "string"},
+                    {"name": "maxSupply", "type": "uint32"},
+                    {"name": "mintFee", "type": "uint256"},
+                    {"name": "mintFeeToken", "type": "address"},
+                    {"name": "mintFeeRecipient", "type": "address"},
+                    {"name": "owner", "type": "address"},
+                    {"name": "mintOpen", "type": "bool"},
+                    {"name": "isPublicMinting", "type": "bool"},
+                ]
+            }
+        ],
+        "name": "createCollection",
+        "outputs": [{"name": "spgNftContract", "type": "address"}],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
     {
         "inputs": [
             {"name": "spgNftContract", "type": "address"},
@@ -55,23 +81,6 @@ REGISTRATION_WORKFLOWS_ABI = [
             {"name": "ipId", "type": "address"},
             {"name": "tokenId", "type": "uint256"}
         ],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    }
-]
-
-SPG_NFT_BEACON_ABI = [
-    {
-        "inputs": [
-            {"name": "name", "type": "string"},
-            {"name": "symbol", "type": "string"},
-            {"name": "maxSupply", "type": "uint32"},
-            {"name": "mintFee", "type": "uint256"},
-            {"name": "mintFeeToken", "type": "address"},
-            {"name": "owner", "type": "address"},
-        ],
-        "name": "createCollection",
-        "outputs": [{"name": "", "type": "address"}],
         "stateMutability": "nonpayable",
         "type": "function"
     }
@@ -159,34 +168,41 @@ def main():
         abi=LICENSING_MODULE_ABI
     )
 
-    # OPTION A: Use an existing public SPG NFT collection
-    # Story Protocol has a default SPG NFT that anyone can mint from
-    # Let's try to find one or use the beacon to create one
-
+    # Use RegistrationWorkflows.createCollection to create an SPG NFT collection
     print("\n" + "-" * 60)
     print("STEP 1: Creating SPG NFT Collection")
     print("-" * 60)
 
-    spg_beacon = w3.eth.contract(
-        address=Web3.to_checksum_address(CONTRACTS["spg_nft_beacon"]),
-        abi=SPG_NFT_BEACON_ABI
+    workflows = w3.eth.contract(
+        address=Web3.to_checksum_address(CONTRACTS["registration_workflows"]),
+        abi=REGISTRATION_WORKFLOWS_ABI
     )
 
     try:
         # Create a new SPG NFT collection for RRA-Module
+        # InitParams tuple structure
+        init_params = (
+            "RRA-Module License",      # name
+            "RRML",                    # symbol
+            "",                        # baseURI
+            "https://raw.githubusercontent.com/kase1111-hash/RRA-Module/main/.market.yaml",  # contractURI
+            1000,                      # maxSupply
+            w3.to_wei(0.005, 'ether'), # mintFee (0.005 IP)
+            "0x0000000000000000000000000000000000000000",  # mintFeeToken (native IP)
+            account.address,           # mintFeeRecipient (owner gets fees)
+            account.address,           # owner
+            True,                      # mintOpen
+            True,                      # isPublicMinting
+        )
+
         nonce = w3.eth.get_transaction_count(account.address)
 
-        tx = spg_beacon.functions.createCollection(
-            "RRA-Module License",  # name
-            "RRML",                # symbol
-            1000,                  # maxSupply
-            w3.to_wei(0.005, 'ether'),  # mintFee (0.005 IP)
-            "0x0000000000000000000000000000000000000000",  # mintFeeToken (native)
-            account.address,       # owner
+        tx = workflows.functions.createCollection(
+            init_params
         ).build_transaction({
             'from': account.address,
             'nonce': nonce,
-            'gas': 500000,
+            'gas': 800000,
             'gasPrice': w3.eth.gas_price,
             'chainId': CHAIN_ID,
         })
