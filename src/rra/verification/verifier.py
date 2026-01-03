@@ -828,16 +828,26 @@ class CodeVerifier:
                 }
 
                 # Scoring logic:
-                # - Mature: > 90 days old, > 5 commits/month, actively maintained (< 30 days)
-                # - Developing: > 30 days, some activity
-                # - New: < 30 days or very low activity
+                # - High-velocity: very active development (50+ commits/month, 50+ total)
+                # - Mature: > 90 days old, > 5 commits/month, actively maintained (< 60 days)
+                # - Active: > 30 days with 10+ commits, OR young with high activity
+                # - Developing: >= 5 commits
+                # - New: < 5 commits
 
-                if age_days >= 90 and commits_per_month >= 5 and days_since_last <= 60:
+                if commits_per_month >= 50 and total_commits >= 50:
+                    # High-velocity development - young but extremely active
+                    status = VerificationStatus.PASSED
+                    msg = f"High-velocity project: {total_commits} commits, {commits_per_month:.0f} commits/month, {len(contributors)} contributors"
+                elif age_days >= 90 and commits_per_month >= 5 and days_since_last <= 60:
                     status = VerificationStatus.PASSED
                     msg = f"Mature project: {age_days} days old, {commits_per_month:.1f} commits/month, {len(contributors)} contributors"
                 elif age_days >= 30 and total_commits >= 10:
                     status = VerificationStatus.PASSED
                     msg = f"Active project: {age_days} days old, {total_commits} commits, {len(contributors)} contributors"
+                elif total_commits >= 20 and commits_per_month >= 10:
+                    # Young but active - significant work being done
+                    status = VerificationStatus.PASSED
+                    msg = f"Active development: {total_commits} commits in {age_days} days, {len(contributors)} contributors"
                 elif total_commits >= 5:
                     status = VerificationStatus.WARNING
                     msg = f"Developing project: {age_days} days old, {total_commits} commits"
