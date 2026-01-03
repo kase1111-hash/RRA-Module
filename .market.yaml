@@ -132,7 +132,7 @@ defi_integrations:
     network: "mainnet"  # Options: mainnet, testnet
 
     # License Terms Configuration (for purchases)
-    license_terms_id: 3  # Commercial Remix PIL flavor (commercial use + derivatives)
+    license_terms_id: 28437  # Custom terms with 0.005 ETH minting fee and LAP royalty policy
 
     # Programmable IP License (PIL) Terms
     pil_terms:
