@@ -60,6 +60,13 @@ blockchain:
     platform: 8    # Percentage to NatLangChain platform
     community: 1   # Percentage to community treasury
 
+  # Wallet addresses for revenue distribution
+  # IMPORTANT: Set these to your actual wallet addresses!
+  wallets:
+    developer: null   # Your wallet - receives 91% (set via --wallet flag or here)
+    platform: null    # Platform fee wallet - receives 8% (set your wallet here)
+    community: null   # Community treasury - receives 1% (set your wallet here)
+
   # NFT License Token Configuration
   nft_config:
     token_standard: "ERC-721"  # Each license is unique NFT

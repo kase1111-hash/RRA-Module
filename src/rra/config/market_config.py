@@ -100,7 +100,15 @@ class MarketConfig(BaseModel):
     )
 
     developer_wallet: Optional[str] = Field(
-        default=None, description="Ethereum wallet address for receiving payments"
+        default=None, description="Ethereum wallet address for receiving payments (91%)"
+    )
+
+    platform_wallet: Optional[str] = Field(
+        default=None, description="Platform wallet address for platform fees (8%)"
+    )
+
+    community_wallet: Optional[str] = Field(
+        default=None, description="Community treasury wallet address (1%)"
     )
 
     # Story Protocol Integration
