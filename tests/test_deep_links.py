@@ -222,11 +222,12 @@ class TestDeepLinkServiceDefaultBaseUrl:
     """Test default base URL behavior."""
 
     def test_default_base_url(self):
-        """Test that default base URL is natlangchain.io."""
+        """Test that default base URL is Story Protocol testnet explorer."""
         service = DeepLinkService()
         url = service.get_agent_url("https://github.com/user/repo")
 
-        assert url.startswith("https://natlangchain.io/")
+        # Story Protocol testnet explorer (live blockchain infrastructure)
+        assert url.startswith("https://aeneid.explorer.story.foundation/")
 
     def test_custom_base_url(self):
         """Test custom base URL override."""
