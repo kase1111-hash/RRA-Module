@@ -383,6 +383,69 @@ pytest tests/test_story_protocol.py::TestStoryProtocolClient -v
 pytest tests/test_story_protocol.py --cov=rra.contracts.story_protocol --cov=rra.integrations.story_integration
 ```
 
+## Scripts
+
+The RRA Module includes ready-to-use scripts for Story Protocol integration:
+
+### enable_story_purchases.py
+
+Attaches license terms to your IP Asset, enabling buyers to purchase licenses.
+
+```bash
+# Windows
+set STORY_PRIVATE_KEY=0xYourPrivateKey
+python scripts/enable_story_purchases.py --ip-asset 0xYourIPAssetID
+
+# Linux/Mac
+export STORY_PRIVATE_KEY=0xYourPrivateKey
+python scripts/enable_story_purchases.py --ip-asset 0xYourIPAssetID
+```
+
+**Options:**
+- `--ip-asset` - Your IP Asset address (required)
+- `--market-config` - Path to .market.yaml (default: .market.yaml)
+- `--network` - mainnet or testnet (default: mainnet)
+- `--output-dir` - Where to save buyer HTML (default: marketplace/public)
+
+**Output:**
+- Attaches PIL license terms on-chain
+- Generates `buy-license.html` buyer interface
+
+### claim_royalties.py
+
+Claims pending revenue from your IP Asset's Royalty Vault.
+
+```bash
+# Windows
+set STORY_PRIVATE_KEY=0xYourPrivateKey
+python scripts/claim_royalties.py --ip-asset 0xYourIPAssetID
+
+# Linux/Mac
+export STORY_PRIVATE_KEY=0xYourPrivateKey
+python scripts/claim_royalties.py --ip-asset 0xYourIPAssetID
+```
+
+**Options:**
+- `--ip-asset` - Your IP Asset address (default: reads from .market.yaml)
+- `--network` - mainnet or testnet (default: mainnet)
+
+**What it does:**
+1. Finds your IP Asset's Royalty Vault
+2. Snapshots pending revenue (makes it claimable)
+3. Claims revenue to your wallet
+
+## Live Example
+
+This repository (RRA-Module) is live on Story Protocol:
+
+| Field | Value |
+|-------|-------|
+| IP Asset | `0xb77ABcfFbf063a3e6BACA37D72353750475D4E70` |
+| License Terms ID | 3 (Commercial Remix) |
+| Price | 0.05 ETH |
+| Purchase Page | [Buy License](https://kase1111-hash.github.io/RRA-Module/marketplace/public/buy-license.html) |
+| StoryScan | [View on Chain](https://www.storyscan.io/token/0xb77ABcfFbf063a3e6BACA37D72353750475D4E70) |
+
 ## Troubleshooting
 
 ### Issue: "Contract not initialized"
@@ -400,6 +463,24 @@ pytest tests/test_story_protocol.py --cov=rra.contracts.story_protocol --cov=rra
 ### Issue: Transaction fails with "insufficient funds"
 
 **Solution**: Ensure your wallet has enough ETH for gas fees and any required payments.
+
+### Issue: "bad address checksum" error
+
+**Solution**: Use lowercase addresses in JavaScript. The `buy-license.html` uses lowercase addresses to bypass ethers.js checksum validation.
+
+### Issue: Can't find revenue after purchase
+
+**Solution**: Revenue goes to your IP Asset's Royalty Vault, not directly to your wallet. Use `claim_royalties.py` to claim:
+```bash
+python scripts/claim_royalties.py --ip-asset 0xYourIPAssetID
+```
+
+### Issue: "No Royalty Vault found"
+
+**Solution**: This means either:
+- No purchases have been made yet
+- The IP Asset wasn't registered with royalty support
+- Check StoryScan for your IP Asset's vault address
 
 ## Resources
 
