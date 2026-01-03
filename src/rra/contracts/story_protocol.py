@@ -206,18 +206,15 @@ class StoryProtocolClient:
             if not self._story_client:
                 self._init_sdk_client(private_key)
 
-            # Determine PIL type based on terms
-            if pil_terms.commercial_use:
-                if pil_terms.commercial_revenue_share > 0:
-                    pil_type = "commercial_remix"
-                else:
-                    pil_type = "commercial_use"
-            else:
-                pil_type = "non_commercial_social_remixing"
+            # Use pre-registered license terms
+            # license_terms_id=1 is "Non-Commercial Social Remixing" (pre-registered in protocol)
+            # PILicenseTemplate address on testnet
+            pil_template = "0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316"
 
             result = self._story_client.License.attach_license_terms(
                 ip_id=ip_asset_id,
-                pil_type=pil_type,
+                license_template=pil_template,
+                license_terms_id=1,
             )
 
             return result.get("txHash") or result.get("tx_hash", "")
