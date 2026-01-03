@@ -1,0 +1,357 @@
+# Story Protocol License Enablement - Constitutional Layer
+# NLOS (Natural Language Operating System) Configuration
+#
+# This file defines the transformation protocol for converting RRA market.yaml
+# configurations to Story Protocol's Programmable IP License (PIL) terms,
+# enabling automated license token minting and purchases.
+#
+# Copyright 2025 Kase Branham
+# SPDX-License-Identifier: FSL-1.1-ALv2
+
+constitutional_layer:
+  name: "RRA to Story Protocol License Bridge"
+  version: "1.0.0"
+  description: |
+    Bridges RRA Module's market.yaml configurations to Story Protocol's
+    on-chain licensing infrastructure, enabling buyers to mint license
+    tokens directly from registered IP Assets.
+
+# =============================================================================
+# TRANSFORMATION PROTOCOL
+# =============================================================================
+transformation_protocol:
+  input: "RRA market.yaml"
+  output: "Story Protocol PIL Terms + Mintable License Tokens"
+
+  # Mapping rules from market.yaml fields to Story Protocol
+  mapping_rules:
+    # License Model Translation
+    license_model_translation:
+      perpetual:
+        PIL_terms:
+          transferable: true
+          expiration: 0  # Never expires
+          commercial_use: true
+        description: "Perpetual license with full transfer rights"
+
+      per-seat:
+        PIL_terms:
+          transferable: false
+          expiration: 0
+          commercial_use: true
+          max_mint_per_buyer: 1
+        description: "Per-seat license, non-transferable"
+
+      subscription:
+        PIL_terms:
+          transferable: false
+          expiration_type: "time-based"  # Requires renewal
+          commercial_use: true
+        description: "Time-limited subscription license"
+
+      one-time:
+        PIL_terms:
+          transferable: false
+          expiration: 0
+          derivatives_allowed: false
+        description: "Single-use license, no derivative rights"
+
+    # Pricing Translation
+    pricing_translation:
+      target_price:
+        maps_to: "defaultMintingFee"
+        format: "wei"
+        notes: "Primary license price in WIP or ETH"
+
+      floor_price:
+        maps_to: "minimumRevenueShare"
+        calculation: "(floor_price / target_price) * 100"
+        notes: "Minimum revenue share percentage for derivatives"
+
+      ceiling_price:
+        maps_to: "premiumMintingFee"
+        format: "wei"
+        notes: "Enterprise/premium tier pricing"
+
+    # Rights Translation
+    rights_translation:
+      allow_custom_fork_rights:
+        true:
+          derivatives_allowed: true
+          derivatives_attribution: true
+          derivatives_reciprocal: false
+        false:
+          derivatives_allowed: false
+          derivatives_attribution: false
+          derivatives_reciprocal: false
+
+    # Revenue Sharing Translation
+    revenue_sharing:
+      derivatives_enabled:
+        condition: "derivatives_allowed == true"
+        commercialRevShare:
+          source: "derivative_royalty_percentage"
+          format: "basis_points"  # 0.09 -> 900 bps -> 9%
+          default: 900
+
+      derivatives_disabled:
+        commercialRevShare: 0
+
+# =============================================================================
+# EXECUTION SEQUENCE
+# =============================================================================
+execution_sequence:
+  step_1:
+    action: "load_market_yaml"
+    description: "Load and validate .market.yaml configuration"
+    validation:
+      - "required_fields: [target_price, floor_price]"
+      - "story_protocol.enabled == true"
+      - "valid_ethereum_address: developer_wallet"
+
+  step_2:
+    action: "parse_pricing"
+    description: "Convert ETH/USDC prices to wei format"
+    transformations:
+      - "target_price_eth -> target_price_wei"
+      - "floor_price_eth -> floor_price_wei"
+      - "Apply currency conversion if USDC/DAI"
+
+  step_3:
+    action: "build_pil_terms"
+    description: "Generate PIL terms object from market.yaml"
+    output:
+      type: "PILTerms"
+      fields:
+        - transferable
+        - commercialUse
+        - commercialAttribution
+        - commercialRevShare
+        - derivativesAllowed
+        - derivativesAttribution
+        - derivativesApproval
+        - derivativesReciprocal
+        - defaultMintingFee
+        - currency
+        - expiration
+
+  step_4:
+    action: "attach_to_ip_asset"
+    description: "Attach PIL terms to Story Protocol IP Asset"
+    contract_call:
+      target: "LicensingModule.attachLicenseTerms"
+      params:
+        - ipId: "${ip_asset_id}"
+        - licenseTemplate: "${pil_template_address}"
+        - licenseTermsData: "${generated_pil_terms}"
+
+  step_5:
+    action: "verify_attachment"
+    description: "Verify license terms are properly attached"
+    checks:
+      - "Query IP Asset for attached terms"
+      - "Verify license_terms_id returned"
+      - "Confirm minting is enabled"
+
+  step_6:
+    action: "generate_buyer_interface"
+    description: "Create HTML/React interface for license purchases"
+    output:
+      - "buy-license.html (static page)"
+      - "StoryProtocolPurchase.tsx (React component)"
+      - "API endpoint documentation"
+
+  step_7:
+    action: "update_rra_database"
+    description: "Store Story Protocol listing details"
+    updates:
+      - "ip_asset_id -> market.yaml"
+      - "license_terms_id -> database"
+      - "storyscan_url -> marketplace listing"
+
+# =============================================================================
+# PURCHASE FLOW
+# =============================================================================
+purchase_flow:
+  name: "License Token Minting Flow"
+  description: |
+    End-to-end flow for buyers to purchase (mint) license tokens
+    from Story Protocol-registered IP Assets.
+
+  steps:
+    buyer_initiates:
+      trigger: "Buyer clicks 'Purchase License' button"
+      actions:
+        - "Check wallet connection"
+        - "Verify Story Protocol network (Chain ID 1514)"
+        - "Display license terms summary"
+
+    wallet_approval:
+      trigger: "Buyer approves transaction in wallet"
+      contract_call:
+        function: "LicensingModule.mintLicenseTokens"
+        params:
+          licensorIpId: "${ip_asset_id}"
+          licenseTemplate: "${pil_template}"
+          licenseTermsId: "${license_terms_id}"
+          amount: 1
+          receiver: "${buyer_address}"
+          royaltyContext: "0x"
+        value: "${minting_fee_wei}"
+
+    transaction_pending:
+      status: "Waiting for blockchain confirmation"
+      ui_state: "Loading spinner, tx hash displayed"
+
+    transaction_confirmed:
+      status: "License token minted successfully"
+      outputs:
+        - "License Token ID (ERC-721 NFT)"
+        - "Transaction receipt"
+        - "StoryScan verification link"
+      post_actions:
+        - "Update buyer's license inventory"
+        - "Trigger access provisioning webhook"
+        - "Send confirmation notification"
+
+    revenue_distribution:
+      automatic: true
+      description: "Story Protocol handles royalty distribution"
+      splits:
+        - "IP Owner receives minting fee minus protocol fees"
+        - "Derivative royalties flow to parent IP owners"
+
+# =============================================================================
+# PAYMENT RAILS
+# =============================================================================
+payment_rails:
+  primary_token: "ETH"
+  accepted_currencies:
+    - symbol: "ETH"
+      address: "0x0000000000000000000000000000000000000000"
+      note: "Native token on Story Protocol"
+
+    - symbol: "WIP"
+      address: "0x1514000000000000000000000000000000000000"
+      note: "Story Protocol wrapped IP token"
+
+    - symbol: "USDC"
+      address: "TBD"
+      note: "Stablecoin support pending"
+
+  conversion:
+    method: "Oracle-based at transaction time"
+    note: "Prices in market.yaml are in ETH, converted as needed"
+
+  escrow:
+    contract: "Story Protocol's built-in royalty module"
+    note: "No separate escrow needed - protocol handles atomically"
+
+# =============================================================================
+# ERROR HANDLING
+# =============================================================================
+error_handling:
+  wallet_not_connected:
+    message: "Please connect your Web3 wallet to continue"
+    action: "Display RainbowKit connect button"
+
+  wrong_network:
+    message: "Please switch to Story Protocol network"
+    action: "Prompt network switch via wallet_switchEthereumChain"
+    target_chain_id: 1514
+
+  insufficient_funds:
+    message: "Insufficient balance for purchase"
+    action: "Display required amount and user's balance"
+
+  transaction_rejected:
+    message: "Transaction rejected by user"
+    action: "Reset UI to initial state"
+
+  transaction_failed:
+    message: "Transaction failed on-chain"
+    action: "Display error reason, suggest retry"
+    recovery: "Check gas limits, nonce issues"
+
+  license_terms_not_attached:
+    message: "License terms not found for this IP Asset"
+    action: "Admin must run enable_story_purchases.py first"
+
+# =============================================================================
+# MONITORING & ANALYTICS
+# =============================================================================
+monitoring:
+  events_tracked:
+    - "LicenseTokensMinted"
+    - "LicenseTermsAttached"
+    - "RoyaltyPaid"
+
+  metrics:
+    - "Total licenses minted per IP Asset"
+    - "Revenue collected (ETH/USD)"
+    - "Conversion rate (views -> purchases)"
+    - "Average time to purchase"
+
+  dashboards:
+    storyscan: "https://storyscan.io/token/${ip_asset_id}"
+    marketplace: "/dashboard/analytics"
+
+# =============================================================================
+# INTEGRATION CHECKLIST
+# =============================================================================
+integration_checklist:
+  prerequisites:
+    - name: "IP Asset registered on Story Protocol"
+      check: "ip_asset_id exists in .market.yaml"
+      docs: "docs/STORY-PROTOCOL-INTEGRATION.md"
+
+    - name: "Owner wallet has ETH for gas"
+      check: "Check wallet balance before attachment"
+      minimum: "0.01 ETH recommended"
+
+    - name: "story_protocol.enabled = true in market.yaml"
+      check: "Parse and validate configuration"
+
+  enable_purchases:
+    command: |
+      python scripts/enable_story_purchases.py \
+        --ip-asset 0xYourIPAssetID \
+        --market-config .market.yaml \
+        --network mainnet
+
+    outputs:
+      - "License terms attached to IP Asset"
+      - "license_terms_id returned and stored"
+      - "Buyer interface HTML generated"
+
+  verify_listing:
+    steps:
+      - "Visit StoryScan: https://storyscan.io/token/${ip_asset_id}"
+      - "Verify 'License Terms' section shows attached terms"
+      - "Test purchase flow with small amount on testnet first"
+
+  production_launch:
+    steps:
+      - "Deploy buyer interface to GitHub Pages or hosting"
+      - "Add purchase link to repository README"
+      - "Monitor initial purchases for issues"
+      - "Set up revenue tracking dashboard"
+
+# =============================================================================
+# METADATA
+# =============================================================================
+metadata:
+  created: "2025-12-19"
+  updated: "2026-01-03"
+  author: "RRA Module Team"
+  status: "production"
+  chain_support:
+    - name: "Story Protocol Mainnet"
+      chain_id: 1514
+      rpc: "https://mainnet.storyrpc.io"
+      explorer: "https://storyscan.io"
+
+    - name: "Story Protocol Testnet (Aeneid)"
+      chain_id: 1315
+      rpc: "https://aeneid.storyrpc.io"
+      explorer: "https://aeneid.storyscan.xyz"
