@@ -98,15 +98,9 @@ class StoryIntegrationManager:
             )
             result["pil_terms_tx"] = terms_tx
 
-            # Set royalty policy if configured
-            if market_config.derivative_royalty_percentage:
-                royalty_tx = self._set_royalty_policy(
-                    ip_asset_id=result["ip_asset_id"],
-                    royalty_percentage=market_config.derivative_royalty_percentage,
-                    owner_address=owner_address,
-                    private_key=private_key,
-                )
-                result["royalty_tx"] = royalty_tx
+            # Note: Royalty policy is already configured in license terms (license_terms_id=1)
+            # Additional royalty configuration can be added later if needed
+            # TODO: Implement custom royalty policy via SDK when available
 
         return result
 
