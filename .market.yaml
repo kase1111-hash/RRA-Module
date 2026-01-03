@@ -128,7 +128,7 @@ defi_integrations:
   # Story Protocol - Programmable IP Licensing (Phase 3)
   story_protocol:
     enabled: true  # Story Protocol integration is now active
-    ip_asset_id: null  # Auto-populated after registration on Story Protocol
+    ip_asset_id: "0x513fD14485FC3485F691d12be55C0D03a6b0Ed43"  # Mainnet IP Asset ID
     network: "mainnet"  # Options: mainnet, testnet
 
     # Programmable IP License (PIL) Terms
