@@ -139,7 +139,7 @@ defi_integrations:
       derivatives_reciprocal: false     # Copyleft requirement (false = permissive)
 
     # Derivative Royalty Configuration
-    derivative_royalty_percentage: 0.15  # 15% royalty on derivative revenues
+    derivative_royalty_percentage: 0.09  # 9% royalty on derivative revenues (matches 8% platform + 1% community)
     payment_token: "ETH"  # Options: ETH, USDC, DAI
 
     # Automatic Derivative Tracking
