@@ -5,6 +5,32 @@ All notable changes to the RRA Module will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-beta] - 2026-01-03
+
+### Added
+- **Story Protocol Live Integration**: Complete license purchase flow on Story Protocol mainnet
+  - IP Asset registered: `0xb77ABcfFbf063a3e6BACA37D72353750475D4E70`
+  - PIL license terms attached (Commercial Remix, 0.05 ETH, 9% royalty)
+  - Working buyer interface at `marketplace/public/buy-license.html`
+- **Royalty Claiming**: `scripts/claim_royalties.py` for claiming revenue from Royalty Vault
+- **Purchase Enablement Script**: `scripts/enable_story_purchases.py` for attaching license terms
+- **Selling Licenses Guide**: `docs/SELLING-LICENSES.md` - complete monetization walkthrough
+
+### Changed
+- Updated all documentation to reflect implemented vs. planned features
+- Moved future features (React Native, Flutter SDKs) to `FUTURE.md`
+- Updated `docs/STORY-PROTOCOL-INTEGRATION.md` with Implementation Status section
+- Cleaned up `docs/MOBILE_SDK.md` to reflect iOS/Android only (current)
+
+### Fixed
+- Address checksum errors in buy-license.html (ethers.js v6 compatibility)
+- Lowercase addresses bypass checksum validation for contract interactions
+
+### Documentation
+- Added purchase badge to README.md
+- Added prominent "Purchase a License" section
+- Comprehensive troubleshooting for Story Protocol issues
+
 ## [0.1.0-alpha] - 2026-01-01
 
 ### Added
