@@ -57,6 +57,7 @@ class RepoIngester:
         network: str = "testnet",
         test_timeout: int = 300,
         auto_install_deps: bool = False,
+        use_cache: bool = True,
     ):
         """
         Initialize the RepoIngester.
@@ -70,6 +71,7 @@ class RepoIngester:
             network: Blockchain network ("mainnet", "testnet", "localhost")
             test_timeout: Timeout in seconds for test execution
             auto_install_deps: Automatically install dependencies in temp environment
+            use_cache: Whether to cache virtual environments for faster subsequent runs
         """
         self.workspace_dir = workspace_dir
         self.workspace_dir.mkdir(parents=True, exist_ok=True)
@@ -80,6 +82,7 @@ class RepoIngester:
         self.network = network
         self.test_timeout = test_timeout
         self.auto_install_deps = auto_install_deps
+        self.use_cache = use_cache
 
         # Initialize verification and categorization modules
         self._verifier = None
@@ -96,6 +99,7 @@ class RepoIngester:
             self._verifier = CodeVerifier(
                 timeout=self.test_timeout,
                 auto_install_deps=self.auto_install_deps,
+                use_cache=self.use_cache,
             )
         return self._verifier
 
