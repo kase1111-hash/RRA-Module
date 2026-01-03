@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rra-module"
-version = "0.1.0-alpha"
+version = "1.0.0-beta"
 description = "Revenant Repo Agent Module - Transform dormant repos into autonomous licensing agents"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -14,7 +14,7 @@ authors = [
 ]
 keywords = ["blockchain", "ai", "licensing", "github", "automation", "web3"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "License :: Other/Proprietary License",
     "Programming Language :: Python :: 3",
