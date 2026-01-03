@@ -215,6 +215,18 @@ class CodeVerifier:
             license_check = self._check_license(repo_path)
             checks.append(license_check)
 
+            # 8. Check for CI/CD
+            cicd_check = self._check_cicd(repo_path)
+            checks.append(cicd_check)
+
+            # 9. Check repository maturity
+            maturity_check = self._check_maturity(repo_path)
+            checks.append(maturity_check)
+
+            # 10. Check project completeness
+            completeness_check = self._check_completeness(repo_path)
+            checks.append(completeness_check)
+
             # Calculate overall status and score
             overall_status, score = self._calculate_overall(checks)
 
@@ -721,6 +733,186 @@ class CodeVerifier:
             message="No license file found",
         )
 
+    def _check_cicd(self, repo_path: Path) -> CheckResult:
+        """Check for CI/CD configuration."""
+        cicd_configs = {
+            ".github/workflows": "GitHub Actions",
+            ".gitlab-ci.yml": "GitLab CI",
+            ".travis.yml": "Travis CI",
+            "Jenkinsfile": "Jenkins",
+            ".circleci": "CircleCI",
+            "azure-pipelines.yml": "Azure Pipelines",
+            ".drone.yml": "Drone CI",
+            "bitbucket-pipelines.yml": "Bitbucket Pipelines",
+        }
+
+        found_ci = []
+        workflow_count = 0
+
+        for config_path, ci_name in cicd_configs.items():
+            full_path = repo_path / config_path
+            if full_path.exists():
+                found_ci.append(ci_name)
+                # Count GitHub Actions workflows
+                if config_path == ".github/workflows" and full_path.is_dir():
+                    workflow_count = len(list(full_path.glob("*.yml"))) + len(list(full_path.glob("*.yaml")))
+
+        if found_ci:
+            details = {"ci_systems": found_ci}
+            if workflow_count:
+                details["workflow_count"] = workflow_count
+                msg = f"CI/CD configured: {', '.join(found_ci)} ({workflow_count} workflows)"
+            else:
+                msg = f"CI/CD configured: {', '.join(found_ci)}"
+
+            return CheckResult(
+                name="cicd",
+                status=VerificationStatus.PASSED,
+                message=msg,
+                details=details,
+            )
+
+        return CheckResult(
+            name="cicd",
+            status=VerificationStatus.WARNING,
+            message="No CI/CD configuration found",
+            details={"ci_systems": []},
+        )
+
+    def _check_maturity(self, repo_path: Path) -> CheckResult:
+        """Check repository maturity (age and commit frequency)."""
+        try:
+            import git
+            repo = git.Repo(repo_path)
+
+            # Get commit history
+            commits = list(repo.iter_commits(max_count=1000))
+            total_commits = len(commits)
+
+            if total_commits == 0:
+                return CheckResult(
+                    name="maturity",
+                    status=VerificationStatus.WARNING,
+                    message="No commits found",
+                    details={"commits": 0},
+                )
+
+            # Calculate age (days since first commit)
+            first_commit = commits[-1] if commits else None
+            last_commit = commits[0] if commits else None
+
+            if first_commit and last_commit:
+                from datetime import datetime, timezone
+                first_date = datetime.fromtimestamp(first_commit.committed_date, tz=timezone.utc)
+                last_date = datetime.fromtimestamp(last_commit.committed_date, tz=timezone.utc)
+                now = datetime.now(timezone.utc)
+
+                age_days = (now - first_date).days
+                days_since_last = (now - last_date).days
+
+                # Calculate commits per month
+                months = max(age_days / 30, 1)
+                commits_per_month = total_commits / months
+
+                # Count unique contributors
+                contributors = set()
+                for commit in commits[:500]:  # Sample first 500 commits
+                    contributors.add(commit.author.email)
+
+                details = {
+                    "age_days": age_days,
+                    "total_commits": total_commits,
+                    "commits_per_month": round(commits_per_month, 1),
+                    "contributors": len(contributors),
+                    "days_since_last_commit": days_since_last,
+                }
+
+                # Scoring logic:
+                # - Mature: > 90 days old, > 5 commits/month, actively maintained (< 30 days)
+                # - Developing: > 30 days, some activity
+                # - New: < 30 days or very low activity
+
+                if age_days >= 90 and commits_per_month >= 5 and days_since_last <= 60:
+                    status = VerificationStatus.PASSED
+                    msg = f"Mature project: {age_days} days old, {commits_per_month:.1f} commits/month, {len(contributors)} contributors"
+                elif age_days >= 30 and total_commits >= 10:
+                    status = VerificationStatus.PASSED
+                    msg = f"Active project: {age_days} days old, {total_commits} commits, {len(contributors)} contributors"
+                elif total_commits >= 5:
+                    status = VerificationStatus.WARNING
+                    msg = f"Developing project: {age_days} days old, {total_commits} commits"
+                else:
+                    status = VerificationStatus.WARNING
+                    msg = f"New project: {total_commits} commits"
+
+                return CheckResult(
+                    name="maturity",
+                    status=status,
+                    message=msg,
+                    details=details,
+                )
+
+        except Exception as e:
+            return CheckResult(
+                name="maturity",
+                status=VerificationStatus.SKIPPED,
+                message=f"Could not analyze git history: {str(e)[:50]}",
+            )
+
+        return CheckResult(
+            name="maturity",
+            status=VerificationStatus.SKIPPED,
+            message="Git repository not available",
+        )
+
+    def _check_completeness(self, repo_path: Path) -> CheckResult:
+        """Check project completeness (changelog, examples, Docker, etc.)."""
+        completeness_items = {
+            "changelog": ["CHANGELOG.md", "CHANGELOG", "HISTORY.md", "CHANGES.md"],
+            "examples": ["examples", "example", "demos", "demo", "samples"],
+            "docker": ["Dockerfile", "docker-compose.yml", "docker-compose.yaml"],
+            "contributing": ["CONTRIBUTING.md", "CONTRIBUTING"],
+            "security": ["SECURITY.md", "SECURITY"],
+            "code_of_conduct": ["CODE_OF_CONDUCT.md"],
+        }
+
+        found_items = {}
+        for item_name, paths in completeness_items.items():
+            for path in paths:
+                full_path = repo_path / path
+                if full_path.exists():
+                    found_items[item_name] = path
+                    break
+
+        found_count = len(found_items)
+        total_items = len(completeness_items)
+
+        details = {
+            "found": list(found_items.keys()),
+            "missing": [k for k in completeness_items.keys() if k not in found_items],
+            "score": f"{found_count}/{total_items}",
+        }
+
+        if found_count >= 4:
+            status = VerificationStatus.PASSED
+            msg = f"Complete project structure: {', '.join(found_items.keys())}"
+        elif found_count >= 2:
+            status = VerificationStatus.PASSED
+            msg = f"Good project structure ({found_count}/{total_items}): {', '.join(found_items.keys())}"
+        elif found_count >= 1:
+            status = VerificationStatus.WARNING
+            msg = f"Basic project structure ({found_count}/{total_items})"
+        else:
+            status = VerificationStatus.WARNING
+            msg = "Missing standard project files (changelog, examples, etc.)"
+
+        return CheckResult(
+            name="completeness",
+            status=status,
+            message=msg,
+            details=details,
+        )
+
     def _detect_languages(self, repo_path: Path) -> List[str]:
         """Detect programming languages in the repository."""
         extensions = {}
@@ -1105,14 +1297,18 @@ class CodeVerifier:
 
     def _calculate_overall(self, checks: List[CheckResult]) -> tuple[VerificationStatus, float]:
         """Calculate overall status and score from individual checks."""
+        # Weights total to 115, normalized to 100
         weights = {
             "tests": 25,
             "security": 25,
             "linting": 15,
-            "build": 15,
+            "build": 10,
             "documentation": 10,
             "license": 5,
             "readme_alignment": 5,
+            "cicd": 5,           # NEW: CI/CD presence
+            "maturity": 10,      # NEW: Repository maturity
+            "completeness": 5,   # NEW: Project completeness
         }
 
         score = 0.0

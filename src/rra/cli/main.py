@@ -238,6 +238,9 @@ def ingest(
                 "readme_alignment": "Verifies README claims match actual code",
                 "documentation": "Checks for README and doc files",
                 "license": "Verifies license file exists",
+                "cicd": "Checks for CI/CD configuration (GitHub Actions, etc.)",
+                "maturity": "Analyzes repository age, commit frequency, contributors",
+                "completeness": "Checks for changelog, examples, Docker, contributing guides",
             }
 
             for check in kb.verification.get("checks", []):
@@ -323,6 +326,33 @@ def ingest(
                             console.print("      [yellow]Unverified claims:[/yellow]")
                             for claim in details["unverified_claims"][:5]:
                                 console.print(f"        ? {claim.get('claim', claim)[:60]}")
+
+                    # Show CI/CD details
+                    elif check["name"] == "cicd":
+                        if details.get("ci_systems"):
+                            console.print(f"      [dim]CI Systems: {', '.join(details['ci_systems'])}[/dim]")
+                        if details.get("workflow_count"):
+                            console.print(f"      [dim]Workflows: {details['workflow_count']}[/dim]")
+
+                    # Show maturity details
+                    elif check["name"] == "maturity":
+                        if details.get("age_days") is not None:
+                            console.print(f"      [dim]Age: {details['age_days']} days[/dim]")
+                        if details.get("total_commits"):
+                            console.print(f"      [dim]Commits: {details['total_commits']}[/dim]")
+                        if details.get("commits_per_month"):
+                            console.print(f"      [dim]Commits/month: {details['commits_per_month']}[/dim]")
+                        if details.get("contributors"):
+                            console.print(f"      [dim]Contributors: {details['contributors']}[/dim]")
+                        if details.get("days_since_last_commit") is not None:
+                            console.print(f"      [dim]Last commit: {details['days_since_last_commit']} days ago[/dim]")
+
+                    # Show completeness details
+                    elif check["name"] == "completeness":
+                        if details.get("found"):
+                            console.print(f"      [green]Found: {', '.join(details['found'])}[/green]")
+                        if details.get("missing"):
+                            console.print(f"      [yellow]Missing: {', '.join(details['missing'])}[/yellow]")
 
         # Show category
         if kb.category:
@@ -827,6 +857,9 @@ def verify(repo_url: str, skip_tests: bool, skip_security: bool, workspace: Path
                 "readme_alignment": "Verifies README claims match actual code",
                 "documentation": "Checks for README and doc files",
                 "license": "Verifies license file exists",
+                "cicd": "Checks for CI/CD configuration (GitHub Actions, etc.)",
+                "maturity": "Analyzes repository age, commit frequency, contributors",
+                "completeness": "Checks for changelog, examples, Docker, contributing guides",
             }
 
             console.print("\n[bold]Detailed Output:[/bold]\n")
