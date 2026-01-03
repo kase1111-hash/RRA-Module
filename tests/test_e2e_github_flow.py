@@ -144,7 +144,8 @@ class TestEndToEndGitHubFlow:
                 else:
                     blocked_count += 1
 
-        asyncio.get_event_loop().run_until_complete(check_limits())
+        # Use asyncio.run() for Python 3.10+ compatibility
+        asyncio.run(check_limits())
 
         print(f"  ✓ Allowed requests: {allowed_count}")
         print(f"  ✓ Blocked requests: {blocked_count}")
