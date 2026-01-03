@@ -12,6 +12,30 @@ from dataclasses import dataclass
 from web3 import Web3
 from web3.contract import Contract
 from eth_utils import to_checksum_address
+from eth_account import Account
+
+
+def normalize_private_key(private_key: str) -> bytes:
+    """
+    Normalize a private key to bytes format for web3.py.
+
+    Handles various input formats:
+    - Hex string with 0x prefix
+    - Hex string without prefix
+    - Bytes
+    """
+    if isinstance(private_key, bytes):
+        return private_key
+
+    # Remove any whitespace
+    key = private_key.strip()
+
+    # Ensure 0x prefix for hex string
+    if not key.startswith('0x') and not key.startswith('0X'):
+        key = '0x' + key
+
+    # Convert to bytes
+    return bytes.fromhex(key[2:])
 
 
 @dataclass
@@ -224,7 +248,8 @@ class StoryProtocolClient:
         )
 
         # Sign and send
-        signed_txn = self.w3.eth.account.sign_transaction(txn, private_key)
+        normalized_key = normalize_private_key(private_key)
+        signed_txn = Account.sign_transaction(txn, normalized_key)
         tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
 
         # Wait for receipt
@@ -276,7 +301,8 @@ class StoryProtocolClient:
         )
 
         # Sign and send
-        signed_txn = self.w3.eth.account.sign_transaction(txn, private_key)
+        normalized_key = normalize_private_key(private_key)
+        signed_txn = Account.sign_transaction(txn, normalized_key)
         tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
 
         return tx_hash.hex()
@@ -312,7 +338,8 @@ class StoryProtocolClient:
         )
 
         # Sign and send
-        signed_txn = self.w3.eth.account.sign_transaction(txn, private_key)
+        normalized_key = normalize_private_key(private_key)
+        signed_txn = Account.sign_transaction(txn, normalized_key)
         tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
 
         # Wait for receipt and extract terms ID
@@ -386,7 +413,8 @@ class StoryProtocolClient:
         )
 
         # Sign and send
-        signed_txn = self.w3.eth.account.sign_transaction(txn, private_key)
+        normalized_key = normalize_private_key(private_key)
+        signed_txn = Account.sign_transaction(txn, normalized_key)
         tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
 
         return tx_hash.hex()
@@ -436,7 +464,8 @@ class StoryProtocolClient:
         )
 
         # Sign and send
-        signed_txn = self.w3.eth.account.sign_transaction(txn, private_key)
+        normalized_key = normalize_private_key(private_key)
+        signed_txn = Account.sign_transaction(txn, normalized_key)
         tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
 
         # Wait for receipt
@@ -490,7 +519,8 @@ class StoryProtocolClient:
         )
 
         # Sign and send
-        signed_txn = self.w3.eth.account.sign_transaction(txn, private_key)
+        normalized_key = normalize_private_key(private_key)
+        signed_txn = Account.sign_transaction(txn, normalized_key)
         tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
 
         return tx_hash.hex()
