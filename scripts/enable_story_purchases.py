@@ -34,15 +34,15 @@ from web3 import Web3
 STORY_MAINNET_CHAIN_ID = 1514
 STORY_MAINNET_RPC = "https://mainnet.storyrpc.io"
 
-# Story Protocol Mainnet Contract Addresses (Updated Jan 2026)
+# Story Protocol Mainnet Contract Addresses (CORRECT - from deployment-1514.json)
 STORY_MAINNET_CONTRACTS = {
-    "licensing_module": "0xd81fd78f557b457b4350cB95D20b547bFEb4D857",
-    "pil_template": "0x0752B15Ee7303033854bdE1B32bc7A4008752Dc0",
+    "licensing_module": "0x04fbd8a2e56dd85CFD5500A4A4DfA955B9f1dE6f",
+    "pil_template": "0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316",
     "ip_asset_registry": "0x77319B4031e6eF1250907aa00018B8B1c67a244b",
-    "license_registry": "0xedf6aF51e95B6E5B9C0E68b77a3E4C3D2E3cD13F",
-    "royalty_module": "0xD2f60c40fEbccf6311f8B47c4f2Ec6b040400086",  # Correct mainnet address
-    "royalty_policy_lap": "0xBe54FB168b3c982b7AaE60dB6CF75Bd8447b390E",  # LAP policy
-    "dispute_module": "0x692B47fa72eE7Ac0Ec617ea384875c93d0000000",
+    "license_registry": "0x529a750E02d8E2f15649c13D69a465286a780e24",
+    "royalty_module": "0xD2f60c40fEbccf6311f8B47c4f2Ec6b040400086",
+    "royalty_policy_lap": "0xBe54FB168b3c982b7AaE60dB6CF75Bd8447b390E",
+    "dispute_module": "0x9b7A9c70AFF961C799110954fc06F3093aeb94C5",
     # WIP (Wrapped IP) token - Story's native payment token
     "wip_token": "0x1514000000000000000000000000000000000000",
     # Zero address for native IP payments
