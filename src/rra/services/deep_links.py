@@ -35,16 +35,17 @@ class DeepLinkService:
     - /user/{username}                    # Developer profile
     """
 
-    # TODO: Change back to "https://natlangchain.io" when platform is live
-    DEFAULT_BASE_URL = "http://localhost:3000"
+    # Story Protocol testnet explorer (live blockchain infrastructure)
+    # TODO: Switch to mainnet (https://explorer.story.foundation) for production
+    DEFAULT_BASE_URL = "https://aeneid.explorer.story.foundation"
 
     def __init__(self, base_url: Optional[str] = None, mappings_path: Optional[Path] = None):
         """
         Initialize the deep link service.
 
         Args:
-            base_url: Base URL for generated links (default: http://localhost:3000)
-                      Set to https://natlangchain.io when platform is live
+            base_url: Base URL for generated links (default: Story Protocol testnet explorer)
+                      Use https://explorer.story.foundation for mainnet
             mappings_path: Path to store repo ID mappings (default: agent_knowledge_bases/repo_mappings.json)
         """
         self.base_url = (base_url or self.DEFAULT_BASE_URL).rstrip("/")
