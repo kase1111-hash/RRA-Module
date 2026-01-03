@@ -8,8 +8,8 @@ copyright_year: 2025
 
 # Pricing Configuration
 license_model: "perpetual"  # Options: per-seat, subscription, one-time, perpetual, custom
-target_price: "0.05 ETH"    # One-time payment for perpetual license
-floor_price: "0.02 ETH"    # Minimum acceptable price (agents won't go below this)
+target_price: "0.005 ETH"   # One-time payment for perpetual license (test price)
+floor_price: "0.002 ETH"   # Minimum acceptable price (agents won't go below this)
 ceiling_price: "0.15 ETH"  # Maximum price for premium features
 
 # Negotiation Agent Configuration
