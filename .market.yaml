@@ -7,8 +7,8 @@ copyright_holder: "Kase Branham"
 copyright_year: 2025
 
 # Pricing Configuration
-license_model: "per-seat"  # Options: per-seat, subscription, one-time, perpetual, custom
-target_price: "0.05 ETH"   # Initial asking price for blockchain licensing
+license_model: "perpetual"  # Options: per-seat, subscription, one-time, perpetual, custom
+target_price: "0.05 ETH"    # One-time payment for perpetual license
 floor_price: "0.02 ETH"    # Minimum acceptable price (agents won't go below this)
 ceiling_price: "0.15 ETH"  # Maximum price for premium features
 
@@ -71,7 +71,7 @@ blockchain:
     token_standard: "ERC-721"  # Each license is unique NFT
     transferable: true          # Licenses can be resold
     revocable: false           # Cannot be revoked after sale
-    expiry_enabled: true       # Supports time-limited licenses
+    expiry_enabled: false      # Perpetual license - never expires
 
 # Repository Features (for agent marketing)
 features:
