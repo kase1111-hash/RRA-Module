@@ -60,10 +60,10 @@ class LicenseVerifier:
             all_passed = True
             for search_str, description in checks:
                 if search_str in content:
-                    print(f"  ✓ {description} found")
+                    print(f"  [OK] {description} found")
                 else:
                     self.errors.append(f"LICENSE.md missing: {description}")
-                    print(f"  ✗ {description} NOT found")
+                    print(f"  [X] {description} NOT found")
                     all_passed = False
 
             return all_passed
@@ -143,9 +143,9 @@ class LicenseVerifier:
 
         # Report results
         if all_compliant:
-            print(f"✓ All {len(python_files)} files are compliant")
+            print(f"[OK] All {len(python_files)} files are compliant")
         else:
-            print(f"✗ {len(non_compliant_files)} files are NOT compliant:")
+            print(f"[X] {len(non_compliant_files)} files are NOT compliant:")
             print()
             for file_path, message in non_compliant_files:
                 print(f"  - {file_path}: {message}")
@@ -173,7 +173,7 @@ class LicenseVerifier:
 
                 # Check if LICENSE is mentioned
                 if "LICENSE" in content or "license" in content.lower():
-                    print(f"  ✓ {doc_file} references license")
+                    print(f"  [OK] {doc_file} references license")
                 else:
                     self.warnings.append(f"{doc_file} does not mention license")
                     print(f"  ! {doc_file} does not mention license")
@@ -200,7 +200,7 @@ class LicenseVerifier:
         if self.errors:
             print(f"Errors ({len(self.errors)}):")
             for error in self.errors:
-                print(f"  ✗ {error}")
+                print(f"  [X] {error}")
             print()
 
         if self.warnings:
@@ -211,12 +211,12 @@ class LicenseVerifier:
 
         # Overall result
         if not self.errors:
-            print("✓ LICENSE VERIFICATION PASSED")
+            print("[OK] LICENSE VERIFICATION PASSED")
             print()
             print("All files are properly licensed under FSL-1.1-ALv2")
             print("GitHub work is correctly linked to the license")
         else:
-            print("✗ LICENSE VERIFICATION FAILED")
+            print("[X] LICENSE VERIFICATION FAILED")
             print()
             print("Please fix the errors listed above")
 
