@@ -225,7 +225,7 @@ class StoryProtocolClient:
 
         # Sign and send
         signed_txn = self.w3.eth.account.sign_transaction(txn, private_key)
-        tx_hash = self.w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+        tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
 
         # Wait for receipt
         receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
@@ -277,7 +277,7 @@ class StoryProtocolClient:
 
         # Sign and send
         signed_txn = self.w3.eth.account.sign_transaction(txn, private_key)
-        tx_hash = self.w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+        tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
 
         return tx_hash.hex()
 
@@ -313,7 +313,7 @@ class StoryProtocolClient:
 
         # Sign and send
         signed_txn = self.w3.eth.account.sign_transaction(txn, private_key)
-        tx_hash = self.w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+        tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
 
         # Wait for receipt and extract terms ID
         receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
@@ -387,7 +387,7 @@ class StoryProtocolClient:
 
         # Sign and send
         signed_txn = self.w3.eth.account.sign_transaction(txn, private_key)
-        tx_hash = self.w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+        tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
 
         return tx_hash.hex()
 
@@ -437,7 +437,7 @@ class StoryProtocolClient:
 
         # Sign and send
         signed_txn = self.w3.eth.account.sign_transaction(txn, private_key)
-        tx_hash = self.w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+        tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
 
         # Wait for receipt
         receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
@@ -491,7 +491,7 @@ class StoryProtocolClient:
 
         # Sign and send
         signed_txn = self.w3.eth.account.sign_transaction(txn, private_key)
-        tx_hash = self.w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+        tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
 
         return tx_hash.hex()
 
