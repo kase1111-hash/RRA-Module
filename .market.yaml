@@ -61,11 +61,10 @@ blockchain:
     community: 1   # Percentage to community treasury
 
   # Wallet addresses for revenue distribution
-  # IMPORTANT: Set these to your actual wallet addresses!
   wallets:
-    developer: null   # Your wallet - receives 91% (set via --wallet flag or here)
-    platform: null    # Platform fee wallet - receives 8% (set your wallet here)
-    community: null   # Community treasury - receives 1% (set your wallet here)
+    developer: "0x28AF4381Fe546CAe46f2B390360FF9D4F8B1C418"  # Developer wallet - receives 91%
+    platform: "0x28AF4381Fe546CAe46f2B390360FF9D4F8B1C418"   # Platform fee wallet - receives 8%
+    community: "0x28AF4381Fe546CAe46f2B390360FF9D4F8B1C418"  # Community treasury - receives 1%
 
   # NFT License Token Configuration
   nft_config:
