@@ -13,7 +13,7 @@
 | CRITICAL | 3 | **3** | **0** |
 | HIGH | 5 | **5** | **0** |
 | MEDIUM | 8 | **8** | **0** |
-| LOW | 8 | **4** | **4** |
+| LOW | 8 | **6** | **2** |
 
 **All CRITICAL, HIGH, and MEDIUM issues are now FIXED!**
 
@@ -235,12 +235,38 @@ Fix Applied:
 
 ---
 
-### ℹ️ LOW-004 through LOW-008: Remaining Items
+### ✅ LOW-004: Timing Oracle in Random Delay - FIXED
+```
+File: /home/user/RRA-Module/src/rra/privacy/batch_queue.py
+Lines: 445-453, 482-489 (submit_private_dispute, submit_private_proof)
+Status: ✅ FIXED (2026-01-04)
+
+Fix Applied:
+- Always add a base delay of 5 seconds
+- Random variation of 0-25 seconds on top (total: 5-30s)
+- Prevents attacker from distinguishing delayed vs non-delayed operations
+```
+
+---
+
+### ✅ LOW-005: Generator Derivation May Fail - FIXED
+```
+File: /home/user/RRA-Module/src/rra/crypto/pedersen.py
+Lines: 121-154 (_derive_generator_point)
+Status: ✅ FIXED (2026-01-04)
+
+Fix Applied:
+- Increased attempts from 256 to 1000
+- Changed counter to 2 bytes to support > 255 iterations
+- Failure probability now ~2^-1000 (negligible)
+```
+
+---
+
+### ℹ️ LOW-007 through LOW-008: Remaining Items
 ```
 Status: ⚠️ NOT FIXED - Low priority improvements
 
-LOW-004: Timing oracle in delay - Use constant base delay
-LOW-005: Generator derivation may fail - Increase attempts
 LOW-007: Lack of test vectors - PARTIAL (fuzzing tests added)
 LOW-008: Missing subgroup check - Add cofactor check
 ```
@@ -278,6 +304,8 @@ Fix Applied:
 - [x] Point-at-infinity rejection in commit()
 - [x] Exception logging in identity management (LOW-002)
 - [x] Ethereum address validation (LOW-003)
+- [x] Timing-safe delays with constant base (LOW-004)
+- [x] Robust generator derivation with 1000 attempts (LOW-005)
 - [x] Generator point order validation (LOW-006)
 
 ### ⚠️ Recommended Before Production

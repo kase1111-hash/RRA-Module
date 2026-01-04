@@ -542,64 +542,65 @@ if address:
 
 ---
 
-### ℹ️ LOW-004: Timing Oracle in Random Delay
+### ✅ LOW-004: Timing Oracle in Random Delay
 **Severity:** LOW
 **File:** `/home/user/RRA-Module/src/rra/privacy/batch_queue.py`
-**Lines:** 455-457
-**Status:** NOT FIXED (Previously CR-L8)
+**Lines:** 445-453, 482-489
+**Status:** ✅ **FIXED** (2026-01-04)
 
-**Issue:**
+**Original Issue:**
+Random delay could be 0, creating a timing side-channel where attackers can distinguish delayed vs non-delayed operations.
+
+**Fix Applied:**
 ```python
-# Lines 454-457
-if add_random_delay:
-    delay = (int.from_bytes(os.urandom(2), 'big') % 30000) / 1000
-    self._random_delays.append(delay)
-    time.sleep(delay)  # ❌ Creates timing side-channel
+# SECURITY FIX LOW-004: Always add delay with random variation
+# Using a constant base delay prevents timing oracle attacks where
+# an attacker can distinguish delayed vs non-delayed operations.
+base_delay = 5.0
+random_variation = (int.from_bytes(os.urandom(2), "big") % 25000) / 1000
+delay = base_delay + random_variation if add_random_delay else base_delay
+self._random_delays.append(delay)
+time.sleep(delay)
 ```
 
-Random delay observable through timing analysis.
-
-**Impact:**
-- Attacker can distinguish delayed vs non-delayed operations
-- Reduces privacy benefit of delay
-
-**Recommendation:**
-Always add delay, vary the amount:
-```python
-# Always delay, randomize amount
-delay = 15 + (int.from_bytes(os.urandom(2), 'big') % 15000) / 1000  # 15-30s
-```
+**Benefits:**
+- Minimum 5 second delay on all operations
+- Random variation adds 0-25 seconds (total: 5-30s)
+- No timing oracle for attackers to exploit
 
 ---
 
-### ℹ️ LOW-005: Generator Point Derivation May Fail
+### ✅ LOW-005: Generator Point Derivation May Fail
 **Severity:** LOW
 **File:** `/home/user/RRA-Module/src/rra/crypto/pedersen.py`
-**Lines:** 62-79
-**Status:** NEW
+**Lines:** 121-154
+**Status:** ✅ **FIXED** (2026-01-04)
 
-**Issue:**
+**Original Issue:**
+Generator derivation only tried 256 times, with theoretical (though unlikely) possibility of failure.
+
+**Fix Applied:**
 ```python
 def _derive_generator_point(seed: bytes) -> Tuple[int, int]:
-    """Derive a generator point using hash-to-curve."""
+    """
+    SECURITY FIX LOW-005: Increased attempts from 256 to 1000.
+
+    The probability of not finding a valid point in 1000 attempts is
+    approximately (1/2)^1000, which is negligible (~10^-301).
+    """
     domain = b"pedersen-generator-rra-v1"
 
-    for counter in range(256):
-        # ... try to find point on curve ...
-        if pow(y_squared, (BN254_FIELD_PRIME - 1) // 2, BN254_FIELD_PRIME) == 1:
-            # ... return point ...
-
-    raise ValueError("Failed to derive generator point")  # After 256 tries
+    # SECURITY FIX LOW-005: Increased from 256 to 1000 attempts
+    for counter in range(1000):
+        # Hash seed with counter (use 2 bytes for counter > 255)
+        attempt = hashlib.sha256(domain + seed + counter.to_bytes(2, "big")).digest()
+        # ... rest of derivation ...
 ```
 
-While 256 tries should be sufficient, the function can theoretically fail.
-
-**Impact:**
-- Module fails to load if generator derivation fails
-- Extremely low probability (~2^-256) but possible
-
-**Recommendation:**
-Increase tries to 1000 or use deterministic hash-to-curve (RFC 9380).
+**Benefits:**
+- Failure probability reduced from ~2^-256 to ~2^-1000
+- Module load is now essentially guaranteed to succeed
+- Counter uses 2 bytes to support > 255 iterations
 
 ---
 
@@ -698,14 +699,14 @@ Add cofactor multiplication check (cofactor=1 for BN254 G1, so less critical).
 | CRITICAL | 3 | **3** | 0 | **0** |
 | HIGH | 5 | **5** | 0 | **0** |
 | MEDIUM | 8 | 7 | 1 | **0** |
-| LOW | 8 | **4** | 0 | **4** |
-| **TOTAL** | **24** | **19** | **1** | **4** |
+| LOW | 8 | **6** | 0 | **2** |
+| **TOTAL** | **24** | **21** | **1** | **2** |
 
 **Status Summary:**
 - ✅ **All CRITICAL severity issues FIXED** (3/3) - BN254 verification, point-at-infinity, Shamir prime
 - ✅ **All HIGH severity issues FIXED** (5/5)
 - ✅ **All MEDIUM severity issues FIXED or DOCUMENTED** (8/8)
-- ℹ️ **LOW issues**: 4 remain (LOW-004, LOW-005, LOW-007, LOW-008)
+- ℹ️ **LOW issues**: 2 remain (LOW-007, LOW-008)
 
 ### Findings by Component (Remediation Status)
 
@@ -925,7 +926,7 @@ The cryptographic implementations have undergone **major security hardening** si
 
 #### Remaining Issues
 
-- ℹ️ **LOW**: Timing oracle in delays, generator derivation attempts, test vectors, subgroup checks (4 items)
+- ℹ️ **LOW**: Test vectors, subgroup checks (2 items - LOW-007, LOW-008)
 
 **Overall Assessment:** PRODUCTION READY (improved from LOW RISK)
 

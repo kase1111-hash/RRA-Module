@@ -122,14 +122,21 @@ def _derive_generator_point(seed: bytes) -> Tuple[int, int]:
     """
     Derive a generator point using hash-to-curve.
 
+    SECURITY FIX LOW-005: Increased attempts from 256 to 1000.
+
     This is a simplified version - production should use RFC 9380.
     Uses try-and-increment method with proper domain separation.
+
+    The probability of not finding a valid point in 1000 attempts is
+    approximately (1/2)^1000, which is negligible (~10^-301).
     """
     domain = b"pedersen-generator-rra-v1"
 
-    for counter in range(256):
-        # Hash seed with counter
-        attempt = hashlib.sha256(domain + seed + counter.to_bytes(1, "big")).digest()
+    # SECURITY FIX LOW-005: Increased from 256 to 1000 attempts
+    # This makes module load failure probability negligible (~2^-1000)
+    for counter in range(1000):
+        # Hash seed with counter (use 2 bytes for counter > 255)
+        attempt = hashlib.sha256(domain + seed + counter.to_bytes(2, "big")).digest()
         x = int.from_bytes(attempt, "big") % BN254_FIELD_PRIME
 
         # Try to compute y^2 = x^3 + 3 (BN254 curve equation: y^2 = x^3 + 3)
@@ -144,7 +151,7 @@ def _derive_generator_point(seed: bytes) -> Tuple[int, int]:
             if (y * y) % BN254_FIELD_PRIME == y_squared:
                 return (x, y)
 
-    raise ValueError("Failed to derive generator point")
+    raise ValueError("Failed to derive generator point after 1000 attempts")
 
 
 # Generator points derived using nothing-up-my-sleeve construction

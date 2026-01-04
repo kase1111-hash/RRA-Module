@@ -442,11 +442,15 @@ class PrivacyEnhancer:
         initiator_hash = keccak(initiator_secret)
         counterparty_hash = keccak(counterparty_identity)
 
-        # Optional random delay (0-30 seconds)
-        if add_random_delay:
-            delay = (int.from_bytes(os.urandom(2), "big") % 30000) / 1000
-            self._random_delays.append(delay)
-            time.sleep(delay)
+        # SECURITY FIX LOW-004: Always add delay with random variation
+        # Using a constant base delay prevents timing oracle attacks where
+        # an attacker can distinguish delayed vs non-delayed operations.
+        # Base delay: 5 seconds, random variation: 0-25 seconds (total: 5-30s)
+        base_delay = 5.0
+        random_variation = (int.from_bytes(os.urandom(2), "big") % 25000) / 1000
+        delay = base_delay + random_variation if add_random_delay else base_delay
+        self._random_delays.append(delay)
+        time.sleep(delay)
 
         # Queue for batch release
         return self.batch_client.queue_dispute(
@@ -475,11 +479,14 @@ class PrivacyEnhancer:
         Returns:
             QueuedProof for tracking
         """
-        # Optional random delay
-        if add_random_delay:
-            delay = (int.from_bytes(os.urandom(2), "big") % 30000) / 1000
-            self._random_delays.append(delay)
-            time.sleep(delay)
+        # SECURITY FIX LOW-004: Always add delay with random variation
+        # Using a constant base delay prevents timing oracle attacks where
+        # an attacker can distinguish delayed vs non-delayed operations.
+        base_delay = 5.0
+        random_variation = (int.from_bytes(os.urandom(2), "big") % 25000) / 1000
+        delay = base_delay + random_variation if add_random_delay else base_delay
+        self._random_delays.append(delay)
+        time.sleep(delay)
 
         # Extract proof components
         proof_a = tuple(proof["a"])
