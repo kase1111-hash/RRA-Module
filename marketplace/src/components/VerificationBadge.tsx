@@ -64,19 +64,18 @@ export function VerificationBadge({
     }
   };
 
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'inline-flex items-center rounded-full font-medium transition-all',
-        getVerificationBgColor(status),
-        getVerificationColor(status),
-        sizeClasses[size],
-        onClick && 'hover:opacity-80 cursor-pointer',
-        !onClick && 'cursor-default',
-        className
-      )}
-    >
+  const classes = cn(
+    'inline-flex items-center rounded-full font-medium transition-all',
+    getVerificationBgColor(status),
+    getVerificationColor(status),
+    sizeClasses[size],
+    onClick && 'hover:opacity-80 cursor-pointer',
+    !onClick && 'cursor-default',
+    className
+  );
+
+  const content = (
+    <>
       {getIcon()}
       <span>{getLabel()}</span>
       {showScore && score !== undefined && (
@@ -84,6 +83,17 @@ export function VerificationBadge({
           {score.toFixed(0)}%
         </span>
       )}
+    </>
+  );
+
+  // Use span when no onClick to avoid nested button issues
+  if (!onClick) {
+    return <span className={classes}>{content}</span>;
+  }
+
+  return (
+    <button onClick={onClick} className={classes}>
+      {content}
     </button>
   );
 }

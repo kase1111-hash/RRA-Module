@@ -223,10 +223,15 @@ export function ShareLinks({ repoName, purchaseUrl, ipAssetId, className }: Shar
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedBadge, setCopiedBadge] = useState(false);
 
-  const badgeMarkdown = `[![Purchase License](https://img.shields.io/badge/RRA-Purchase_License-indigo)](${purchaseUrl})`;
+  // Construct full URL for sharing (relative URLs don't work in badges/shares)
+  const fullUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}${purchaseUrl.startsWith('/') ? purchaseUrl : `/${purchaseUrl}`}`
+    : purchaseUrl;
+
+  const badgeMarkdown = `[![Purchase License](https://img.shields.io/badge/RRA-Purchase_License-indigo)](${fullUrl})`;
 
   const handleCopyLink = async () => {
-    const success = await copyToClipboard(purchaseUrl);
+    const success = await copyToClipboard(fullUrl);
     if (success) {
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
@@ -254,7 +259,7 @@ export function ShareLinks({ repoName, purchaseUrl, ipAssetId, className }: Shar
         <div className="flex items-center gap-2">
           <input
             type="text"
-            value={purchaseUrl}
+            value={fullUrl}
             readOnly
             className="flex-1 px-3 py-2 text-sm font-mono bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md"
           />

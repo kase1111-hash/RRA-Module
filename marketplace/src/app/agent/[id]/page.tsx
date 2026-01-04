@@ -33,11 +33,11 @@ const mockAgentData = {
     description:
       'Revenant Repo Agent Module - Transform dormant GitHub repositories into autonomous, revenue-generating agents through AI-driven negotiation and blockchain-enforced licensing.',
     kb_path: 'agent_knowledge_bases/rra_module_kb.json',
-    updated_at: '2025-12-19T12:00:00Z',
-    languages: ['Python', 'Solidity', 'TypeScript'],
-    files: 31,
-    stars: 128,
-    forks: 24,
+    updated_at: '2025-01-04T12:00:00Z',
+    languages: ['Python', 'TypeScript', 'JavaScript'],
+    files: 45,
+    stars: 3,
+    forks: 1,
   },
   market_config: {
     license_identifier: 'FSL-1.1-ALv2',
@@ -55,15 +55,15 @@ const mockAgentData = {
     developer_wallet: '0x1234567890abcdef1234567890abcdef12345678',
   },
   statistics: {
-    code_files: 31,
-    languages: ['Python', 'Solidity', 'TypeScript'],
-    total_lines: 4567,
-    test_coverage: 85,
+    code_files: 45,
+    languages: ['Python', 'TypeScript', 'JavaScript'],
+    total_lines: 8500,
+    test_coverage: 78,
   },
   reputation: {
-    score: 4.8,
-    total_sales: 47,
-    total_revenue: '2.35 ETH',
+    score: 0,
+    total_sales: 0,
+    total_revenue: '0 ETH',
   },
   license_tiers: [
     {
@@ -101,31 +101,31 @@ const mockAgentData = {
   },
   purchase_links: [
     {
-      url: 'https://testnet.marketplace.rra.io/purchase/abc123?ipAsset=0x1234&tier=standard&chain=1315',
+      url: '/agent/rra-module-abc123/license/standard',
       network: 'testnet' as const,
       tier: 'standard' as const,
       price_display: '0.05 ETH',
-      ip_asset_id: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+      ip_asset_id: '0xf08574c30337dde7C38869b8d399BA07ab23a07F',
     },
     {
-      url: 'https://testnet.marketplace.rra.io/purchase/abc123?ipAsset=0x1234&tier=premium&chain=1315',
+      url: '/agent/rra-module-abc123/license/premium',
       network: 'testnet' as const,
       tier: 'premium' as const,
       price_display: '0.15 ETH',
-      ip_asset_id: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+      ip_asset_id: '0xf08574c30337dde7C38869b8d399BA07ab23a07F',
     },
     {
-      url: 'https://testnet.marketplace.rra.io/purchase/abc123?ipAsset=0x1234&tier=enterprise&chain=1315',
+      url: '/agent/rra-module-abc123/license/enterprise',
       network: 'testnet' as const,
       tier: 'enterprise' as const,
       price_display: '0.5 ETH',
-      ip_asset_id: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+      ip_asset_id: '0xf08574c30337dde7C38869b8d399BA07ab23a07F',
     },
   ],
   blockchain_info: {
-    ip_asset_id: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+    ip_asset_id: '0xf08574c30337dde7C38869b8d399BA07ab23a07F',
     network: 'testnet' as const,
-    explorer_url: 'https://aeneid.explorer.story.foundation/ip-asset/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+    explorer_url: 'https://aeneid.explorer.story.foundation/ipa/0xf08574c30337dde7C38869b8d399BA07ab23a07F',
   },
 };
 
