@@ -200,13 +200,16 @@ class TestIdentity:
     def test_identity_with_address(self):
         """Test identity bound to Ethereum address."""
         from rra.privacy.identity import IdentityManager
+        from eth_utils import to_checksum_address
 
         manager = IdentityManager()
-        address = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb3"
+        # Use properly checksummed address (EIP-55 format)
+        address = "0x742D35cC6634C0532925a3B844Bc9e7595F0bEb3"
 
         identity = manager.generate_identity(address=address)
 
-        assert identity.address == address
+        # Address is normalized to checksum format per LOW-003 security fix
+        assert identity.address == to_checksum_address(address)
         assert identity.identity_secret != 0
 
     def test_deterministic_identity_from_signature(self):
