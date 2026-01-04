@@ -21,7 +21,7 @@
                 <div class="space-y-3">
                     <div class="flex justify-between">
                         <span class="text-gray-400">Price</span>
-                        <span class="font-mono text-green-400">0.005 ETH</span>
+                        <span class="font-mono text-green-400">0.005 IP</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-400">Type</span>
@@ -70,7 +70,7 @@
                     onclick="purchaseLicense()"
                     class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-xl transition-colors"
                 >
-                    Purchase License for 0.005 ETH
+                    Purchase License for 0.005 IP
                 </button>
             </div>
 
@@ -94,8 +94,8 @@
         <div class="text-center mt-8 text-gray-500">
             <p>License NFT minted on <a href="https://story.foundation" target="_blank" class="text-blue-400 hover:underline">Story Protocol</a></p>
             <p class="text-sm mt-2">
-                <a href="https://www.storyscan.io/ipa/0xf08574c30337dde7C38869b8d399BA07ab23a07F" target="_blank" class="hover:underline">
-                    View IP Asset on StoryScan
+                <a href="https://explorer.story.foundation/ipa/0xf08574c30337dde7C38869b8d399BA07ab23a07F" target="_blank" class="hover:underline">
+                    View IP Asset on Story Explorer
                 </a>
             </p>
         </div>
@@ -104,8 +104,8 @@
     <script>
         // All lowercase addresses bypass checksum validation in ethers.js
         const IP_ASSET_ID = "0xf08574c30337dde7c38869b8d399ba07ab23a07f";
-        const LICENSE_TERMS_ID = 28437;
-        const PRICE_WEI = "5000000000000000"; // 0.005 ETH for testing
+        const LICENSE_TERMS_ID = 28438;
+        const PRICE_WEI = "5000000000000000"; // 0.005 IP
         const STORY_CHAIN_ID = 1514;
         const STORY_RPC = "https://mainnet.storyrpc.io";
 
@@ -182,7 +182,7 @@
             errorDiv.classList.add('hidden');
 
             try {
-                // ABI for mintLicenseTokens
+                // ABI for mintLicenseTokens (8-parameter version)
                 const licensingABI = [
                     {
                         "inputs": [
@@ -191,11 +191,13 @@
                             {"name": "licenseTermsId", "type": "uint256"},
                             {"name": "amount", "type": "uint256"},
                             {"name": "receiver", "type": "address"},
-                            {"name": "royaltyContext", "type": "bytes"}
+                            {"name": "royaltyContext", "type": "bytes"},
+                            {"name": "maxMintingFee", "type": "uint256"},
+                            {"name": "maxRevenueShare", "type": "uint32"}
                         ],
                         "name": "mintLicenseTokens",
-                        "outputs": [{"name": "", "type": "uint256[]"}],
-                        "stateMutability": "payable",
+                        "outputs": [{"name": "", "type": "uint256"}],
+                        "stateMutability": "nonpayable",
                         "type": "function"
                     }
                 ];
@@ -208,15 +210,16 @@
 
                 const receiverAddress = await signer.getAddress();
 
-                // Mint license token
+                // Mint license token (8 parameters)
                 const tx = await licensingModule.mintLicenseTokens(
                     IP_ASSET_ID,
                     PIL_TEMPLATE,
                     LICENSE_TERMS_ID,
                     1, // amount
                     receiverAddress,
-                    "0x", // royaltyContext
-                    { value: PRICE_WEI }
+                    "0x", // royaltyContext (empty for PIL)
+                    ethers.parseEther("1"), // maxMintingFee (1 IP max)
+                    10000 // maxRevenueShare (100% in basis points)
                 );
 
                 console.log('Transaction sent:', tx.hash);
@@ -228,7 +231,7 @@
                 loadingDiv.classList.add('hidden');
                 successDiv.classList.remove('hidden');
                 document.getElementById('tx-link').href =
-                    `https://storyscan.io/tx/${tx.hash}`;
+                    `https://explorer.story.foundation/tx/${tx.hash}`;
 
             } catch (error) {
                 console.error('Purchase error:', error);
