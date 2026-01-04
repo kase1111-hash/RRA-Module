@@ -133,6 +133,10 @@ class ViewingKey:
 
     Generated per-dispute or per-context, allowing selective
     decryption of private data.
+
+    SECURITY FIX MED-001: Uses hiding commitment with blinding factor.
+    The commitment is hash(public_key || blinding), which prevents
+    attackers from verifying guesses about the public key.
     """
 
     private_key: PrivateKey
@@ -142,6 +146,7 @@ class ViewingKey:
     created_at: datetime
     expires_at: Optional[datetime] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
+    _commitment_blinding: bytes = field(default_factory=lambda: os.urandom(32))
 
     @classmethod
     def generate(
@@ -231,10 +236,42 @@ class ViewingKey:
         """
         Get on-chain commitment for this key.
 
+        SECURITY FIX MED-001: Uses hiding commitment with blinding factor.
+        The commitment is hash(public_key || blinding), which prevents
+        attackers from verifying guesses about the public key.
+
         The commitment can be stored on-chain to prove key existence
         without revealing the key itself.
         """
-        return keccak(self.public_key.to_bytes())
+        # Hiding commitment: hash of public key concatenated with blinding
+        return keccak(self.public_key.to_bytes() + self._commitment_blinding)
+
+    @property
+    def commitment_blinding(self) -> bytes:
+        """
+        Get the blinding factor used in the commitment.
+
+        This is needed to verify the commitment later.
+        """
+        return self._commitment_blinding
+
+    def verify_commitment(self, commitment: bytes, blinding: bytes) -> bool:
+        """
+        Verify that a commitment was made to this key's public key.
+
+        SECURITY FIX MED-001: Uses constant-time comparison.
+
+        Args:
+            commitment: The commitment to verify
+            blinding: The blinding factor used
+
+        Returns:
+            True if the commitment is valid for this key
+        """
+        import hmac
+
+        expected = keccak(self.public_key.to_bytes() + blinding)
+        return hmac.compare_digest(commitment, expected)
 
     @property
     def is_expired(self) -> bool:
@@ -288,6 +325,7 @@ class ViewingKey:
             "created_at": self.created_at.isoformat(),
             "expires_at": self.expires_at.isoformat() if self.expires_at else None,
             "commitment": self.commitment.hex(),
+            "commitment_blinding": self._commitment_blinding.hex(),
             "metadata": self.metadata,
         }
 
@@ -405,16 +443,34 @@ class ViewingKey:
 
     @classmethod
     def from_private_bytes(
-        cls, private_bytes: bytes, purpose: KeyPurpose, context_id: str
+        cls,
+        private_bytes: bytes,
+        purpose: KeyPurpose,
+        context_id: str,
+        commitment_blinding: Optional[bytes] = None,
     ) -> "ViewingKey":
-        """Restore viewing key from private key bytes."""
+        """
+        Restore viewing key from private key bytes.
+
+        Args:
+            private_bytes: 32-byte private key
+            purpose: Key purpose
+            context_id: Context identifier
+            commitment_blinding: Optional blinding factor for commitment
+                (generates new random if not provided)
+
+        Returns:
+            Restored ViewingKey
+        """
         private_key = keys.PrivateKey(private_bytes)
+        blinding = commitment_blinding if commitment_blinding else os.urandom(32)
         return cls(
             private_key=private_key,
             public_key=private_key.public_key,
             purpose=purpose,
             context_id=context_id,
             created_at=datetime.utcnow(),
+            _commitment_blinding=blinding,
         )
 
 

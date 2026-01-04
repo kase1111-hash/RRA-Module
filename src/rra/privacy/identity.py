@@ -39,20 +39,35 @@ class PoseidonHash:
     """
     Poseidon hash implementation for BN254 (alt_bn128) scalar field.
 
-    IMPORTANT COMPATIBILITY NOTE (MED-007):
-    This implementation uses keccak-based round constant generation which may
-    differ from circomlib's grain LFSR approach. For ZK proof interoperability
-    with on-chain verifiers using circomlib Poseidon, import constants directly
-    from circomlib or use a verified constants file.
+    SECURITY FIX MED-007 - CIRCOMLIB COMPATIBILITY WARNING:
+    =========================================================
 
-    For internal RRA operations (identity hashing), this implementation is secure.
-    For cross-system ZK proof compatibility, verify constants match your verifier.
+    This implementation uses **keccak-based** round constant generation, which
+    differs from circomlib's **grain LFSR** approach. This means:
+
+    1. **Internal RRA Operations**: SAFE to use. This implementation provides
+       full cryptographic security for identity hashing within RRA.
+
+    2. **ZK Proof Interoperability**: MAY FAIL. If you're generating ZK proofs
+       that will be verified by on-chain contracts using circomlib's Poseidon:
+       - Hash outputs will NOT match circomlib
+       - Proofs generated with these hashes will fail verification
+
+    3. **For circomlib compatibility**, you MUST:
+       - Import exact constants from circomlib (poseidon_constants.json)
+       - Or use a verified Python port of circomlib's grain LFSR
+       - Verify outputs against circomlib test vectors
+
+    Example circomlib test vectors (for validation):
+    - poseidon([1]) = 18586133768512220936620570745912940619677854269274689475585506675881198879027
+    - poseidon([1, 2]) = 7853200120776062878684798364095072458815029376092732009249414926327459813530
 
     Security Properties:
     - ZK-SNARK efficient (low constraint count)
     - Collision resistant
     - One-way
     - Round configuration matches circomlib (8 full, 56-64 partial)
+    - MDS matrices verified at initialization (SECURITY FIX MED-006)
 
     Parameters:
     - Field: BN254 scalar field (21888242871839275222246405745257275088548364400416034343698204186575808495617)
