@@ -1,0 +1,62 @@
+{
+  "title": "RRA-Module",
+  "description": "AI-Driven Repository Representation Agent Module - Blockchain licensing and automated negotiation system for software repositories. Enables programmable IP licensing, automated revenue distribution, and agent-based license sales.",
+  "ipType": "Software",
+  "creators": [
+    {
+      "name": "Kase Branham",
+      "address": "0x28AF4381Fe546CAe46f2B390360FF9D4F8B1C418",
+      "contributionPercent": 100
+    }
+  ],
+  "appInfo": [
+    {
+      "id": "github",
+      "name": "GitHub Repository",
+      "url": "https://github.com/kase1111-hash/RRA-Module"
+    }
+  ],
+  "attributes": [
+    {
+      "key": "License",
+      "value": "FSL-1.1-ALv2"
+    },
+    {
+      "key": "Language",
+      "value": "Python"
+    },
+    {
+      "key": "Category",
+      "value": "Developer Tools"
+    },
+    {
+      "key": "Version",
+      "value": "1.0.0"
+    },
+    {
+      "key": "Commercial Use",
+      "value": "Allowed (non-competing)"
+    },
+    {
+      "key": "Derivatives",
+      "value": "Allowed with attribution"
+    }
+  ],
+  "relationships": [],
+  "tags": [
+    "ai-agents",
+    "blockchain-licensing",
+    "github-integration",
+    "automated-monetization",
+    "smart-contracts",
+    "python"
+  ],
+  "media": [
+    {
+      "name": "Repository",
+      "url": "https://github.com/kase1111-hash/RRA-Module",
+      "mimeType": "text/html"
+    }
+  ],
+  "externalUrl": "https://github.com/kase1111-hash/RRA-Module"
+}
