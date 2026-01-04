@@ -1,0 +1,43 @@
+{
+  "name": "RRA-Module License",
+  "description": "License NFT for RRA-Module - AI-Driven Repository Representation Agent. This license grants production deployment rights, commercial use (non-competing), and 12 months of updates. Powered by Story Protocol.",
+  "image": "https://raw.githubusercontent.com/kase1111-hash/RRA-Module/main/assets/license-nft.svg",
+  "external_url": "https://github.com/kase1111-hash/RRA-Module",
+  "attributes": [
+    {
+      "trait_type": "License Type",
+      "value": "Perpetual"
+    },
+    {
+      "trait_type": "License Tier",
+      "value": "Standard"
+    },
+    {
+      "trait_type": "Commercial Use",
+      "value": "Allowed"
+    },
+    {
+      "trait_type": "Derivatives",
+      "value": "Allowed"
+    },
+    {
+      "trait_type": "Attribution Required",
+      "value": "Yes"
+    },
+    {
+      "trait_type": "Software",
+      "value": "RRA-Module"
+    },
+    {
+      "trait_type": "Version",
+      "value": "1.0.0"
+    },
+    {
+      "trait_type": "Royalty",
+      "value": "9%",
+      "display_type": "string"
+    }
+  ],
+  "background_color": "1a1a2e",
+  "animation_url": null
+}
