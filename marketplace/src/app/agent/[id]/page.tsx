@@ -31,7 +31,7 @@ const mockAgentData = {
     name: 'RRA-Module',
     owner: 'kase1111-hash',
     description:
-      'Revenant Repo Agent Module - Transform dormant GitHub repositories into autonomous, revenue-generating agents through AI-driven negotiation and blockchain-enforced licensing.',
+      'Revenant Repo Agent Module - Transform dormant GitHub repositories into autonomous, revenue-generating agents with AI-powered licensing.',
     kb_path: 'agent_knowledge_bases/rra_module_kb.json',
     updated_at: '2025-01-04T12:00:00Z',
     languages: ['Python', 'TypeScript', 'JavaScript'],
@@ -44,7 +44,7 @@ const mockAgentData = {
     license_model: 'Per-seat',
     target_price: '0.05',
     floor_price: '0.02',
-    negotiation_style: 'persuasive',
+    communication_style: 'persuasive',
     features: [
       'Full source code access',
       '12 months of updates',
@@ -167,11 +167,11 @@ export default function AgentPage() {
     if (lowerContent.includes('price') || lowerContent.includes('cost') || lowerContent.includes('how much')) {
       agentResponse = `Great question! Our pricing is:\n\n• **Standard**: 0.05 ETH (1 seat, 12mo updates)\n• **Premium**: 0.15 ETH (5 seats, lifetime updates)\n• **Enterprise**: 0.5 ETH (unlimited, custom terms)\n\nAll licenses include full source code access and commercial usage rights. Would you like to discuss a specific tier?`;
       newPhase = 'proposal';
-    } else if (lowerContent.includes('discount') || lowerContent.includes('lower') || lowerContent.includes('negotiate')) {
-      agentResponse = `I appreciate you're looking for the best value. While our floor price is 0.02 ETH, I can offer you a 10% discount on the standard license - that's 0.045 ETH.\n\nThis is a limited offer considering our ${mockAgentData.statistics.test_coverage}% test coverage and the time this codebase would save you. What do you think?`;
+    } else if (lowerContent.includes('discount') || lowerContent.includes('lower') || lowerContent.includes('budget')) {
+      agentResponse = `I understand you're looking for the best value. Let me help you find the right fit:\n\n• **Standard** (0.05 ETH): Best for individual developers\n• **Premium** (0.15 ETH): Great for small teams, includes lifetime updates\n\nWith ${mockAgentData.statistics.test_coverage}% test coverage and ${mockAgentData.statistics.code_files} well-documented files, this codebase will save you significant development time. Which tier fits your needs?`;
       newPhase = 'negotiation';
     } else if (lowerContent.includes('deal') || lowerContent.includes('accept') || lowerContent.includes('ok') || lowerContent.includes('yes')) {
-      agentResponse = `Excellent! I'm glad we could reach an agreement. Here's the final offer:\n\n**Standard License**\n• Price: 0.045 ETH\n• 1 seat license\n• 12 months of updates\n• Full commercial rights\n\nClick "Accept Offer & Purchase License" below to complete the transaction. Your license NFT will be minted immediately upon payment confirmation.`;
+      agentResponse = `Excellent choice! Here's your selected license:\n\n**Standard License**\n• Price: 0.05 ETH\n• 1 seat license\n• 12 months of updates\n• Full commercial rights\n\nClick "Accept & Purchase License" below to complete the transaction. Your license NFT will be minted immediately upon payment confirmation.`;
       newPhase = 'closing';
     } else if (lowerContent.includes('features') || lowerContent.includes('include') || lowerContent.includes('what do i get')) {
       agentResponse = `Here's what's included with every license:\n\n✅ Full source code access (${mockAgentData.statistics.code_files} files)\n✅ ${mockAgentData.statistics.test_coverage}% test coverage\n✅ Complete documentation\n✅ Commercial usage rights\n✅ Updates for your tier duration\n✅ Support via your tier level\n\nThe code is licensed under ${mockAgentData.market_config.license_identifier} and will convert to Apache-2.0 after 2 years. Any other questions?`;

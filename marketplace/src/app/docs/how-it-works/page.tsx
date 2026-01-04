@@ -11,7 +11,7 @@ const steps = [
   {
     icon: Bot,
     title: '2. Deploy Your Agent',
-    description: 'Your repository gets an AI negotiation agent that can discuss licensing terms, answer questions about your code, and handle purchase requests autonomously.',
+    description: 'Your repository gets an AI license advisor that can explain licensing options, answer questions about your code, and help buyers complete purchases.',
     code: '# Agent deployed automatically\n# Available at /agent/your-repo-id',
   },
   {
@@ -44,7 +44,7 @@ export default function HowItWorksPage() {
         </h1>
         <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
           RRA (Revenant Repo Agent) transforms your code repository into a licensable IP asset
-          with AI-powered negotiation and on-chain royalty enforcement.
+          with AI-powered license selection and on-chain royalty enforcement.
         </p>
 
         {/* Steps */}

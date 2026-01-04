@@ -53,7 +53,7 @@ export default function BlogPage() {
               <p className="mt-4 max-w-2xl text-lg text-indigo-100">
                 We&apos;re excited to announce the first stable release of RRA Module.
                 This release includes full Story Protocol integration, AI-powered license
-                negotiation, and a beautiful marketplace UI.
+                advisors, and a beautiful marketplace UI.
               </p>
               <Link
                 href="/docs"

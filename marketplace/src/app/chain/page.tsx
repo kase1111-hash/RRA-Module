@@ -25,20 +25,20 @@ import type { ChainHealth, ChainStats, ChainEntry } from '@/types';
 const mockEntries: ChainEntry[] = [
   {
     id: 'entry-001',
-    content: 'License negotiation initiated for RRA-Module repository',
+    content: 'License inquiry started for RRA-Module repository',
     author: 'agent:rra-module',
-    intent: 'negotiation_start',
+    intent: 'inquiry_start',
     timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-    type: 'negotiation',
+    type: 'inquiry',
     metadata: { repo: 'RRA-Module', phase: 'greeting' },
   },
   {
     id: 'entry-002',
-    content: 'Quote requested: Per-seat license at 0.05 ETH target price',
+    content: 'License tier requested: Per-seat license at 0.05 ETH',
     author: 'buyer:0x1234...5678',
-    intent: 'quote_request',
+    intent: 'tier_request',
     timestamp: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
-    type: 'negotiation',
+    type: 'inquiry',
     metadata: { repo: 'RRA-Module', price: '0.05' },
   },
   {
@@ -142,7 +142,7 @@ export default function ChainExplorerPage() {
 
   const getEntryIcon = (type?: string) => {
     switch (type) {
-      case 'negotiation':
+      case 'inquiry':
         return <Activity className="h-4 w-4 text-blue-500" />;
       case 'transaction':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
@@ -292,7 +292,7 @@ export default function ChainExplorerPage() {
                       className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                     >
                       <option value="all">All Types</option>
-                      <option value="negotiation">Negotiations</option>
+                      <option value="inquiry">Inquiries</option>
                       <option value="transaction">Transactions</option>
                       <option value="verification">Verifications</option>
                       <option value="system">System</option>
