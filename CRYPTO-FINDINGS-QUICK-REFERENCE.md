@@ -10,42 +10,45 @@
 
 | Severity | Total | Fixed | Remain |
 |----------|-------|-------|--------|
-| CRITICAL | 3 | 1 | 2 |
+| CRITICAL | 3 | **3** | **0** |
 | HIGH | 5 | **5** | **0** |
 | MEDIUM | 8 | **8** | **0** |
 | LOW | 8 | 1 | 7 |
 
----
-
-## Critical Issues
-
-### ⚠️ CRITICAL-001: Unverified BN254 Prime - NEEDS FIX
-```
-File: /home/user/RRA-Module/src/rra/crypto/pedersen.py
-Lines: 36, 38
-Status: ⚠️ NEEDS RUNTIME VERIFICATION
-
-Current Code:
-36: BN254_FIELD_PRIME = 21888242871839275222246405745257275088696311157297823662689037894645226208583
-38: BN254_CURVE_ORDER = 21888242871839275222246405745257275088548364400416034343698204186575808495617
-
-Recommended Fix:
-import sympy
-assert sympy.isprime(BN254_FIELD_PRIME), "BN254_FIELD_PRIME verification failed"
-assert BN254_FIELD_PRIME == 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47
-```
+**All CRITICAL, HIGH, and MEDIUM issues are now FIXED!**
 
 ---
 
-### ⚠️ CRITICAL-002: Point-at-Infinity Not Rejected - NEEDS FIX
+## Critical Issues - ALL FIXED ✅
+
+### ✅ CRITICAL-001: Unverified BN254 Prime - FIXED
 ```
 File: /home/user/RRA-Module/src/rra/crypto/pedersen.py
-Lines: 265-271
-Status: ⚠️ NEEDS CHECK
+Lines: 127-191 (_validate_curve_constants)
+Status: ✅ FIXED (2026-01-04)
 
-Recommended Fix (add after line 268):
+Fix Applied:
+- Decimal value verification against EIP-196
+- Hexadecimal cross-verification (0x30644e72e131a029...)
+- Field prime > curve order relationship check
+- Generator point validation at module load
+- Reference to EIP-196 specification documented
+```
+
+---
+
+### ✅ CRITICAL-002: Point-at-Infinity Not Rejected - FIXED
+```
+File: /home/user/RRA-Module/src/rra/crypto/pedersen.py
+Lines: 391-397 (commit method)
+Status: ✅ FIXED (already implemented)
+
+Fix Applied:
 if C == (0, 0):
-    raise ValueError("Commitment resulted in point at infinity")
+    raise ValueError(
+        "Commitment resulted in point-at-infinity; "
+        "this leaks information about the value"
+    )
 ```
 
 ---
@@ -231,10 +234,10 @@ LOW-008: Missing subgroup check - Add cofactor check
 - [x] Curve equation validation
 - [x] Key expiration enforcement
 - [x] Fuzzing tests for crypto primitives
+- [x] BN254 constant runtime verification (EIP-196 + hex cross-check)
+- [x] Point-at-infinity rejection in commit()
 
-### ⚠️ Still Needed Before Production
-- [ ] BN254 constant runtime verification
-- [ ] Point-at-infinity rejection in commit()
+### ⚠️ Recommended Before Production
 - [ ] External security audit
 
 ---
