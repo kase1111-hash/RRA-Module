@@ -188,7 +188,7 @@ def main():
             "https://raw.githubusercontent.com/kase1111-hash/RRA-Module/main/.market.yaml",  # contractURI
             1000,                      # maxSupply
             w3.to_wei(0.005, 'ether'), # mintFee (0.005 IP)
-            "0x0000000000000000000000000000000000000000",  # mintFeeToken (native IP)
+            "0x1514000000000000000000000000000000000000",  # mintFeeToken (WIP - Wrapped IP)
             account.address,           # mintFeeRecipient (owner gets fees)
             account.address,           # owner
             True,                      # mintOpen
