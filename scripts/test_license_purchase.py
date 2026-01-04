@@ -93,7 +93,7 @@ PIL_TEMPLATE_ABI = [
 ]
 
 LICENSING_MODULE_ABI = [
-    # Try the 6-parameter version first (older contract version)
+    # 8-parameter version (current mainnet)
     {
         "inputs": [
             {"name": "licensorIpId", "type": "address"},
@@ -101,7 +101,9 @@ LICENSING_MODULE_ABI = [
             {"name": "licenseTermsId", "type": "uint256"},
             {"name": "amount", "type": "uint256"},
             {"name": "receiver", "type": "address"},
-            {"name": "royaltyContext", "type": "bytes"}
+            {"name": "royaltyContext", "type": "bytes"},
+            {"name": "maxMintingFee", "type": "uint256"},
+            {"name": "maxRevenueShare", "type": "uint32"}
         ],
         "name": "mintLicenseTokens",
         "outputs": [{"name": "startLicenseTokenId", "type": "uint256"}],
@@ -326,14 +328,17 @@ def main():
         print("\nMinting license token...")
         try:
             nonce = w3.eth.get_transaction_count(account.address)
-            # Parameters: licensorIpId, licenseTemplate, licenseTermsId, amount, receiver, royaltyContext
+            # Parameters: licensorIpId, licenseTemplate, licenseTermsId, amount, receiver, royaltyContext, maxMintingFee, maxRevenueShare
+            # maxRevenueShare is in basis points (10000 = 100%)
             tx = licensing_module.functions.mintLicenseTokens(
                 Web3.to_checksum_address(IP_ASSET_ID),
                 Web3.to_checksum_address(PIL_LICENSE_TEMPLATE),
                 LICENSE_TERMS_ID,
                 1,  # amount
                 account.address,  # receiver
-                b""  # royaltyContext (empty for PIL)
+                b"",  # royaltyContext (empty for PIL)
+                w3.to_wei(1, 'ether'),  # maxMintingFee - 1 IP max (way more than 0.005)
+                10000  # maxRevenueShare - 100% in basis points
             ).build_transaction({
                 'from': account.address,
                 'nonce': nonce,
