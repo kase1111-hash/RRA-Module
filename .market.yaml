@@ -128,7 +128,7 @@ defi_integrations:
   # Story Protocol - Programmable IP Licensing (Phase 3)
   story_protocol:
     enabled: true  # Story Protocol integration is now active
-    ip_asset_id: "0xb77ABcfFbf063a3e6BACA37D72353750475D4E70"  # Mainnet IP Asset ID (StoryScan registered)
+    ip_asset_id: "0xf08574c30337dde7C38869b8d399BA07ab23a07F"  # Mainnet IP Asset ID (registered 2025-01)
     network: "mainnet"  # Options: mainnet, testnet
 
     # License Terms Configuration (for purchases)
@@ -151,7 +151,7 @@ defi_integrations:
 
     # Purchase Configuration
     purchase_enabled: true  # Enable direct license purchases
-    storyscan_url: "https://www.storyscan.io/token/0xb77ABcfFbf063a3e6BACA37D72353750475D4E70"
+    storyscan_url: "https://www.storyscan.io/ipa/0xf08574c30337dde7C38869b8d399BA07ab23a07F"
 
 # Custom Clauses (Blockchain-Enforced)
 custom_clauses:
