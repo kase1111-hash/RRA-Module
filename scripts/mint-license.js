@@ -63,7 +63,7 @@ async function main() {
         if (response.licenseTokenId) {
             console.log(`  License Token ID: ${response.licenseTokenId}`);
         }
-        console.log(`\n  Explorer: https://explorer.story.foundation/tx/${response.txHash}`);
+        console.log(`\n  Explorer: https://www.storyscan.io/tx/${response.txHash}`);
 
     } catch (error) {
         console.error("\n[ERROR]", error.message || error);

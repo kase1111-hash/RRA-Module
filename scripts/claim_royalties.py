@@ -298,7 +298,7 @@ def main():
     )
     parser.add_argument(
         "--ip-asset",
-        default="0xb77ABcfFbf063a3e6BACA37D72353750475D4E70",
+        default="0xf08574c30337dde7C38869b8d399BA07ab23a07F",
         help="Story Protocol IP Asset ID (address)",
     )
     parser.add_argument(
