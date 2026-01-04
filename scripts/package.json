@@ -1,0 +1,10 @@
+{
+  "name": "rra-module-scripts",
+  "version": "1.0.0",
+  "description": "Story Protocol scripts for RRA-Module",
+  "type": "commonjs",
+  "dependencies": {
+    "@story-protocol/core-sdk": "^1.2.0",
+    "viem": "^2.0.0"
+  }
+}
