@@ -8,6 +8,7 @@ Complete documentation for the Revenant Repo Agent Module.
 
 ### Getting Started
 - **[Main README](../README.md)** - Project overview and architecture
+- **[Usage Guide](USAGE-GUIDE.md)** - Comprehensive how-to guide for all features
 - **[Quick Start Guide](../QUICKSTART.md)** - Get up and running in minutes
 - **[Specification](../SPECIFICATION.md)** - Complete technical specification
 - **[Contributing Guide](../CONTRIBUTING.md)** - How to contribute to the project
@@ -95,6 +96,7 @@ RRA-Module/
 │
 ├── docs/                                  # Detailed documentation
 │   ├── README.md                          # This file
+│   ├── USAGE-GUIDE.md                     # Comprehensive usage guide
 │   ├── BLOCKCHAIN-LICENSING.md            # Blockchain monetization
 │   ├── NATLANGCHAIN_INTEGRATION.md        # NatLangChain ecosystem
 │   ├── INTEGRATION.md                     # Ecosystem integration modes

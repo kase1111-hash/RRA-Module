@@ -387,7 +387,9 @@ pytest tests/test_story_protocol.py --cov=rra.contracts.story_protocol --cov=rra
 
 The RRA Module includes ready-to-use scripts for Story Protocol integration:
 
-### enable_story_purchases.py
+### Python Scripts
+
+#### enable_story_purchases.py
 
 Attaches license terms to your IP Asset, enabling buyers to purchase licenses.
 
@@ -411,7 +413,7 @@ python scripts/enable_story_purchases.py --ip-asset 0xYourIPAssetID
 - Attaches PIL license terms on-chain
 - Generates `buy-license.html` buyer interface
 
-### claim_royalties.py
+#### claim_royalties.py
 
 Claims pending revenue from your IP Asset's Royalty Vault.
 
@@ -433,6 +435,131 @@ python scripts/claim_royalties.py --ip-asset 0xYourIPAssetID
 1. Finds your IP Asset's Royalty Vault
 2. Snapshots pending revenue (makes it claimable)
 3. Claims revenue to your wallet
+
+### JavaScript Scripts (Node.js)
+
+These scripts provide direct blockchain interaction using viem/ethers for advanced royalty management.
+
+#### mint-license.js
+
+Mints a license token using the Story Protocol SDK.
+
+```bash
+# Install dependencies first
+npm install @story-protocol/core-sdk viem
+
+# Run the script
+PRIVATE_KEY=0xYourPrivateKey node scripts/mint-license.js
+```
+
+**What it does:**
+- Initializes Story Protocol SDK client
+- Mints a license token for the configured IP Asset
+- Supports configurable minting fee and revenue share parameters
+
+#### debug-vault.js
+
+Inspects the state of a Royalty Vault for debugging purposes.
+
+```bash
+node scripts/debug-vault.js
+```
+
+**What it shows:**
+- Vault basic info (decimals, total supply, associated IP ID)
+- RT (Royalty Token) balances for IP Asset and vault
+- Vault WIP token balances
+- Snapshot state and claimable amounts
+
+**Use this when:** You need to understand why claiming isn't working or to verify vault state.
+
+#### claim-via-ip-account.js
+
+Claims royalties through the IP Account (ERC-6551 token-bound account).
+
+```bash
+PRIVATE_KEY=0xYourPrivateKey node scripts/claim-via-ip-account.js
+```
+
+**How it works:**
+1. Executes `snapshot()` through the IP Account
+2. Claims revenue using `claimByTokenBatchAsSelf()`
+3. Transfers claimed WIP from IP Account to your wallet
+
+**Use this when:** You own the IP Asset and want to claim royalties to your wallet.
+
+#### claim-via-module.js
+
+Attempts multiple claiming methods through the RoyaltyModule contract.
+
+```bash
+PRIVATE_KEY=0xYourPrivateKey node scripts/claim-via-module.js
+```
+
+**Methods tried:**
+1. `RoyaltyModule.claimAllRevenue()` - Claims all revenue for an IP
+2. Direct vault `snapshot()` - Creates a claimable snapshot
+3. `RoyaltyModule.claimRevenue()` - Claims with specific snapshot IDs
+
+**Use this when:** Standard claiming methods fail and you need to try alternatives.
+
+#### claim-fixed.js
+
+Fixed claiming script with correct 6-decimal RT token handling.
+
+```bash
+PRIVATE_KEY=0xYourPrivateKey node scripts/claim-fixed.js
+```
+
+**Key features:**
+- Handles RT tokens with 6 decimals correctly
+- Tries multiple claim method signatures
+- Transfers claimed funds from IP Account to wallet
+
+**Use this when:** You encounter decimal-related issues with royalty tokens.
+
+#### claim-as-ip-owner.js
+
+Claims revenue specifically as the IP owner.
+
+```bash
+PRIVATE_KEY=0xYourPrivateKey node scripts/claim-as-ip-owner.js
+```
+
+#### check-royalty-vault.js
+
+Quick check of royalty vault balances and state.
+
+```bash
+node scripts/check-royalty-vault.js
+```
+
+#### pay-royalty.js
+
+Sends a royalty payment to test the vault flow.
+
+```bash
+PRIVATE_KEY=0xYourPrivateKey node scripts/pay-royalty.js
+```
+
+### Script Dependencies
+
+For JavaScript scripts, install dependencies:
+
+```bash
+npm install viem @story-protocol/core-sdk
+```
+
+### Contract Addresses (Story Protocol Mainnet)
+
+| Contract | Address |
+|----------|---------|
+| Licensing Module | `0xd81fd78f557b457b4350cb95d20b547bfeb4d857` |
+| PIL Template | `0x0752b15ee7303033854bde1b32bc7a4008752dc0` |
+| Royalty Module | `0xD2f60c40fEbccf6311f8B47c4f2Ec6b040400086` |
+| IP Asset Registry | `0x77319B4031e6eF1250907aa00018B8B1c67a244b` |
+| WIP Token | `0x1514000000000000000000000000000000000000` |
+| Access Controller | `0x4557F9Bc90e64D6D6E628d1BC9a9FEBF8C79d4E1` |
 
 ## Live Example
 

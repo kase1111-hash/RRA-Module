@@ -258,6 +258,7 @@ The RRA Module consists of **36+ specialized modules** organized into a layered 
 For detailed documentation, see:
 
 ### Getting Started
+- **[Usage Guide](docs/USAGE-GUIDE.md)** - Comprehensive how-to guide for all features
 - **[Quick Start Guide](QUICKSTART.md)** - Installation and basic usage
 - **[Full Documentation](docs/README.md)** - Complete documentation index
 - **[Specification](SPECIFICATION.md)** - Technical specification and implementation status
