@@ -4,42 +4,55 @@ import { ArrowLeft, ArrowRight, CheckCircle, Copy, FileCode, GitBranch, Rocket, 
 const steps = [
   {
     number: 1,
-    title: 'Create a .market.yaml file',
-    description: 'Add a configuration file to the root of your repository',
-    code: `# .market.yaml
-license_identifier: MIT
-license_model: per-seat
-target_price: "0.05"
-floor_price: "0.02"
-negotiation_style: adaptive
+    title: 'Install the RRA CLI',
+    description: 'Install the RRA module using pip or clone the repository',
+    code: `# Install via pip
+pip install rra-module
 
-features:
-  - Full source access
-  - 12 months updates
-  - Developer support
-
-developer_wallet: "0x..."
-copyright_holder: "Your Name"`,
+# Or clone and install locally
+git clone https://github.com/kase1111-hash/RRA-Module.git
+cd RRA-Module
+pip install -e .`,
   },
   {
     number: 2,
-    title: 'Push to GitHub',
-    description: 'Commit and push your changes to trigger indexing',
-    code: `git add .market.yaml
-git commit -m "Add marketplace configuration"
-git push origin main`,
+    title: 'Initialize your repository',
+    description: 'Run rra init in your project directory to create the .market.yaml config',
+    code: `# Navigate to your project
+cd your-project
+
+# Initialize RRA (creates .market.yaml)
+rra init .
+
+# Edit .market.yaml with your settings
+# - Set your wallet address
+# - Configure pricing tiers
+# - Add license terms`,
   },
   {
     number: 3,
-    title: 'Verify your repository',
-    description: 'Our system will automatically verify your code and run security checks',
-    code: null,
+    title: 'Verify and ingest your code',
+    description: 'Run the ingestion command to verify, analyze, and register your repository',
+    code: `# Ingest your repository (runs verification automatically)
+rra ingest .
+
+# This will:
+# ✓ Analyze your codebase
+# ✓ Run security checks
+# ✓ Generate a knowledge base
+# ✓ Register on Story Protocol (if configured)`,
   },
   {
     number: 4,
-    title: 'Start selling!',
-    description: 'Your AI agent is now live and ready to negotiate licenses',
-    code: null,
+    title: 'Push and go live!',
+    description: 'Commit your config and your AI agent is ready to negotiate licenses',
+    code: `# Commit your marketplace config
+git add .market.yaml
+git commit -m "Add RRA marketplace configuration"
+git push origin main
+
+# Your agent is now live at:
+# https://marketplace.rra.io/agent/your-repo-name`,
   },
 ];
 
@@ -125,7 +138,7 @@ export default function QuickstartPage() {
                       <div className="flex items-center justify-between bg-gray-100 px-4 py-2 dark:bg-gray-800">
                         <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                           <FileCode className="h-4 w-4" />
-                          {step.number === 1 ? '.market.yaml' : 'Terminal'}
+                          Terminal
                         </div>
                         <button className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
                           <Copy className="h-4 w-4" />
@@ -141,8 +154,12 @@ export default function QuickstartPage() {
                   {step.number === 3 && (
                     <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
                       <p className="text-sm text-green-700 dark:text-green-300">
-                        Verification typically takes 2-5 minutes. You&apos;ll receive a verification
-                        score and any security findings will be reported.
+                        <strong>What happens during ingestion:</strong><br />
+                        • Code analysis and language detection<br />
+                        • Security scan (dependencies, vulnerabilities)<br />
+                        • Documentation verification<br />
+                        • Knowledge base generation for AI agent<br />
+                        • Story Protocol IP registration (optional)
                       </p>
                     </div>
                   )}
@@ -150,8 +167,8 @@ export default function QuickstartPage() {
                   {step.number === 4 && (
                     <div className="mt-4 rounded-lg border border-primary-200 bg-primary-50 p-4 dark:border-primary-800 dark:bg-primary-900/20">
                       <p className="text-sm text-primary-700 dark:text-primary-300">
-                        Your repository will appear in the marketplace and buyers can start
-                        negotiating with your AI agent immediately!
+                        🎉 <strong>You&apos;re all set!</strong> Your AI agent will handle license negotiations,
+                        and royalties are automatically enforced via Story Protocol smart contracts.
                       </p>
                     </div>
                   )}
