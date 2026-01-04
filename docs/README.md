@@ -30,15 +30,13 @@ Complete documentation for the Revenant Repo Agent Module.
 #### Project Status
 - **[Roadmap](../ROADMAP.md)** - Viral distribution strategy and product roadmap
 - **[Testing Results](TESTING-RESULTS.md)** - Test suite results (1,085 tests passing)
-- **[Security Audit](SECURITY-AUDIT.md)** - Security audit report (Score: A-)
 - **[Monitoring Guide](MONITORING.md)** - Production monitoring and alerting setup
 
 ### Security & Privacy
-- **[Security Audit](SECURITY-AUDIT.md)** - Comprehensive security audit (Score: A-)
+- **[Security Reports](../SECURITY-REPORTS.md)** - Consolidated security reports (Updated 2026-01-04)
 - **[Cryptographic Security Audit](../CRYPTOGRAPHIC-SECURITY-AUDIT-2025-12-20.md)** - Crypto primitives audit
-- **[Penetration Test Report](../PENTEST-REPORT-2025-12-20.md)** - Security penetration testing
-- **[Security Remediation Guide](SECURITY-REMEDIATION-GUIDE.md)** - Issue resolution guide
-- **[Security Pentest Report](SECURITY-PENTEST-REPORT.md)** - Detailed penetration testing findings
+- **[Audit Comparison Summary](../AUDIT-COMPARISON-SUMMARY.md)** - Security remediation tracking
+- **[Crypto Findings Quick Reference](../CRYPTO-FINDINGS-QUICK-REFERENCE.md)** - Developer quick reference
 - **[Hardware Authentication](HARDWARE-AUTHENTICATION.md)** - FIDO2/WebAuthn with ZK proofs (Phase 5)
 - **[Transaction Security](TRANSACTION-SECURITY.md)** - Two-step verification with timeout (Phase 5)
 - **[Dispute Membership Circuit](Dispute-Membership-Circuit.md)** - ZK identity proofs and privacy infrastructure
@@ -56,7 +54,7 @@ Complete documentation for the Revenant Repo Agent Module.
 - **[Risk Mitigation](../Risk-mitigation.md)** - Legal, technical, financial, and operational risk mitigation
 - **[NatLangChain Roadmap](../NatLangChain-roadmap.md)** - Long-term conflict-compression infrastructure
 - **[NCIP-016 Draft](../NCIP-016-DRAFT.md)** - Anti-capture mechanisms & market fairness
-- **[Security Report](../SECURITY_REPORT.md)** - Overall security report
+- **[Security Policy](../SECURITY.md)** - Vulnerability reporting policy
 
 ### Examples & SDKs
 - **[Examples Directory](../examples/README.md)** - Code examples and demonstrations
@@ -87,12 +85,11 @@ RRA-Module/
 ├── Buyer-Beware.md                        # Marketplace user notice
 ├── Founding-Contributor-Pledge.md         # Ethical commitments
 │
-├── SECURITY_REPORT.md                     # Overall security report
-├── SECURITY-AUDIT-REPORT.md              # Detailed audit findings
-├── PENTEST-REPORT-2025-12-20.md          # Penetration testing report
-├── CRYPTOGRAPHIC-SECURITY-AUDIT-2025-12-20.md  # Crypto audit
-├── AUDIT-COMPARISON-SUMMARY.md            # Audit comparisons
-├── CRYPTO-FINDINGS-QUICK-REFERENCE.md     # Crypto quick reference
+├── SECURITY.md                            # Vulnerability reporting policy
+├── SECURITY-REPORTS.md                    # Consolidated security reports (NEW)
+├── CRYPTOGRAPHIC-SECURITY-AUDIT-2025-12-20.md  # Crypto primitives audit
+├── AUDIT-COMPARISON-SUMMARY.md            # Security remediation tracking
+├── CRYPTO-FINDINGS-QUICK-REFERENCE.md     # Developer quick reference
 │
 ├── docs/                                  # Detailed documentation
 │   ├── README.md                          # This file
@@ -104,9 +101,6 @@ RRA-Module/
 │   ├── DEFI-INTEGRATION.md                # DeFi integration guide
 │   ├── MOBILE_SDK.md                      # Mobile SDK documentation
 │   ├── TESTING-RESULTS.md                 # Test results (1,085 tests)
-│   ├── SECURITY-AUDIT.md                  # Security audit (Score: A-)
-│   ├── SECURITY-PENTEST-REPORT.md         # Pentest findings
-│   ├── SECURITY-REMEDIATION-GUIDE.md      # Remediation guide
 │   ├── MONITORING.md                      # Monitoring and alerting
 │   ├── HARDWARE-AUTHENTICATION.md         # FIDO2/WebAuthn (Phase 5)
 │   ├── TRANSACTION-SECURITY.md            # Two-step verification
@@ -187,11 +181,10 @@ RRA-Module/
 - [Adaptive Pricing](../README.md#defi--finance-layer) - Demand-based pricing engine
 
 #### Security
-- [Security Audit Report](SECURITY-AUDIT.md) - Comprehensive audit (Score: A-)
-- [Cryptographic Security](../CRYPTOGRAPHIC-SECURITY-AUDIT-2025-12-20.md) - Crypto primitives
-- [Penetration Testing](../PENTEST-REPORT-2025-12-20.md) - Security testing results
-- [SSRF Protection](SECURITY-AUDIT.md#6-ssrf-protection--comprehensive)
-- [Rate Limiting](SECURITY-AUDIT.md#7-rate-limiting--implemented)
+- [Security Reports](../SECURITY-REPORTS.md) - Consolidated security reports (Updated 2026-01-04)
+- [Cryptographic Security](../CRYPTOGRAPHIC-SECURITY-AUDIT-2025-12-20.md) - Crypto primitives audit
+- [Audit Comparison](../AUDIT-COMPARISON-SUMMARY.md) - Remediation tracking
+- [Crypto Quick Reference](../CRYPTO-FINDINGS-QUICK-REFERENCE.md) - Developer lookup
 - [Secret Management](../README.md#security--privacy-layer) - Secure secrets handling
 
 #### Hardware Authentication (Phase 5)
