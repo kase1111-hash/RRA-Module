@@ -55,6 +55,15 @@ const nextConfig = {
 
   // Webpack configuration for bundle optimization
   webpack: (config, { isServer, dev }) => {
+    // Fix for pino-pretty and async-storage warnings from wagmi/rainbowkit
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        'pino-pretty': false,
+        '@react-native-async-storage/async-storage': false,
+      };
+    }
+
     // Only apply optimizations in production
     if (!dev && !isServer) {
       // Split chunks more aggressively
@@ -107,6 +116,20 @@ const nextConfig = {
   // =========================================================================
   async headers() {
     return [
+      {
+        // Security headers for wallet connections (RainbowKit/WalletConnect)
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin-allow-popups',
+          },
+          {
+            key: 'Cross-Origin-Embedder-Policy',
+            value: 'credentialless',
+          },
+        ],
+      },
       {
         // Cache static assets aggressively
         source: '/_next/static/:path*',
