@@ -260,7 +260,7 @@
                 // Step 4: Mint license token
                 loadingText.textContent = 'Minting license token...';
 
-                // ABI for mintLicenseTokens (8-parameter version)
+                // Full LicensingModule ABI with predictMintingLicenseFee for debugging
                 const licensingABI = [
                     {
                         "inputs": [
@@ -277,6 +277,23 @@
                         "outputs": [{"name": "", "type": "uint256"}],
                         "stateMutability": "nonpayable",
                         "type": "function"
+                    },
+                    {
+                        "inputs": [
+                            {"name": "licensorIpId", "type": "address"},
+                            {"name": "licenseTemplate", "type": "address"},
+                            {"name": "licenseTermsId", "type": "uint256"},
+                            {"name": "amount", "type": "uint256"},
+                            {"name": "receiver", "type": "address"},
+                            {"name": "royaltyContext", "type": "bytes"}
+                        ],
+                        "name": "predictMintingLicenseFee",
+                        "outputs": [
+                            {"name": "currencyToken", "type": "address"},
+                            {"name": "tokenAmount", "type": "uint256"}
+                        ],
+                        "stateMutability": "view",
+                        "type": "function"
                     }
                 ];
 
@@ -285,6 +302,47 @@
                     licensingABI,
                     signer
                 );
+
+                // First, predict the minting fee to verify the call will work
+                console.log('Predicting minting fee...');
+                try {
+                    const [feeToken, feeAmount] = await licensingModule.predictMintingLicenseFee(
+                        IP_ASSET_ID,
+                        PIL_TEMPLATE,
+                        LICENSE_TERMS_ID,
+                        1,
+                        receiverAddress,
+                        "0x"
+                    );
+                    console.log('Fee Token:', feeToken);
+                    console.log('Fee Amount:', ethers.formatEther(feeAmount), 'WIP');
+                } catch (predictError) {
+                    console.error('Predict fee failed:', predictError);
+                    // Continue anyway - this might fail but the mint might still work
+                }
+
+                // Try to estimate gas first to get better error
+                console.log('Estimating gas...');
+                try {
+                    const gasEstimate = await licensingModule.mintLicenseTokens.estimateGas(
+                        IP_ASSET_ID,
+                        PIL_TEMPLATE,
+                        LICENSE_TERMS_ID,
+                        1,
+                        receiverAddress,
+                        "0x",
+                        ethers.parseEther("1"),
+                        10000
+                    );
+                    console.log('Gas estimate:', gasEstimate.toString());
+                } catch (gasError) {
+                    console.error('Gas estimation failed:', gasError);
+                    // Extract revert reason if available
+                    if (gasError.data) {
+                        console.error('Revert data:', gasError.data);
+                    }
+                    throw gasError;
+                }
 
                 // Mint license token (8 parameters)
                 const tx = await licensingModule.mintLicenseTokens(
@@ -312,10 +370,39 @@
 
             } catch (error) {
                 console.error('Purchase error:', error);
+                console.error('Error details:', {
+                    code: error.code,
+                    reason: error.reason,
+                    data: error.data,
+                    message: error.message,
+                    shortMessage: error.shortMessage,
+                    info: error.info
+                });
                 loadingDiv.classList.add('hidden');
                 errorDiv.classList.remove('hidden');
-                document.getElementById('error-message').textContent =
-                    error.reason || error.message || 'Transaction failed';
+
+                // Try to extract a meaningful error message
+                let errorMsg = 'Transaction failed';
+                if (error.reason) {
+                    errorMsg = error.reason;
+                } else if (error.shortMessage) {
+                    errorMsg = error.shortMessage;
+                } else if (error.message) {
+                    errorMsg = error.message;
+                }
+
+                // Check for common Story Protocol errors
+                if (errorMsg.includes('LicensingModule__LicenseTermsNotFound')) {
+                    errorMsg = 'License terms not found - the license may not be attached to this IP';
+                } else if (errorMsg.includes('LicensingModule__MintingFeeExceeded')) {
+                    errorMsg = 'Minting fee exceeded maximum - try increasing maxMintingFee';
+                } else if (errorMsg.includes('ERC20InsufficientAllowance')) {
+                    errorMsg = 'Insufficient WIP allowance - approval may have failed';
+                } else if (errorMsg.includes('ERC20InsufficientBalance')) {
+                    errorMsg = 'Insufficient WIP balance';
+                }
+
+                document.getElementById('error-message').textContent = errorMsg;
             }
         }
     </script>
