@@ -25,14 +25,21 @@ This repository is **live on Story Protocol**. Buy a license NFT to use this cod
 The RRA‑Module repository is a Python/Smart‑contract powered extension for the NatLangChain framework that turns a static GitHub repo into an autonomous agent which:
 
 ✔ Ingests a repo's source code
+
 ✔ Parses and vectorizes knowledge about the repo
+
 ✔ Wraps that knowledge into an agent/LLM workflow
+
 ✔ Enables automated on‑chain licensing/negotiation transactions
+
 ✔ Interfaces with blockchain smart contracts (e.g., ERC‑721/ETH)
 ✔ Maintains a license advisor agent that can assist buyer agents
 ✔ Supports multi-chain deployments (Ethereum, Polygon, Arbitrum, Base, Optimism)
+
 ✔ Provides L3 batch processing for high-throughput dispute resolution
+
 ✔ Integrates DeFi features (yield tokens, IP lending, fractional ownership)
+
 ✔ Includes comprehensive security with FIDO2/WebAuthn hardware authentication
 
 This modular pipeline transforms repos into living AI agents with monetization features.
