@@ -1,0 +1,15 @@
+{
+  "name": "RRA-Module Standard License",
+  "description": "Production deployment license for RRA-Module. Grants commercial use rights (non-competing), derivative works with attribution, and 12 months of updates.",
+  "external_url": "https://github.com/kase1111-hash/RRA-Module",
+  "image": "https://raw.githubusercontent.com/kase1111-hash/RRA-Module/main/assets/license-nft.svg",
+  "attributes": [
+    {"trait_type": "License Name", "value": "RRA-Module Standard License"},
+    {"trait_type": "Base License", "value": "FSL-1.1-ALv2"},
+    {"trait_type": "Commercial Use", "value": "Allowed (non-competing)"},
+    {"trait_type": "Derivatives", "value": "Allowed with attribution"},
+    {"trait_type": "Minting Fee", "value": "0.005 IP"},
+    {"trait_type": "Revenue Share", "value": "9%"},
+    {"trait_type": "Transferable", "value": "Yes"}
+  ]
+}
