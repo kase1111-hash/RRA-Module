@@ -21,15 +21,14 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: Install RRA Module
         run: |
-          pip install rra-module
-          # Or if running from repo:
-          # pip install -e .
+          # Install from local repository
+          pip install -e .
 
       - name: Check for .market.yaml
         id: check_config
@@ -50,7 +49,7 @@ jobs:
 
       - name: Upload Knowledge Base
         if: steps.check_config.outputs.config_exists == 'true'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: knowledge-base
           path: agent_knowledge_bases/*.json
