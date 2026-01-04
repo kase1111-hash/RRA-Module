@@ -235,7 +235,9 @@ class TestShamirFuzzing:
 
         # 0, 1, 2 shares should all fail for 3-of-5
         for count in range(3):
-            with pytest.raises(ValueError, match="Not enough shares"):
+            # 0 shares gives "No shares provided", >0 but <threshold gives "Not enough shares"
+            expected_pattern = "No shares provided" if count == 0 else "Not enough shares"
+            with pytest.raises(ValueError, match=expected_pattern):
                 shamir.reconstruct(shares[:count])
 
 
@@ -358,7 +360,8 @@ class TestPedersenFuzzing:
 
         for data in invalid_cases:
             if len(data) == 64:
-                with pytest.raises(ValueError, match="not on the BN254 curve"):
+                # Point may fail curve check or subgroup check depending on coordinates
+                with pytest.raises(ValueError, match="(not on the BN254 curve|not in the BN254 G1 prime-order subgroup)"):
                     _bytes_to_point(data)
             else:
                 with pytest.raises(ValueError, match="64 bytes"):

@@ -84,8 +84,9 @@ class TestViewingKey:
             index=0
         )
 
-        # Same derivation should produce same key
-        assert key1.commitment == key2.commitment
+        # Same derivation should produce same key (compare public keys, not commitments,
+        # since commitments use random blinding per MED-001 security fix)
+        assert key1.public_key.to_bytes() == key2.public_key.to_bytes()
 
     def test_derive_different_indices(self):
         """Test different indices produce different keys."""
@@ -94,10 +95,13 @@ class TestViewingKey:
         key1 = ViewingKey.derive(master_key, KeyPurpose.DISPUTE_EVIDENCE, "d-1", 0)
         key2 = ViewingKey.derive(master_key, KeyPurpose.DISPUTE_EVIDENCE, "d-1", 1)
 
-        assert key1.commitment != key2.commitment
+        # Compare public keys since commitments use random blinding per MED-001
+        assert key1.public_key.to_bytes() != key2.public_key.to_bytes()
 
     def test_encrypt_decrypt(self):
         """Test encryption and decryption."""
+        from eth_utils import keccak as eth_keccak
+
         key = ViewingKey.generate(
             purpose=KeyPurpose.DISPUTE_EVIDENCE,
             context_id="dispute-123"
@@ -107,7 +111,10 @@ class TestViewingKey:
         encrypted = key.encrypt(plaintext)
 
         assert encrypted.ciphertext != plaintext
-        assert encrypted.key_commitment == key.commitment
+        # encrypted.key_commitment is hash of public key (used for decryption verification)
+        # key.commitment includes blinding per MED-001, so they differ
+        # Verify key_commitment matches hash of public key (internal encryption format)
+        assert encrypted.key_commitment == eth_keccak(key.public_key.to_bytes())
 
         decrypted = key.decrypt(encrypted)
         assert decrypted == plaintext
@@ -133,7 +140,9 @@ class TestViewingKey:
             "d-1"
         )
 
-        assert restored.commitment == key.commitment
+        # Compare public keys since commitments use random blinding per MED-001
+        # (restored key generates new blinding unless explicitly provided)
+        assert restored.public_key.to_bytes() == key.public_key.to_bytes()
 
 
 class TestEncryptedData:
@@ -483,7 +492,7 @@ class TestCryptoIntegration:
 
         # 3. Escrow the viewing key
         escrow = EscrowManager()
-        key_bytes = vk_manager.export_key_for_escrow("dispute-123")
+        key_bytes = vk_manager.export_key_for_escrow("dispute-123", _acknowledge_security_risk=True)
         shares = escrow.escrow_viewing_key(key_bytes, "dispute-123")
 
         # 4. Simulate threshold recovery

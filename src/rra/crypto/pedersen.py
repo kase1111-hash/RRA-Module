@@ -101,6 +101,63 @@ def _is_on_curve(point: tuple) -> bool:
     return left == right
 
 
+def _point_add(p1: Tuple[int, int], p2: Tuple[int, int]) -> Tuple[int, int]:
+    """Add two points on BN254 curve."""
+    if p1 == (0, 0):
+        return p2
+    if p2 == (0, 0):
+        return p1
+
+    x1, y1 = p1
+    x2, y2 = p2
+
+    if x1 == x2:
+        if y1 == y2:
+            # Point doubling
+            if y1 == 0:
+                return (0, 0)  # Point at infinity
+            # lambda = (3*x1^2) / (2*y1)
+            num = (3 * x1 * x1) % BN254_FIELD_PRIME
+            denom = (2 * y1) % BN254_FIELD_PRIME
+            lam = (num * pow(denom, BN254_FIELD_PRIME - 2, BN254_FIELD_PRIME)) % BN254_FIELD_PRIME
+        else:
+            # P + (-P) = O (point at infinity)
+            return (0, 0)
+    else:
+        # Point addition
+        # lambda = (y2 - y1) / (x2 - x1)
+        num = (y2 - y1) % BN254_FIELD_PRIME
+        denom = (x2 - x1) % BN254_FIELD_PRIME
+        lam = (num * pow(denom, BN254_FIELD_PRIME - 2, BN254_FIELD_PRIME)) % BN254_FIELD_PRIME
+
+    # x3 = lambda^2 - x1 - x2
+    x3 = (lam * lam - x1 - x2) % BN254_FIELD_PRIME
+    # y3 = lambda * (x1 - x3) - y1
+    y3 = (lam * (x1 - x3) - y1) % BN254_FIELD_PRIME
+
+    return (x3, y3)
+
+
+def _scalar_mult(k: int, point: Tuple[int, int]) -> Tuple[int, int]:
+    """Multiply point by scalar using double-and-add."""
+    if k == 0:
+        return (0, 0)
+    if k < 0:
+        k = -k
+        point = (point[0], (-point[1]) % BN254_FIELD_PRIME)
+
+    result = (0, 0)  # Point at infinity
+    addend = point
+
+    while k:
+        if k & 1:
+            result = _point_add(result, addend)
+        addend = _point_add(addend, addend)
+        k >>= 1
+
+    return result
+
+
 def _is_in_subgroup(point: Tuple[int, int]) -> bool:
     """
     SECURITY FIX LOW-008: Verify that a point is in the correct subgroup.
@@ -324,63 +381,6 @@ def _validate_curve_constants() -> None:
 
 # Run validation at module load
 _validate_curve_constants()
-
-
-def _point_add(p1: Tuple[int, int], p2: Tuple[int, int]) -> Tuple[int, int]:
-    """Add two points on BN254 curve."""
-    if p1 == (0, 0):
-        return p2
-    if p2 == (0, 0):
-        return p1
-
-    x1, y1 = p1
-    x2, y2 = p2
-
-    if x1 == x2:
-        if y1 == y2:
-            # Point doubling
-            if y1 == 0:
-                return (0, 0)  # Point at infinity
-            # lambda = (3*x1^2) / (2*y1)
-            num = (3 * x1 * x1) % BN254_FIELD_PRIME
-            denom = (2 * y1) % BN254_FIELD_PRIME
-            lam = (num * pow(denom, BN254_FIELD_PRIME - 2, BN254_FIELD_PRIME)) % BN254_FIELD_PRIME
-        else:
-            # P + (-P) = O (point at infinity)
-            return (0, 0)
-    else:
-        # Point addition
-        # lambda = (y2 - y1) / (x2 - x1)
-        num = (y2 - y1) % BN254_FIELD_PRIME
-        denom = (x2 - x1) % BN254_FIELD_PRIME
-        lam = (num * pow(denom, BN254_FIELD_PRIME - 2, BN254_FIELD_PRIME)) % BN254_FIELD_PRIME
-
-    # x3 = lambda^2 - x1 - x2
-    x3 = (lam * lam - x1 - x2) % BN254_FIELD_PRIME
-    # y3 = lambda * (x1 - x3) - y1
-    y3 = (lam * (x1 - x3) - y1) % BN254_FIELD_PRIME
-
-    return (x3, y3)
-
-
-def _scalar_mult(k: int, point: Tuple[int, int]) -> Tuple[int, int]:
-    """Multiply point by scalar using double-and-add."""
-    if k == 0:
-        return (0, 0)
-    if k < 0:
-        k = -k
-        point = (point[0], (-point[1]) % BN254_FIELD_PRIME)
-
-    result = (0, 0)  # Point at infinity
-    addend = point
-
-    while k:
-        if k & 1:
-            result = _point_add(result, addend)
-        addend = _point_add(addend, addend)
-        k >>= 1
-
-    return result
 
 
 def _point_to_bytes(point: Tuple[int, int]) -> bytes:
