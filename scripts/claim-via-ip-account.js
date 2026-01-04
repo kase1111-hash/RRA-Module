@@ -4,30 +4,16 @@
  * In Story Protocol, each IP Asset has an associated IP Account (ERC-6551).
  * The IP owner can execute transactions through this account to claim royalties.
  *
+ * Configuration is loaded from .market.yaml or environment variables.
+ *
  * Usage:
  *   PRIVATE_KEY=0x... node scripts/claim-via-ip-account.js
+ *   STORY_IP_ASSET_ID=0x... PRIVATE_KEY=0x... node scripts/claim-via-ip-account.js
  */
 
-const { createPublicClient, createWalletClient, http, formatEther, encodeFunctionData } = require("viem");
+const { createPublicClient, createWalletClient, http, formatEther, formatUnits, encodeFunctionData } = require("viem");
 const { privateKeyToAccount } = require("viem/accounts");
-
-// Configuration
-const IP_ASSET_ID = "0xf08574c30337dde7C38869b8d399BA07ab23a07F";
-const RPC_URL = "https://mainnet.storyrpc.io";
-
-// Contract addresses (Story Protocol Mainnet)
-const WIP_TOKEN = "0x1514000000000000000000000000000000000000";
-const VAULT_ADDRESS = "0xf670F6e1dED682C0988c84b06CFA861464E59ab3";
-const IP_ACCOUNT_REGISTRY = "0x1a9c8B758F9995ae24e2D9C5C2e0b3e3cA85fE3C";
-const ROYALTY_WORKFLOW = "0xc137b2Cf6325eB7A6F2436a12C6b3389b0051A10"; // RoyaltyWorkflows contract
-
-// Story chain config
-const storyMainnet = {
-    id: 1514,
-    name: "Story Protocol",
-    nativeCurrency: { name: "IP", symbol: "IP", decimals: 18 },
-    rpcUrls: { default: { http: [RPC_URL] } },
-};
+const config = require("./config");
 
 // ABIs
 const ipAccountABI = [
@@ -61,6 +47,13 @@ const vaultABI = [
     },
     {
         inputs: [],
+        name: "decimals",
+        outputs: [{ name: "", type: "uint8" }],
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        inputs: [],
         name: "snapshot",
         outputs: [{ name: "", type: "uint256" }],
         stateMutability: "nonpayable",
@@ -75,22 +68,22 @@ const vaultABI = [
     },
     {
         inputs: [
-            { name: "to", type: "address" },
-            { name: "amount", type: "uint256" },
-        ],
-        name: "transfer",
-        outputs: [{ name: "", type: "bool" }],
-        stateMutability: "nonpayable",
-        type: "function",
-    },
-    {
-        inputs: [
             { name: "snapshotId", type: "uint256" },
             { name: "tokens", type: "address[]" },
         ],
         name: "claimByTokenBatchAsSelf",
         outputs: [{ name: "", type: "uint256[]" }],
         stateMutability: "nonpayable",
+        type: "function",
+    },
+];
+
+const royaltyModuleABI = [
+    {
+        inputs: [{ name: "ipId", type: "address" }],
+        name: "ipRoyaltyVaults",
+        outputs: [{ name: "", type: "address" }],
+        stateMutability: "view",
         type: "function",
     },
 ];
@@ -116,31 +109,69 @@ const erc20ABI = [
 ];
 
 async function main() {
-    const privateKey = process.env.PRIVATE_KEY;
-    if (!privateKey) {
-        console.error("Error: PRIVATE_KEY environment variable required");
-        process.exit(1);
-    }
-
     console.log("=".repeat(60));
     console.log("Claim Royalties via IP Account");
     console.log("=".repeat(60));
 
+    // Validate configuration
+    config.validate(["ipAssetId", "privateKey"]);
+
+    const privateKey = config.getPrivateKey();
+    const ipAssetId = config.ipAssetId;
+    let vaultAddress = config.vaultAddress;
+
+    console.log("\n" + "-".repeat(60));
+    config.printSummary();
+    console.log("-".repeat(60));
+
     const account = privateKeyToAccount(privateKey);
     console.log(`\nYour Wallet: ${account.address}`);
-    console.log(`IP Asset (also IP Account): ${IP_ASSET_ID}`);
-    console.log(`Royalty Vault: ${VAULT_ADDRESS}`);
+    console.log(`IP Asset (also IP Account): ${ipAssetId}`);
 
     const publicClient = createPublicClient({
-        chain: storyMainnet,
-        transport: http(RPC_URL),
+        chain: config.storyChain,
+        transport: http(config.rpcUrl),
     });
 
     const walletClient = createWalletClient({
         account,
-        chain: storyMainnet,
-        transport: http(RPC_URL),
+        chain: config.storyChain,
+        transport: http(config.rpcUrl),
     });
+
+    // Look up vault if not provided
+    if (!vaultAddress) {
+        console.log("\nLooking up Royalty Vault...");
+        try {
+            vaultAddress = await publicClient.readContract({
+                address: config.royaltyModule,
+                abi: royaltyModuleABI,
+                functionName: "ipRoyaltyVaults",
+                args: [ipAssetId],
+            });
+
+            if (vaultAddress === "0x0000000000000000000000000000000000000000") {
+                console.log("[WARNING] No Royalty Vault exists for this IP Asset.");
+                return;
+            }
+        } catch (e) {
+            console.log(`Error looking up vault: ${e.message.slice(0, 60)}`);
+            return;
+        }
+    }
+    console.log(`Royalty Vault: ${vaultAddress}`);
+
+    // Get RT decimals
+    let rtDecimals = 6;
+    try {
+        rtDecimals = await publicClient.readContract({
+            address: vaultAddress,
+            abi: vaultABI,
+            functionName: "decimals",
+        });
+    } catch (e) {
+        // Use default
+    }
 
     // Check current balances
     console.log("\n" + "-".repeat(60));
@@ -148,7 +179,7 @@ async function main() {
     console.log("-".repeat(60));
 
     const yourWipBefore = await publicClient.readContract({
-        address: WIP_TOKEN,
+        address: config.wipToken,
         abi: erc20ABI,
         functionName: "balanceOf",
         args: [account.address],
@@ -156,37 +187,37 @@ async function main() {
     console.log(`  Your WIP: ${formatEther(yourWipBefore)} WIP`);
 
     const vaultWip = await publicClient.readContract({
-        address: WIP_TOKEN,
+        address: config.wipToken,
         abi: erc20ABI,
         functionName: "balanceOf",
-        args: [VAULT_ADDRESS],
+        args: [vaultAddress],
     });
     console.log(`  Vault WIP: ${formatEther(vaultWip)} WIP`);
 
     const ipWip = await publicClient.readContract({
-        address: WIP_TOKEN,
+        address: config.wipToken,
         abi: erc20ABI,
         functionName: "balanceOf",
-        args: [IP_ASSET_ID],
+        args: [ipAssetId],
     });
     console.log(`  IP Asset WIP: ${formatEther(ipWip)} WIP`);
 
     // Check RT balances
     const yourRT = await publicClient.readContract({
-        address: VAULT_ADDRESS,
+        address: vaultAddress,
         abi: vaultABI,
         functionName: "balanceOf",
         args: [account.address],
     });
-    console.log(`  Your RT: ${formatEther(yourRT)} RT`);
+    console.log(`  Your RT: ${formatUnits(yourRT, Number(rtDecimals))} RT`);
 
     const ipRT = await publicClient.readContract({
-        address: VAULT_ADDRESS,
+        address: vaultAddress,
         abi: vaultABI,
         functionName: "balanceOf",
-        args: [IP_ASSET_ID],
+        args: [ipAssetId],
     });
-    console.log(`  IP Asset RT: ${formatEther(ipRT)} RT`);
+    console.log(`  IP Asset RT: ${formatUnits(ipRT, Number(rtDecimals))} RT`);
 
     // Check if IP Account is accessible
     console.log("\n" + "-".repeat(60));
@@ -195,7 +226,7 @@ async function main() {
 
     try {
         const ipOwner = await publicClient.readContract({
-            address: IP_ASSET_ID,
+            address: ipAssetId,
             abi: ipAccountABI,
             functionName: "owner",
         });
@@ -220,10 +251,10 @@ async function main() {
         // Execute through IP Account
         const { request } = await publicClient.simulateContract({
             account,
-            address: IP_ASSET_ID,
+            address: ipAssetId,
             abi: ipAccountABI,
             functionName: "execute",
-            args: [VAULT_ADDRESS, 0n, snapshotData],
+            args: [vaultAddress, 0n, snapshotData],
         });
 
         const txHash = await walletClient.writeContract(request);
@@ -239,7 +270,7 @@ async function main() {
     let snapshotId = 1n;
     try {
         snapshotId = await publicClient.readContract({
-            address: VAULT_ADDRESS,
+            address: vaultAddress,
             abi: vaultABI,
             functionName: "currentSnapshotId",
         });
@@ -258,16 +289,16 @@ async function main() {
         const claimData = encodeFunctionData({
             abi: vaultABI,
             functionName: "claimByTokenBatchAsSelf",
-            args: [snapshotId, [WIP_TOKEN]],
+            args: [snapshotId, [config.wipToken]],
         });
 
         // Execute through IP Account
         const { request } = await publicClient.simulateContract({
             account,
-            address: IP_ASSET_ID,
+            address: ipAssetId,
             abi: ipAccountABI,
             functionName: "execute",
-            args: [VAULT_ADDRESS, 0n, claimData],
+            args: [vaultAddress, 0n, claimData],
         });
 
         const txHash = await walletClient.writeContract(request);
@@ -281,10 +312,10 @@ async function main() {
 
     // Check IP Asset WIP balance now
     const ipWipAfterClaim = await publicClient.readContract({
-        address: WIP_TOKEN,
+        address: config.wipToken,
         abi: erc20ABI,
         functionName: "balanceOf",
-        args: [IP_ASSET_ID],
+        args: [ipAssetId],
     });
     console.log(`\n  IP Asset WIP after claim: ${formatEther(ipWipAfterClaim)} WIP`);
 
@@ -305,10 +336,10 @@ async function main() {
             // Execute through IP Account
             const { request } = await publicClient.simulateContract({
                 account,
-                address: IP_ASSET_ID,
+                address: ipAssetId,
                 abi: ipAccountABI,
                 functionName: "execute",
-                args: [WIP_TOKEN, 0n, transferData],
+                args: [config.wipToken, 0n, transferData],
             });
 
             const txHash = await walletClient.writeContract(request);
@@ -327,7 +358,7 @@ async function main() {
     console.log("-".repeat(60));
 
     const yourWipAfter = await publicClient.readContract({
-        address: WIP_TOKEN,
+        address: config.wipToken,
         abi: erc20ABI,
         functionName: "balanceOf",
         args: [account.address],
@@ -335,10 +366,10 @@ async function main() {
     console.log(`  Your WIP: ${formatEther(yourWipAfter)} WIP`);
 
     const vaultWipAfter = await publicClient.readContract({
-        address: WIP_TOKEN,
+        address: config.wipToken,
         abi: erc20ABI,
         functionName: "balanceOf",
-        args: [VAULT_ADDRESS],
+        args: [vaultAddress],
     });
     console.log(`  Vault WIP: ${formatEther(vaultWipAfter)} WIP`);
 
@@ -351,8 +382,8 @@ async function main() {
 
     console.log("\n" + "=".repeat(60));
     console.log("Explorer Links:");
-    console.log(`  IP Asset: https://explorer.story.foundation/ipa/${IP_ASSET_ID}`);
-    console.log(`  Vault: https://storyscan.io/address/${VAULT_ADDRESS}`);
+    console.log(`  IP Asset: https://explorer.story.foundation/ipa/${ipAssetId}`);
+    console.log(`  Vault: https://storyscan.io/address/${vaultAddress}`);
     console.log("=".repeat(60));
 }
 

@@ -3,8 +3,30 @@
   "version": "1.0.0",
   "description": "Story Protocol scripts for RRA-Module",
   "type": "commonjs",
+  "scripts": {
+    "debug": "node debug-vault.js",
+    "mint": "node mint-license.js",
+    "claim": "node claim-via-ip-account.js",
+    "claim:module": "node claim-via-module.js",
+    "claim:fixed": "node claim-fixed.js",
+    "claim:owner": "node claim-as-ip-owner.js",
+    "check": "node check-royalty-vault.js",
+    "pay": "node pay-royalty.js"
+  },
   "dependencies": {
     "@story-protocol/core-sdk": "^1.2.0",
     "viem": "^2.0.0"
-  }
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "story-protocol",
+    "royalties",
+    "blockchain",
+    "ip-licensing",
+    "rra-module"
+  ],
+  "author": "Kase Branham",
+  "license": "FSL-1.1-ALv2"
 }

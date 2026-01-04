@@ -1,10 +1,12 @@
 'use client';
 
-import { Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { Suspense, useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { SearchBar } from '@/components/SearchBar';
 import { AgentCard } from '@/components/AgentCard';
-import { Loader2 } from 'lucide-react';
+import { SkeletonCard } from '@/components/ui/Skeleton';
+import { Badge } from '@/components/ui/Badge';
+import { Loader2, X, Sparkles, TrendingUp, Clock, Search as SearchIcon } from 'lucide-react';
 
 // Mock data - in production would come from API based on search params
 const allRepos = [
@@ -191,11 +193,50 @@ const verificationData: Record<string, any> = {
   },
 };
 
+// Sort label mapping
+const SORT_LABELS: Record<string, { label: string; icon: typeof Clock }> = {
+  recent: { label: 'Most Recent', icon: Clock },
+  popular: { label: 'Most Popular', icon: TrendingUp },
+  price_low: { label: 'Price: Low to High', icon: TrendingUp },
+  price_high: { label: 'Price: High to Low', icon: TrendingUp },
+};
+
 function SearchResults() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+
   const query = searchParams.get('q') || '';
   const language = searchParams.get('language') || '';
+  const priceMin = searchParams.get('price_min') || '';
+  const priceMax = searchParams.get('price_max') || '';
   const sortBy = searchParams.get('sort') || 'recent';
+
+  // Simulate loading for demo
+  useEffect(() => {
+    setIsLoading(true);
+    const timer = setTimeout(() => setIsLoading(false), 800);
+    return () => clearTimeout(timer);
+  }, [query, language, sortBy, priceMin, priceMax]);
+
+  // Collect active filters
+  const activeFilters: { key: string; label: string; value: string }[] = [];
+  if (language) activeFilters.push({ key: 'language', label: 'Language', value: language });
+  if (priceMin) activeFilters.push({ key: 'price_min', label: 'Min Price', value: `${priceMin} ETH` });
+  if (priceMax) activeFilters.push({ key: 'price_max', label: 'Max Price', value: `${priceMax} ETH` });
+  if (sortBy !== 'recent') activeFilters.push({ key: 'sort', label: 'Sort', value: SORT_LABELS[sortBy]?.label || sortBy });
+
+  const removeFilter = (key: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete(key);
+    router.push(`/search?${params.toString()}`);
+  };
+
+  const clearAllFilters = () => {
+    const params = new URLSearchParams();
+    if (query) params.set('q', query);
+    router.push(`/search?${params.toString()}`);
+  };
 
   // Filter repos based on search params
   let filteredRepos = [...allRepos];
@@ -217,6 +258,22 @@ function SearchResults() {
     );
   }
 
+  if (priceMin) {
+    const min = parseFloat(priceMin);
+    filteredRepos = filteredRepos.filter((repo) => {
+      const price = parseFloat(marketConfigs[repo.id]?.target_price || '0');
+      return price >= min;
+    });
+  }
+
+  if (priceMax) {
+    const max = parseFloat(priceMax);
+    filteredRepos = filteredRepos.filter((repo) => {
+      const price = parseFloat(marketConfigs[repo.id]?.target_price || '0');
+      return price <= max;
+    });
+  }
+
   // Sort repos
   if (sortBy === 'popular') {
     filteredRepos.sort((a, b) => (b.stars || 0) - (a.stars || 0));
@@ -236,16 +293,62 @@ function SearchResults() {
 
   return (
     <>
+      {/* Active Filters */}
+      {activeFilters.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <span className="text-sm text-gray-500 dark:text-gray-400">Active filters:</span>
+          {activeFilters.map((filter) => (
+            <Badge
+              key={filter.key}
+              variant="primary"
+              size="md"
+              removable
+              onRemove={() => removeFilter(filter.key)}
+            >
+              {filter.label}: {filter.value}
+            </Badge>
+          ))}
+          <button
+            onClick={clearAllFilters}
+            className="ml-2 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 flex items-center gap-1"
+          >
+            <X className="h-3 w-3" />
+            Clear all
+          </button>
+        </div>
+      )}
+
       {/* Results Header */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          {filteredRepos.length} {filteredRepos.length === 1 ? 'result' : 'results'}
-          {query && ` for "${query}"`}
+          {isLoading ? (
+            <span className="animate-pulse">Searching...</span>
+          ) : (
+            <>
+              {filteredRepos.length} {filteredRepos.length === 1 ? 'result' : 'results'}
+              {query && <> for <span className="font-medium text-gray-900 dark:text-white">&quot;{query}&quot;</span></>}
+            </>
+          )}
         </p>
+        {!isLoading && filteredRepos.length > 0 && (
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <span>Sorted by:</span>
+            <span className="font-medium text-gray-700 dark:text-gray-300">
+              {SORT_LABELS[sortBy]?.label || 'Most Recent'}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Results Grid */}
-      {filteredRepos.length > 0 ? (
+      {/* Loading Skeleton */}
+      {isLoading ? (
+        <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+      ) : filteredRepos.length > 0 ? (
+        /* Results Grid */
         <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredRepos.map((repo) => (
             <AgentCard
@@ -257,27 +360,46 @@ function SearchResults() {
           ))}
         </div>
       ) : (
+        /* Empty State */
         <div className="mt-12 text-center">
-          <div className="mx-auto h-24 w-24 text-gray-300 dark:text-gray-600">
-            <svg
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={1}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+            <SearchIcon className="h-10 w-10 text-gray-400 dark:text-gray-500" />
           </div>
-          <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
+          <h3 className="mt-6 text-lg font-semibold text-gray-900 dark:text-white">
             No repositories found
           </h3>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
-            Try adjusting your search or filters to find what you&apos;re looking for.
+          <p className="mt-2 text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+            We couldn&apos;t find any repositories matching your search.
+            Try adjusting your filters or search terms.
           </p>
+          {activeFilters.length > 0 && (
+            <button
+              onClick={clearAllFilters}
+              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 transition-colors"
+            >
+              <X className="h-4 w-4" />
+              Clear all filters
+            </button>
+          )}
+
+          {/* Suggestions */}
+          <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              Popular searches
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {['Python', 'TypeScript', 'Rust', 'Machine Learning', 'Web3'].map((suggestion) => (
+                <button
+                  key={suggestion}
+                  onClick={() => router.push(`/search?q=${encodeURIComponent(suggestion)}`)}
+                  className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                >
+                  <Sparkles className="h-3 w-3 text-amber-500" />
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </>

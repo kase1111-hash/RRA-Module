@@ -1,0 +1,161 @@
+# Example: Mint License on Release
+#
+# This workflow mints a new license token when a GitHub release is published.
+# Useful for providing license tokens to sponsors or as release artifacts.
+#
+# Copy this file to .github/workflows/release-license.yml in your repository.
+#
+# Required Secrets:
+#   PRIVATE_KEY - Wallet private key for minting
+
+name: Mint License on Release
+
+on:
+  release:
+    types: [published]
+
+  # Manual trigger for testing
+  workflow_dispatch:
+    inputs:
+      recipient:
+        description: 'Recipient wallet address'
+        required: true
+        type: string
+      license_tier:
+        description: 'License tier'
+        required: false
+        default: 'standard'
+        type: choice
+        options:
+          - standard
+          - premium
+          - enterprise
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  mint-license:
+    name: Mint License Token
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: scripts/package-lock.json
+
+      - name: Install dependencies
+        working-directory: scripts
+        run: npm ci
+
+      - name: Determine recipient
+        id: recipient
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "address=${{ github.event.inputs.recipient }}" >> $GITHUB_OUTPUT
+          else
+            # For releases, you could:
+            # 1. Use a fixed address
+            # 2. Parse from release notes
+            # 3. Mint to the release author
+            echo "address=${{ vars.DEFAULT_LICENSE_RECIPIENT }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Mint license token
+        id: mint
+        working-directory: scripts
+        env:
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          STORY_IP_ASSET_ID: ${{ vars.STORY_IP_ASSET_ID }}
+          LICENSE_RECIPIENT: ${{ steps.recipient.outputs.address }}
+        run: |
+          # Custom mint script with recipient support
+          node -e "
+            const { StoryClient } = require('@story-protocol/core-sdk');
+            const { http } = require('viem');
+            const { privateKeyToAccount } = require('viem/accounts');
+            const config = require('./config');
+
+            async function mint() {
+              const account = privateKeyToAccount(config.getPrivateKey());
+              const recipient = process.env.LICENSE_RECIPIENT || account.address;
+
+              const client = StoryClient.newClient({
+                account,
+                transport: http(config.rpcUrl),
+                chainId: config.network === 'mainnet' ? 'mainnet' : 'testnet',
+              });
+
+              console.log('Minting license...');
+              console.log('  IP Asset:', config.ipAssetId);
+              console.log('  Recipient:', recipient);
+
+              const response = await client.license.mintLicenseTokens({
+                licensorIpId: config.ipAssetId,
+                licenseTermsId: config.licenseTermsId || '28437',
+                receiver: recipient,
+                amount: 1,
+                maxMintingFee: BigInt('1000000000000000000'),
+                maxRevenueShare: 100,
+              });
+
+              console.log('License minted!');
+              console.log('  TX:', response.txHash);
+              console.log('  Token ID:', response.licenseTokenId || 'pending');
+
+              // Output for GitHub Actions
+              console.log('::set-output name=tx_hash::' + response.txHash);
+              console.log('::set-output name=token_id::' + (response.licenseTokenId || ''));
+            }
+
+            mint().catch(e => {
+              console.error('Failed:', e.message);
+              process.exit(1);
+            });
+          "
+
+      - name: Update release notes
+        if: github.event_name == 'release'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const release = context.payload.release;
+
+            const licenseInfo = `
+
+            ---
+
+            ### License Token
+
+            A Story Protocol license token has been minted for this release.
+
+            - **Transaction**: [\`${{ steps.mint.outputs.tx_hash }}\`](https://storyscan.io/tx/${{ steps.mint.outputs.tx_hash }})
+            - **Token ID**: \`${{ steps.mint.outputs.token_id }}\`
+            - **Explorer**: [View on Story Explorer](https://explorer.story.foundation/ipa/${{ vars.STORY_IP_ASSET_ID }})
+            `;
+
+            await github.rest.repos.updateRelease({
+              owner,
+              repo,
+              release_id: release.id,
+              body: release.body + licenseInfo
+            });
+
+      - name: Create summary
+        run: |
+          echo "## License Minted" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Transaction | \`${{ steps.mint.outputs.tx_hash }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Token ID | \`${{ steps.mint.outputs.token_id }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Recipient | \`${{ steps.recipient.outputs.address }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "[View on StoryScan](https://storyscan.io/tx/${{ steps.mint.outputs.tx_hash }})" >> $GITHUB_STEP_SUMMARY
