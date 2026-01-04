@@ -295,9 +295,27 @@ class ViewingKey:
         """
         Export private key bytes (use with caution).
 
-        WARNING: This returns raw private key bytes. For secure export,
-        use export_private_encrypted() which encrypts the key with a password.
+        .. deprecated::
+            This method exports raw unencrypted private key bytes.
+            Use :meth:`export_private_encrypted` for secure key export.
+
+        SECURITY WARNING (HIGH-005): This returns raw private key bytes which
+        can be accidentally logged, transmitted, or exposed via memory dumps.
+        For any use case where the key leaves memory:
+        - Use export_private_encrypted() with a strong password
+        - For Shamir sharing, immediately split and delete: key_bytes = export_private(); shares = split(key_bytes); del key_bytes
+
+        Returns:
+            Raw 32-byte private key (HANDLE WITH EXTREME CARE)
         """
+        import warnings
+
+        warnings.warn(
+            "export_private() returns unencrypted key bytes. "
+            "Use export_private_encrypted() for secure export.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.private_key.to_bytes()
 
     def export_private_encrypted(self, password: bytes) -> bytes:
@@ -698,17 +716,18 @@ class ViewingKeyManager:
 
         return self._key_cache[dispute_id].commitment
 
-    def export_key_for_escrow(self, dispute_id: str) -> bytes:
+    def export_key_for_escrow(self, dispute_id: str, _acknowledge_security_risk: bool = False) -> bytes:
         """
         Export a key's private bytes for escrow.
 
-        SECURITY: The exported bytes MUST be immediately split using
-        Shamir's Secret Sharing before any storage or transmission.
-        Never store or log the raw bytes returned by this method.
+        SECURITY WARNING (HIGH-005): This method returns raw private key bytes.
+        The exported bytes MUST be immediately split using Shamir's Secret
+        Sharing before any storage or transmission. Never store or log the
+        raw bytes returned by this method.
 
         Recommended usage::
 
-            key_bytes = manager.export_key_for_escrow(dispute_id)
+            key_bytes = manager.export_key_for_escrow(dispute_id, _acknowledge_security_risk=True)
             shares = split_key_for_escrow(key_bytes, dispute_id)
             del key_bytes  # Clear from memory immediately
 
@@ -717,17 +736,28 @@ class ViewingKeyManager:
 
         Args:
             dispute_id: Dispute identifier
+            _acknowledge_security_risk: Must be True to confirm you understand
+                the security implications of handling raw key bytes
 
         Returns:
             32-byte private key (handle securely - split immediately!)
 
         Raises:
-            ValueError: If key not found
+            ValueError: If key not found or security risk not acknowledged
         """
+        if not _acknowledge_security_risk:
+            raise ValueError(
+                "export_key_for_escrow() returns raw private key bytes. "
+                "Set _acknowledge_security_risk=True to confirm you will "
+                "immediately split the key using Shamir's Secret Sharing. "
+                "For password-protected export, use ViewingKey.export_private_encrypted() instead."
+            )
+
         if dispute_id not in self._key_cache:
             raise ValueError(f"No viewing key for dispute {dispute_id}")
 
-        return self._key_cache[dispute_id].export_private()
+        # Bypass the deprecation warning since this is an internal escrow operation
+        return self._key_cache[dispute_id].private_key.to_bytes()
 
     def import_key_from_escrow(self, dispute_id: str, private_bytes: bytes) -> ViewingKey:
         """
