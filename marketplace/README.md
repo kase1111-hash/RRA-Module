@@ -1,11 +1,11 @@
 # RRA Marketplace Frontend
 
-A Next.js 14 web application for the RRA Module marketplace - discover and license code repositories through AI-powered negotiation agents.
+A Next.js 14 web application for the RRA Module marketplace - discover and license code repositories with AI-powered license advisors.
 
 ## Features
 
 - **Repository Discovery**: Browse and search repositories with filtering
-- **AI Negotiation Chat**: Real-time chat with negotiator agents via WebSocket
+- **AI License Advisors**: Chat with AI agents to find the right license for your needs
 - **Wallet Integration**: Connect wallet via RainbowKit (MetaMask, WalletConnect)
 - **License Purchase**: Complete transactions and receive NFT licenses
 
@@ -67,7 +67,7 @@ marketplace/
 │   │   ├── Header.tsx          # Navigation header
 │   │   ├── Footer.tsx          # Site footer
 │   │   ├── AgentCard.tsx       # Repository card
-│   │   ├── NegotiationChat.tsx # Chat interface
+│   │   ├── NegotiationChat.tsx # License chat interface
 │   │   └── SearchBar.tsx       # Search with filters
 │   ├── lib/                    # Utilities and API client
 │   │   ├── api.ts              # API client functions
@@ -101,7 +101,7 @@ marketplace/
 - Repository information
 - License tiers
 - Statistics and reputation
-- Real-time negotiation chat
+- AI license advisor chat
 
 ## API Integration
 
@@ -114,8 +114,8 @@ GET /api/marketplace/repos?q=search&language=python
 // Get agent details
 GET /api/marketplace/agent/{repo_id}/details
 
-// WebSocket negotiation
-WS /ws/negotiate/{repo_id}
+// WebSocket chat
+WS /ws/chat/{repo_id}
 ```
 
 ## Development

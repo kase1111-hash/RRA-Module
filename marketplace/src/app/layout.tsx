@@ -7,7 +7,7 @@ import { Footer } from '@/components/Footer';
 export const metadata: Metadata = {
   title: 'RRA Marketplace - License Code with AI Agents',
   description:
-    'Discover and license code repositories through AI-powered negotiation agents. Blockchain-enforced licensing for the modern developer.',
+    'Discover and license code repositories with AI-powered license advisors. Blockchain-enforced licensing for the modern developer.',
   keywords: ['code licensing', 'AI agents', 'blockchain', 'NFT licenses', 'GitHub'],
   openGraph: {
     title: 'RRA Marketplace',

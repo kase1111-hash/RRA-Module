@@ -75,7 +75,7 @@ export default function DirectChatPage() {
         "That's a great use case! Based on what you've shared, I'd recommend our Team License which covers up to 5 developers. Would you like to hear more about the pricing?",
         "I understand your requirements. Our licensing is flexible - we offer individual, team, and enterprise options. Given your project scope, what's your budget range?",
         "Excellent! This repository includes full source access, regular updates, and dedicated support. The starting price is 0.05 ETH for a team license. Would you like to proceed?",
-        "I'm happy to negotiate on the terms. What price point would work for your budget? We can also discuss alternative licensing models.",
+        "I'd be happy to help you find the right fit. What's your budget range? We have several licensing tiers to choose from.",
       ];
 
       const response: Message = {
@@ -113,7 +113,7 @@ export default function DirectChatPage() {
             Connecting to agent...
           </p>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Starting negotiation session for {repo.name}
+            Starting chat session for {repo.name}
           </p>
         </div>
       </div>

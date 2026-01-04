@@ -23,7 +23,7 @@ const PHASE_LABELS: Record<NegotiationPhase, string> = {
   greeting: 'Hello',
   discovery: 'Discovery',
   proposal: 'Proposal',
-  negotiation: 'Negotiate',
+  negotiation: 'Discuss',
   closing: 'Closing',
   completed: 'Complete',
 };
@@ -32,8 +32,8 @@ const SUGGESTED_RESPONSES: Record<NegotiationPhase, string[]> = {
   greeting: ['Hello! I\'m interested in licensing this repo.', 'Hi, can you tell me about licensing options?'],
   discovery: ['I\'m building a commercial SaaS product.', 'It\'s for an open-source project.', 'Internal company use only.'],
   proposal: ['What\'s included in the standard license?', 'Can you explain the premium tier?', 'Are there volume discounts?'],
-  negotiation: ['Can we do 10% less?', 'What if I commit to 2 years?', 'Is the price negotiable for startups?'],
-  closing: ['I\'d like to proceed with this offer.', 'Can I get the terms in writing first?'],
+  negotiation: ['Which license fits my use case best?', 'What are the differences between tiers?', 'Do you have startup-friendly options?'],
+  closing: ['I\'d like to proceed with this license.', 'Can I get the terms in writing first?'],
   completed: [],
 };
 
@@ -99,10 +99,10 @@ export function NegotiationChat({
             </div>
             <div>
               <h3 className="font-medium text-gray-900 dark:text-white">
-                Negotiator Agent
+                License Advisor
               </h3>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                AI-powered licensing negotiation
+                AI-powered license selection
               </p>
             </div>
           </div>
@@ -138,7 +138,7 @@ export function NegotiationChat({
             )}
             {currentOffer && (
               <div className="flex items-center gap-1.5">
-                <span className="text-gray-500 dark:text-gray-400">Current Offer:</span>
+                <span className="text-gray-500 dark:text-gray-400">Selected:</span>
                 <Badge variant="success" size="sm">{currentOffer}</Badge>
               </div>
             )}
@@ -261,14 +261,14 @@ export function NegotiationChat({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Accept Offer Button (if in closing phase) */}
+      {/* Purchase Button (if in closing phase) */}
       {phase === 'closing' && onAcceptOffer && (
         <div className="border-t border-gray-200 px-4 py-3 dark:border-gray-700">
           <button
             onClick={onAcceptOffer}
             className="w-full rounded-lg bg-green-600 px-4 py-2 font-medium text-white hover:bg-green-700 transition-colors"
           >
-            Accept Offer & Purchase License
+            Accept & Purchase License
           </button>
         </div>
       )}
@@ -307,7 +307,7 @@ export function NegotiationChat({
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={phase === 'completed' ? 'Negotiation completed' : 'Type your message...'}
+            placeholder={phase === 'completed' ? 'Chat completed' : 'Type your message...'}
             disabled={isLoading || phase === 'completed'}
             className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:disabled:bg-gray-800"
           />

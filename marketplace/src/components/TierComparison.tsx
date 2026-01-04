@@ -302,7 +302,7 @@ export function TierComparison({
         <p className="text-sm text-gray-600 dark:text-gray-400">
           Not sure which tier is right for you?{' '}
           <button className="text-primary-600 hover:text-primary-700 dark:text-primary-400 font-medium">
-            Start a negotiation
+            Chat with our advisor
           </button>{' '}
           to discuss your specific needs.
         </p>

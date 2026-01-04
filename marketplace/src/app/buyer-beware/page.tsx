@@ -71,7 +71,7 @@ export default function BuyerBewarePage() {
               Verify Ownership
             </h3>
             <p className="mt-2 text-gray-600 dark:text-gray-300">
-              Confirm that the seller actually owns or has rights to license the code. Check
+              Confirm that the licensor actually owns or has rights to license the code. Check
               the on-chain IP asset registration and compare with GitHub ownership.
             </p>
           </div>
@@ -122,7 +122,7 @@ export default function BuyerBewarePage() {
               </li>
               <li className="flex items-start gap-3">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-medium text-indigo-600 dark:bg-indigo-900 dark:text-indigo-400">3</span>
-                <span>Verify the seller&apos;s identity matches the repository owner</span>
+                <span>Verify the licensor&apos;s identity matches the repository owner</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-medium text-indigo-600 dark:bg-indigo-900 dark:text-indigo-400">4</span>

@@ -33,9 +33,7 @@ The RRA‑Module repository is a Python/Smart‑contract powered extension for t
 ✔ Enables automated on‑chain licensing/negotiation transactions
 
 ✔ Interfaces with blockchain smart contracts (e.g., ERC‑721/ETH)
-
-✔ Maintains a negotiation agent that can interact with buyer agents
-
+✔ Maintains a license advisor agent that can assist buyer agents
 ✔ Supports multi-chain deployments (Ethereum, Polygon, Arbitrum, Base, Optimism)
 
 ✔ Provides L3 batch processing for high-throughput dispute resolution
@@ -76,8 +74,8 @@ Handles multi-language repos (e.g., Python, JavaScript, Rust) with AST-based ana
 Developer Intent Capture: Parses a .market.yaml file in the repo root for configuration:YAMLlicense_model: "Per-seat / Perpetual"  # Options: Per-seat, Subscription, One-time, Custom
 target_price: "0.05 ETH"              # Suggested starting price in crypto or fiat equivalent
 floor_price: "0.02 ETH"               # Minimum acceptable price
-negotiation_style: "Concise"          # Styles: Concise, Persuasive, Strict, Adaptive
-allow_custom_fork_rights: true        # Boolean: Permits buyers to negotiate forking permissions
+communication_style: "Concise"        # Styles: Concise, Persuasive, Strict, Adaptive
+allow_custom_fork_rights: true        # Boolean: Permits buyers to discuss forking permissions
 update_frequency: "weekly"            # Frequencies: daily, weekly, monthly, on-push
 sandbox_tests: "tests/sandbox.py"     # Optional: Path to verification scripts
 

@@ -42,8 +42,8 @@ export default function AboutPage() {
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-600 dark:text-gray-300">
             RRA (Revenant Repo Agent) is revolutionizing how code is licensed and monetized.
-            We connect developers with AI agents that negotiate and execute licensing deals
-            automatically, with on-chain royalty enforcement.
+            We connect developers with AI license advisors that help buyers find the right license
+            and complete purchases, with on-chain royalty enforcement.
           </p>
         </div>
       </div>
@@ -104,8 +104,8 @@ export default function AboutPage() {
                 Set License Terms
               </h3>
               <p className="mt-2 text-gray-600 dark:text-gray-300">
-                Define pricing tiers, royalty rates, and usage terms. Your AI agent will negotiate
-                within these parameters.
+                Define pricing tiers, royalty rates, and usage terms. Your AI agent will guide
+                buyers through selecting the right option.
               </p>
             </div>
             <div className="rounded-lg bg-white p-6 shadow dark:bg-gray-900">

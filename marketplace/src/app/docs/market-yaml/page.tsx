@@ -52,10 +52,9 @@ tiers:
 
 # Agent configuration
 agent:
-  negotiation_enabled: true
-  max_discount: 10  # Max 10% discount
+  enabled: true
   auto_approve_threshold: "0.5"  # Auto-approve under 0.5 WIP
-  response_style: "professional"
+  response_style: "professional"  # or "friendly", "technical"
 
 # Verification settings
 verification:

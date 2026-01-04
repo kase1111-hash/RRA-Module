@@ -24,7 +24,7 @@ export default function TermsPage() {
             <ul className="mt-4 list-disc pl-6 text-gray-600 dark:text-gray-300">
               <li>Registering code repositories as IP assets on Story Protocol</li>
               <li>Discovering and licensing code from other developers</li>
-              <li>Automated license negotiation via AI agents</li>
+              <li>AI-powered license selection and purchase assistance</li>
               <li>On-chain royalty collection and distribution</li>
             </ul>
           </section>

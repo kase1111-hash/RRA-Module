@@ -145,8 +145,7 @@ tiers:
     royalty_rate: ${Math.max(1, parseInt(config.royaltyRate) - 3)}
 
 agent:
-  negotiation_enabled: true
-  max_discount: 10
+  enabled: true
   response_style: "professional"
 
 developer_wallet: "${config.walletAddress}"
@@ -169,7 +168,7 @@ developer_wallet: "${config.walletAddress}"
             List Your Repository
           </h1>
           <p className="mt-2 text-lg text-gray-600 dark:text-gray-300">
-            Turn your code into a licensable asset with AI-powered negotiation
+            Turn your code into a licensable asset with AI-powered license selection
           </p>
         </div>
 
@@ -481,7 +480,7 @@ developer_wallet: "${config.walletAddress}"
                         Push and you&apos;re live!
                       </h4>
                       <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                        Commit and push your changes. Your AI agent will be ready to negotiate licenses!
+                        Commit and push your changes. Your AI agent will help buyers choose licenses!
                       </p>
                     </div>
                   </div>
@@ -492,9 +491,9 @@ developer_wallet: "${config.walletAddress}"
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
                   <Rocket className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
-                  <h4 className="mt-2 font-medium text-gray-900 dark:text-white">AI Negotiation</h4>
+                  <h4 className="mt-2 font-medium text-gray-900 dark:text-white">AI License Advisor</h4>
                   <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                    Your agent handles all licensing discussions
+                    Your agent helps buyers choose the right license
                   </p>
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
