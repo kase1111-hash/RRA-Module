@@ -123,9 +123,9 @@ const mockAgentData = {
     },
   ],
   blockchain_info: {
-    ip_asset_id: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+    ip_asset_id: '0xf08574c30337dde7C38869b8d399BA07ab23a07F',
     network: 'testnet' as const,
-    explorer_url: 'https://aeneid.explorer.story.foundation/ip-asset/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+    explorer_url: 'https://aeneid.explorer.story.foundation/ipa/0xf08574c30337dde7C38869b8d399BA07ab23a07F',
   },
 };
 
