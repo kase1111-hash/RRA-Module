@@ -257,13 +257,19 @@ export function ChainStatus({ compact = false, showDetails = false }: ChainStatu
 
 // Simple indicator for header
 export function ChainIndicator() {
-  const [status, setStatus] = useState<ChainConnectionStatus>('connecting');
+  const [status, setStatus] = useState<'connecting' | 'connected' | 'demo' | 'error'>('connecting');
 
   useEffect(() => {
     const checkConnection = async () => {
       try {
         const response = await fetch('/api/chain/health');
-        setStatus(response.ok ? 'connected' : 'error');
+        if (response.ok) {
+          const data = await response.json();
+          // Check if it's a mock/demo response
+          setStatus(data.mock ? 'demo' : 'connected');
+        } else {
+          setStatus('error');
+        }
       } catch {
         setStatus('error');
       }
@@ -280,13 +286,17 @@ export function ChainIndicator() {
         'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors',
         status === 'connected'
           ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+          : status === 'demo'
+          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
           : status === 'connecting'
           ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
           : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
       )}
-      title={`NatLangChain: ${status}`}
+      title={`NatLangChain: ${status === 'demo' ? 'Demo Mode' : status}`}
     >
       {status === 'connected' ? (
+        <Link2 className="h-3.5 w-3.5" />
+      ) : status === 'demo' ? (
         <Link2 className="h-3.5 w-3.5" />
       ) : status === 'connecting' ? (
         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -294,7 +304,7 @@ export function ChainIndicator() {
         <Link2Off className="h-3.5 w-3.5" />
       )}
       <span className="hidden sm:inline">
-        {status === 'connected' ? 'Chain' : status === 'connecting' ? '...' : 'Offline'}
+        {status === 'connected' ? 'Chain' : status === 'demo' ? 'Demo' : status === 'connecting' ? '...' : 'Offline'}
       </span>
     </div>
   );
