@@ -19,10 +19,14 @@ Security:
 
 import os
 import json
+import logging
 from typing import Optional, Tuple, Dict
 from dataclasses import dataclass
 from pathlib import Path
-from eth_utils import keccak
+from eth_utils import keccak, is_address, to_checksum_address
+
+# SECURITY FIX LOW-002: Add logger for exception tracking
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -383,12 +387,24 @@ class IdentityManager:
 
         Returns:
             DisputeIdentity with secret and public hash
+
+        Raises:
+            ValueError: If address is provided but is not a valid Ethereum address
         """
         # Generate random salt
         salt = custom_salt or os.urandom(32)
 
         # Generate identity secret
         if address:
+            # SECURITY FIX LOW-003: Validate Ethereum address before processing
+            if not is_address(address):
+                raise ValueError(
+                    f"Invalid Ethereum address: {address}. "
+                    "Must be a valid 40-character hex string with '0x' prefix."
+                )
+            # Normalize to checksum address for consistent processing
+            address = to_checksum_address(address)
+
             # Derive from address + salt for deterministic binding
             combined = bytes.fromhex(address[2:]).ljust(20, b"\x00") + salt
             identity_secret = int.from_bytes(keccak(combined), "big")
@@ -583,7 +599,14 @@ class IdentityManager:
                 salt=bytes.fromhex(data["salt"]),
                 address=data.get("address"),
             )
-        except Exception:
+        except Exception as e:
+            # SECURITY FIX LOW-002: Log decryption failures for debugging/audit
+            logger.warning(
+                "Failed to load identity '%s': %s",
+                name,
+                str(e),
+                exc_info=True,
+            )
             return None
 
 
