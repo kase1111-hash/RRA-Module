@@ -13,9 +13,9 @@
 | CRITICAL | 3 | **3** | **0** |
 | HIGH | 5 | **5** | **0** |
 | MEDIUM | 8 | **8** | **0** |
-| LOW | 8 | **6** | **2** |
+| LOW | 8 | **8** | **0** |
 
-**All CRITICAL, HIGH, and MEDIUM issues are now FIXED!**
+**🎉 ALL ISSUES FIXED! All 24 security findings have been resolved.**
 
 ---
 
@@ -263,12 +263,32 @@ Fix Applied:
 
 ---
 
-### ℹ️ LOW-007 through LOW-008: Remaining Items
+### ✅ LOW-007: Lack of Test Vectors - FIXED
 ```
-Status: ⚠️ NOT FIXED - Low priority improvements
+File: /home/user/RRA-Module/src/rra/crypto/pedersen.py
+Lines: 60-79, 783-861
+Status: ✅ FIXED (2026-01-04)
 
-LOW-007: Lack of test vectors - PARTIAL (fuzzing tests added)
-LOW-008: Missing subgroup check - Add cofactor check
+Fix Applied:
+- Added PEDERSEN_TEST_VECTORS with 3 test cases
+- Added verify_test_vectors() function for validation
+- Test vectors verified at module load time
+- Enables regression detection and cross-implementation validation
+```
+
+---
+
+### ✅ LOW-008: Missing Subgroup Check - FIXED
+```
+File: /home/user/RRA-Module/src/rra/crypto/pedersen.py
+Lines: 104-157, 394-427
+Status: ✅ FIXED (2026-01-04)
+
+Fix Applied:
+- Added _is_in_subgroup() function for subgroup membership check
+- Added _validate_subgroup_membership() for raising on failure
+- _bytes_to_point() now validates subgroup membership
+- Prevents small subgroup attacks on deserialized points
 ```
 
 ---
@@ -307,9 +327,12 @@ Fix Applied:
 - [x] Timing-safe delays with constant base (LOW-004)
 - [x] Robust generator derivation with 1000 attempts (LOW-005)
 - [x] Generator point order validation (LOW-006)
+- [x] Test vectors with module-load verification (LOW-007)
+- [x] Subgroup membership validation for points (LOW-008)
 
-### ⚠️ Recommended Before Production
-- [ ] External security audit
+### ✅ All Security Issues Resolved
+- [x] All 24 security findings addressed
+- [ ] External security audit (recommended before production)
 
 ---
 
