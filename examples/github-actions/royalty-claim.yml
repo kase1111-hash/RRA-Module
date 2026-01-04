@@ -1,0 +1,140 @@
+# Example: Automated Royalty Claiming
+#
+# This workflow automatically claims pending royalties on a schedule.
+# Copy this file to .github/workflows/royalty-claim.yml in your repository.
+#
+# Required Secrets:
+#   PRIVATE_KEY - Wallet private key for claiming
+#
+# Required Variables:
+#   STORY_IP_ASSET_ID - Your IP Asset address (or set in .market.yaml)
+
+name: Claim Royalties
+
+on:
+  # Run weekly on Sundays at midnight UTC
+  schedule:
+    - cron: '0 0 * * 0'
+
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (check only, no claiming)'
+        required: false
+        default: 'false'
+        type: boolean
+
+env:
+  NODE_VERSION: '20'
+  STORY_NETWORK: 'mainnet'
+
+jobs:
+  check-royalties:
+    name: Check Pending Royalties
+    runs-on: ubuntu-latest
+    outputs:
+      has_claimable: ${{ steps.check.outputs.has_claimable }}
+      claimable_amount: ${{ steps.check.outputs.claimable_amount }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: scripts/package-lock.json
+
+      - name: Install dependencies
+        working-directory: scripts
+        run: npm ci
+
+      - name: Check royalty vault
+        id: check
+        working-directory: scripts
+        env:
+          STORY_IP_ASSET_ID: ${{ vars.STORY_IP_ASSET_ID }}
+        run: |
+          # Run check script and capture output
+          output=$(node check-royalty-vault.js 2>&1) || true
+          echo "$output"
+
+          # Extract claimable amount (simplified parsing)
+          if echo "$output" | grep -q "Claimable.*WIP"; then
+            amount=$(echo "$output" | grep -oP "Claimable.*?(\d+\.?\d*)" | grep -oP "\d+\.?\d*" | head -1)
+            if [ -n "$amount" ] && [ "$amount" != "0" ]; then
+              echo "has_claimable=true" >> $GITHUB_OUTPUT
+              echo "claimable_amount=$amount" >> $GITHUB_OUTPUT
+            else
+              echo "has_claimable=false" >> $GITHUB_OUTPUT
+              echo "claimable_amount=0" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "has_claimable=false" >> $GITHUB_OUTPUT
+            echo "claimable_amount=0" >> $GITHUB_OUTPUT
+          fi
+
+  claim-royalties:
+    name: Claim Royalties
+    runs-on: ubuntu-latest
+    needs: check-royalties
+    if: needs.check-royalties.outputs.has_claimable == 'true' && github.event.inputs.dry_run != 'true'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: scripts/package-lock.json
+
+      - name: Install dependencies
+        working-directory: scripts
+        run: npm ci
+
+      - name: Claim via IP Account
+        working-directory: scripts
+        env:
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          STORY_IP_ASSET_ID: ${{ vars.STORY_IP_ASSET_ID }}
+        run: |
+          echo "Claiming ${{ needs.check-royalties.outputs.claimable_amount }} WIP..."
+          node claim-via-ip-account.js
+
+      - name: Create summary
+        run: |
+          echo "## Royalty Claim Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Amount Claimed | ${{ needs.check-royalties.outputs.claimable_amount }} WIP |" >> $GITHUB_STEP_SUMMARY
+          echo "| Timestamp | $(date -u) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Network | ${{ env.STORY_NETWORK }} |" >> $GITHUB_STEP_SUMMARY
+
+  notify:
+    name: Send Notification
+    runs-on: ubuntu-latest
+    needs: [check-royalties, claim-royalties]
+    if: always() && needs.check-royalties.outputs.has_claimable == 'true'
+
+    steps:
+      - name: Summary
+        run: |
+          if [ "${{ needs.claim-royalties.result }}" == "success" ]; then
+            echo "Successfully claimed ${{ needs.check-royalties.outputs.claimable_amount }} WIP"
+          else
+            echo "Royalty claim failed or was skipped"
+          fi
+
+      # Add your notification integration here (Slack, Discord, email, etc.)
+      # - name: Send Slack notification
+      #   uses: 8398a7/action-slack@v3
+      #   with:
+      #     status: ${{ needs.claim-royalties.result }}
+      #     text: "Royalty claim: ${{ needs.check-royalties.outputs.claimable_amount }} WIP"
