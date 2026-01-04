@@ -108,6 +108,20 @@ const nextConfig = {
   async headers() {
     return [
       {
+        // Security headers for wallet connections (RainbowKit/WalletConnect)
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin-allow-popups',
+          },
+          {
+            key: 'Cross-Origin-Embedder-Policy',
+            value: 'credentialless',
+          },
+        ],
+      },
+      {
         // Cache static assets aggressively
         source: '/_next/static/:path*',
         headers: [
