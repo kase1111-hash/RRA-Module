@@ -2,7 +2,7 @@
 """
 Debug License Configuration
 
-Check if there's a licensing config or hook that might be blocking license minting.
+Check if license terms are attached and if minting is possible.
 """
 
 import os
@@ -15,45 +15,41 @@ STORY_RPC = "https://mainnet.storyrpc.io"
 # Contract addresses
 LICENSING_MODULE = "0x04fbd8a2e56dd85CFD5500A4A4DfA955B9f1dE6f"
 PIL_LICENSE_TEMPLATE = "0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316"
+LICENSE_REGISTRY = "0x4f4b1bf7135C7ff1462826CCA81B048Ed19562ed"
 
 # IP Asset
 IP_ASSET_ID = "0xf08574c30337dde7C38869b8d399BA07ab23a07F"
 LICENSE_TERMS_ID = 28438
 
-# ABI for checking license config
-LICENSING_MODULE_ABI = [
+# ABI for checking license attachment
+LICENSE_REGISTRY_ABI = [
     {
         "inputs": [
             {"name": "ipId", "type": "address"},
             {"name": "licenseTemplate", "type": "address"},
             {"name": "licenseTermsId", "type": "uint256"}
         ],
-        "name": "getLicensingConfig",
-        "outputs": [
-            {
-                "components": [
-                    {"name": "isSet", "type": "bool"},
-                    {"name": "mintingFee", "type": "uint256"},
-                    {"name": "licensingHook", "type": "address"},
-                    {"name": "hookData", "type": "bytes"}
-                ],
-                "name": "",
-                "type": "tuple"
-            }
-        ],
+        "name": "hasIpAttachedLicenseTerms",
+        "outputs": [{"name": "", "type": "bool"}],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [{"name": "ipId", "type": "address"}],
+        "name": "getAttachedLicenseTermsCount",
+        "outputs": [{"name": "", "type": "uint256"}],
         "stateMutability": "view",
         "type": "function"
     },
     {
         "inputs": [
-            {"name": "licensorIpId", "type": "address"},
+            {"name": "ipId", "type": "address"},
+            {"name": "index", "type": "uint256"}
+        ],
+        "name": "getAttachedLicenseTerms",
+        "outputs": [
             {"name": "licenseTemplate", "type": "address"},
             {"name": "licenseTermsId", "type": "uint256"}
-        ],
-        "name": "predictMintingLicenseFee",
-        "outputs": [
-            {"name": "currencyToken", "type": "address"},
-            {"name": "tokenAmount", "type": "uint256"}
         ],
         "stateMutability": "view",
         "type": "function"
@@ -70,81 +66,56 @@ def main():
     print("Debug License Configuration")
     print("=" * 60)
 
-    licensing_module = w3.eth.contract(
-        address=Web3.to_checksum_address(LICENSING_MODULE),
-        abi=LICENSING_MODULE_ABI
+    license_registry = w3.eth.contract(
+        address=Web3.to_checksum_address(LICENSE_REGISTRY),
+        abi=LICENSE_REGISTRY_ABI
     )
 
     ip_asset = Web3.to_checksum_address(IP_ASSET_ID)
     template = Web3.to_checksum_address(PIL_LICENSE_TEMPLATE)
 
-    # Check licensing config
     print(f"\nIP Asset: {ip_asset}")
-    print(f"License Terms ID: {LICENSE_TERMS_ID}")
 
+    # Check how many license terms are attached
     print("\n" + "-" * 60)
-    print("Licensing Config:")
+    print("Attached License Terms:")
     print("-" * 60)
 
     try:
-        config = licensing_module.functions.getLicensingConfig(
-            ip_asset,
-            template,
-            LICENSE_TERMS_ID
-        ).call()
-        print(f"  isSet: {config[0]}")
-        print(f"  mintingFee: {w3.from_wei(config[1], 'ether')} IP")
-        print(f"  licensingHook: {config[2]}")
-        if config[2] != "0x0000000000000000000000000000000000000000":
-            print("  ⚠️  A licensing hook is set! This may be blocking mints.")
-        print(f"  hookData: {config[3].hex() if config[3] else '(empty)'}")
-    except Exception as e:
-        print(f"  Could not read config: {e}")
+        count = license_registry.functions.getAttachedLicenseTermsCount(ip_asset).call()
+        print(f"  Count: {count}")
 
-    # Check predicted minting fee
+        for i in range(count):
+            terms = license_registry.functions.getAttachedLicenseTerms(ip_asset, i).call()
+            print(f"  [{i}] Template: {terms[0]}, Terms ID: {terms[1]}")
+    except Exception as e:
+        print(f"  Could not read attached terms: {e}")
+
+    # Check specific terms
     print("\n" + "-" * 60)
-    print("Predicted Minting Fee:")
+    print(f"Checking Terms ID {LICENSE_TERMS_ID}:")
     print("-" * 60)
 
     try:
-        fee = licensing_module.functions.predictMintingLicenseFee(
-            ip_asset,
-            template,
-            LICENSE_TERMS_ID
+        has_terms = license_registry.functions.hasIpAttachedLicenseTerms(
+            ip_asset, template, LICENSE_TERMS_ID
         ).call()
-        print(f"  Currency: {fee[0]}")
-        print(f"  Amount: {w3.from_wei(fee[1], 'ether')} tokens")
+        print(f"  Has terms {LICENSE_TERMS_ID} attached: {has_terms}")
     except Exception as e:
-        print(f"  Could not predict fee: {e}")
+        print(f"  Could not check: {e}")
 
-    # Also check terms ID 28437 (the original)
+    # Check original terms
     print("\n" + "-" * 60)
-    print("Checking Original Terms (ID 28437):")
+    print("Checking Original Terms ID 28437:")
     print("-" * 60)
 
     try:
-        config = licensing_module.functions.getLicensingConfig(
-            ip_asset,
-            template,
-            28437
+        has_terms = license_registry.functions.hasIpAttachedLicenseTerms(
+            ip_asset, template, 28437
         ).call()
-        print(f"  isSet: {config[0]}")
-        print(f"  mintingFee: {w3.from_wei(config[1], 'ether')} IP")
-        print(f"  licensingHook: {config[2]}")
-        print(f"  hookData: {config[3].hex() if config[3] else '(empty)'}")
+        print(f"  Has terms 28437 attached: {has_terms}")
     except Exception as e:
-        print(f"  Could not read config: {e}")
-
-    try:
-        fee = licensing_module.functions.predictMintingLicenseFee(
-            ip_asset,
-            template,
-            28437
-        ).call()
-        print(f"  Predicted Fee Currency: {fee[0]}")
-        print(f"  Predicted Fee Amount: {w3.from_wei(fee[1], 'ether')} tokens")
-    except Exception as e:
-        print(f"  Could not predict fee: {e}")
+        print(f"  Could not check: {e}")
 
 
 if __name__ == "__main__":
