@@ -236,7 +236,7 @@ def main():
             # Try getting from contract call result
             print("  [WARN] Could not extract collection address from logs")
             print("  Check StoryScan for the created collection")
-            print(f"  TX: https://www.storyscan.io/tx/{tx_hash.hex()}")
+            print(f"  TX: https://explorer.story.foundation/tx/{tx_hash.hex()}")
             sys.exit(1)
 
         print(f"  Collection created: {spg_nft_address}")
@@ -254,7 +254,7 @@ def main():
 The easiest way to register an IP Asset is via StoryScan:
 
 1. Go to StoryScan IP Asset Registry:
-   https://www.storyscan.io/address/0x77319B4031e6eF1250907aa00018B8B1c67a244b#writeContract
+   https://explorer.story.foundation/address/0x77319B4031e6eF1250907aa00018B8B1c67a244b
 
 2. Connect your wallet: {0}
 
@@ -334,7 +334,7 @@ This will attach license terms ID 28437 to your new IP Asset.
 
         if not ip_asset_id:
             print("  [WARN] Could not extract IP Asset ID from logs")
-            print(f"  Check TX: https://www.storyscan.io/tx/{tx_hash.hex()}")
+            print(f"  Check TX: https://explorer.story.foundation/tx/{tx_hash.hex()}")
         else:
             print(f"\n  IP Asset ID: {ip_asset_id}")
 
@@ -385,7 +385,7 @@ This will attach license terms ID 28437 to your new IP Asset.
     if ip_asset_id:
         print(f"\n  IP Asset ID: {ip_asset_id}")
         print(f"  License Terms: {LICENSE_TERMS_ID}")
-        print(f"\n  StoryScan: https://www.storyscan.io/ipa/{ip_asset_id}")
+        print(f"\n  Story Explorer: https://explorer.story.foundation/ipa/{ip_asset_id}")
         print("\nNEXT STEPS:")
         print(f"  1. Update .market.yaml: ip_asset_id: \"{ip_asset_id}\"")
         print(f"  2. Update buy-license.html: IP_ASSET_ID = \"{ip_asset_id}\"")
