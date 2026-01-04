@@ -100,7 +100,9 @@ LICENSING_MODULE_ABI = [
             {"name": "licenseTermsId", "type": "uint256"},
             {"name": "amount", "type": "uint256"},
             {"name": "receiver", "type": "address"},
-            {"name": "royaltyContext", "type": "bytes"}
+            {"name": "royaltyContext", "type": "bytes"},
+            {"name": "maxMintingFee", "type": "uint256"},
+            {"name": "maxRevenueShare", "type": "uint32"}
         ],
         "name": "mintLicenseTokens",
         "outputs": [{"name": "startLicenseTokenId", "type": "uint256"}],
@@ -274,9 +276,11 @@ def main():
         print("\nApproving LicensingModule...")
         try:
             nonce = w3.eth.get_transaction_count(account.address)
+            # Approve a large amount to cover fee + any royalty
+            approve_amount = MINT_FEE * 10
             tx = wip_token.functions.approve(
                 Web3.to_checksum_address(LICENSING_MODULE),
-                MINT_FEE
+                approve_amount
             ).build_transaction({
                 'from': account.address,
                 'nonce': nonce,
@@ -288,10 +292,32 @@ def main():
             tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
             print(f"  Approve TX: {tx_hash.hex()}")
             w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
-            print("  Approved!")
+            print("  Approved LicensingModule!")
         except Exception as e:
             print(f"  [ERROR] Approve failed: {e}")
             sys.exit(1)
+
+        # Also approve RoyaltyPolicyLAP
+        print("\nApproving RoyaltyPolicyLAP...")
+        try:
+            nonce = w3.eth.get_transaction_count(account.address)
+            tx = wip_token.functions.approve(
+                Web3.to_checksum_address("0xBe54FB168b3c982b7AaE60dB6CF75Bd8447b390E"),
+                approve_amount
+            ).build_transaction({
+                'from': account.address,
+                'nonce': nonce,
+                'gas': 100000,
+                'gasPrice': w3.eth.gas_price,
+                'chainId': CHAIN_ID,
+            })
+            signed = w3.eth.account.sign_transaction(tx, private_key)
+            tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+            print(f"  Approve TX: {tx_hash.hex()}")
+            w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+            print("  Approved RoyaltyPolicyLAP!")
+        except Exception as e:
+            print(f"  [WARN] RoyaltyPolicy approve failed: {e}")
 
         # Get recipient balance before
         recipient_balance_before = w3.eth.get_balance(Web3.to_checksum_address(EXPECTED_RECIPIENT))
@@ -301,17 +327,20 @@ def main():
         print("\nMinting license token...")
         try:
             nonce = w3.eth.get_transaction_count(account.address)
+            # Parameters: licensorIpId, licenseTemplate, licenseTermsId, amount, receiver, royaltyContext, maxMintingFee, maxRevenueShare
             tx = licensing_module.functions.mintLicenseTokens(
                 Web3.to_checksum_address(IP_ASSET_ID),
                 Web3.to_checksum_address(PIL_LICENSE_TEMPLATE),
                 LICENSE_TERMS_ID,
                 1,  # amount
                 account.address,  # receiver
-                b""  # royaltyContext
+                b"",  # royaltyContext (empty for PIL)
+                MINT_FEE * 2,  # maxMintingFee - set higher than actual to allow for variations
+                10000  # maxRevenueShare - 100% (10000 basis points)
             ).build_transaction({
                 'from': account.address,
                 'nonce': nonce,
-                'gas': 500000,
+                'gas': 800000,  # More gas for complex operation
                 'gasPrice': w3.eth.gas_price,
                 'chainId': CHAIN_ID,
             })
