@@ -177,7 +177,7 @@ docs:
 	@echo "Documentation available at:"
 	@echo "  - docs/README.md           - Documentation index"
 	@echo "  - docs/USAGE-GUIDE.md      - Complete usage guide"
-	@echo "  - docs/STORY-PROTOCOL.md   - Story Protocol integration"
+	@echo "  - docs/STORY-PROTOCOL-INTEGRATION.md - Story Protocol integration"
 	@echo "  - docs/SELLING-LICENSES.md - License selling guide"
 	@echo ""
 	@echo "Open in browser: open docs/README.md"

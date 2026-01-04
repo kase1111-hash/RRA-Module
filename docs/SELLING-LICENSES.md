@@ -48,7 +48,7 @@ Attaching license terms to IP Asset...
 LICENSE PURCHASES ENABLED!
 ============================================================
 
-Buyer Interface: marketplace\public\buy-license.html
+Buyer Interface: marketplace/public/buy-license.html
 ```
 
 ### Step 4: Deploy Your Purchase Page

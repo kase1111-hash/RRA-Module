@@ -235,7 +235,8 @@ EOF
 
 ```bash
 # Initialize RRA for your repository
-natlang rra init https://github.com/yourname/yourrepo
+rra init
+rra ingest https://github.com/yourname/yourrepo
 
 # This will:
 # - Ingest your repository
@@ -461,7 +462,7 @@ cat .market.yaml
 python tests/test_licensing.py
 
 # Deploy to blockchain (when ready)
-natlang rra init https://github.com/kase1111-hash/RRA-Module
+rra init && rra ingest https://github.com/kase1111-hash/RRA-Module
 ```
 
 ### For Your Own Repository
@@ -485,7 +486,7 @@ vim .market.yaml
 python scripts/verify_license.py
 
 # 6. Deploy to blockchain
-natlang rra init https://github.com/yourname/yourrepo
+rra init && rra ingest https://github.com/yourname/yourrepo
 ```
 
 ## Support & Resources
