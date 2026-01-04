@@ -58,6 +58,32 @@ class StoryProtocolClient:
     STORY_MAINNET_CHAIN_ID = 1514  # Story Homer Mainnet
     STORY_TESTNET_CHAIN_ID = 1315  # Story Aeneid Testnet
 
+    # Contract addresses per network
+    # See: https://docs.story.foundation/developers/deployed-smart-contracts
+    STORY_MAINNET_CONTRACTS = {
+        "IPAssetRegistry": "0x77319B4031e6eF1250907aa00018B8B1c67a244b",
+        "LicenseRegistry": "0xf49da534215DA7b48E57A41d3f6b0E5B5F4b6111",
+        "LicensingModule": "0x04fbd8a2e56dd85CFD5500A4A4DfA955B9f1dE6f",
+        "RoyaltyModule": "0xD2f60c40fEbccf6311f8B47c4f2Ec6b040400086",
+        "PILicenseTemplate": "0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316",
+    }
+
+    STORY_TESTNET_CONTRACTS = {
+        "IPAssetRegistry": "0x1a9d0d28a0422F26D31Be72Edc6f13ea4371E11B",
+        "LicenseRegistry": "0x529a750E02d8E2f0d9e8A99F95B81f5c9B3E22b0",
+        "LicensingModule": "0x5a7D9Fa17DE09350F481A53B470D798c1c1aabae",
+        "RoyaltyModule": "0x968beb5432c362c12b5Be6967a5d6F1ED5A63F55",
+        "PILicenseTemplate": "0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316",
+    }
+
+    STORY_LOCALHOST_CONTRACTS = {
+        "IPAssetRegistry": "0x0000000000000000000000000000000000000001",
+        "LicenseRegistry": "0x0000000000000000000000000000000000000002",
+        "LicensingModule": "0x0000000000000000000000000000000000000003",
+        "RoyaltyModule": "0x0000000000000000000000000000000000000004",
+        "PILicenseTemplate": "0x0000000000000000000000000000000000000005",
+    }
+
     # Default SPG NFT collection for RRA repositories
     # This is created once and reused for all repository registrations
     DEFAULT_SPG_COLLECTIONS = {
@@ -76,7 +102,7 @@ class StoryProtocolClient:
 
         Args:
             web3: Web3 instance connected to Story Protocol network
-            network: Network name ("mainnet", "testnet")
+            network: Network name ("mainnet", "testnet", "localhost")
             custom_addresses: Custom contract addresses (optional)
         """
         self.w3 = web3
@@ -88,6 +114,43 @@ class StoryProtocolClient:
         self._story_client = None
         self._account = None
         self._spg_nft_contract = None
+
+        # Set contract addresses based on network or custom addresses
+        if custom_addresses:
+            self.addresses = custom_addresses
+        elif network == "mainnet":
+            self.addresses = self.STORY_MAINNET_CONTRACTS.copy()
+        elif network == "localhost":
+            self.addresses = self.STORY_LOCALHOST_CONTRACTS.copy()
+        else:  # testnet (default)
+            self.addresses = self.STORY_TESTNET_CONTRACTS.copy()
+
+        # Initialize contract instances (lazy-loaded with minimal ABI for testing)
+        self._init_contracts()
+
+    def _init_contracts(self) -> None:
+        """Initialize contract instances with minimal ABIs for read operations."""
+        # Minimal ABIs for each contract - just enough for basic operations
+        minimal_abi = [
+            {"type": "function", "name": "name", "inputs": [], "outputs": [{"type": "string"}]},
+        ]
+
+        self.ip_asset_registry = self.w3.eth.contract(
+            address=self.addresses["IPAssetRegistry"],
+            abi=minimal_abi
+        )
+        self.license_registry = self.w3.eth.contract(
+            address=self.addresses["LicenseRegistry"],
+            abi=minimal_abi
+        )
+        self.royalty_module = self.w3.eth.contract(
+            address=self.addresses["RoyaltyModule"],
+            abi=minimal_abi
+        )
+        self.pil_license_template = self.w3.eth.contract(
+            address=self.addresses["PILicenseTemplate"],
+            abi=minimal_abi
+        )
 
     def _init_sdk_client(self, private_key: str) -> None:
         """Initialize the Story Protocol SDK client with account."""
@@ -221,6 +284,112 @@ class StoryProtocolClient:
 
         except Exception as e:
             raise RuntimeError(f"Failed to attach license terms: {e}")
+
+    def register_derivative(
+        self,
+        parent_ip_asset_id: str,
+        derivative_owner_address: str,
+        derivative_metadata: IPAssetMetadata,
+        license_terms_id: str,
+        private_key: str,
+    ) -> Dict[str, Any]:
+        """
+        Register a derivative work of an existing IP Asset.
+
+        Args:
+            parent_ip_asset_id: ID of the parent IP Asset
+            derivative_owner_address: Owner address for the derivative
+            derivative_metadata: Metadata for the derivative IP Asset
+            license_terms_id: License terms ID to use for the derivative
+            private_key: Private key for signing transaction
+
+        Returns:
+            Dictionary with transaction hash and derivative IP Asset ID
+        """
+        try:
+            if not self._story_client:
+                self._init_sdk_client(private_key)
+
+            # First register the derivative as a new IP Asset
+            result = self.register_ip_asset(
+                derivative_owner_address, derivative_metadata, private_key
+            )
+
+            if result.get("status") != "success":
+                return result
+
+            derivative_ip_id = result.get("ip_asset_id")
+
+            # Then link it to the parent
+            # Note: This uses the SDK's derivative registration
+            link_result = self._story_client.IPAsset.register_derivative(
+                child_ip_id=derivative_ip_id,
+                parent_ip_ids=[parent_ip_asset_id],
+                license_terms_ids=[int(license_terms_id.replace("terms_", "")) if license_terms_id.startswith("terms_") else 1],
+                license_template=self.addresses["PILicenseTemplate"],
+            )
+
+            return {
+                "tx_hash": link_result.get("txHash") or link_result.get("tx_hash", result.get("tx_hash")),
+                "derivative_ip_asset_id": derivative_ip_id,
+                "parent_ip_asset_id": parent_ip_asset_id,
+                "status": "success",
+            }
+
+        except Exception as e:
+            return {
+                "status": "failed",
+                "error": str(e),
+            }
+
+    def set_royalty_policy(
+        self,
+        ip_asset_id: str,
+        royalty_percentage: int,
+        payment_token: str,
+        owner_address: str,
+        private_key: str,
+    ) -> str:
+        """
+        Set royalty policy for an IP Asset.
+
+        Args:
+            ip_asset_id: ID of the IP Asset
+            royalty_percentage: Royalty percentage in basis points (0-10000)
+            payment_token: Token address for royalty payments
+            owner_address: Owner's Ethereum address
+            private_key: Private key for signing
+
+        Returns:
+            Transaction hash
+
+        Raises:
+            ValueError: If royalty_percentage exceeds 10000 (100%)
+        """
+        # Validate royalty percentage (basis points, max 10000 = 100%)
+        if royalty_percentage > 10000:
+            raise ValueError(
+                f"Royalty percentage {royalty_percentage} basis points "
+                "cannot exceed 100% (10000 basis points)"
+            )
+
+        try:
+            if not self._story_client:
+                self._init_sdk_client(private_key)
+
+            # Set royalty policy via SDK
+            # Note: Story Protocol uses LAP (Liquid Absolute Percentage) for royalties
+            result = self._story_client.Royalty.set_royalty_policy(
+                ip_id=ip_asset_id,
+                royalty_policy="LAP",  # Liquid Absolute Percentage
+                revenue_share=royalty_percentage,
+                currency_token=payment_token,
+            )
+
+            return result.get("txHash") or result.get("tx_hash", "0x" + "0" * 64)
+
+        except Exception as e:
+            raise RuntimeError(f"Failed to set royalty policy: {e}")
 
     def get_ip_asset_info(self, ip_asset_id: str) -> Dict[str, Any]:
         """
