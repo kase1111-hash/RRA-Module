@@ -170,9 +170,9 @@ The buyer now owns an NFT proving they have a license to your code.
 
 ### 6. Claiming Your Revenue
 
-Revenue goes to your IP Asset's **Royalty Vault**, not directly to your wallet.
+Revenue goes to your IP Asset's **Royalty Vault**, not directly to your wallet. Story Protocol uses a two-step process: snapshot (makes revenue claimable) then claim (transfers to your wallet).
 
-**Check and claim your funds:**
+#### Method 1: Python Script (Recommended)
 
 ```cmd
 set STORY_PRIVATE_KEY=0xYourPrivateKeyHere
@@ -197,6 +197,58 @@ Step 2: Claiming revenue...
 CLAIM COMPLETE!
 Your wallet balance: 0.15 IP
 ```
+
+#### Method 2: JavaScript via IP Account (Advanced)
+
+For more control, use the JavaScript scripts that interact through the IP Account (ERC-6551):
+
+```bash
+# Install dependencies
+npm install viem @story-protocol/core-sdk
+
+# Claim via IP Account
+PRIVATE_KEY=0xYourPrivateKey node scripts/claim-via-ip-account.js
+```
+
+This script:
+1. Executes `snapshot()` through your IP Account
+2. Claims using `claimByTokenBatchAsSelf()`
+3. Transfers WIP tokens from IP Account to your wallet
+
+#### Method 3: Debug and Inspect First
+
+If claiming fails, first inspect your vault state:
+
+```bash
+node scripts/debug-vault.js
+```
+
+This shows:
+- RT (Royalty Token) balances - uses 6 decimals
+- Vault WIP balance
+- Current snapshot ID
+- Claimable amounts
+
+#### Understanding Revenue Flow
+
+```
+Buyer pays → Licensing Module → Royalty Vault (pending)
+                                      ↓
+                             You call snapshot()
+                                      ↓
+                             Revenue is claimable
+                                      ↓
+                             You call claim()
+                                      ↓
+                             Funds go to IP Account
+                                      ↓
+                             Transfer to your wallet
+```
+
+**Key Concepts:**
+- **WIP Token**: Wrapped IP - the native payment token on Story Protocol
+- **RT Token**: Royalty Token - represents your share of royalties (100 RT = 100%, uses 6 decimals)
+- **IP Account**: ERC-6551 token-bound account associated with your IP Asset
 
 ---
 
@@ -228,15 +280,55 @@ Revenue flow:
 1. Buyer pays → Licensing Module
 2. Licensing Module → Your Royalty Vault (pending)
 3. You call `snapshot()` → Makes funds claimable
-4. You call `claimRevenue()` → Funds to your wallet
+4. You call `claimRevenue()` → Funds go to IP Account
+5. Transfer from IP Account → Your wallet
 
-Use `claim_royalties.py` to do steps 3 and 4.
+Use `claim_royalties.py` or `claim-via-ip-account.js` to complete this flow.
+
+### RT Token Shows Tiny Balance
+
+RT (Royalty Tokens) use 6 decimals, not 18 like ETH. A balance of `100000000` means:
+- Raw value: 100,000,000
+- With 6 decimals: 100 RT (= 100% ownership)
+
+Use `formatUnits(balance, 6)` in JavaScript, not `formatEther()`.
+
+### Claim Methods Return "Unauthorized"
+
+The IP Account (your IP Asset address) is an ERC-6551 token-bound account. Only the NFT owner can execute transactions through it. Verify:
+
+```bash
+# Check IP Account ownership
+node scripts/debug-vault.js
+```
+
+If ownership shows a different address, you need to claim from that wallet.
+
+### "Snapshot ID Not Found" Error
+
+You need to create a snapshot before claiming:
+1. Call `vault.snapshot()` first
+2. Wait for transaction confirmation
+3. Then call the claim function with the snapshot ID
+
+The `claim-via-ip-account.js` script handles this automatically.
+
+### Vault Has Funds But Nothing Claimable
+
+This typically means:
+- Revenue hasn't been snapshotted yet
+- You've already claimed for the current snapshot
+- The funds are allocated to a different RT holder
+
+Run `debug-vault.js` to see current claimable amounts.
 
 ---
 
 ## Scripts Reference
 
-### enable_story_purchases.py
+### Python Scripts
+
+#### enable_story_purchases.py
 
 Attaches license terms to enable purchasing.
 
@@ -251,7 +343,7 @@ Options:
   --output-dir     Where to save buyer HTML (default: marketplace/public)
 ```
 
-### claim_royalties.py
+#### claim_royalties.py
 
 Claims pending revenue from your Royalty Vault.
 
@@ -263,6 +355,23 @@ Options:
   --private-key  Your private key (or use STORY_PRIVATE_KEY env var)
   --network      mainnet or testnet (default: mainnet)
 ```
+
+### JavaScript Scripts
+
+Install dependencies first:
+```bash
+npm install viem @story-protocol/core-sdk
+```
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `mint-license.js` | Mint license via SDK | `PRIVATE_KEY=0x... node scripts/mint-license.js` |
+| `debug-vault.js` | Inspect vault state | `node scripts/debug-vault.js` |
+| `claim-via-ip-account.js` | Claim via ERC-6551 | `PRIVATE_KEY=0x... node scripts/claim-via-ip-account.js` |
+| `claim-via-module.js` | Claim via RoyaltyModule | `PRIVATE_KEY=0x... node scripts/claim-via-module.js` |
+| `claim-fixed.js` | Claim with 6-decimal RT | `PRIVATE_KEY=0x... node scripts/claim-fixed.js` |
+| `check-royalty-vault.js` | Quick vault check | `node scripts/check-royalty-vault.js` |
+| `pay-royalty.js` | Test royalty payment | `PRIVATE_KEY=0x... node scripts/pay-royalty.js` |
 
 ---
 
