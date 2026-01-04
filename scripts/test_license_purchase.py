@@ -335,8 +335,8 @@ def main():
                 1,  # amount
                 account.address,  # receiver
                 b"",  # royaltyContext (empty for PIL)
-                MINT_FEE * 2,  # maxMintingFee - set higher than actual to allow for variations
-                10000  # maxRevenueShare - 100% (10000 basis points)
+                MINT_FEE * 10,  # maxMintingFee - set much higher to allow for variations
+                100  # maxRevenueShare - 100% (as percentage, not basis points)
             ).build_transaction({
                 'from': account.address,
                 'nonce': nonce,
