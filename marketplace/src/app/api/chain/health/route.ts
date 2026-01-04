@@ -1,8 +1,21 @@
 import { NextResponse } from 'next/server';
 
 const NATLANGCHAIN_URL = process.env.NATLANGCHAIN_URL || 'http://localhost:5000';
+const isDev = process.env.NODE_ENV === 'development';
 
 export async function GET() {
+  // In development, return mock healthy response if no chain is running
+  if (isDev && !process.env.NATLANGCHAIN_URL) {
+    return NextResponse.json({
+      status: 'healthy',
+      service: 'NatLangChain API (mock)',
+      blocks: 42,
+      pending_entries: 0,
+      llm_validation_available: true,
+      mode: 'development',
+    });
+  }
+
   try {
     const response = await fetch(`${NATLANGCHAIN_URL}/health`, {
       method: 'GET',
