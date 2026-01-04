@@ -1,12 +1,25 @@
 {
+  "name": "RRA-Module",
   "title": "RRA-Module",
   "description": "AI-Driven Repository Representation Agent Module - Blockchain licensing and automated negotiation system for software repositories. Enables programmable IP licensing, automated revenue distribution, and agent-based license sales.",
+  "createdAt": "2025-01-03T00:00:00Z",
   "ipType": "Software",
+  "image": "https://raw.githubusercontent.com/kase1111-hash/RRA-Module/main/assets/license-nft.svg",
+  "imageHash": "",
+  "mediaUrl": "https://github.com/kase1111-hash/RRA-Module",
+  "mediaType": "text/html",
   "creators": [
     {
       "name": "Kase Branham",
       "address": "0x28AF4381Fe546CAe46f2B390360FF9D4F8B1C418",
-      "contributionPercent": 100
+      "description": "Creator of RRA-Module",
+      "contributionPercent": 100,
+      "socialMedia": [
+        {
+          "platform": "GitHub",
+          "url": "https://github.com/kase1111-hash"
+        }
+      ]
     }
   ],
   "appInfo": [
@@ -18,7 +31,7 @@
   ],
   "attributes": [
     {
-      "key": "License",
+      "key": "Software License",
       "value": "FSL-1.1-ALv2"
     },
     {
@@ -40,6 +53,14 @@
     {
       "key": "Derivatives",
       "value": "Allowed with attribution"
+    },
+    {
+      "key": "Minting Fee",
+      "value": "0.005 IP"
+    },
+    {
+      "key": "Royalty",
+      "value": "9%"
     }
   ],
   "relationships": [],
@@ -49,14 +70,8 @@
     "github-integration",
     "automated-monetization",
     "smart-contracts",
-    "python"
-  ],
-  "media": [
-    {
-      "name": "Repository",
-      "url": "https://github.com/kase1111-hash/RRA-Module",
-      "mimeType": "text/html"
-    }
+    "python",
+    "developer-tools"
   ],
   "externalUrl": "https://github.com/kase1111-hash/RRA-Module"
 }
