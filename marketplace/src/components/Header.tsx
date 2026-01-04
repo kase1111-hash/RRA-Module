@@ -52,6 +52,12 @@ export function Header() {
             >
               Docs
             </Link>
+            <Link
+              href="/list"
+              className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
+            >
+              List Your Repo
+            </Link>
           </nav>
 
           {/* Search and Connect */}
@@ -130,6 +136,13 @@ export function Header() {
               onClick={() => setMobileMenuOpen(false)}
             >
               Docs
+            </Link>
+            <Link
+              href="/list"
+              className="rounded-lg bg-indigo-600 px-3 py-2 text-center text-white hover:bg-indigo-700"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              List Your Repo
             </Link>
           </nav>
         </div>
