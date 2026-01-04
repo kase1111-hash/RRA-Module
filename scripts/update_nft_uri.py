@@ -42,6 +42,16 @@ SPGNFT_ABI = [
         "type": "function"
     },
     {
+        "inputs": [
+            {"name": "tokenId", "type": "uint256"},
+            {"name": "tokenUri", "type": "string"}
+        ],
+        "name": "setTokenURI",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
         "inputs": [{"name": "tokenId", "type": "uint256"}],
         "name": "tokenURI",
         "outputs": [{"name": "", "type": "string"}],
@@ -145,17 +155,21 @@ def main():
     print("-" * 60)
     print(f"  New URI: {NFT_METADATA_URI}")
 
+    # Try the deprecated version first (without hash) as it might have fewer restrictions
+    print("\n  Trying setTokenURI (without hash)...")
     try:
         nonce = w3.eth.get_transaction_count(account.address)
 
+        # Build function call manually for the 2-param version
+        func_selector = w3.keccak(text="setTokenURI(uint256,string)")[:4]
+
         tx = spg_nft.functions.setTokenURI(
             args.token_id,
-            NFT_METADATA_URI,
-            nft_metadata_hash
+            NFT_METADATA_URI
         ).build_transaction({
             'from': account.address,
             'nonce': nonce,
-            'gas': 200000,
+            'gas': 500000,  # More gas
             'gasPrice': w3.eth.gas_price,
             'chainId': CHAIN_ID,
         })
@@ -169,13 +183,44 @@ def main():
         if receipt['status'] == 1:
             print("  Token URI updated successfully!")
         else:
-            print("  [ERROR] Transaction failed")
-            print(f"  Check: https://explorer.story.foundation/tx/{tx_hash.hex()}")
-            sys.exit(1)
+            print("  [WARN] 2-param version failed, trying 3-param version...")
+            raise Exception("Try 3-param version")
 
     except Exception as e:
-        print(f"  [ERROR] {e}")
-        sys.exit(1)
+        print(f"  First attempt failed: {e}")
+        print("\n  Trying setTokenURI (with hash)...")
+
+        try:
+            nonce = w3.eth.get_transaction_count(account.address)
+
+            tx = spg_nft.functions.setTokenURI(
+                args.token_id,
+                NFT_METADATA_URI,
+                nft_metadata_hash
+            ).build_transaction({
+                'from': account.address,
+                'nonce': nonce,
+                'gas': 500000,
+                'gasPrice': w3.eth.gas_price,
+                'chainId': CHAIN_ID,
+            })
+
+            signed = w3.eth.account.sign_transaction(tx, private_key)
+            tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+            print(f"  TX: {tx_hash.hex()}")
+
+            receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+
+            if receipt['status'] == 1:
+                print("  Token URI updated successfully!")
+            else:
+                print("  [ERROR] Both attempts failed")
+                print(f"  Check: https://explorer.story.foundation/tx/{tx_hash.hex()}")
+                sys.exit(1)
+
+        except Exception as e2:
+            print(f"  [ERROR] {e2}")
+            sys.exit(1)
 
     # Verify new URI
     print("\n" + "-" * 60)
