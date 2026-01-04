@@ -35,7 +35,7 @@ async function main() {
         const config = {
             account: account,
             transport: http(RPC_URL),
-            chainId: "story",
+            chainId: "mainnet",
         };
 
         const client = StoryClient.newClient(config);
