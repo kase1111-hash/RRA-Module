@@ -34,17 +34,6 @@ const royaltyModuleABI = [
         stateMutability: "view",
         type: "function",
     },
-    {
-        inputs: [
-            { name: "snapshotIds", type: "uint256[]" },
-            { name: "token", type: "address" },
-            { name: "ipId", type: "address" },
-        ],
-        name: "claimRevenue",
-        outputs: [{ name: "", type: "uint256" }],
-        stateMutability: "nonpayable",
-        type: "function",
-    },
 ];
 
 const royaltyVaultABI = [
@@ -77,13 +66,42 @@ const royaltyVaultABI = [
         type: "function",
     },
     {
+        inputs: [],
+        name: "ipId",
+        outputs: [{ name: "", type: "address" }],
+        stateMutability: "view",
+        type: "function",
+    },
+    // Correct claiming method
+    {
+        inputs: [
+            { name: "snapshotIds", type: "uint256[]" },
+            { name: "token", type: "address" },
+            { name: "claimer", type: "address" },
+        ],
+        name: "claimRevenueOnBehalfBySnapshotBatch",
+        outputs: [{ name: "", type: "uint256" }],
+        stateMutability: "nonpayable",
+        type: "function",
+    },
+    // Alternative method
+    {
         inputs: [
             { name: "snapshotId", type: "uint256" },
-            { name: "tokenList", type: "address[]" },
+            { name: "tokens", type: "address[]" },
+            { name: "claimer", type: "address" },
         ],
-        name: "claimRevenueOnBehalfByTokenBatch",
+        name: "claimRevenueByTokenBatchAsSelf",
         outputs: [{ name: "", type: "uint256[]" }],
         stateMutability: "nonpayable",
+        type: "function",
+    },
+    // Check balance of royalty tokens
+    {
+        inputs: [{ name: "account", type: "address" }],
+        name: "balanceOf",
+        outputs: [{ name: "", type: "uint256" }],
+        stateMutability: "view",
         type: "function",
     },
 ];
@@ -165,24 +183,39 @@ async function main() {
         return;
     }
 
-    // Check what's claimable
-    try {
-        const claimable = await publicClient.readContract({
-            address: vaultAddress,
-            abi: royaltyVaultABI,
-            functionName: "claimableRevenue",
-            args: [WIP_TOKEN],
-        });
-        console.log(`  Claimable WIP: ${formatEther(claimable)} WIP`);
+    // Check vault's WIP balance
+    const vaultWipBalance = await publicClient.readContract({
+        address: WIP_TOKEN,
+        abi: erc20ABI,
+        functionName: "balanceOf",
+        args: [vaultAddress],
+    });
+    console.log(`  Vault WIP Balance: ${formatEther(vaultWipBalance)} WIP`);
 
-        const pending = await publicClient.readContract({
+    // Check user's royalty token balance
+    try {
+        const rtBalance = await publicClient.readContract({
             address: vaultAddress,
             abi: royaltyVaultABI,
-            functionName: "pendingVaultAmount",
+            functionName: "balanceOf",
+            args: [account.address],
         });
-        console.log(`  Pending (unsnapshotted): ${formatEther(pending)}`);
+        console.log(`  Your Royalty Tokens: ${formatEther(rtBalance)} RT`);
+    } catch (e) {
+        console.log(`  Could not read RT balance`);
+    }
+
+    // Get current snapshot ID
+    let snapshotId = 0n;
+    try {
+        snapshotId = await publicClient.readContract({
+            address: vaultAddress,
+            abi: royaltyVaultABI,
+            functionName: "currentSnapshotId",
+        });
+        console.log(`  Current Snapshot ID: ${snapshotId}`);
     } catch (error) {
-        console.log(`  Could not read claimable amounts`);
+        console.log(`  Could not get snapshot ID`);
     }
 
     // Try to snapshot first (makes pending funds claimable)
@@ -190,6 +223,7 @@ async function main() {
     console.log("Step 1: Snapshotting pending revenue...");
     console.log("-".repeat(60));
 
+    let newSnapshotId = snapshotId;
     try {
         const { request } = await publicClient.simulateContract({
             account,
@@ -203,28 +237,26 @@ async function main() {
 
         const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
         console.log(`  Confirmed in block ${receipt.blockNumber}`);
-    } catch (error) {
-        console.log(`  Snapshot skipped: ${error.message.slice(0, 50)}...`);
-    }
 
-    // Get current snapshot ID
-    let snapshotId = 1n;
-    try {
-        snapshotId = await publicClient.readContract({
+        // Get new snapshot ID
+        newSnapshotId = await publicClient.readContract({
             address: vaultAddress,
             abi: royaltyVaultABI,
             functionName: "currentSnapshotId",
         });
-        console.log(`  Current Snapshot ID: ${snapshotId}`);
+        console.log(`  New Snapshot ID: ${newSnapshotId}`);
     } catch (error) {
-        console.log(`  Could not get snapshot ID, using 1`);
+        console.log(`  Snapshot skipped: ${error.shortMessage || error.message.slice(0, 60)}`);
     }
 
-    // Try to claim using Story SDK
+    // Try to claim using Story SDK first
     console.log("\n" + "-".repeat(60));
-    console.log("Step 2: Claiming revenue via Story SDK...");
+    console.log("Step 2: Claiming revenue...");
     console.log("-".repeat(60));
 
+    let claimed = false;
+
+    // Try SDK methods
     try {
         const storyConfig = {
             account: account,
@@ -235,29 +267,49 @@ async function main() {
         const storyClient = StoryClient.newClient(storyConfig);
         console.log("  Story client initialized");
 
-        // Use SDK's claimRevenue method
-        const response = await storyClient.royalty.claimRevenue({
-            snapshotIds: [snapshotId],
-            token: WIP_TOKEN,
-            ipId: IP_ASSET_ID,
-        });
-
-        console.log(`\n  Claim TX: ${response.txHash}`);
-        if (response.claimableToken) {
-            console.log(`  Claimed Amount: ${formatEther(response.claimableToken)} WIP`);
+        // Try different SDK method names
+        if (storyClient.royalty.claimAllRevenue) {
+            console.log("  Trying claimAllRevenue...");
+            const response = await storyClient.royalty.claimAllRevenue({
+                ancestorIpId: IP_ASSET_ID,
+                claimer: account.address,
+                tokens: [WIP_TOKEN],
+            });
+            console.log(`  Claim TX: ${response.txHash}`);
+            claimed = true;
+        } else if (storyClient.royalty.collectRoyaltyTokens) {
+            console.log("  Trying collectRoyaltyTokens...");
+            const response = await storyClient.royalty.collectRoyaltyTokens({
+                parentIpId: IP_ASSET_ID,
+                royaltyVaultIpId: IP_ASSET_ID,
+            });
+            console.log(`  Collect TX: ${response.txHash}`);
+            claimed = true;
         }
     } catch (error) {
-        console.log(`  SDK claim failed: ${error.message.slice(0, 80)}`);
-        console.log("\n  Trying direct contract call...");
+        console.log(`  SDK claim failed: ${error.message.slice(0, 60)}`);
+    }
 
-        // Fallback: try direct claim
+    // If SDK didn't work, try direct contract calls
+    if (!claimed) {
+        console.log("\n  Trying direct contract calls...");
+
+        // Build snapshot IDs array (try all snapshots from 1 to current)
+        const snapshotIds = [];
+        for (let i = 1n; i <= (newSnapshotId > 0n ? newSnapshotId : 1n); i++) {
+            snapshotIds.push(i);
+        }
+        console.log(`  Claiming for snapshots: [${snapshotIds.join(", ")}]`);
+
+        // Method 1: claimRevenueOnBehalfBySnapshotBatch
         try {
+            console.log("  Trying claimRevenueOnBehalfBySnapshotBatch...");
             const { request } = await publicClient.simulateContract({
                 account,
                 address: vaultAddress,
                 abi: royaltyVaultABI,
-                functionName: "claimRevenueOnBehalfByTokenBatch",
-                args: [snapshotId, [WIP_TOKEN]],
+                functionName: "claimRevenueOnBehalfBySnapshotBatch",
+                args: [snapshotIds, WIP_TOKEN, account.address],
             });
 
             const txHash = await walletClient.writeContract(request);
@@ -265,8 +317,32 @@ async function main() {
 
             const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
             console.log(`  Confirmed in block ${receipt.blockNumber}`);
-        } catch (innerError) {
-            console.log(`  Direct claim failed: ${innerError.message.slice(0, 80)}`);
+            claimed = true;
+        } catch (error) {
+            console.log(`  Method 1 failed: ${error.shortMessage || error.message.slice(0, 50)}`);
+        }
+
+        // Method 2: claimRevenueByTokenBatchAsSelf
+        if (!claimed && newSnapshotId > 0n) {
+            try {
+                console.log("  Trying claimRevenueByTokenBatchAsSelf...");
+                const { request } = await publicClient.simulateContract({
+                    account,
+                    address: vaultAddress,
+                    abi: royaltyVaultABI,
+                    functionName: "claimRevenueByTokenBatchAsSelf",
+                    args: [newSnapshotId, [WIP_TOKEN], account.address],
+                });
+
+                const txHash = await walletClient.writeContract(request);
+                console.log(`  Claim TX: ${txHash}`);
+
+                const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+                console.log(`  Confirmed in block ${receipt.blockNumber}`);
+                claimed = true;
+            } catch (error) {
+                console.log(`  Method 2 failed: ${error.shortMessage || error.message.slice(0, 50)}`);
+            }
         }
     }
 
@@ -289,16 +365,23 @@ async function main() {
     const wipChange = wipBalanceAfter - wipBalanceBefore;
     if (wipChange > 0n) {
         console.log(`\n  WIP Change: +${formatEther(wipChange)} WIP`);
-        console.log("\nRoyalty claimed successfully!");
+        console.log("\n  Royalty claimed successfully!");
     } else if (wipChange < 0n) {
         console.log(`\n  WIP spent on gas: ${formatEther(-wipChange)} WIP`);
     } else {
-        console.log("\n  No WIP change - may have no claimable royalties");
+        console.log("\n  No WIP change.");
+        if (!claimed) {
+            console.log("\n  Note: You may need Royalty Tokens (RT) to claim.");
+            console.log("  RT are distributed to the IP Asset, not the wallet.");
+            console.log("  The minting fee was sent to the vault but claiming");
+            console.log("  requires RT ownership which the IP controls.");
+        }
     }
 
     console.log("\n" + "=".repeat(60));
     console.log("Explorer Links:");
     console.log(`  IP Asset: https://explorer.story.foundation/ipa/${IP_ASSET_ID}`);
+    console.log(`  Vault: https://storyscan.io/address/${vaultAddress}`);
     console.log(`  Wallet: https://storyscan.io/address/${account.address}`);
     console.log("=".repeat(60));
 }
