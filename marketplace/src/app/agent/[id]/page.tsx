@@ -33,11 +33,11 @@ const mockAgentData = {
     description:
       'Revenant Repo Agent Module - Transform dormant GitHub repositories into autonomous, revenue-generating agents through AI-driven negotiation and blockchain-enforced licensing.',
     kb_path: 'agent_knowledge_bases/rra_module_kb.json',
-    updated_at: '2025-12-19T12:00:00Z',
-    languages: ['Python', 'Solidity', 'TypeScript'],
-    files: 31,
-    stars: 128,
-    forks: 24,
+    updated_at: '2025-01-04T12:00:00Z',
+    languages: ['Python', 'TypeScript', 'JavaScript'],
+    files: 45,
+    stars: 3,
+    forks: 1,
   },
   market_config: {
     license_identifier: 'FSL-1.1-ALv2',
@@ -55,15 +55,15 @@ const mockAgentData = {
     developer_wallet: '0x1234567890abcdef1234567890abcdef12345678',
   },
   statistics: {
-    code_files: 31,
-    languages: ['Python', 'Solidity', 'TypeScript'],
-    total_lines: 4567,
-    test_coverage: 85,
+    code_files: 45,
+    languages: ['Python', 'TypeScript', 'JavaScript'],
+    total_lines: 8500,
+    test_coverage: 78,
   },
   reputation: {
-    score: 4.8,
-    total_sales: 47,
-    total_revenue: '2.35 ETH',
+    score: 0,
+    total_sales: 0,
+    total_revenue: '0 ETH',
   },
   license_tiers: [
     {
