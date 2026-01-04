@@ -52,7 +52,7 @@ const tiers = [
       'SLA guarantees',
       'Custom integrations',
     ],
-    cta: 'Contact Sales',
+    cta: 'Contact Us',
     highlighted: false,
   },
 ];

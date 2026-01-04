@@ -138,7 +138,7 @@ export function NegotiationChat({
             )}
             {currentOffer && (
               <div className="flex items-center gap-1.5">
-                <span className="text-gray-500 dark:text-gray-400">Current Offer:</span>
+                <span className="text-gray-500 dark:text-gray-400">Selected:</span>
                 <Badge variant="success" size="sm">{currentOffer}</Badge>
               </div>
             )}
@@ -261,7 +261,7 @@ export function NegotiationChat({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Accept Offer Button (if in closing phase) */}
+      {/* Purchase Button (if in closing phase) */}
       {phase === 'closing' && onAcceptOffer && (
         <div className="border-t border-gray-200 px-4 py-3 dark:border-gray-700">
           <button

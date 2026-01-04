@@ -62,7 +62,7 @@ const mockAgentData = {
   },
   reputation: {
     score: 0,
-    total_sales: 0,
+    total_licenses: 0,
     total_revenue: '0 ETH',
   },
   license_tiers: [
@@ -170,7 +170,7 @@ export default function AgentPage() {
     } else if (lowerContent.includes('discount') || lowerContent.includes('lower') || lowerContent.includes('budget')) {
       agentResponse = `I understand you're looking for the best value. Let me help you find the right fit:\n\n• **Standard** (0.05 ETH): Best for individual developers\n• **Premium** (0.15 ETH): Great for small teams, includes lifetime updates\n\nWith ${mockAgentData.statistics.test_coverage}% test coverage and ${mockAgentData.statistics.code_files} well-documented files, this codebase will save you significant development time. Which tier fits your needs?`;
       newPhase = 'negotiation';
-    } else if (lowerContent.includes('deal') || lowerContent.includes('accept') || lowerContent.includes('ok') || lowerContent.includes('yes')) {
+    } else if (lowerContent.includes('proceed') || lowerContent.includes('accept') || lowerContent.includes('ok') || lowerContent.includes('yes') || lowerContent.includes('ready')) {
       agentResponse = `Excellent choice! Here's your selected license:\n\n**Standard License**\n• Price: 0.05 ETH\n• 1 seat license\n• 12 months of updates\n• Full commercial rights\n\nClick "Accept & Purchase License" below to complete the transaction. Your license NFT will be minted immediately upon payment confirmation.`;
       newPhase = 'closing';
     } else if (lowerContent.includes('features') || lowerContent.includes('include') || lowerContent.includes('what do i get')) {
@@ -200,7 +200,7 @@ export default function AgentPage() {
     const confirmMessage: NegotiationMessage = {
       id: String(Date.now()),
       role: 'agent',
-      content: `🎉 **Transaction Initiated!**\n\nPlease confirm the transaction in your wallet:\n• Amount: 0.045 ETH\n• Network: Ethereum Mainnet\n• Contract: RRALicense\n\nOnce confirmed, your license NFT will be minted and you'll receive instant access to the repository.\n\nThank you for choosing ${mockAgentData.repository.name}!`,
+      content: `🎉 **Transaction Initiated!**\n\nPlease confirm the transaction in your wallet:\n• Amount: 0.05 ETH\n• Network: Story Protocol\n• Contract: RRALicense\n\nOnce confirmed, your license NFT will be minted and you'll receive instant access to the repository.\n\nThank you for choosing ${mockAgentData.repository.name}!`,
       timestamp: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, confirmMessage]);
@@ -330,9 +330,9 @@ export default function AgentPage() {
               <div className="mt-4 grid grid-cols-2 gap-4">
                 <div className="text-center">
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {reputation.total_sales}
+                    {reputation.total_licenses}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Licenses sold</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Licenses issued</p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">

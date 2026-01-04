@@ -36,13 +36,13 @@ export interface AgentDetails {
   };
   reputation: {
     score: number;
-    total_sales: number;
+    total_licenses: number;
     total_revenue: string;
   };
 }
 
 export interface AgentStats {
-  total_sales: number;
+  total_licenses: number;
   total_revenue: string;
   average_price: string;
   reputation_score: number;
