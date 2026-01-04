@@ -181,11 +181,16 @@ class ShamirSecretSharing:
         Verify a share against a commitment.
 
         Uses the share commitment scheme where commitments are hashes.
+
+        SECURITY FIX LOW-001: Uses constant-time comparison to prevent
+        timing side-channel attacks during share verification.
         """
+        import hmac
         from eth_utils import keccak
 
         expected = keccak(share.to_bytes())
-        return expected == commitment
+        # SECURITY FIX: Use constant-time comparison
+        return hmac.compare_digest(expected, commitment)
 
 
 def split_secret(secret: bytes, threshold: int, total_shares: int) -> List[Share]:
@@ -276,6 +281,9 @@ class ThresholdKeyEscrow:
         """
         Verify shares against their commitments.
 
+        SECURITY FIX LOW-001: Uses constant-time comparison to prevent
+        timing side-channel attacks during share verification.
+
         Args:
             shares: Shares to verify
             commitments: Expected commitment hashes
@@ -283,6 +291,7 @@ class ThresholdKeyEscrow:
         Returns:
             List of verification results
         """
+        import hmac
         from eth_utils import keccak
 
         results = []
@@ -290,7 +299,8 @@ class ThresholdKeyEscrow:
             if share.index - 1 < len(commitments):
                 expected = commitments[share.index - 1]
                 actual = keccak(share.to_bytes())
-                results.append(actual == expected)
+                # SECURITY FIX: Use constant-time comparison
+                results.append(hmac.compare_digest(actual, expected))
             else:
                 results.append(False)
 

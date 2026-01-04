@@ -1467,11 +1467,18 @@ class BoundaryDaemon:
         return raw_token, token
 
     def validate_token(self, raw_token: str) -> Optional[AccessToken]:
-        """Validate an access token."""
+        """
+        Validate an access token.
+
+        SECURITY FIX: Uses constant-time comparison to prevent timing attacks
+        that could leak information about valid token hashes.
+        """
+        import hmac
+
         token_hash = self._hash_token(raw_token)
 
         for token in self.tokens.values():
-            if token.token_hash == token_hash:
+            if hmac.compare_digest(token.token_hash, token_hash):
                 if token.is_valid:
                     return token
                 break

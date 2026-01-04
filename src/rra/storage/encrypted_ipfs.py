@@ -384,7 +384,10 @@ class EncryptedIPFSStorage:
 
             package = json.loads(package_bytes.decode())
             stored_hash = bytes.fromhex(package["evidence_hash"])
-            return stored_hash == expected_hash
+            # SECURITY FIX: Use constant-time comparison for evidence hash verification
+            import hmac
+
+            return hmac.compare_digest(stored_hash, expected_hash)
         except Exception as e:
             logger.warning(f"Evidence verification failed for {uri}: {e}")
             return False

@@ -133,6 +133,10 @@ class ViewingKey:
 
     Generated per-dispute or per-context, allowing selective
     decryption of private data.
+
+    SECURITY FIX MED-001: Uses hiding commitment with blinding factor.
+    The commitment is hash(public_key || blinding), which prevents
+    attackers from verifying guesses about the public key.
     """
 
     private_key: PrivateKey
@@ -142,6 +146,7 @@ class ViewingKey:
     created_at: datetime
     expires_at: Optional[datetime] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
+    _commitment_blinding: bytes = field(default_factory=lambda: os.urandom(32))
 
     @classmethod
     def generate(
@@ -231,10 +236,42 @@ class ViewingKey:
         """
         Get on-chain commitment for this key.
 
+        SECURITY FIX MED-001: Uses hiding commitment with blinding factor.
+        The commitment is hash(public_key || blinding), which prevents
+        attackers from verifying guesses about the public key.
+
         The commitment can be stored on-chain to prove key existence
         without revealing the key itself.
         """
-        return keccak(self.public_key.to_bytes())
+        # Hiding commitment: hash of public key concatenated with blinding
+        return keccak(self.public_key.to_bytes() + self._commitment_blinding)
+
+    @property
+    def commitment_blinding(self) -> bytes:
+        """
+        Get the blinding factor used in the commitment.
+
+        This is needed to verify the commitment later.
+        """
+        return self._commitment_blinding
+
+    def verify_commitment(self, commitment: bytes, blinding: bytes) -> bool:
+        """
+        Verify that a commitment was made to this key's public key.
+
+        SECURITY FIX MED-001: Uses constant-time comparison.
+
+        Args:
+            commitment: The commitment to verify
+            blinding: The blinding factor used
+
+        Returns:
+            True if the commitment is valid for this key
+        """
+        import hmac
+
+        expected = keccak(self.public_key.to_bytes() + blinding)
+        return hmac.compare_digest(commitment, expected)
 
     @property
     def is_expired(self) -> bool:
@@ -288,6 +325,7 @@ class ViewingKey:
             "created_at": self.created_at.isoformat(),
             "expires_at": self.expires_at.isoformat() if self.expires_at else None,
             "commitment": self.commitment.hex(),
+            "commitment_blinding": self._commitment_blinding.hex(),
             "metadata": self.metadata,
         }
 
@@ -295,9 +333,27 @@ class ViewingKey:
         """
         Export private key bytes (use with caution).
 
-        WARNING: This returns raw private key bytes. For secure export,
-        use export_private_encrypted() which encrypts the key with a password.
+        .. deprecated::
+            This method exports raw unencrypted private key bytes.
+            Use :meth:`export_private_encrypted` for secure key export.
+
+        SECURITY WARNING (HIGH-005): This returns raw private key bytes which
+        can be accidentally logged, transmitted, or exposed via memory dumps.
+        For any use case where the key leaves memory:
+        - Use export_private_encrypted() with a strong password
+        - For Shamir sharing, immediately split and delete: key_bytes = export_private(); shares = split(key_bytes); del key_bytes
+
+        Returns:
+            Raw 32-byte private key (HANDLE WITH EXTREME CARE)
         """
+        import warnings
+
+        warnings.warn(
+            "export_private() returns unencrypted key bytes. "
+            "Use export_private_encrypted() for secure export.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.private_key.to_bytes()
 
     def export_private_encrypted(self, password: bytes) -> bytes:
@@ -387,16 +443,34 @@ class ViewingKey:
 
     @classmethod
     def from_private_bytes(
-        cls, private_bytes: bytes, purpose: KeyPurpose, context_id: str
+        cls,
+        private_bytes: bytes,
+        purpose: KeyPurpose,
+        context_id: str,
+        commitment_blinding: Optional[bytes] = None,
     ) -> "ViewingKey":
-        """Restore viewing key from private key bytes."""
+        """
+        Restore viewing key from private key bytes.
+
+        Args:
+            private_bytes: 32-byte private key
+            purpose: Key purpose
+            context_id: Context identifier
+            commitment_blinding: Optional blinding factor for commitment
+                (generates new random if not provided)
+
+        Returns:
+            Restored ViewingKey
+        """
         private_key = keys.PrivateKey(private_bytes)
+        blinding = commitment_blinding if commitment_blinding else os.urandom(32)
         return cls(
             private_key=private_key,
             public_key=private_key.public_key,
             purpose=purpose,
             context_id=context_id,
             created_at=datetime.utcnow(),
+            _commitment_blinding=blinding,
         )
 
 
@@ -601,9 +675,12 @@ class ViewingKeyManager:
         Raises:
             ValueError: If decryption fails
         """
-        # Verify key commitment
+        # Verify key commitment using constant-time comparison
+        # SECURITY FIX: Use hmac.compare_digest to prevent timing attacks
+        import hmac
+
         expected_commitment = keccak(private_key.public_key.to_bytes())
-        if encrypted.key_commitment != expected_commitment:
+        if not hmac.compare_digest(encrypted.key_commitment, expected_commitment):
             raise ValueError("Key commitment mismatch - wrong key")
 
         # Convert ephemeral public key bytes to cryptography EC public key
@@ -698,17 +775,18 @@ class ViewingKeyManager:
 
         return self._key_cache[dispute_id].commitment
 
-    def export_key_for_escrow(self, dispute_id: str) -> bytes:
+    def export_key_for_escrow(self, dispute_id: str, _acknowledge_security_risk: bool = False) -> bytes:
         """
         Export a key's private bytes for escrow.
 
-        SECURITY: The exported bytes MUST be immediately split using
-        Shamir's Secret Sharing before any storage or transmission.
-        Never store or log the raw bytes returned by this method.
+        SECURITY WARNING (HIGH-005): This method returns raw private key bytes.
+        The exported bytes MUST be immediately split using Shamir's Secret
+        Sharing before any storage or transmission. Never store or log the
+        raw bytes returned by this method.
 
         Recommended usage::
 
-            key_bytes = manager.export_key_for_escrow(dispute_id)
+            key_bytes = manager.export_key_for_escrow(dispute_id, _acknowledge_security_risk=True)
             shares = split_key_for_escrow(key_bytes, dispute_id)
             del key_bytes  # Clear from memory immediately
 
@@ -717,17 +795,28 @@ class ViewingKeyManager:
 
         Args:
             dispute_id: Dispute identifier
+            _acknowledge_security_risk: Must be True to confirm you understand
+                the security implications of handling raw key bytes
 
         Returns:
             32-byte private key (handle securely - split immediately!)
 
         Raises:
-            ValueError: If key not found
+            ValueError: If key not found or security risk not acknowledged
         """
+        if not _acknowledge_security_risk:
+            raise ValueError(
+                "export_key_for_escrow() returns raw private key bytes. "
+                "Set _acknowledge_security_risk=True to confirm you will "
+                "immediately split the key using Shamir's Secret Sharing. "
+                "For password-protected export, use ViewingKey.export_private_encrypted() instead."
+            )
+
         if dispute_id not in self._key_cache:
             raise ValueError(f"No viewing key for dispute {dispute_id}")
 
-        return self._key_cache[dispute_id].export_private()
+        # Bypass the deprecation warning since this is an internal escrow operation
+        return self._key_cache[dispute_id].private_key.to_bytes()
 
     def import_key_from_escrow(self, dispute_id: str, private_bytes: bytes) -> ViewingKey:
         """

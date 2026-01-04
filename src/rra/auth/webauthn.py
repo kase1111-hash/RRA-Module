@@ -317,9 +317,16 @@ class WebAuthnClient:
         return self._credentials.get(credential_id)
 
     def get_credential_by_hash(self, credential_id_hash: bytes) -> Optional[WebAuthnCredential]:
-        """Get credential by its keccak256 hash."""
+        """
+        Get credential by its keccak256 hash.
+
+        SECURITY FIX: Uses constant-time comparison to prevent timing attacks
+        that could leak information about valid credential hashes.
+        """
+        import hmac
+
         for cred in self._credentials.values():
-            if cred.credential_id_hash == credential_id_hash:
+            if hmac.compare_digest(cred.credential_id_hash, credential_id_hash):
                 return cred
         return None
 
@@ -354,8 +361,11 @@ class WebAuthnClient:
         # Parse authenticator data
         auth_data = assertion.parsed_auth_data
 
-        # Verify RP ID hash
-        if auth_data.rp_id_hash != self.rp_id_hash:
+        # Verify RP ID hash using constant-time comparison
+        # SECURITY FIX: Prevents timing attacks on RP ID verification
+        import hmac
+
+        if not hmac.compare_digest(auth_data.rp_id_hash, self.rp_id_hash):
             return False, "Invalid RP ID"
 
         # Verify user presence
@@ -366,13 +376,14 @@ class WebAuthnClient:
         if auth_data.sign_count <= credential.sign_count:
             return False, "Invalid sign count (possible replay)"
 
-        # Verify challenge if provided
+        # Verify challenge if provided using constant-time comparison
+        # SECURITY FIX: Prevents timing attacks on challenge verification
         if expected_challenge:
             client_data = json.loads(assertion.client_data_json.decode())
             challenge_b64 = client_data.get("challenge", "")
             try:
                 received_challenge = base64.urlsafe_b64decode(challenge_b64 + "==")
-                if received_challenge != expected_challenge:
+                if not hmac.compare_digest(received_challenge, expected_challenge):
                     return False, "Challenge mismatch"
             except (binascii.Error, ValueError) as e:
                 logger.warning(f"Invalid challenge encoding: {e}")
