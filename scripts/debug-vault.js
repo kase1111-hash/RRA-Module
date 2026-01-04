@@ -1,21 +1,19 @@
 /**
  * Debug Royalty Vault State
+ *
+ * Inspects the state of a Royalty Vault for debugging purposes.
+ * Configuration is loaded from .market.yaml or environment variables.
+ *
+ * Usage:
+ *   node scripts/debug-vault.js
+ *   STORY_IP_ASSET_ID=0x... node scripts/debug-vault.js
+ *   STORY_VAULT_ADDRESS=0x... node scripts/debug-vault.js
  */
 
 const { createPublicClient, http, formatEther, formatUnits } = require("viem");
+const config = require("./config");
 
-const IP_ASSET_ID = "0xf08574c30337dde7C38869b8d399BA07ab23a07F";
-const RPC_URL = "https://mainnet.storyrpc.io";
-const VAULT_ADDRESS = "0xf670F6e1dED682C0988c84b06CFA861464E59ab3";
-const WIP_TOKEN = "0x1514000000000000000000000000000000000000";
-
-const storyMainnet = {
-    id: 1514,
-    name: "Story Protocol",
-    nativeCurrency: { name: "IP", symbol: "IP", decimals: 18 },
-    rpcUrls: { default: { http: [RPC_URL] } },
-};
-
+// ABIs
 const vaultABI = [
     { inputs: [], name: "totalSupply", outputs: [{ type: "uint256" }], stateMutability: "view", type: "function" },
     { inputs: [], name: "decimals", outputs: [{ type: "uint8" }], stateMutability: "view", type: "function" },
@@ -39,6 +37,16 @@ const vaultABI = [
     },
 ];
 
+const royaltyModuleABI = [
+    {
+        inputs: [{ name: "ipId", type: "address" }],
+        name: "ipRoyaltyVaults",
+        outputs: [{ name: "", type: "address" }],
+        stateMutability: "view",
+        type: "function",
+    },
+];
+
 const erc20ABI = [
     { inputs: [{ name: "account", type: "address" }], name: "balanceOf", outputs: [{ type: "uint256" }], stateMutability: "view", type: "function" },
 ];
@@ -48,29 +56,63 @@ async function main() {
     console.log("Debug Royalty Vault");
     console.log("=".repeat(60));
 
+    // Validate configuration
+    config.validate(["ipAssetId"]);
+
+    const ipAssetId = config.ipAssetId;
+    let vaultAddress = config.vaultAddress;
+
+    console.log("\n" + "-".repeat(60));
+    config.printSummary();
+    console.log("-".repeat(60));
+
     const publicClient = createPublicClient({
-        chain: storyMainnet,
-        transport: http(RPC_URL),
+        chain: config.storyChain,
+        transport: http(config.rpcUrl),
     });
 
-    console.log(`\nVault: ${VAULT_ADDRESS}`);
-    console.log(`IP Asset: ${IP_ASSET_ID}`);
+    // Look up vault if not provided
+    if (!vaultAddress) {
+        console.log("\nLooking up Royalty Vault...");
+
+        try {
+            vaultAddress = await publicClient.readContract({
+                address: config.royaltyModule,
+                abi: royaltyModuleABI,
+                functionName: "ipRoyaltyVaults",
+                args: [ipAssetId],
+            });
+
+            if (vaultAddress === "0x0000000000000000000000000000000000000000") {
+                console.log("\n[WARNING] No Royalty Vault exists for this IP Asset yet.");
+                console.log("This means no royalties have been paid to this IP Asset.");
+                return;
+            }
+        } catch (e) {
+            console.log(`  Error looking up vault: ${e.message.slice(0, 60)}`);
+            return;
+        }
+    }
+
+    console.log(`\nVault: ${vaultAddress}`);
+    console.log(`IP Asset: ${ipAssetId}`);
 
     // Vault basic info
     console.log("\n" + "-".repeat(60));
     console.log("Vault Info:");
     console.log("-".repeat(60));
 
+    let decimals = 6; // Default RT decimals
     try {
-        const decimals = await publicClient.readContract({
-            address: VAULT_ADDRESS,
+        decimals = await publicClient.readContract({
+            address: vaultAddress,
             abi: vaultABI,
             functionName: "decimals",
         });
         console.log(`  RT Decimals: ${decimals}`);
 
         const totalSupply = await publicClient.readContract({
-            address: VAULT_ADDRESS,
+            address: vaultAddress,
             abi: vaultABI,
             functionName: "totalSupply",
         });
@@ -78,7 +120,7 @@ async function main() {
         console.log(`  RT Total Supply: ${formatUnits(totalSupply, Number(decimals))} RT`);
 
         const ipId = await publicClient.readContract({
-            address: VAULT_ADDRESS,
+            address: vaultAddress,
             abi: vaultABI,
             functionName: "ipId",
         });
@@ -93,20 +135,24 @@ async function main() {
     console.log("-".repeat(60));
 
     const addresses = [
-        ["IP Asset", IP_ASSET_ID],
-        ["Vault itself", VAULT_ADDRESS],
+        ["IP Asset", ipAssetId],
+        ["Vault itself", vaultAddress],
         ["Zero Address", "0x0000000000000000000000000000000000000000"],
     ];
+
+    if (config.ownerAddress) {
+        addresses.push(["Owner", config.ownerAddress]);
+    }
 
     for (const [name, addr] of addresses) {
         try {
             const balance = await publicClient.readContract({
-                address: VAULT_ADDRESS,
+                address: vaultAddress,
                 abi: vaultABI,
                 functionName: "balanceOf",
                 args: [addr],
             });
-            console.log(`  ${name}: ${balance} (raw) = ${formatEther(balance)} RT`);
+            console.log(`  ${name}: ${balance} (raw) = ${formatUnits(balance, Number(decimals))} RT`);
         } catch (e) {
             console.log(`  ${name}: Error`);
         }
@@ -118,10 +164,10 @@ async function main() {
     console.log("-".repeat(60));
 
     const vaultWip = await publicClient.readContract({
-        address: WIP_TOKEN,
+        address: config.wipToken,
         abi: erc20ABI,
         functionName: "balanceOf",
-        args: [VAULT_ADDRESS],
+        args: [vaultAddress],
     });
     console.log(`  Vault WIP: ${formatEther(vaultWip)} WIP (raw: ${vaultWip})`);
 
@@ -132,7 +178,7 @@ async function main() {
 
     try {
         const snapshotId = await publicClient.readContract({
-            address: VAULT_ADDRESS,
+            address: vaultAddress,
             abi: vaultABI,
             functionName: "currentSnapshotId",
         });
@@ -142,10 +188,10 @@ async function main() {
             // Check claimable at snapshot
             try {
                 const claimable = await publicClient.readContract({
-                    address: VAULT_ADDRESS,
+                    address: vaultAddress,
                     abi: vaultABI,
                     functionName: "claimableAtSnapshot",
-                    args: [IP_ASSET_ID, snapshotId, WIP_TOKEN],
+                    args: [ipAssetId, snapshotId, config.wipToken],
                 });
                 console.log(`  IP Asset claimable at snapshot ${snapshotId}: ${formatEther(claimable)} WIP`);
             } catch (e) {
@@ -154,12 +200,12 @@ async function main() {
 
             try {
                 const rtAtSnapshot = await publicClient.readContract({
-                    address: VAULT_ADDRESS,
+                    address: vaultAddress,
                     abi: vaultABI,
                     functionName: "balanceOfAt",
-                    args: [IP_ASSET_ID, snapshotId],
+                    args: [ipAssetId, snapshotId],
                 });
-                console.log(`  IP Asset RT at snapshot ${snapshotId}: ${rtAtSnapshot}`);
+                console.log(`  IP Asset RT at snapshot ${snapshotId}: ${formatUnits(rtAtSnapshot, Number(decimals))} RT`);
             } catch (e) {
                 console.log(`  RT at snapshot: Could not read`);
             }
@@ -169,16 +215,10 @@ async function main() {
     }
 
     console.log("\n" + "-".repeat(60));
-    console.log("Analysis:");
+    console.log("Links:");
     console.log("-".repeat(60));
-    console.log("  The vault has 0.01 WIP but the IP Asset only has tiny RT.");
-    console.log("  This might be a Story Protocol design where minting fees");
-    console.log("  are distributed differently than commercial royalties.");
-    console.log("");
-    console.log("  Options:");
-    console.log("  1. Check Story Protocol Explorer for a claim UI");
-    console.log("  2. The funds may be for derivative IP holders");
-    console.log("  3. Contact Story Protocol support for guidance");
+    console.log(`  IP Asset: https://explorer.story.foundation/ipa/${ipAssetId}`);
+    console.log(`  Vault: https://storyscan.io/address/${vaultAddress}`);
     console.log("=".repeat(60));
 }
 

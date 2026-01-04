@@ -1,30 +1,33 @@
 /**
  * Mint License Token using Story Protocol SDK
  *
+ * Configuration is loaded from .market.yaml or environment variables.
+ *
  * Usage:
  *   PRIVATE_KEY=0x... node scripts/mint-license.js
+ *   STORY_IP_ASSET_ID=0x... PRIVATE_KEY=0x... node scripts/mint-license.js
  */
 
-const { StoryClient, StoryConfig } = require("@story-protocol/core-sdk");
+const { StoryClient } = require("@story-protocol/core-sdk");
 const { http } = require("viem");
 const { privateKeyToAccount } = require("viem/accounts");
-
-// Configuration
-const IP_ASSET_ID = "0xf08574c30337dde7C38869b8d399BA07ab23a07F";
-const LICENSE_TERMS_ID = "28438";
-const RPC_URL = "https://mainnet.storyrpc.io";
+const config = require("./config");
 
 async function main() {
-    const privateKey = process.env.PRIVATE_KEY;
-    if (!privateKey) {
-        console.error("Error: PRIVATE_KEY environment variable required");
-        console.error("Usage: PRIVATE_KEY=0x... node scripts/mint-license.js");
-        process.exit(1);
-    }
-
     console.log("=".repeat(60));
     console.log("Mint License Token (Story SDK)");
     console.log("=".repeat(60));
+
+    // Validate configuration
+    config.validate(["ipAssetId", "privateKey"]);
+
+    const privateKey = config.getPrivateKey();
+    const ipAssetId = config.ipAssetId;
+    const licenseTermsId = config.licenseTermsId || "28437";
+
+    console.log("\n" + "-".repeat(60));
+    config.printSummary();
+    console.log("-".repeat(60));
 
     try {
         // Create account from private key
@@ -32,17 +35,17 @@ async function main() {
         console.log(`\nWallet: ${account.address}`);
 
         // Initialize Story client
-        const config = {
+        const clientConfig = {
             account: account,
-            transport: http(RPC_URL),
-            chainId: "mainnet",
+            transport: http(config.rpcUrl),
+            chainId: config.network === "mainnet" ? "mainnet" : "testnet",
         };
 
-        const client = StoryClient.newClient(config);
+        const client = StoryClient.newClient(clientConfig);
         console.log("Story client initialized");
 
-        console.log(`\nIP Asset: ${IP_ASSET_ID}`);
-        console.log(`License Terms ID: ${LICENSE_TERMS_ID}`);
+        console.log(`\nIP Asset: ${ipAssetId}`);
+        console.log(`License Terms ID: ${licenseTermsId}`);
 
         console.log("\n" + "-".repeat(60));
         console.log("Minting License Token...");
@@ -50,15 +53,15 @@ async function main() {
 
         // Mint license tokens
         const response = await client.license.mintLicenseTokens({
-            licensorIpId: IP_ASSET_ID,
-            licenseTermsId: LICENSE_TERMS_ID,
+            licensorIpId: ipAssetId,
+            licenseTermsId: licenseTermsId,
             receiver: account.address,
             amount: 1,
             maxMintingFee: BigInt("1000000000000000000"), // 1 IP
             maxRevenueShare: 100, // 100%
         });
 
-        console.log(`\n✓ License Token Minted!`);
+        console.log(`\nLicense Token Minted!`);
         console.log(`  TX Hash: ${response.txHash}`);
         if (response.licenseTokenId) {
             console.log(`  License Token ID: ${response.licenseTokenId}`);
