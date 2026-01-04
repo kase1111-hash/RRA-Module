@@ -151,7 +151,7 @@ defi_integrations:
 
     # Purchase Configuration
     purchase_enabled: true  # Enable direct license purchases
-    storyscan_url: "https://www.storyscan.io/ipa/0xf08574c30337dde7C38869b8d399BA07ab23a07F"
+    explorer_url: "https://explorer.story.foundation/ipa/0xf08574c30337dde7C38869b8d399BA07ab23a07F"
 
 # Custom Clauses (Blockchain-Enforced)
 custom_clauses:

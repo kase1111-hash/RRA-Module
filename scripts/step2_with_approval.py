@@ -287,7 +287,7 @@ def main():
 
         if receipt['status'] != 1:
             print("  [ERROR] Registration failed!")
-            print(f"  Check: https://www.storyscan.io/tx/0x{tx_hash.hex()}")
+            print(f"  Check: https://explorer.story.foundation/tx/{tx_hash.hex()}")
             sys.exit(1)
 
         # Extract IP Asset ID
@@ -307,7 +307,7 @@ def main():
             print(f"\n  IP Asset ID: {ip_asset_id}")
         else:
             print("\n  Check TX for IP Asset ID")
-            print(f"  https://www.storyscan.io/tx/0x{tx_hash.hex()}")
+            print(f"  https://explorer.story.foundation/tx/{tx_hash.hex()}")
 
     except Exception as e:
         print(f"  [ERROR] {e}")
@@ -354,7 +354,7 @@ def main():
         print("=" * 60)
         print(f"\n  IP Asset ID: {ip_asset_id}")
         print(f"  License Terms: {LICENSE_TERMS_ID}")
-        print(f"\n  StoryScan: https://www.storyscan.io/ipa/{ip_asset_id}")
+        print(f"\n  Story Explorer: https://explorer.story.foundation/ipa/{ip_asset_id}")
 
 
 if __name__ == "__main__":
