@@ -13,7 +13,7 @@
 | CRITICAL | 3 | **3** | **0** |
 | HIGH | 5 | **5** | **0** |
 | MEDIUM | 8 | **8** | **0** |
-| LOW | 8 | 1 | 7 |
+| LOW | 8 | **4** | **4** |
 
 **All CRITICAL, HIGH, and MEDIUM issues are now FIXED!**
 
@@ -207,17 +207,57 @@ Files updated:
 
 ---
 
-### ℹ️ LOW-002 through LOW-008: Remaining Items
+### ✅ LOW-002: Silent Exception Handling - FIXED
+```
+File: /home/user/RRA-Module/src/rra/privacy/identity.py
+Lines: 590-598 (load_identity)
+Status: ✅ FIXED (2026-01-04)
+
+Fix Applied:
+- Added logging module import
+- Exceptions now logged with logger.warning()
+- Includes exception details and stack trace for debugging
+```
+
+---
+
+### ✅ LOW-003: Missing Address Validation - FIXED
+```
+File: /home/user/RRA-Module/src/rra/privacy/identity.py
+Lines: 399-406 (generate_identity)
+Status: ✅ FIXED (2026-01-04)
+
+Fix Applied:
+- Added is_address() validation from eth_utils
+- Added to_checksum_address() normalization
+- Raises ValueError for invalid Ethereum addresses
+```
+
+---
+
+### ℹ️ LOW-004 through LOW-008: Remaining Items
 ```
 Status: ⚠️ NOT FIXED - Low priority improvements
 
-LOW-002: Silent exception handling - Add logging
-LOW-003: Missing address validation - Add eth_utils validation
 LOW-004: Timing oracle in delay - Use constant base delay
 LOW-005: Generator derivation may fail - Increase attempts
-LOW-006: Missing point order validation - Add order check
 LOW-007: Lack of test vectors - PARTIAL (fuzzing tests added)
 LOW-008: Missing subgroup check - Add cofactor check
+```
+
+---
+
+### ✅ LOW-006: Missing Point Order Validation - FIXED
+```
+File: /home/user/RRA-Module/src/rra/crypto/pedersen.py
+Lines: 64-106 (_validate_point_order, _verify_generator_points)
+Status: ✅ FIXED (2026-01-04)
+
+Fix Applied:
+- Added _validate_point_order() function
+- Verifies n * P = O (point at infinity)
+- Both G_POINT and H_POINT validated at module load
+- Prevents weak generator attacks
 ```
 
 ---
@@ -236,6 +276,9 @@ LOW-008: Missing subgroup check - Add cofactor check
 - [x] Fuzzing tests for crypto primitives
 - [x] BN254 constant runtime verification (EIP-196 + hex cross-check)
 - [x] Point-at-infinity rejection in commit()
+- [x] Exception logging in identity management (LOW-002)
+- [x] Ethereum address validation (LOW-003)
+- [x] Generator point order validation (LOW-006)
 
 ### ⚠️ Recommended Before Production
 - [ ] External security audit

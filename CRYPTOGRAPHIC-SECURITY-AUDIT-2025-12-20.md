@@ -482,67 +482,63 @@ return hmac.compare_digest(expected, commitment)  # ✅ Constant-time
 
 ---
 
-### ℹ️ LOW-002: Silent Exception Swallowing
+### ✅ LOW-002: Silent Exception Swallowing
 **Severity:** LOW
 **File:** `/home/user/RRA-Module/src/rra/privacy/identity.py`
-**Line:** 505
-**Status:** NOT FIXED (Previously CR-L6)
+**Lines:** 590-598
+**Status:** ✅ **FIXED** (2026-01-04)
 
-**Issue:**
-```python
-# Lines 478-506
-try:
-    # ... decryption logic ...
-    return DisputeIdentity(...)
-except Exception:
-    return None  # ❌ Silent failure, no logging
-```
+**Original Issue:**
+All exceptions silently caught and returned None without logging.
 
-All exceptions silently caught and return None.
-
-**Impact:**
-- Hard to debug decryption failures
-- May hide security issues
-- No audit trail
-
-**Recommendation:**
+**Fix Applied:**
 ```python
 except Exception as e:
-    logger.warning(f"Failed to load identity {name}: {e}")
+    # SECURITY FIX LOW-002: Log decryption failures for debugging/audit
+    logger.warning(
+        "Failed to load identity '%s': %s",
+        name,
+        str(e),
+        exc_info=True,
+    )
     return None
 ```
 
+**Benefits:**
+- Failures now logged for debugging/audit
+- Stack traces captured for investigation
+- Security issues no longer hidden
+
 ---
 
-### ℹ️ LOW-003: Missing Address Validation
+### ✅ LOW-003: Missing Address Validation
 **Severity:** LOW
 **File:** `/home/user/RRA-Module/src/rra/privacy/identity.py`
-**Lines:** 298-301
-**Status:** NOT FIXED (Previously CR-L7)
+**Lines:** 399-406
+**Status:** ✅ **FIXED** (2026-01-04)
 
-**Issue:**
-```python
-if address:
-    # Derive from address + salt for deterministic binding
-    combined = bytes.fromhex(address[2:]).ljust(20, b'\x00') + salt
-    # ❌ No validation that address is valid Ethereum address
-```
-
+**Original Issue:**
 Ethereum address not validated before processing.
 
-**Impact:**
-- Invalid addresses cause errors
-- No checksum validation
-
-**Recommendation:**
+**Fix Applied:**
 ```python
-from eth_utils import is_address, to_checksum_address
+from eth_utils import keccak, is_address, to_checksum_address
 
 if address:
+    # SECURITY FIX LOW-003: Validate Ethereum address before processing
     if not is_address(address):
-        raise ValueError(f"Invalid Ethereum address: {address}")
+        raise ValueError(
+            f"Invalid Ethereum address: {address}. "
+            "Must be a valid 40-character hex string with '0x' prefix."
+        )
+    # Normalize to checksum address for consistent processing
     address = to_checksum_address(address)
 ```
+
+**Benefits:**
+- Invalid addresses now rejected with clear error message
+- Addresses normalized to checksum format
+- Prevents cryptographic binding to invalid addresses
 
 ---
 
@@ -607,35 +603,43 @@ Increase tries to 1000 or use deterministic hash-to-curve (RFC 9380).
 
 ---
 
-### ℹ️ LOW-006: Missing Point Order Validation
+### ✅ LOW-006: Missing Point Order Validation
 **Severity:** LOW
 **File:** `/home/user/RRA-Module/src/rra/crypto/pedersen.py`
-**Lines:** 84-87
-**Status:** NEW
+**Lines:** 64-106
+**Status:** ✅ **FIXED** (2026-01-04)
 
-**Issue:**
-```python
-G_POINT = (1, 2)  # Standard BN254 G1 generator
-H_POINT = _derive_generator_point(b"pedersen-h-seed-2025")
-```
-
+**Original Issue:**
 Generator points not validated to have correct order.
 
-**Impact:**
-- Weak generators reduce security
-- Low-order points break discrete log assumption
-
-**Recommendation:**
+**Fix Applied:**
 ```python
-def _validate_generator_order(point: Tuple[int, int]) -> bool:
-    """Verify point has order equal to curve order."""
-    # Check that order * point = point_at_infinity
-    result = _scalar_mult(BN254_CURVE_ORDER, point)
-    return result == (0, 0)
+def _validate_point_order(point: Tuple[int, int], name: str) -> None:
+    """
+    SECURITY FIX LOW-006: Validate that a point has the correct order.
 
-# After deriving H_POINT:
-assert _validate_generator_order(H_POINT), "H_POINT has wrong order"
+    A generator point must have order equal to the curve order n.
+    This means: n * P = O (point at infinity), where n is BN254_CURVE_ORDER.
+    """
+    result = _scalar_mult(BN254_CURVE_ORDER, point)
+    if result != (0, 0):
+        raise ValueError(
+            f"{name} has incorrect order: {BN254_CURVE_ORDER} * {name} != point-at-infinity. "
+            "This indicates a weak generator that could break commitment security."
+        )
+
+def _verify_generator_points() -> None:
+    # ... existing curve validation ...
+
+    # SECURITY FIX LOW-006: Validate generator point orders
+    _validate_point_order(G_POINT, "G_POINT")
+    _validate_point_order(H_POINT, "H_POINT")
 ```
+
+**Benefits:**
+- Both G_POINT and H_POINT validated at module load
+- Weak generators detected and rejected
+- Prevents attacks on commitment security
 
 ---
 
@@ -694,14 +698,14 @@ Add cofactor multiplication check (cofactor=1 for BN254 G1, so less critical).
 | CRITICAL | 3 | **3** | 0 | **0** |
 | HIGH | 5 | **5** | 0 | **0** |
 | MEDIUM | 8 | 7 | 1 | **0** |
-| LOW | 8 | 1 | 0 | 7 |
-| **TOTAL** | **24** | **16** | **1** | **7** |
+| LOW | 8 | **4** | 0 | **4** |
+| **TOTAL** | **24** | **19** | **1** | **4** |
 
 **Status Summary:**
 - ✅ **All CRITICAL severity issues FIXED** (3/3) - BN254 verification, point-at-infinity, Shamir prime
 - ✅ **All HIGH severity issues FIXED** (5/5)
 - ✅ **All MEDIUM severity issues FIXED or DOCUMENTED** (8/8)
-- ℹ️ **LOW issues**: 7 remain (mostly documentation/validation improvements)
+- ℹ️ **LOW issues**: 4 remain (LOW-004, LOW-005, LOW-007, LOW-008)
 
 ### Findings by Component (Remediation Status)
 
@@ -921,7 +925,7 @@ The cryptographic implementations have undergone **major security hardening** si
 
 #### Remaining Issues
 
-- ℹ️ **LOW**: Test vectors, error logging, address validation, generator order checks (7 items)
+- ℹ️ **LOW**: Timing oracle in delays, generator derivation attempts, test vectors, subgroup checks (4 items)
 
 **Overall Assessment:** PRODUCTION READY (improved from LOW RISK)
 

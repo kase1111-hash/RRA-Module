@@ -61,17 +61,49 @@ def _is_on_curve(point: tuple) -> bool:
     return left == right
 
 
-def _verify_generator_points() -> None:
+def _validate_point_order(point: Tuple[int, int], name: str) -> None:
     """
-    Verify that generator points G and H are valid curve points.
+    SECURITY FIX LOW-006: Validate that a point has the correct order.
+
+    A generator point must have order equal to the curve order n.
+    This means: n * P = O (point at infinity), where n is BN254_CURVE_ORDER.
+
+    Points with incorrect order (small subgroup points) can break the
+    discrete log assumption and enable attacks on commitment security.
+
+    Args:
+        point: The point to validate
+        name: Name of the point for error messages
 
     Raises:
-        ValueError: If any generator point is not on the curve
+        ValueError: If point does not have the correct order
+    """
+    # n * P should equal the point at infinity
+    result = _scalar_mult(BN254_CURVE_ORDER, point)
+    if result != (0, 0):
+        raise ValueError(
+            f"{name} has incorrect order: {BN254_CURVE_ORDER} * {name} != point-at-infinity. "
+            "This indicates a weak generator that could break commitment security."
+        )
+
+
+def _verify_generator_points() -> None:
+    """
+    Verify that generator points G and H are valid curve points with correct order.
+
+    SECURITY FIX LOW-006: Now also validates point order.
+
+    Raises:
+        ValueError: If any generator point is not on the curve or has wrong order
     """
     if not _is_on_curve(G_POINT):
         raise ValueError("G_POINT is not on the BN254 curve")
     if not _is_on_curve(H_POINT):
         raise ValueError("H_POINT is not on the BN254 curve")
+
+    # SECURITY FIX LOW-006: Validate generator point orders
+    _validate_point_order(G_POINT, "G_POINT")
+    _validate_point_order(H_POINT, "H_POINT")
 
 
 def _hash_to_scalar(data: bytes, domain: bytes = b"") -> int:
