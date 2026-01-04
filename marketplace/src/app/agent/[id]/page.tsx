@@ -101,25 +101,25 @@ const mockAgentData = {
   },
   purchase_links: [
     {
-      url: 'https://testnet.marketplace.rra.io/purchase/abc123?ipAsset=0x1234&tier=standard&chain=1315',
+      url: '/agent/rra-module-abc123/license/standard',
       network: 'testnet' as const,
       tier: 'standard' as const,
       price_display: '0.05 ETH',
-      ip_asset_id: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+      ip_asset_id: '0xf08574c30337dde7C38869b8d399BA07ab23a07F',
     },
     {
-      url: 'https://testnet.marketplace.rra.io/purchase/abc123?ipAsset=0x1234&tier=premium&chain=1315',
+      url: '/agent/rra-module-abc123/license/premium',
       network: 'testnet' as const,
       tier: 'premium' as const,
       price_display: '0.15 ETH',
-      ip_asset_id: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+      ip_asset_id: '0xf08574c30337dde7C38869b8d399BA07ab23a07F',
     },
     {
-      url: 'https://testnet.marketplace.rra.io/purchase/abc123?ipAsset=0x1234&tier=enterprise&chain=1315',
+      url: '/agent/rra-module-abc123/license/enterprise',
       network: 'testnet' as const,
       tier: 'enterprise' as const,
       price_display: '0.5 ETH',
-      ip_asset_id: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+      ip_asset_id: '0xf08574c30337dde7C38869b8d399BA07ab23a07F',
     },
   ],
   blockchain_info: {
