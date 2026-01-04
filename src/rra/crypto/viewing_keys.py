@@ -675,9 +675,12 @@ class ViewingKeyManager:
         Raises:
             ValueError: If decryption fails
         """
-        # Verify key commitment
+        # Verify key commitment using constant-time comparison
+        # SECURITY FIX: Use hmac.compare_digest to prevent timing attacks
+        import hmac
+
         expected_commitment = keccak(private_key.public_key.to_bytes())
-        if encrypted.key_commitment != expected_commitment:
+        if not hmac.compare_digest(encrypted.key_commitment, expected_commitment):
             raise ValueError("Key commitment mismatch - wrong key")
 
         # Convert ephemeral public key bytes to cryptography EC public key

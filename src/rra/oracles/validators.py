@@ -210,9 +210,14 @@ class HashValidator(EventValidator):
                 metadata={"error": str(e)},
             )
 
-        # Compare with expected hash if provided
+        # Compare with expected hash if provided using constant-time comparison
+        # SECURITY FIX: Prevents timing attacks on hash verification
         if expected_hash:
-            if calculated_hash == expected_hash.lower():
+            import hmac
+
+            calculated_bytes = calculated_hash.encode() if isinstance(calculated_hash, str) else calculated_hash
+            expected_bytes = expected_hash.lower().encode() if isinstance(expected_hash, str) else expected_hash
+            if hmac.compare_digest(calculated_bytes, expected_bytes):
                 passed.append("hash_match")
             else:
                 failed.append("hash_match")
