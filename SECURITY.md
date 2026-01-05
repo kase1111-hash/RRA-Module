@@ -26,6 +26,37 @@ If you discover a security vulnerability in the RRA Module, please report it res
 - Regular updates on the fix progress
 - Credit in the security advisory (if desired)
 
+## Cryptographic Security
+
+The RRA Module cryptographic subsystem has been hardened with 24 security fixes:
+
+### Elliptic Curve Operations (BN254/BN128)
+- Curve constants verified against EIP-196 at module load
+- Generator points validated for correct order
+- Full subgroup membership validation on point deserialization
+- Point-at-infinity rejection in Pedersen commitments
+
+### Timing Attack Resistance
+- All secret comparisons use `hmac.compare_digest()` (constant-time)
+- Shamir polynomial evaluation uses Horner's method
+- Lagrange interpolation uses uniform operations
+
+### Key Management
+- Viewing key export requires explicit acknowledgment (`_acknowledge_security_risk=True`)
+- Password-protected key export available (`export_private_encrypted()`)
+- Key expiration enforced before decryption
+
+### ECIES Encryption
+- Hybrid IV generation (counter + random) prevents IV reuse
+- Hiding commitments with blinding factors
+- 600,000 PBKDF2 iterations for key derivation
+
+### Optional Performance Dependencies
+```bash
+pip install gmpy2   # 77x faster modular inverse (recommended)
+pip install py_ecc  # Optimized BN254 operations (fallback)
+```
+
 ## Security Measures
 
 The RRA Module implements several security measures:
