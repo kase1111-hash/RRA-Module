@@ -71,8 +71,6 @@ export default function MarketYamlPage() {
         <nav className="flex items-center gap-2 text-sm text-gray-500">
           <Link href="/docs" className="hover:text-gray-700 dark:hover:text-gray-300">Docs</Link>
           <ChevronRight className="h-4 w-4" />
-          <Link href="/docs/configuration" className="hover:text-gray-700 dark:hover:text-gray-300">Configuration</Link>
-          <ChevronRight className="h-4 w-4" />
           <span className="text-gray-900 dark:text-white">market.yaml Reference</span>
         </nav>
 
