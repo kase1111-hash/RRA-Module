@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: FSL-1.1-ALv2
+# Copyright 2025 Kase Branham
 """
 License verification script for RRA Module.
 
@@ -6,9 +8,6 @@ This script verifies that:
 1. All Python source files have proper SPDX license headers
 2. LICENSE.md file exists and is valid
 3. All files reference the correct license
-
-SPDX-License-Identifier: FSL-1.1-ALv2
-Copyright 2025 Kase Branham
 """
 
 import os

@@ -7,10 +7,13 @@ Provides audit trails for agent negotiations and decisions when
 running in integrated mode.
 """
 
+import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from pathlib import Path
 import json
+
+logger = logging.getLogger(__name__)
 
 from rra.integration.base import IntentLoggerProtocol
 from rra.integration.config import get_integration_config
@@ -118,7 +121,7 @@ class IntentLogService:
         try:
             self.client.record_intent(intent=intent, context=context, timestamp=datetime.now())
         except Exception as e:
-            print(f"Warning: Failed to log intent to IntentLog: {e}")
+            logger.warning(f"Failed to log intent to IntentLog: {e}")
             if not hasattr(self, "_fallback"):
                 self._fallback = LocalIntentLogger(self.agent_id)
             self._fallback.log_intent(intent, context)
@@ -134,7 +137,7 @@ class IntentLogService:
                 decision=decision, rationale=rationale, timestamp=datetime.now()
             )
         except Exception as e:
-            print(f"Warning: Failed to log decision to IntentLog: {e}")
+            logger.warning(f"Failed to log decision to IntentLog: {e}")
             if not hasattr(self, "_fallback"):
                 self._fallback = LocalIntentLogger(self.agent_id)
             self._fallback.log_decision(decision, rationale)
