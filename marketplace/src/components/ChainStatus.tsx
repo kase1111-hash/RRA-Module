@@ -1,9 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Link2, Link2Off, Loader2, AlertCircle, ChevronDown, Activity, Database, FileText, Hash } from 'lucide-react';
+import { Link2, Link2Off, Loader2, AlertCircle, ChevronDown, Activity, Database, FileText, Hash, Globe, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ChainConnectionStatus, ChainHealth, ChainStats } from '@/types';
+
+interface NetworkInfo {
+  name: string;
+  chain: string;
+  chainId: number;
+  explorer: string;
+}
 
 interface ChainStatusProps {
   compact?: boolean;
@@ -14,6 +21,7 @@ export function ChainStatus({ compact = false, showDetails = false }: ChainStatu
   const [status, setStatus] = useState<ChainConnectionStatus>('connecting');
   const [health, setHealth] = useState<ChainHealth | null>(null);
   const [stats, setStats] = useState<ChainStats | null>(null);
+  const [network, setNetwork] = useState<NetworkInfo | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,6 +39,7 @@ export function ChainStatus({ compact = false, showDetails = false }: ChainStatu
         if (response.ok) {
           const data = await response.json();
           setHealth(data);
+          setNetwork(data.network || null);
           setStatus('connected');
           setError(null);
 
@@ -104,10 +113,12 @@ export function ChainStatus({ compact = false, showDetails = false }: ChainStatu
           'inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium cursor-pointer',
           getStatusColor()
         )}
-        title={`NatLangChain: ${getStatusText()}`}
+        title={network ? `${network.name} (${network.chain})` : `NatLangChain: ${getStatusText()}`}
       >
         {getStatusIcon()}
-        <span className="hidden sm:inline">{status === 'connected' ? 'Chain' : getStatusText()}</span>
+        <span className="hidden sm:inline">
+          {status === 'connected' && network ? network.chain : getStatusText()}
+        </span>
         {status === 'connected' && health && (
           <span className="hidden lg:inline text-[10px] opacity-75">
             ({health.blocks} blocks)
@@ -130,10 +141,12 @@ export function ChainStatus({ compact = false, showDetails = false }: ChainStatu
       >
         {getStatusIcon()}
         <div className="flex flex-col items-start">
-          <span className="font-medium">{getStatusText()}</span>
-          {status === 'connected' && health && (
+          <span className="font-medium">
+            {status === 'connected' && network ? `${network.name}` : getStatusText()}
+          </span>
+          {status === 'connected' && network && (
             <span className="text-xs text-gray-500 dark:text-gray-400">
-              {health.service}
+              {network.chain} (Chain ID: {network.chainId})
             </span>
           )}
         </div>
@@ -158,6 +171,32 @@ export function ChainStatus({ compact = false, showDetails = false }: ChainStatu
 
             {status === 'connected' && health && (
               <>
+                {/* Network Info */}
+                {network && (
+                  <div className="border-t border-gray-100 pt-4 dark:border-gray-700">
+                    <h4 className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-3">
+                      Network
+                    </h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Globe className="h-4 w-4 text-primary-500" />
+                        <div>
+                          <p className="text-sm font-medium">{network.name}</p>
+                          <p className="text-xs text-gray-500">{network.chain}</p>
+                        </div>
+                      </div>
+                      <a
+                        href={network.explorer}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                      >
+                        View on Explorer <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                  </div>
+                )}
+
                 {/* Chain Info */}
                 <div className="border-t border-gray-100 pt-4 dark:border-gray-700">
                   <h4 className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-3">
@@ -258,6 +297,7 @@ export function ChainStatus({ compact = false, showDetails = false }: ChainStatu
 // Simple indicator for header
 export function ChainIndicator() {
   const [status, setStatus] = useState<'connecting' | 'connected' | 'demo' | 'error'>('connecting');
+  const [networkName, setNetworkName] = useState<string>('');
 
   useEffect(() => {
     const checkConnection = async () => {
@@ -267,6 +307,9 @@ export function ChainIndicator() {
           const data = await response.json();
           // Check if it's a mock/demo response
           setStatus(data.mock ? 'demo' : 'connected');
+          if (data.network) {
+            setNetworkName(data.network.chain);
+          }
         } else {
           setStatus('error');
         }
@@ -280,6 +323,13 @@ export function ChainIndicator() {
     return () => clearInterval(interval);
   }, []);
 
+  const getDisplayText = () => {
+    if (status === 'connected' && networkName) return networkName;
+    if (status === 'demo') return 'Demo Mode';
+    if (status === 'connecting') return '...';
+    return 'Offline';
+  };
+
   return (
     <div
       className={cn(
@@ -292,7 +342,7 @@ export function ChainIndicator() {
           ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
           : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
       )}
-      title={`NatLangChain: ${status === 'demo' ? 'Demo Mode' : status}`}
+      title={networkName ? `Story Protocol: ${networkName}` : `NatLangChain: ${status === 'demo' ? 'Demo Mode' : status}`}
     >
       {status === 'connected' ? (
         <Link2 className="h-3.5 w-3.5" />
@@ -303,9 +353,7 @@ export function ChainIndicator() {
       ) : (
         <Link2Off className="h-3.5 w-3.5" />
       )}
-      <span className="hidden sm:inline">
-        {status === 'connected' ? 'Chain' : status === 'demo' ? 'Demo' : status === 'connecting' ? '...' : 'Offline'}
-      </span>
+      <span className="hidden sm:inline">{getDisplayText()}</span>
     </div>
   );
 }
