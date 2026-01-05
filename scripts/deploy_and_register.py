@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: FSL-1.1-ALv2
+# Copyright 2025 Kase Branham
 """
 Deploy ERC-721 and Register as IP Asset
 
