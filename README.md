@@ -1,6 +1,6 @@
 # NatLangChain: Revenant Repo Agent Module (RRA Module)
 
-[![Tests](https://img.shields.io/badge/tests-1215%20passing-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-1237%20passing-brightgreen)](tests/)
 [![Security](https://img.shields.io/badge/security-A--rating-blue)](docs/SECURITY-AUDIT.md)
 [![License](https://img.shields.io/badge/license-FSL--1.1--ALv2-orange)](LICENSE.md)
 [![Python](https://img.shields.io/badge/python-3.9+-blue)](pyproject.toml)
@@ -18,7 +18,7 @@ This repository is **live on Story Protocol**. Buy a license NFT to use this cod
 | **License Type** | Perpetual, Transferable |
 | **What You Get** | Full source access, commercial use, derivative rights |
 | **Purchase** | **[Buy Now →](https://kase1111-hash.github.io/RRA-Module/marketplace/public/buy-license.html)** |
-| **Verify on Chain** | [StoryScan](https://www.storyscan.io/token/0xb77ABcfFbf063a3e6BACA37D72353750475D4E70) |
+| **Verify on Chain** | [Story Explorer](https://aeneid.explorer.story.foundation/token/0xb77ABcfFbf063a3e6BACA37D72353750475D4E70) |
 
 ---
 
@@ -258,7 +258,7 @@ The RRA Module consists of **36+ specialized modules** organized into a layered 
 
 - **~60,000+ lines** of Python code
 - **36+ modules** with specialized functionality
-- **1,085 tests** across 40+ test files
+- **1,237 tests** across 40+ test files
 - **Multi-chain support** for 5+ EVM networks
 - **Security Score: A-** based on comprehensive audit
 
@@ -273,9 +273,8 @@ For detailed documentation, see:
 - **[Specification](SPECIFICATION.md)** - Technical specification and implementation status
 
 ### Integration Guides
+- **[Integrations Guide](docs/INTEGRATIONS.md)** - NatLangChain ecosystem, API client, and Story Protocol
 - **[Selling Licenses Guide](docs/SELLING-LICENSES.md)** - Complete guide to monetizing your repo with Story Protocol
-- **[NatLangChain Integration](docs/NATLANGCHAIN_INTEGRATION.md)** - Ecosystem integration
-- **[Story Protocol Integration](docs/STORY-PROTOCOL-INTEGRATION.md)** - Programmable IP licensing
 - **[DeFi Integration](docs/DEFI-INTEGRATION.md)** - Superfluid, IPFi lending, yield tokens
 - **[Blockchain Licensing](docs/BLOCKCHAIN-LICENSING.md)** - Automated monetization guide
 - **[Mobile SDK](docs/MOBILE_SDK.md)** - iOS and Android integration
@@ -299,7 +298,7 @@ Cryptographic operations optimized for production use:
 - **[Dispute Membership Circuit](docs/Dispute-Membership-Circuit.md)** - ZK identity proofs and privacy
 - **[Licensing Reconciliation](docs/Licensing-Reconciliation-Module-update.md)** - Multi-party dispute resolution
 - **[Monitoring Guide](docs/MONITORING.md)** - Production monitoring and alerting
-- **[Testing Results](docs/TESTING-RESULTS.md)** - Test coverage (1,085 tests)
+- **[Testing Results](docs/TESTING-RESULTS.md)** - Test coverage (1,237 tests)
 
 ### Strategy & Planning
 - **[Roadmap](ROADMAP.md)** - Product roadmap and viral distribution strategy

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rra-module"
-version = "1.0.0-rc1"
+version = "1.0.1-beta"
 description = "Revenant Repo Agent Module - Transform dormant repos into autonomous licensing agents"
 readme = "README.md"
 requires-python = ">=3.9"
