@@ -11,15 +11,17 @@ import { cn } from '@/lib/utils';
 const STORY_MAINNET_CHAIN_ID = 1514;
 const STORY_TESTNET_CHAIN_ID = 1315;
 
-// Story Protocol Contract Addresses (Mainnet)
+// Story Protocol Contract Addresses
 const STORY_CONTRACTS = {
   mainnet: {
     licensingModule: '0xd81fd78f557b457b4350cB95D20b547bFEb4D857' as Address,
     pilTemplate: '0x0752B15Ee7303033854bdE1B32bc7A4008752Dc0' as Address,
+    explorer: 'https://storyscan.io',
   },
   testnet: {
     licensingModule: '0xd81fd78f557b457b4350cB95D20b547bFEb4D857' as Address,
     pilTemplate: '0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316' as Address,
+    explorer: 'https://aeneid.explorer.story.foundation',
   },
 };
 
@@ -61,7 +63,7 @@ export function StoryProtocolPurchase({
   price,
   repoName,
   repoOwner,
-  network = 'mainnet',
+  network = 'testnet',  // Default to Aeneid testnet
   onSuccess,
   onError,
   className,
@@ -261,7 +263,7 @@ export function StoryProtocolPurchase({
                 </p>
                 {txHash && (
                   <a
-                    href={`https://storyscan.io/tx/${txHash}`}
+                    href={`${contracts.explorer}/tx/${txHash}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-sm text-green-600 hover:underline mt-2"
@@ -334,7 +336,7 @@ export function StoryProtocolPurchase({
           <div className="flex items-center justify-between text-sm mt-2">
             <span className="text-gray-500 dark:text-gray-400">IP Asset</span>
             <a
-              href={`https://storyscan.io/token/${ipAssetId}`}
+              href={`${contracts.explorer}/token/${ipAssetId}`}
               target="_blank"
               rel="noopener noreferrer"
               className="font-mono text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
@@ -371,7 +373,7 @@ export function StoryPurchasePage({
   repoOwner,
   price,
   features,
-  network = 'mainnet',
+  network = 'testnet',  // Default to Aeneid testnet
 }: StoryPurchasePageProps) {
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 py-12">
