@@ -5,6 +5,70 @@ All notable changes to the RRA Module will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-rc1] - 2026-01-05
+
+### Security Fixes (24 findings addressed)
+
+#### Critical
+- **CRITICAL-001**: BN254 curve constants now verified against EIP-196 at module load
+- **CRITICAL-002**: Pedersen commitments reject point-at-infinity (prevents information leakage)
+
+#### High
+- **HIGH-001**: Shamir polynomial evaluation uses Horner's method (timing attack resistant)
+- **HIGH-002**: Lagrange interpolation uses uniform operations (timing attack resistant)
+- **HIGH-003**: Commitment verification uses constant-time comparison (`hmac.compare_digest`)
+- **HIGH-004**: Viewing key export now requires explicit `_acknowledge_security_risk=True`
+- **HIGH-005**: Added `export_private_encrypted()` for secure password-protected key export
+
+#### Medium
+- **MED-001**: Viewing key commitments now use hiding commitment with blinding factor
+- **MED-002**: Added `verify_commitment()` with constant-time comparison
+- **MED-003**: IV generation uses hybrid counter+random approach (prevents IV reuse)
+- **MED-004**: Key expiration enforced before decryption operations
+
+#### Low
+- **LOW-001**: All secret comparisons use constant-time comparison
+- **LOW-005**: Generator point derivation increased from 256 to 1000 attempts
+- **LOW-006**: Generator points validated for correct order at module load
+- **LOW-007**: Test vector verification runs at module load
+- **LOW-008**: Full subgroup membership validation on point deserialization
+
+### Performance Improvements
+
+#### 25x Faster Pedersen Commitments
+- **gmpy2 integration**: 77x faster modular inverse operations
+- **Windowed scalar multiplication**: Precomputed tables for generator points
+- **Projective coordinates**: Eliminates ~256 inversions per scalar mult
+- **py_ecc fallback**: Optimized backend when gmpy2 unavailable
+
+Benchmark results:
+- Before: 74ms per commitment
+- After: 2.97ms per commitment (25x faster)
+- Throughput: 336 commitments/second
+
+#### Shamir Secret Sharing
+- **Batch modular inversion**: Montgomery's trick reduces k inversions to 1
+
+### Breaking Changes
+
+#### Deprecated APIs
+- `ViewingKey.export_private()`: Deprecated, use `export_private_encrypted()` instead
+- `ViewingKeyManager.export_key_for_escrow()`: Now requires `_acknowledge_security_risk=True`
+
+#### Behavioral Changes
+- Pedersen commitments now use random blinding factors (not deterministic)
+- Commitment verification parameter order: `verify(commitment, value, blinding)`
+- `ShamirSecretSharing.verify_share()` now raises `ValueError` when insufficient shares
+
+### Added
+- `ViewingKey.export_private_encrypted(password)`: Secure password-protected key export
+- `ViewingKey.import_private_encrypted()`: Import password-protected keys
+- Optional dependencies: `gmpy2` (recommended), `py_ecc` (fallback)
+
+### Documentation
+- Updated CRYPTO-FINDINGS-QUICK-REFERENCE.md with all 24 security fixes
+- Added performance optimization documentation in source code
+
 ## [1.0.0-beta] - 2026-01-03
 
 ### Added

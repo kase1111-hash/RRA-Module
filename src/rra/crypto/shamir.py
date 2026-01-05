@@ -363,6 +363,52 @@ class ShamirSecretSharing:
 
         return result
 
+    def _batch_modular_inverse(self, values: List[int]) -> List[int]:
+        """
+        Compute modular inverses of multiple values using Montgomery's trick.
+
+        PERFORMANCE: Reduces n modular inversions to 1 inversion + O(n) multiplications.
+        For threshold k, this saves (k-1) expensive modular exponentiations.
+
+        Algorithm (Montgomery's batch inversion):
+        1. Compute prefix products: p[i] = values[0] * values[1] * ... * values[i]
+        2. Compute inverse of final product: inv_all = p[n-1]^(-1)
+        3. Work backwards: inv[i] = inv_all * p[i-1], then inv_all *= values[i]
+
+        Args:
+            values: List of non-zero integers to invert
+
+        Returns:
+            List of modular inverses in same order
+        """
+        n = len(values)
+        if n == 0:
+            return []
+        if n == 1:
+            return [pow(values[0], self.prime - 2, self.prime)]
+
+        # Step 1: Compute prefix products
+        prefix = [0] * n
+        prefix[0] = values[0]
+        for i in range(1, n):
+            prefix[i] = (prefix[i - 1] * values[i]) % self.prime
+
+        # Step 2: Compute inverse of final product (single expensive operation)
+        inv_all = pow(prefix[n - 1], self.prime - 2, self.prime)
+
+        # Step 3: Work backwards to get individual inverses
+        inverses = [0] * n
+        for i in range(n - 1, 0, -1):
+            # inv[i] = inv_all * prefix[i-1]
+            inverses[i] = (inv_all * prefix[i - 1]) % self.prime
+            # Update inv_all for next iteration
+            inv_all = (inv_all * values[i]) % self.prime
+
+        # First inverse is just the remaining inv_all
+        inverses[0] = inv_all
+
+        return inverses
+
     def _lagrange_interpolate(self, x: int, points: List[Tuple[int, int]]) -> int:
         """
         Lagrange interpolation in finite field.
@@ -370,6 +416,7 @@ class ShamirSecretSharing:
         Computes f(x) given points (x_i, y_i).
 
         SECURITY FIX HIGH-003: Uses uniform operations for timing attack resistance.
+        PERFORMANCE: Uses batch modular inversion to reduce expensive operations.
 
         Security Properties:
         - All points processed uniformly (same loop structure for all)
@@ -385,11 +432,13 @@ class ShamirSecretSharing:
         - This implementation is suitable for threshold secret sharing
           where the number of points is small (typically 2-5).
         """
-        result = 0
+        n = len(points)
 
-        for i, (x_i, y_i) in enumerate(points):
-            # Compute Lagrange basis polynomial L_i(x)
-            # All points are processed uniformly
+        # First pass: compute all numerators and denominators
+        numerators = []
+        denominators = []
+
+        for i, (x_i, _) in enumerate(points):
             numerator = 1
             denominator = 1
 
@@ -398,12 +447,16 @@ class ShamirSecretSharing:
                     numerator = (numerator * (x - x_j)) % self.prime
                     denominator = (denominator * (x_i - x_j)) % self.prime
 
-            # Compute modular inverse using Fermat's little theorem
-            # pow() with three arguments uses constant-time modular exponentiation
-            inv_denominator = pow(denominator, self.prime - 2, self.prime)
+            numerators.append(numerator)
+            denominators.append(denominator)
 
-            # Add contribution: y_i * L_i(x)
-            term = (y_i * numerator * inv_denominator) % self.prime
+        # PERFORMANCE: Batch compute all modular inverses with single exponentiation
+        inv_denominators = self._batch_modular_inverse(denominators)
+
+        # Combine to get result
+        result = 0
+        for i, (_, y_i) in enumerate(points):
+            term = (y_i * numerators[i] * inv_denominators[i]) % self.prime
             result = (result + term) % self.prime
 
         return result

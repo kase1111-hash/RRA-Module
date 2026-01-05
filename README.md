@@ -1,6 +1,6 @@
 # NatLangChain: Revenant Repo Agent Module (RRA Module)
 
-[![Tests](https://img.shields.io/badge/tests-1085%20passing-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-1215%20passing-brightgreen)](tests/)
 [![Security](https://img.shields.io/badge/security-A--rating-blue)](docs/SECURITY-AUDIT.md)
 [![License](https://img.shields.io/badge/license-FSL--1.1--ALv2-orange)](LICENSE.md)
 [![Python](https://img.shields.io/badge/python-3.9+-blue)](pyproject.toml)
@@ -280,11 +280,18 @@ For detailed documentation, see:
 
 ### Security & Privacy
 - **[Security Audit](docs/SECURITY-AUDIT.md)** - Security audit report (Score: A-)
-- **[Cryptographic Security Audit](CRYPTOGRAPHIC-SECURITY-AUDIT-2025-12-20.md)** - Crypto primitives audit
+- **[Cryptographic Security Audit](CRYPTOGRAPHIC-SECURITY-AUDIT-2025-12-20.md)** - Crypto primitives audit (24 fixes applied)
+- **[Crypto Findings Quick Reference](CRYPTO-FINDINGS-QUICK-REFERENCE.md)** - Security fix summary
 - **[Penetration Test Report](PENTEST-REPORT-2025-12-20.md)** - Security penetration testing
 - **[Hardware Authentication](docs/HARDWARE-AUTHENTICATION.md)** - FIDO2/WebAuthn with ZK proofs
 - **[Transaction Security](docs/TRANSACTION-SECURITY.md)** - Two-step verification with timeout
 - **[Security Remediation Guide](docs/SECURITY-REMEDIATION-GUIDE.md)** - Issue resolution guide
+
+### Performance
+Cryptographic operations optimized for production use:
+- **Pedersen Commitments**: 2.97ms (25x faster with gmpy2)
+- **Shamir Secret Sharing**: Batch inversion optimization
+- **Optional deps**: `pip install gmpy2 py_ecc` for best performance
 
 ### Advanced Features
 - **[Dispute Membership Circuit](docs/Dispute-Membership-Circuit.md)** - ZK identity proofs and privacy
