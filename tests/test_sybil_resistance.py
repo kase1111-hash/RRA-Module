@@ -190,11 +190,13 @@ class TestWorldcoinVerification:
     @pytest.mark.asyncio
     async def test_verify_worldcoin_missing_app_id(self, sybil_resistance):
         """Test Worldcoin verification without app ID."""
-        verified, confidence, metadata = await sybil_resistance._verify_worldcoin({
-            "proof": "0x123",
-            "merkle_root": "0x456",
-            "nullifier_hash": "0x789",
-        })
+        verified, confidence, metadata = await sybil_resistance._verify_worldcoin(
+            {
+                "proof": "0x123",
+                "merkle_root": "0x456",
+                "nullifier_hash": "0x789",
+            }
+        )
 
         assert verified is False
         assert "WORLDCOIN_APP_ID not configured" in metadata.get("error", "")
@@ -216,13 +218,15 @@ class TestWorldcoinVerification:
                 return_value=mock_response
             )
 
-            verified, confidence, metadata = await sybil_resistance._verify_worldcoin({
-                "proof": "0x123",
-                "merkle_root": "0x456",
-                "nullifier_hash": "0x789",
-                "verification_level": "orb",
-                "app_id": "app_test123",
-            })
+            verified, confidence, metadata = await sybil_resistance._verify_worldcoin(
+                {
+                    "proof": "0x123",
+                    "merkle_root": "0x456",
+                    "nullifier_hash": "0x789",
+                    "verification_level": "orb",
+                    "app_id": "app_test123",
+                }
+            )
 
             assert verified is True
             assert confidence == 0.95  # Orb verification
@@ -258,9 +262,11 @@ class TestBrightIDVerification:
                 return_value=mock_response
             )
 
-            verified, confidence, metadata = await sybil_resistance._verify_brightid({
-                "context_id": "0x123",
-            })
+            verified, confidence, metadata = await sybil_resistance._verify_brightid(
+                {
+                    "context_id": "0x123",
+                }
+            )
 
             assert verified is True
             assert confidence >= 0.80
@@ -277,9 +283,11 @@ class TestBrightIDVerification:
                 return_value=mock_response
             )
 
-            verified, confidence, metadata = await sybil_resistance._verify_brightid({
-                "context_id": "0x123",
-            })
+            verified, confidence, metadata = await sybil_resistance._verify_brightid(
+                {
+                    "context_id": "0x123",
+                }
+            )
 
             assert verified is False
             assert "not linked" in metadata.get("error", "")
@@ -306,15 +314,19 @@ class TestENSVerification:
         mock_ns.address.return_value = "0x1234567890123456789012345678901234567890"
         mock_ns.name.return_value = "vitalik.eth"
 
-        with patch("rra.identity.sybil_resistance.Web3") as mock_web3, \
-             patch("ens.ENS.from_web3", return_value=mock_ns):
+        with (
+            patch("rra.identity.sybil_resistance.Web3") as mock_web3,
+            patch("ens.ENS.from_web3", return_value=mock_ns),
+        ):
             mock_web3.return_value = mock_w3
             mock_web3.HTTPProvider.return_value = MagicMock()
 
-            verified, confidence, metadata = await sybil_resistance._verify_ens({
-                "ens_name": "vitalik.eth",
-                "address": "0x1234567890123456789012345678901234567890",
-            })
+            verified, confidence, metadata = await sybil_resistance._verify_ens(
+                {
+                    "ens_name": "vitalik.eth",
+                    "address": "0x1234567890123456789012345678901234567890",
+                }
+            )
 
             assert verified is True
             assert confidence >= 0.75
@@ -335,11 +347,13 @@ class TestHardwareVerification:
     @pytest.mark.asyncio
     async def test_verify_hardware_registration(self, sybil_resistance):
         """Test hardware key registration flow."""
-        verified, confidence, metadata = await sybil_resistance._verify_hardware({
-            "credential_id": "cred_123",
-            "attestation_object": "attestation_data",
-            "aaguid": "fbfc3007-154e-4ecc-8c0b-6e020557d7bd",  # YubiKey 5
-        })
+        verified, confidence, metadata = await sybil_resistance._verify_hardware(
+            {
+                "credential_id": "cred_123",
+                "attestation_object": "attestation_data",
+                "aaguid": "fbfc3007-154e-4ecc-8c0b-6e020557d7bd",  # YubiKey 5
+            }
+        )
 
         assert verified is True
         assert confidence >= 0.90
@@ -356,11 +370,13 @@ class TestHardwareVerification:
         # Valid signature (at least 64 bytes)
         signature = "00" * 72
 
-        verified, confidence, metadata = await sybil_resistance._verify_hardware({
-            "credential_id": "cred_123",
-            "authenticator_data": auth_data,
-            "signature": signature,
-        })
+        verified, confidence, metadata = await sybil_resistance._verify_hardware(
+            {
+                "credential_id": "cred_123",
+                "authenticator_data": auth_data,
+                "signature": signature,
+            }
+        )
 
         assert verified is True
         assert confidence >= 0.85
@@ -396,10 +412,12 @@ class TestStakeVerification:
             mock_contract.functions.balanceOf.return_value.call.return_value = 0
             mock_w3.eth.contract.return_value = mock_contract
 
-            verified, confidence, metadata = await sybil_resistance._verify_stake({
-                "address": "0x1234567890123456789012345678901234567890",
-                "eth_price_usd": 2000,  # $2000 per ETH
-            })
+            verified, confidence, metadata = await sybil_resistance._verify_stake(
+                {
+                    "address": "0x1234567890123456789012345678901234567890",
+                    "eth_price_usd": 2000,  # $2000 per ETH
+                }
+            )
 
             assert verified is True
             assert confidence >= 0.45
@@ -421,11 +439,13 @@ class TestStakeVerification:
             mock_contract.functions.balanceOf.return_value.call.return_value = 0
             mock_w3.eth.contract.return_value = mock_contract
 
-            verified, confidence, metadata = await sybil_resistance._verify_stake({
-                "address": "0x1234567890123456789012345678901234567890",
-                "eth_price_usd": 2000,
-                "min_stake_usd": 100,
-            })
+            verified, confidence, metadata = await sybil_resistance._verify_stake(
+                {
+                    "address": "0x1234567890123456789012345678901234567890",
+                    "eth_price_usd": 2000,
+                    "min_stake_usd": 100,
+                }
+            )
 
             assert verified is False
             assert "Insufficient stake" in metadata.get("error", "")
@@ -442,11 +462,13 @@ class TestSybilDetection:
         # Add activities with suspiciously regular timing
         base_time = datetime.utcnow()
         for i in range(10):
-            sybil_resistance._activity[sample_did].append({
-                "type": "transaction",
-                "timestamp": base_time + timedelta(seconds=i * 30),
-                "metadata": {},
-            })
+            sybil_resistance._activity[sample_did].append(
+                {
+                    "type": "transaction",
+                    "timestamp": base_time + timedelta(seconds=i * 30),
+                    "metadata": {},
+                }
+            )
 
         is_suspicious = sybil_resistance._check_timing_patterns(sample_did)
 

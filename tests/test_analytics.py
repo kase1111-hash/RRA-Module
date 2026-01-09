@@ -64,10 +64,12 @@ class TestAnalyticsStore:
     def test_get_events_by_agent(self):
         """Test filtering events by agent ID."""
         for i in range(5):
-            self.store.record_event(AnalyticsEvent(
-                event_type=MetricType.PAGE_VIEW,
-                agent_id=f"agent-{i % 2}",  # Alternates between 0 and 1
-            ))
+            self.store.record_event(
+                AnalyticsEvent(
+                    event_type=MetricType.PAGE_VIEW,
+                    agent_id=f"agent-{i % 2}",  # Alternates between 0 and 1
+                )
+            )
 
         agent_0_events = self.store.get_events(agent_id="agent-0")
         agent_1_events = self.store.get_events(agent_id="agent-1")
@@ -77,18 +79,24 @@ class TestAnalyticsStore:
 
     def test_get_events_by_type(self):
         """Test filtering events by event type."""
-        self.store.record_event(AnalyticsEvent(
-            event_type=MetricType.PAGE_VIEW,
-            agent_id="test",
-        ))
-        self.store.record_event(AnalyticsEvent(
-            event_type=MetricType.NEGOTIATION_START,
-            agent_id="test",
-        ))
-        self.store.record_event(AnalyticsEvent(
-            event_type=MetricType.PAGE_VIEW,
-            agent_id="test",
-        ))
+        self.store.record_event(
+            AnalyticsEvent(
+                event_type=MetricType.PAGE_VIEW,
+                agent_id="test",
+            )
+        )
+        self.store.record_event(
+            AnalyticsEvent(
+                event_type=MetricType.NEGOTIATION_START,
+                agent_id="test",
+            )
+        )
+        self.store.record_event(
+            AnalyticsEvent(
+                event_type=MetricType.PAGE_VIEW,
+                agent_id="test",
+            )
+        )
 
         view_events = self.store.get_events(event_type=MetricType.PAGE_VIEW)
         assert len(view_events) == 2
@@ -122,11 +130,13 @@ class TestAnalyticsStore:
     def test_persistence(self):
         """Test that events persist across store instances."""
         # Record event
-        self.store.record_event(AnalyticsEvent(
-            event_type=MetricType.LICENSE_PURCHASE,
-            agent_id="persist-test",
-            value=0.05,
-        ))
+        self.store.record_event(
+            AnalyticsEvent(
+                event_type=MetricType.LICENSE_PURCHASE,
+                agent_id="persist-test",
+                value=0.05,
+            )
+        )
 
         # Create new store instance with same path
         new_store = AnalyticsStore(base_path=Path(self.temp_dir))
@@ -139,10 +149,12 @@ class TestAnalyticsStore:
     def test_get_unique_agents(self):
         """Test getting list of unique agents."""
         for agent in ["agent-1", "agent-2", "agent-1", "agent-3"]:
-            self.store.record_event(AnalyticsEvent(
-                event_type=MetricType.PAGE_VIEW,
-                agent_id=agent,
-            ))
+            self.store.record_event(
+                AnalyticsEvent(
+                    event_type=MetricType.PAGE_VIEW,
+                    agent_id=agent,
+                )
+            )
 
         agents = self.store.get_unique_agents()
         assert len(agents) == 3
@@ -193,7 +205,7 @@ class TestAnalyticsAPI:
                 "event_type": "page_view",
                 "agent_id": "api-test-agent",
                 "metadata": {"page": "home"},
-            }
+            },
         )
         assert response.status_code == 200
         data = response.json()
@@ -214,10 +226,13 @@ class TestAnalyticsAPI:
     def test_agent_analytics_endpoint(self):
         """Test agent-specific analytics."""
         # First record some events
-        client.post("/api/analytics/event", json={
-            "event_type": "page_view",
-            "agent_id": "analytics-test-agent",
-        })
+        client.post(
+            "/api/analytics/event",
+            json={
+                "event_type": "page_view",
+                "agent_id": "analytics-test-agent",
+            },
+        )
 
         response = client.get("/api/analytics/agent/analytics-test-agent?time_range=week")
         assert response.status_code == 200
@@ -258,7 +273,7 @@ class TestAnalyticsAPI:
                 "metric": "page_view",
                 "time_range": "week",
                 "granularity": "day",
-            }
+            },
         )
         assert response.status_code == 200
         data = response.json()
@@ -314,23 +329,32 @@ class TestAnalyticsMetrics:
         """Test that conversion rates are calculated correctly."""
         # Record a funnel of events
         for _ in range(100):
-            client.post("/api/analytics/event", json={
-                "event_type": "page_view",
-                "agent_id": "conversion-test",
-            })
+            client.post(
+                "/api/analytics/event",
+                json={
+                    "event_type": "page_view",
+                    "agent_id": "conversion-test",
+                },
+            )
 
         for _ in range(25):
-            client.post("/api/analytics/event", json={
-                "event_type": "negotiation_start",
-                "agent_id": "conversion-test",
-            })
+            client.post(
+                "/api/analytics/event",
+                json={
+                    "event_type": "negotiation_start",
+                    "agent_id": "conversion-test",
+                },
+            )
 
         for _ in range(5):
-            client.post("/api/analytics/event", json={
-                "event_type": "license_purchase",
-                "agent_id": "conversion-test",
-                "value": 0.01,
-            })
+            client.post(
+                "/api/analytics/event",
+                json={
+                    "event_type": "license_purchase",
+                    "agent_id": "conversion-test",
+                    "value": 0.01,
+                },
+            )
 
         response = client.get("/api/analytics/agent/conversion-test?time_range=day")
         data = response.json()
@@ -343,11 +367,14 @@ class TestAnalyticsMetrics:
         """Test that revenue is tracked correctly."""
         # Record purchase events with values
         for i in range(3):
-            client.post("/api/analytics/event", json={
-                "event_type": "license_purchase",
-                "agent_id": "revenue-test",
-                "value": 0.1 * (i + 1),  # 0.1, 0.2, 0.3
-            })
+            client.post(
+                "/api/analytics/event",
+                json={
+                    "event_type": "license_purchase",
+                    "agent_id": "revenue-test",
+                    "value": 0.1 * (i + 1),  # 0.1, 0.2, 0.3
+                },
+            )
 
         response = client.get("/api/analytics/agent/revenue-test?time_range=day")
         data = response.json()

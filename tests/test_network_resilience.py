@@ -30,6 +30,7 @@ from rra.integration.network_resilience import (
 # Circuit Breaker Tests
 # =============================================================================
 
+
 class TestCircuitBreaker:
     """Tests for CircuitBreaker."""
 
@@ -134,6 +135,7 @@ class TestCircuitBreaker:
 # Request Queue Tests
 # =============================================================================
 
+
 class TestRequestQueue:
     """Tests for RequestQueue."""
 
@@ -235,6 +237,7 @@ class TestRequestQueue:
 # =============================================================================
 # Retry Logic Tests
 # =============================================================================
+
 
 class TestRetryLogic:
     """Tests for retry utilities."""
@@ -346,6 +349,7 @@ class TestAsyncRetry:
 # =============================================================================
 # Resilient Client Tests
 # =============================================================================
+
 
 class TestResilientClient:
     """Tests for ResilientClient."""

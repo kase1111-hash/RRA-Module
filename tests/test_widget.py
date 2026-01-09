@@ -45,7 +45,7 @@ class TestWidgetAPI:
                 "position": "bottom-right",
                 "primary_color": "#0066ff",
                 "language": "en",
-            }
+            },
         )
         assert response.status_code == 200
         data = response.json()
@@ -69,7 +69,7 @@ class TestWidgetAPI:
                 "language": "es",
                 "auto_open": True,
                 "show_branding": False,
-            }
+            },
         )
         assert response.status_code == 200
         data = response.json()
@@ -84,10 +84,7 @@ class TestWidgetAPI:
     def test_widget_config_retrieval(self):
         """Test retrieving widget configuration."""
         # First create a widget
-        init_response = client.post(
-            "/api/widget/init",
-            json={"agent_id": "config-test-agent"}
-        )
+        init_response = client.post("/api/widget/init", json={"agent_id": "config-test-agent"})
         widget_id = init_response.json()["widget_id"]
 
         # Then retrieve config
@@ -106,10 +103,7 @@ class TestWidgetAPI:
     def test_widget_event_recording(self):
         """Test recording widget analytics events."""
         # First create a widget
-        init_response = client.post(
-            "/api/widget/init",
-            json={"agent_id": "event-test-agent"}
-        )
+        init_response = client.post("/api/widget/init", json={"agent_id": "event-test-agent"})
         widget_id = init_response.json()["widget_id"]
 
         # Record an event
@@ -119,7 +113,7 @@ class TestWidgetAPI:
                 "widget_id": widget_id,
                 "event_type": "widget_opened",
                 "event_data": {"source": "test"},
-            }
+            },
         )
         assert response.status_code == 200
         assert response.json()["status"] == "recorded"
@@ -131,17 +125,14 @@ class TestWidgetAPI:
             json={
                 "widget_id": "nonexistent-widget",
                 "event_type": "test_event",
-            }
+            },
         )
         assert response.status_code == 404
 
     def test_widget_analytics(self):
         """Test retrieving widget analytics."""
         # First create a widget and record some events
-        init_response = client.post(
-            "/api/widget/init",
-            json={"agent_id": "analytics-test-agent"}
-        )
+        init_response = client.post("/api/widget/init", json={"agent_id": "analytics-test-agent"})
         widget_id = init_response.json()["widget_id"]
 
         # Record some events
@@ -151,7 +142,7 @@ class TestWidgetAPI:
                 json={
                     "widget_id": widget_id,
                     "event_type": event_type,
-                }
+                },
             )
 
         # Get analytics
@@ -176,7 +167,7 @@ class TestWidgetValidation:
             json={
                 "agent_id": "test",
                 "theme": "invalid-theme",
-            }
+            },
         )
         assert response.status_code == 422
 
@@ -187,7 +178,7 @@ class TestWidgetValidation:
             json={
                 "agent_id": "test",
                 "position": "center",
-            }
+            },
         )
         assert response.status_code == 422
 
@@ -198,7 +189,7 @@ class TestWidgetValidation:
             json={
                 "agent_id": "test",
                 "primary_color": "not-a-color",
-            }
+            },
         )
         assert response.status_code == 422
 
@@ -209,7 +200,7 @@ class TestWidgetValidation:
             json={
                 "agent_id": "test",
                 "language": "xyz",
-            }
+            },
         )
         assert response.status_code == 422
 
@@ -222,10 +213,7 @@ class TestWidgetSecurity:
         # Create multiple widgets
         widget_ids = []
         for i in range(100):
-            response = client.post(
-                "/api/widget/init",
-                json={"agent_id": f"entropy-test-{i}"}
-            )
+            response = client.post("/api/widget/init", json={"agent_id": f"entropy-test-{i}"})
             widget_ids.append(response.json()["widget_id"])
 
         # All should be unique
@@ -240,10 +228,7 @@ class TestWidgetSecurity:
         """Test session tokens have sufficient entropy."""
         tokens = []
         for i in range(50):
-            response = client.post(
-                "/api/widget/init",
-                json={"agent_id": f"token-test-{i}"}
-            )
+            response = client.post("/api/widget/init", json={"agent_id": f"token-test-{i}"})
             tokens.append(response.json()["session_token"])
 
         # All should be unique

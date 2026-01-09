@@ -144,7 +144,8 @@ def init(
     help="Automatically install dependencies in temp environment for testing",
 )
 @click.option(
-    "--verbose", "-v",
+    "--verbose",
+    "-v",
     is_flag=True,
     help="Show verbose output including full test/lint errors",
 )
@@ -191,6 +192,7 @@ def ingest(
         # Handle cache clearing
         if clear_cache:
             from rra.verification.dependency_installer import DependencyInstaller
+
             console.print("[bold blue]Clearing dependency cache...[/bold blue]")
             installer = DependencyInstaller()
             cache_size = installer.get_cache_size()
@@ -250,7 +252,8 @@ def ingest(
                     else ("yellow" if check["status"] == "warning" else "red")
                 )
                 status_icon = (
-                    "✓" if check["status"] == "passed"
+                    "✓"
+                    if check["status"] == "passed"
                     else ("⚠" if check["status"] == "warning" else "✗")
                 )
                 console.print(
@@ -268,7 +271,9 @@ def ingest(
                     # Show test output/errors
                     if check["name"] == "tests":
                         if details.get("error"):
-                            console.print("      [dim]Test output (showing end where failures appear):[/dim]")
+                            console.print(
+                                "      [dim]Test output (showing end where failures appear):[/dim]"
+                            )
                             # Show END of error output (that's where pytest shows failures)
                             error_text = details["error"]
                             if len(error_text) > 3000:
@@ -284,7 +289,9 @@ def ingest(
                                     console.print(f"        {line}")
                         if details.get("warning"):
                             console.print(f"      [yellow]Note: {details['warning']}[/yellow]")
-                        console.print(f"      [dim]Test files: {details.get('test_files', 0)}, Test cases: ~{details.get('test_count', 0)}[/dim]")
+                        console.print(
+                            f"      [dim]Test files: {details.get('test_files', 0)}, Test cases: ~{details.get('test_count', 0)}[/dim]"
+                        )
 
                     # Show linting details
                     elif check["name"] == "linting":
@@ -301,11 +308,15 @@ def ingest(
 
                     # Show security details
                     elif check["name"] == "security":
-                        console.print(f"      [dim]Files scanned: {details.get('files_scanned', 0)}[/dim]")
+                        console.print(
+                            f"      [dim]Files scanned: {details.get('files_scanned', 0)}[/dim]"
+                        )
                         if details.get("issues"):
                             console.print("      [yellow]Issues found:[/yellow]")
                             for issue in details.get("issues", [])[:10]:
-                                console.print(f"        [{issue.get('category')}] {issue.get('file')}")
+                                console.print(
+                                    f"        [{issue.get('category')}] {issue.get('file')}"
+                                )
                         if details.get("issues_by_category"):
                             for cat, count in details["issues_by_category"].items():
                                 console.print(f"        {cat}: {count} issues")
@@ -330,9 +341,13 @@ def ingest(
                     # Show CI/CD details
                     elif check["name"] == "cicd":
                         if details.get("ci_systems"):
-                            console.print(f"      [dim]CI Systems: {', '.join(details['ci_systems'])}[/dim]")
+                            console.print(
+                                f"      [dim]CI Systems: {', '.join(details['ci_systems'])}[/dim]"
+                            )
                         if details.get("workflow_count"):
-                            console.print(f"      [dim]Workflows: {details['workflow_count']}[/dim]")
+                            console.print(
+                                f"      [dim]Workflows: {details['workflow_count']}[/dim]"
+                            )
 
                     # Show maturity details
                     elif check["name"] == "maturity":
@@ -341,18 +356,28 @@ def ingest(
                         if details.get("total_commits"):
                             console.print(f"      [dim]Commits: {details['total_commits']}[/dim]")
                         if details.get("commits_per_month"):
-                            console.print(f"      [dim]Commits/month: {details['commits_per_month']}[/dim]")
+                            console.print(
+                                f"      [dim]Commits/month: {details['commits_per_month']}[/dim]"
+                            )
                         if details.get("contributors"):
-                            console.print(f"      [dim]Contributors: {details['contributors']}[/dim]")
+                            console.print(
+                                f"      [dim]Contributors: {details['contributors']}[/dim]"
+                            )
                         if details.get("days_since_last_commit") is not None:
-                            console.print(f"      [dim]Last commit: {details['days_since_last_commit']} days ago[/dim]")
+                            console.print(
+                                f"      [dim]Last commit: {details['days_since_last_commit']} days ago[/dim]"
+                            )
 
                     # Show completeness details
                     elif check["name"] == "completeness":
                         if details.get("found"):
-                            console.print(f"      [green]Found: {', '.join(details['found'])}[/green]")
+                            console.print(
+                                f"      [green]Found: {', '.join(details['found'])}[/green]"
+                            )
                         if details.get("missing"):
-                            console.print(f"      [yellow]Missing: {', '.join(details['missing'])}[/yellow]")
+                            console.print(
+                                f"      [yellow]Missing: {', '.join(details['missing'])}[/yellow]"
+                            )
 
         # Show category
         if kb.category:
@@ -741,7 +766,8 @@ def resolve(repo_id: str):
     help="Automatically install dependencies in temp environment for testing",
 )
 @click.option(
-    "--verbose", "-v",
+    "--verbose",
+    "-v",
     is_flag=True,
     help="Show verbose output including full test/lint errors",
 )
@@ -755,7 +781,17 @@ def resolve(repo_id: str):
     is_flag=True,
     help="Clear dependency cache before running",
 )
-def verify(repo_url: str, skip_tests: bool, skip_security: bool, workspace: Path, timeout: int, auto_install_deps: bool, verbose: bool, no_cache: bool, clear_cache: bool):
+def verify(
+    repo_url: str,
+    skip_tests: bool,
+    skip_security: bool,
+    workspace: Path,
+    timeout: int,
+    auto_install_deps: bool,
+    verbose: bool,
+    no_cache: bool,
+    clear_cache: bool,
+):
     """
     Verify a GitHub repository's code quality.
 
@@ -776,6 +812,7 @@ def verify(repo_url: str, skip_tests: bool, skip_security: bool, workspace: Path
         # Handle cache clearing
         if clear_cache:
             from rra.verification.dependency_installer import DependencyInstaller
+
             console.print("[bold blue]Clearing dependency cache...[/bold blue]")
             installer = DependencyInstaller()
             cache_size = installer.get_cache_size()
@@ -866,7 +903,8 @@ def verify(repo_url: str, skip_tests: bool, skip_security: bool, workspace: Path
 
             for check in result.checks:
                 check_color = (
-                    "green" if check.status.value == "passed"
+                    "green"
+                    if check.status.value == "passed"
                     else ("yellow" if check.status.value == "warning" else "red")
                 )
                 console.print(f"[{check_color}]━━━ {check.name.upper()} ━━━[/{check_color}]")
@@ -887,7 +925,9 @@ def verify(repo_url: str, skip_tests: bool, skip_security: bool, workspace: Path
                             for line in error_text.split("\n")[:60]:
                                 console.print(f"  {line}")
                             if len(details["error"]) > 3000:
-                                console.print(f"  [dim]... (truncated, {len(details['error'])} chars total)[/dim]")
+                                console.print(
+                                    f"  [dim]... (truncated, {len(details['error'])} chars total)[/dim]"
+                                )
                         if details.get("output"):
                             console.print("\n[bold]Test Output:[/bold]")
                             output_text = details["output"][:2000]

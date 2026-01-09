@@ -11,9 +11,9 @@ Tests the complete revenue flow:
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock
 from dataclasses import dataclass
-from typing import Dict, Any, Optional
+from typing import Dict
 from web3 import Web3
 
 
@@ -116,11 +116,13 @@ def mock_web3_story():
     w3.eth.gas_price = 1_000_000_000  # 1 gwei
     w3.eth.get_transaction_count = Mock(return_value=0)
     w3.eth.get_balance = Mock(return_value=1_000_000_000_000_000_000)  # 1 IP
-    w3.eth.wait_for_transaction_receipt = Mock(return_value={
-        "status": 1,
-        "blockNumber": 12345678,
-        "gasUsed": 100000,
-    })
+    w3.eth.wait_for_transaction_receipt = Mock(
+        return_value={
+            "status": 1,
+            "blockNumber": 12345678,
+            "gasUsed": 100000,
+        }
+    )
     w3.is_connected = Mock(return_value=True)
     w3.from_wei = Web3.from_wei
     w3.to_wei = Web3.to_wei
@@ -129,15 +131,19 @@ def mock_web3_story():
     # Mock account
     mock_account = Mock()
     mock_account.address = SAMPLE_OWNER
-    mock_account.sign_transaction = Mock(return_value=Mock(
-        raw_transaction=b"\x00" * 100,
-        hash=b"\x00" * 32,
-    ))
+    mock_account.sign_transaction = Mock(
+        return_value=Mock(
+            raw_transaction=b"\x00" * 100,
+            hash=b"\x00" * 32,
+        )
+    )
     w3.eth.account = Mock()
     w3.eth.account.from_key = Mock(return_value=mock_account)
-    w3.eth.account.sign_transaction = Mock(return_value=Mock(
-        raw_transaction=b"\x00" * 100,
-    ))
+    w3.eth.account.sign_transaction = Mock(
+        return_value=Mock(
+            raw_transaction=b"\x00" * 100,
+        )
+    )
     w3.eth.send_raw_transaction = Mock(return_value=b"\x00" * 32)
 
     return w3
@@ -155,9 +161,9 @@ class TestVaultLookup:
         """Test successful vault lookup for an IP Asset."""
         # Setup mock contract
         mock_contract = Mock()
-        mock_contract.functions.ipRoyaltyVaults = Mock(return_value=Mock(
-            call=Mock(return_value=mock_vault.address)
-        ))
+        mock_contract.functions.ipRoyaltyVaults = Mock(
+            return_value=Mock(call=Mock(return_value=mock_vault.address))
+        )
         mock_web3_story.eth.contract = Mock(return_value=mock_contract)
 
         # Call the contract
@@ -169,9 +175,9 @@ class TestVaultLookup:
     def test_vault_lookup_no_vault(self, mock_web3_story):
         """Test vault lookup when no vault exists."""
         mock_contract = Mock()
-        mock_contract.functions.ipRoyaltyVaults = Mock(return_value=Mock(
-            call=Mock(return_value="0x0000000000000000000000000000000000000000")
-        ))
+        mock_contract.functions.ipRoyaltyVaults = Mock(
+            return_value=Mock(call=Mock(return_value="0x0000000000000000000000000000000000000000"))
+        )
         mock_web3_story.eth.contract = Mock(return_value=mock_contract)
 
         vault_address = mock_contract.functions.ipRoyaltyVaults(SAMPLE_IP_ASSET).call()
@@ -181,9 +187,9 @@ class TestVaultLookup:
     def test_vault_lookup_invalid_ip_asset(self, mock_web3_story):
         """Test vault lookup with invalid IP Asset address."""
         mock_contract = Mock()
-        mock_contract.functions.ipRoyaltyVaults = Mock(return_value=Mock(
-            call=Mock(side_effect=Exception("execution reverted"))
-        ))
+        mock_contract.functions.ipRoyaltyVaults = Mock(
+            return_value=Mock(call=Mock(side_effect=Exception("execution reverted")))
+        )
         mock_web3_story.eth.contract = Mock(return_value=mock_contract)
 
         with pytest.raises(Exception, match="execution reverted"):
@@ -201,9 +207,9 @@ class TestVaultStateInspection:
     def test_read_vault_wip_balance(self, mock_web3_story, mock_vault):
         """Test reading WIP token balance from vault."""
         mock_wip_contract = Mock()
-        mock_wip_contract.functions.balanceOf = Mock(return_value=Mock(
-            call=Mock(return_value=mock_vault.wip_balance)
-        ))
+        mock_wip_contract.functions.balanceOf = Mock(
+            return_value=Mock(call=Mock(return_value=mock_vault.wip_balance))
+        )
         mock_web3_story.eth.contract = Mock(return_value=mock_wip_contract)
 
         balance = mock_wip_contract.functions.balanceOf(mock_vault.address).call()
@@ -214,9 +220,9 @@ class TestVaultStateInspection:
     def test_read_rt_balance(self, mock_web3_story, mock_vault):
         """Test reading Royalty Token balance."""
         mock_vault_contract = Mock()
-        mock_vault_contract.functions.balanceOf = Mock(return_value=Mock(
-            call=Mock(return_value=mock_vault.rt_total_supply)
-        ))
+        mock_vault_contract.functions.balanceOf = Mock(
+            return_value=Mock(call=Mock(return_value=mock_vault.rt_total_supply))
+        )
         mock_web3_story.eth.contract = Mock(return_value=mock_vault_contract)
 
         rt_balance = mock_vault_contract.functions.balanceOf(mock_vault.ip_id).call()
@@ -227,9 +233,9 @@ class TestVaultStateInspection:
     def test_read_pending_amount(self, mock_web3_story, mock_vault):
         """Test reading pending vault amount."""
         mock_vault_contract = Mock()
-        mock_vault_contract.functions.pendingVaultAmount = Mock(return_value=Mock(
-            call=Mock(return_value=mock_vault.pending_amount)
-        ))
+        mock_vault_contract.functions.pendingVaultAmount = Mock(
+            return_value=Mock(call=Mock(return_value=mock_vault.pending_amount))
+        )
         mock_web3_story.eth.contract = Mock(return_value=mock_vault_contract)
 
         pending = mock_vault_contract.functions.pendingVaultAmount().call()
@@ -239,9 +245,9 @@ class TestVaultStateInspection:
     def test_read_current_snapshot_id(self, mock_web3_story, mock_vault):
         """Test reading current snapshot ID."""
         mock_vault_contract = Mock()
-        mock_vault_contract.functions.currentSnapshotId = Mock(return_value=Mock(
-            call=Mock(return_value=mock_vault.current_snapshot_id)
-        ))
+        mock_vault_contract.functions.currentSnapshotId = Mock(
+            return_value=Mock(call=Mock(return_value=mock_vault.current_snapshot_id))
+        )
         mock_web3_story.eth.contract = Mock(return_value=mock_vault_contract)
 
         snapshot_id = mock_vault_contract.functions.currentSnapshotId().call()
@@ -253,9 +259,11 @@ class TestVaultStateInspection:
         mock_vault.claimable_amounts[SAMPLE_IP_ASSET.lower()] = 10_000_000_000_000_000
 
         mock_vault_contract = Mock()
-        mock_vault_contract.functions.claimableRevenue = Mock(return_value=Mock(
-            call=Mock(return_value=mock_vault.claimable_amounts.get(SAMPLE_IP_ASSET.lower(), 0))
-        ))
+        mock_vault_contract.functions.claimableRevenue = Mock(
+            return_value=Mock(
+                call=Mock(return_value=mock_vault.claimable_amounts.get(SAMPLE_IP_ASSET.lower(), 0))
+            )
+        )
         mock_web3_story.eth.contract = Mock(return_value=mock_vault_contract)
 
         claimable = mock_vault_contract.functions.claimableRevenue(
@@ -276,24 +284,30 @@ class TestSnapshotting:
     def test_snapshot_success(self, mock_web3_story, mock_vault):
         """Test successful snapshot creation."""
         mock_vault_contract = Mock()
-        mock_vault_contract.functions.snapshot = Mock(return_value=Mock(
-            build_transaction=Mock(return_value={
-                "to": mock_vault.address,
-                "data": "0x...",
-                "gas": 200000,
-                "gasPrice": 1_000_000_000,
-                "nonce": 0,
-            })
-        ))
+        mock_vault_contract.functions.snapshot = Mock(
+            return_value=Mock(
+                build_transaction=Mock(
+                    return_value={
+                        "to": mock_vault.address,
+                        "data": "0x...",
+                        "gas": 200000,
+                        "gasPrice": 1_000_000_000,
+                        "nonce": 0,
+                    }
+                )
+            )
+        )
         mock_web3_story.eth.contract = Mock(return_value=mock_vault_contract)
 
         # Build and send transaction
-        tx = mock_vault_contract.functions.snapshot().build_transaction({
-            "from": SAMPLE_OWNER,
-            "nonce": 0,
-            "gasPrice": 1_000_000_000,
-            "gas": 200000,
-        })
+        tx = mock_vault_contract.functions.snapshot().build_transaction(
+            {
+                "from": SAMPLE_OWNER,
+                "nonce": 0,
+                "gasPrice": 1_000_000_000,
+                "gas": 200000,
+            }
+        )
 
         assert tx is not None
         assert tx["gas"] == 200000
@@ -308,16 +322,20 @@ class TestSnapshotting:
     def test_snapshot_fails_when_no_pending(self, mock_web3_story, mock_vault_empty):
         """Test that snapshot fails when there's no pending amount."""
         mock_vault_contract = Mock()
-        mock_vault_contract.functions.snapshot = Mock(return_value=Mock(
-            build_transaction=Mock(side_effect=Exception("No pending revenue to snapshot"))
-        ))
+        mock_vault_contract.functions.snapshot = Mock(
+            return_value=Mock(
+                build_transaction=Mock(side_effect=Exception("No pending revenue to snapshot"))
+            )
+        )
         mock_web3_story.eth.contract = Mock(return_value=mock_vault_contract)
 
         with pytest.raises(Exception, match="No pending revenue"):
-            mock_vault_contract.functions.snapshot().build_transaction({
-                "from": SAMPLE_OWNER,
-                "nonce": 0,
-            })
+            mock_vault_contract.functions.snapshot().build_transaction(
+                {
+                    "from": SAMPLE_OWNER,
+                    "nonce": 0,
+                }
+            )
 
 
 # =============================================================================
@@ -331,23 +349,29 @@ class TestClaimingViaRoyaltyModule:
     def test_claim_all_revenue_success(self, mock_web3_story, mock_vault):
         """Test successful claimAllRevenue call."""
         mock_royalty_module = Mock()
-        mock_royalty_module.functions.claimAllRevenue = Mock(return_value=Mock(
-            build_transaction=Mock(return_value={
-                "to": ROYALTY_MODULE,
-                "data": "0x...",
-                "gas": 300000,
-            })
-        ))
+        mock_royalty_module.functions.claimAllRevenue = Mock(
+            return_value=Mock(
+                build_transaction=Mock(
+                    return_value={
+                        "to": ROYALTY_MODULE,
+                        "data": "0x...",
+                        "gas": 300000,
+                    }
+                )
+            )
+        )
         mock_web3_story.eth.contract = Mock(return_value=mock_royalty_module)
 
         tx = mock_royalty_module.functions.claimAllRevenue(
             SAMPLE_IP_ASSET,  # ancestorIpId
-            SAMPLE_OWNER,     # claimer
-            [WIP_TOKEN],      # tokens
-        ).build_transaction({
-            "from": SAMPLE_OWNER,
-            "nonce": 0,
-        })
+            SAMPLE_OWNER,  # claimer
+            [WIP_TOKEN],  # tokens
+        ).build_transaction(
+            {
+                "from": SAMPLE_OWNER,
+                "nonce": 0,
+            }
+        )
 
         assert tx is not None
         assert tx["to"] == ROYALTY_MODULE
@@ -355,32 +379,38 @@ class TestClaimingViaRoyaltyModule:
     def test_claim_revenue_with_snapshot_id(self, mock_web3_story, mock_vault):
         """Test claiming with specific snapshot IDs."""
         mock_royalty_module = Mock()
-        mock_royalty_module.functions.claimRevenue = Mock(return_value=Mock(
-            build_transaction=Mock(return_value={
-                "to": ROYALTY_MODULE,
-                "data": "0x...",
-                "gas": 250000,
-            })
-        ))
+        mock_royalty_module.functions.claimRevenue = Mock(
+            return_value=Mock(
+                build_transaction=Mock(
+                    return_value={
+                        "to": ROYALTY_MODULE,
+                        "data": "0x...",
+                        "gas": 250000,
+                    }
+                )
+            )
+        )
         mock_web3_story.eth.contract = Mock(return_value=mock_royalty_module)
 
         tx = mock_royalty_module.functions.claimRevenue(
-            [1],              # snapshotIds
-            WIP_TOKEN,        # token
-            SAMPLE_OWNER,     # claimer
-        ).build_transaction({
-            "from": SAMPLE_OWNER,
-            "nonce": 0,
-        })
+            [1],  # snapshotIds
+            WIP_TOKEN,  # token
+            SAMPLE_OWNER,  # claimer
+        ).build_transaction(
+            {
+                "from": SAMPLE_OWNER,
+                "nonce": 0,
+            }
+        )
 
         assert tx is not None
 
     def test_claim_fails_when_unauthorized(self, mock_web3_story):
         """Test that claiming fails for unauthorized caller."""
         mock_royalty_module = Mock()
-        mock_royalty_module.functions.claimAllRevenue = Mock(return_value=Mock(
-            build_transaction=Mock(side_effect=Exception("Unauthorized"))
-        ))
+        mock_royalty_module.functions.claimAllRevenue = Mock(
+            return_value=Mock(build_transaction=Mock(side_effect=Exception("Unauthorized")))
+        )
         mock_web3_story.eth.contract = Mock(return_value=mock_royalty_module)
 
         with pytest.raises(Exception, match="Unauthorized"):
@@ -388,10 +418,12 @@ class TestClaimingViaRoyaltyModule:
                 SAMPLE_IP_ASSET,
                 "0xUnauthorizedClaimer",
                 [WIP_TOKEN],
-            ).build_transaction({
-                "from": "0xUnauthorizedClaimer",
-                "nonce": 0,
-            })
+            ).build_transaction(
+                {
+                    "from": "0xUnauthorizedClaimer",
+                    "nonce": 0,
+                }
+            )
 
 
 # =============================================================================
@@ -405,24 +437,30 @@ class TestClaimingViaIPAccount:
     def test_ip_account_execute_success(self, mock_web3_story, mock_ip_account):
         """Test executing a claim through the IP Account."""
         mock_ip_account_contract = Mock()
-        mock_ip_account_contract.functions.execute = Mock(return_value=Mock(
-            build_transaction=Mock(return_value={
-                "to": mock_ip_account.address,
-                "data": "0x...",
-                "gas": 250000,
-            })
-        ))
+        mock_ip_account_contract.functions.execute = Mock(
+            return_value=Mock(
+                build_transaction=Mock(
+                    return_value={
+                        "to": mock_ip_account.address,
+                        "data": "0x...",
+                        "gas": 250000,
+                    }
+                )
+            )
+        )
         mock_web3_story.eth.contract = Mock(return_value=mock_ip_account_contract)
 
         # Execute claimByTokenBatchAsSelf through IP Account
         tx = mock_ip_account_contract.functions.execute(
             SAMPLE_VAULT,  # to
-            0,             # value
+            0,  # value
             b"\x00" * 32,  # data (encoded claim call)
-        ).build_transaction({
-            "from": SAMPLE_OWNER,
-            "nonce": 0,
-        })
+        ).build_transaction(
+            {
+                "from": SAMPLE_OWNER,
+                "nonce": 0,
+            }
+        )
 
         assert tx is not None
 
@@ -436,24 +474,30 @@ class TestClaimingViaIPAccount:
         mock_ip_account.wip_balance = 10_000_000_000_000_000
 
         mock_ip_account_contract = Mock()
-        mock_ip_account_contract.functions.execute = Mock(return_value=Mock(
-            build_transaction=Mock(return_value={
-                "to": mock_ip_account.address,
-                "data": "0x...",
-                "gas": 100000,
-            })
-        ))
+        mock_ip_account_contract.functions.execute = Mock(
+            return_value=Mock(
+                build_transaction=Mock(
+                    return_value={
+                        "to": mock_ip_account.address,
+                        "data": "0x...",
+                        "gas": 100000,
+                    }
+                )
+            )
+        )
         mock_web3_story.eth.contract = Mock(return_value=mock_ip_account_contract)
 
         # Execute WIP transfer through IP Account
         tx = mock_ip_account_contract.functions.execute(
-            WIP_TOKEN,                         # to (WIP contract)
-            0,                                 # value
-            b"\x00" * 32,                      # data (encoded transfer call)
-        ).build_transaction({
-            "from": SAMPLE_OWNER,
-            "nonce": 0,
-        })
+            WIP_TOKEN,  # to (WIP contract)
+            0,  # value
+            b"\x00" * 32,  # data (encoded transfer call)
+        ).build_transaction(
+            {
+                "from": SAMPLE_OWNER,
+                "nonce": 0,
+            }
+        )
 
         assert tx is not None
 
@@ -494,8 +538,8 @@ class TestRTTokenDecimals:
             ip_id=SAMPLE_IP_ASSET,
             rt_balances={
                 SAMPLE_IP_ASSET.lower(): 50_000_000,  # 50%
-                SAMPLE_OWNER.lower(): 50_000_000,      # 50%
-            }
+                SAMPLE_OWNER.lower(): 50_000_000,  # 50%
+            },
         )
 
         ip_ownership = vault.rt_balances.get(SAMPLE_IP_ASSET.lower(), 0) / 10**6
@@ -591,11 +635,13 @@ class TestErrorHandling:
 
     def test_handle_transaction_revert(self, mock_web3_story):
         """Test handling transaction reverts."""
-        mock_web3_story.eth.wait_for_transaction_receipt = Mock(return_value={
-            "status": 0,  # Failed
-            "blockNumber": 12345678,
-            "gasUsed": 50000,
-        })
+        mock_web3_story.eth.wait_for_transaction_receipt = Mock(
+            return_value={
+                "status": 0,  # Failed
+                "blockNumber": 12345678,
+                "gasUsed": 50000,
+            }
+        )
 
         receipt = mock_web3_story.eth.wait_for_transaction_receipt(b"\x00" * 32)
 
@@ -604,9 +650,11 @@ class TestErrorHandling:
     def test_handle_gas_estimation_failure(self, mock_web3_story):
         """Test handling gas estimation failures."""
         mock_contract = Mock()
-        mock_contract.functions.claimAllRevenue = Mock(return_value=Mock(
-            estimate_gas=Mock(side_effect=Exception("execution reverted: No claimable amount"))
-        ))
+        mock_contract.functions.claimAllRevenue = Mock(
+            return_value=Mock(
+                estimate_gas=Mock(side_effect=Exception("execution reverted: No claimable amount"))
+            )
+        )
         mock_web3_story.eth.contract = Mock(return_value=mock_contract)
 
         with pytest.raises(Exception, match="No claimable amount"):

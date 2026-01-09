@@ -90,7 +90,7 @@ class TestDatabaseConfig:
             name="mydb",
             user="user",
             password="pass",
-            ssl_mode="require"
+            ssl_mode="require",
         )
         assert "postgresql://user:pass@localhost:5432/mydb" in config.connection_string
         assert "sslmode=require" in config.connection_string
@@ -98,11 +98,7 @@ class TestDatabaseConfig:
     def test_postgresql_without_password(self):
         """Test PostgreSQL connection string without password."""
         config = DatabaseConfig(
-            driver="postgresql",
-            host="localhost",
-            port=5432,
-            name="mydb",
-            user="user"
+            driver="postgresql", host="localhost", port=5432, name="mydb", user="user"
         )
         assert "user@localhost:5432/mydb" in config.connection_string
 
@@ -117,12 +113,7 @@ class TestCacheConfig:
 
     def test_redis_url(self):
         """Test Redis URL generation."""
-        config = CacheConfig(
-            host="redis.example.com",
-            port=6380,
-            password="secret",
-            db=2
-        )
+        config = CacheConfig(host="redis.example.com", port=6380, password="secret", db=2)
         assert config.redis_url == "redis://:secret@redis.example.com:6380/2"
 
     def test_redis_url_without_password(self):
@@ -148,10 +139,7 @@ class TestFeatureFlags:
 
     def test_is_enabled(self):
         """Test is_enabled helper method."""
-        flags = FeatureFlags(
-            enable_story_protocol=True,
-            enable_zk_proofs=False
-        )
+        flags = FeatureFlags(enable_story_protocol=True, enable_zk_proofs=False)
         assert flags.is_enabled("enable_story_protocol") is True
         assert flags.is_enabled("enable_zk_proofs") is False
         assert flags.is_enabled("nonexistent_flag") is False
@@ -255,11 +243,14 @@ class TestEnvironmentOverrides:
         """Test API settings override."""
         config = _get_development_config()
 
-        with patch.dict(os.environ, {
-            "RRA_API_HOST": "0.0.0.0",
-            "RRA_API_PORT": "9000",
-            "RRA_API_URL": "https://custom.api.com"
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "RRA_API_HOST": "0.0.0.0",
+                "RRA_API_PORT": "9000",
+                "RRA_API_URL": "https://custom.api.com",
+            },
+        ):
             config = _apply_env_overrides(config)
 
         assert config.api_host == "0.0.0.0"
@@ -279,11 +270,14 @@ class TestEnvironmentOverrides:
         """Test security settings override."""
         config = _get_development_config()
 
-        with patch.dict(os.environ, {
-            "RRA_AUTH_ENABLED": "true",
-            "RRA_JWT_SECRET": "my-secret",
-            "RRA_CORS_ORIGINS": "https://a.com,https://b.com"
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "RRA_AUTH_ENABLED": "true",
+                "RRA_JWT_SECRET": "my-secret",
+                "RRA_CORS_ORIGINS": "https://a.com,https://b.com",
+            },
+        ):
             config = _apply_env_overrides(config)
 
         assert config.security.auth_enabled is True
@@ -294,10 +288,10 @@ class TestEnvironmentOverrides:
         """Test feature flag override via environment."""
         config = _get_development_config()
 
-        with patch.dict(os.environ, {
-            "RRA_FEATURE_enable_zk_proofs": "true",
-            "RRA_FEATURE_enable_story_protocol": "false"
-        }):
+        with patch.dict(
+            os.environ,
+            {"RRA_FEATURE_enable_zk_proofs": "true", "RRA_FEATURE_enable_story_protocol": "false"},
+        ):
             config = _apply_env_overrides(config)
 
         assert config.features.enable_zk_proofs is True

@@ -31,6 +31,7 @@ from rra.governance.rep_voting import (
 # ReputationManager Tests
 # =============================================================================
 
+
 class TestReputationManager:
     """Test reputation manager functionality."""
 
@@ -211,6 +212,7 @@ class TestReputationManager:
 # Voting Power Calculation Tests
 # =============================================================================
 
+
 class TestVotingPower:
     """Test voting power calculations."""
 
@@ -302,6 +304,7 @@ class TestVotingPower:
 # Analytics Tests
 # =============================================================================
 
+
 class TestReputationAnalytics:
     """Test reputation analytics."""
 
@@ -353,6 +356,7 @@ class TestReputationAnalytics:
 # =============================================================================
 # RepWeightedGovernance Tests
 # =============================================================================
+
 
 class TestRepWeightedGovernance:
     """Test reputation-weighted governance."""
@@ -537,6 +541,7 @@ class TestRepWeightedGovernance:
 # =============================================================================
 # Integration Tests
 # =============================================================================
+
 
 class TestReputationIntegration:
     """Integration tests for reputation system."""

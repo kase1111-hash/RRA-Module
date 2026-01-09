@@ -178,14 +178,12 @@ class TestBoundaryDaemon:
         boundary_daemon.set_mode(BoundaryMode.RESTRICTED)
         # Restricted mode has 1 ETH limit
         allowed, reason = boundary_daemon.check_mode_constraint(
-            "transaction",
-            context={"value_eth": 0.5}
+            "transaction", context={"value_eth": 0.5}
         )
         assert allowed is True
 
         allowed, reason = boundary_daemon.check_mode_constraint(
-            "transaction",
-            context={"value_eth": 5.0}
+            "transaction", context={"value_eth": 5.0}
         )
         assert allowed is False
         assert "exceeds limit" in reason
@@ -195,24 +193,20 @@ class TestBoundaryDaemon:
         boundary_daemon.set_mode(BoundaryMode.AIRGAP)
 
         allowed, reason = boundary_daemon.check_mode_constraint(
-            "transaction",
-            context={"human_approved": False}
+            "transaction", context={"human_approved": False}
         )
         assert allowed is False
         assert "Human approval required" in reason
 
         allowed, reason = boundary_daemon.check_mode_constraint(
-            "transaction",
-            context={"human_approved": True, "value_eth": 0}
+            "transaction", context={"human_approved": True, "value_eth": 0}
         )
         assert allowed is True
 
     def test_principal_management(self, boundary_daemon):
         """Test principal registration and management."""
         principal = boundary_daemon.register_principal(
-            principal_type="agent",
-            name="Test Agent",
-            address="0x1234567890abcdef"
+            principal_type="agent", name="Test Agent", address="0x1234567890abcdef"
         )
 
         assert principal.principal_type == "agent"
@@ -268,9 +262,7 @@ class TestBoundaryDaemon:
         principal = boundary_daemon.register_principal("user", "Token User")
 
         raw_token, token = boundary_daemon.issue_token(
-            principal.principal_id,
-            scopes=["repository", "license"],
-            expires_in_hours=1
+            principal.principal_id, scopes=["repository", "license"], expires_in_hours=1
         )
 
         assert token.principal_id == principal.principal_id
@@ -466,29 +458,28 @@ class TestDaemonConnection:
 
     def test_connection_initialization(self):
         """Test connection initializes correctly."""
-        conn = DaemonConnection(
-            socket_path="/tmp/test.sock",
-            http_url="http://localhost:8080"
-        )
+        conn = DaemonConnection(socket_path="/tmp/test.sock", http_url="http://localhost:8080")
 
         assert conn.socket_path == "/tmp/test.sock"
         assert conn.http_url == "http://localhost:8080"
 
     def test_connection_from_env(self):
         """Test connection uses environment variables."""
-        with patch.dict('os.environ', {
-            'BOUNDARY_DAEMON_SOCKET': '/custom/path.sock',
-            'BOUNDARY_DAEMON_URL': 'http://custom:9000'
-        }):
+        with patch.dict(
+            "os.environ",
+            {
+                "BOUNDARY_DAEMON_SOCKET": "/custom/path.sock",
+                "BOUNDARY_DAEMON_URL": "http://custom:9000",
+            },
+        ):
             conn = DaemonConnection()
-            assert conn.socket_path == '/custom/path.sock'
-            assert conn.http_url == 'http://custom:9000'
+            assert conn.socket_path == "/custom/path.sock"
+            assert conn.http_url == "http://custom:9000"
 
     def test_is_available_when_not_running(self):
         """Test availability check when daemon not running."""
         conn = DaemonConnection(
-            socket_path="/nonexistent/path.sock",
-            http_url="http://localhost:59999"
+            socket_path="/nonexistent/path.sock", http_url="http://localhost:59999"
         )
         assert conn.is_available() is False
 
@@ -509,17 +500,20 @@ class TestBoundarySIEMClient:
 
     def test_config_from_env(self):
         """Test config loads from environment."""
-        with patch.dict('os.environ', {
-            'BOUNDARY_SIEM_HOST': 'siem.example.com',
-            'BOUNDARY_SIEM_PORT': '1514',
-            'BOUNDARY_SIEM_PROTOCOL': 'cef_tcp',
-            'BOUNDARY_SIEM_API_KEY': 'secret-key',
-        }):
+        with patch.dict(
+            "os.environ",
+            {
+                "BOUNDARY_SIEM_HOST": "siem.example.com",
+                "BOUNDARY_SIEM_PORT": "1514",
+                "BOUNDARY_SIEM_PROTOCOL": "cef_tcp",
+                "BOUNDARY_SIEM_API_KEY": "secret-key",
+            },
+        ):
             config = SIEMConfig.from_env()
-            assert config.host == 'siem.example.com'
+            assert config.host == "siem.example.com"
             assert config.port == 1514
             assert config.protocol == SIEMProtocol.CEF_TCP
-            assert config.api_key == 'secret-key'
+            assert config.api_key == "secret-key"
 
     def test_event_filtering_by_severity(self, siem_client):
         """Test events are filtered by severity."""
@@ -705,8 +699,7 @@ class TestBoundaryDaemonSIEMIntegration:
 
         # Connected daemon (will work even without external daemon)
         daemon2 = create_connected_boundary_daemon(
-            data_dir=str(temp_data_dir / "connected"),
-            socket_path="/nonexistent/path.sock"
+            data_dir=str(temp_data_dir / "connected"), socket_path="/nonexistent/path.sock"
         )
         assert daemon2 is not None
 
@@ -718,9 +711,7 @@ class TestAccessControlFlow:
         """Test complete access control workflow."""
         # 1. Register a user principal
         user = boundary_daemon.register_principal(
-            principal_type="user",
-            name="Test Developer",
-            address="0xDeveloper123"
+            principal_type="user", name="Test Developer", address="0xDeveloper123"
         )
 
         # 2. Create policies
@@ -746,9 +737,7 @@ class TestAccessControlFlow:
 
         # 4. Issue token
         raw_token, token = boundary_daemon.issue_token(
-            user.principal_id,
-            scopes=["repository", "agent"],
-            expires_in_hours=24
+            user.principal_id, scopes=["repository", "agent"], expires_in_hours=24
         )
 
         # 5. Check access with token

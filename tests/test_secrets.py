@@ -65,11 +65,9 @@ class TestEnvironmentSecretsBackend:
 
     def test_prefix_support(self):
         """Test prefix filtering."""
-        with patch.dict(os.environ, {
-            "RRA_API_KEY": "key1",
-            "RRA_SECRET": "secret1",
-            "OTHER_VAR": "other"
-        }):
+        with patch.dict(
+            os.environ, {"RRA_API_KEY": "key1", "RRA_SECRET": "secret1", "OTHER_VAR": "other"}
+        ):
             backend = EnvironmentSecretsBackend(prefix="RRA_")
             assert backend.get("API_KEY") == "key1"
             assert backend.get("SECRET") == "secret1"
@@ -77,11 +75,11 @@ class TestEnvironmentSecretsBackend:
 
     def test_get_all_with_prefix(self):
         """Test getting all secrets with prefix."""
-        with patch.dict(os.environ, {
-            "RRA_API_KEY": "key1",
-            "RRA_SECRET": "secret1",
-            "OTHER_VAR": "other"
-        }, clear=True):
+        with patch.dict(
+            os.environ,
+            {"RRA_API_KEY": "key1", "RRA_SECRET": "secret1", "OTHER_VAR": "other"},
+            clear=True,
+        ):
             backend = EnvironmentSecretsBackend(prefix="RRA_")
             all_secrets = backend.get_all("")
             assert "API_KEY" in all_secrets
@@ -251,11 +249,7 @@ class TestVaultSecretsBackend:
         """Test getting secret from Vault."""
         mock_client = Mock()
         mock_client.secrets.kv.v2.read_secret_version.return_value = {
-            "data": {
-                "data": {
-                    "API_KEY": "vault_secret"
-                }
-            }
+            "data": {"data": {"API_KEY": "vault_secret"}}
         }
         mock_get_client.return_value = mock_client
 
@@ -290,10 +284,7 @@ class TestAWSSecretsBackend:
         """Test getting secret from AWS."""
         mock_client = Mock()
         mock_client.get_secret_value.return_value = {
-            "SecretString": json.dumps({
-                "API_KEY": "aws_secret",
-                "DB_PASSWORD": "db_pass"
-            })
+            "SecretString": json.dumps({"API_KEY": "aws_secret", "DB_PASSWORD": "db_pass"})
         }
         mock_get_client.return_value = mock_client
 
@@ -310,7 +301,9 @@ class TestAWSSecretsBackend:
         mock_client = Mock()
         mock_client.exceptions = Mock()
         mock_client.exceptions.ResourceNotFoundException = Exception
-        mock_client.get_secret_value.side_effect = mock_client.exceptions.ResourceNotFoundException()
+        mock_client.get_secret_value.side_effect = (
+            mock_client.exceptions.ResourceNotFoundException()
+        )
         mock_get_client.return_value = mock_client
 
         backend = AWSSecretsBackend()
@@ -348,16 +341,9 @@ class TestSecretsManager:
 
     def test_validate_required_secrets(self):
         """Test validating multiple required secrets."""
-        with patch.dict(os.environ, {
-            "SECRET_A": "a",
-            "SECRET_B": "b"
-        }, clear=True):
+        with patch.dict(os.environ, {"SECRET_A": "a", "SECRET_B": "b"}, clear=True):
             manager = SecretsManager(EnvironmentSecretsBackend())
-            result = manager.validate_required_secrets([
-                "SECRET_A",
-                "SECRET_B",
-                "SECRET_C"
-            ])
+            result = manager.validate_required_secrets(["SECRET_A", "SECRET_B", "SECRET_C"])
 
             assert result["SECRET_A"] is True
             assert result["SECRET_B"] is True
@@ -365,10 +351,7 @@ class TestSecretsManager:
 
     def test_audit_logging(self):
         """Test audit logging of secret access."""
-        with patch.dict(os.environ, {
-            "RRA_SECRETS_AUDIT": "true",
-            "MY_SECRET": "value"
-        }):
+        with patch.dict(os.environ, {"RRA_SECRETS_AUDIT": "true", "MY_SECRET": "value"}):
             manager = SecretsManager(EnvironmentSecretsBackend())
 
             manager.get("MY_SECRET")
@@ -405,10 +388,9 @@ class TestSecretsManager:
     def test_auto_backend_selection_multi(self):
         """Test auto-selecting multi backend."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            with patch.dict(os.environ, {
-                "RRA_SECRETS_BACKEND": "multi",
-                "RRA_SECRETS_PATH": tmpdir
-            }):
+            with patch.dict(
+                os.environ, {"RRA_SECRETS_BACKEND": "multi", "RRA_SECRETS_PATH": tmpdir}
+            ):
                 manager = SecretsManager()
                 assert isinstance(manager._backend, MultiBackendSecrets)
 
@@ -426,6 +408,7 @@ class TestGlobalFunctions:
         with patch.dict(os.environ, {"TEST_KEY": "test_value"}):
             # Reset global instance
             import src.rra.security.secrets as secrets_module
+
             secrets_module._secrets_instance = None
 
             value = get_secret("TEST_KEY")
@@ -449,13 +432,8 @@ class TestSecretsIntegration:
             # Create a file secret
             (Path(tmpdir) / "FILE_SECRET").write_text("from_file")
 
-            with patch.dict(os.environ, {
-                "ENV_SECRET": "from_env"
-            }, clear=True):
-                backends = [
-                    EnvironmentSecretsBackend(),
-                    FileSecretsBackend(secrets_path=tmpdir)
-                ]
+            with patch.dict(os.environ, {"ENV_SECRET": "from_env"}, clear=True):
+                backends = [EnvironmentSecretsBackend(), FileSecretsBackend(secrets_path=tmpdir)]
                 multi = MultiBackendSecrets(backends)
                 manager = SecretsManager(backend=multi)
 
@@ -475,24 +453,27 @@ class TestSecretsIntegration:
             (Path(tmpdir) / "API_KEY").write_text("secret_api_key")
             (Path(tmpdir) / "DB_PASSWORD").write_text("db_secret")
 
-            with patch.dict(os.environ, {
-                "RRA_SECRETS_BACKEND": "file",
-                "RRA_SECRETS_PATH": tmpdir,
-                "RRA_SECRETS_AUDIT": "true"
-            }):
+            with patch.dict(
+                os.environ,
+                {
+                    "RRA_SECRETS_BACKEND": "file",
+                    "RRA_SECRETS_PATH": tmpdir,
+                    "RRA_SECRETS_AUDIT": "true",
+                },
+            ):
                 # Reset global
                 import src.rra.security.secrets as secrets_module
+
                 secrets_module._secrets_instance = None
 
                 from src.rra.security.secrets import get_secrets_manager
+
                 manager = get_secrets_manager()
 
                 # Validate secrets
-                validation = manager.validate_required_secrets([
-                    "API_KEY",
-                    "DB_PASSWORD",
-                    "MISSING_SECRET"
-                ])
+                validation = manager.validate_required_secrets(
+                    ["API_KEY", "DB_PASSWORD", "MISSING_SECRET"]
+                )
                 assert validation["API_KEY"] is True
                 assert validation["DB_PASSWORD"] is True
                 assert validation["MISSING_SECRET"] is False

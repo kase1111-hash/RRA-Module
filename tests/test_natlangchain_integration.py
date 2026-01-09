@@ -32,7 +32,7 @@ from rra.integration.natlangchain_client import (
 @pytest.fixture
 def mock_httpx_client():
     """Mock httpx client for unit testing."""
-    with patch('rra.integration.natlangchain_client.httpx') as mock_httpx:
+    with patch("rra.integration.natlangchain_client.httpx") as mock_httpx:
         mock_client = MagicMock()
         mock_httpx.Client.return_value = mock_client
         yield mock_client
@@ -41,10 +41,7 @@ def mock_httpx_client():
 @pytest.fixture
 def chain_client(mock_httpx_client):
     """Create a chain client with mocked HTTP."""
-    client = NatLangChainClient(
-        base_url="http://localhost:5000",
-        agent_id="test-agent"
-    )
+    client = NatLangChainClient(base_url="http://localhost:5000", agent_id="test-agent")
     client._client = mock_httpx_client
     return client
 
@@ -59,11 +56,8 @@ class TestNatLangChainClient:
 
     def test_client_initialization(self):
         """Test client initializes with correct parameters."""
-        with patch('rra.integration.natlangchain_client.httpx'):
-            client = NatLangChainClient(
-                base_url="http://test:5000",
-                agent_id="my-agent"
-            )
+        with patch("rra.integration.natlangchain_client.httpx"):
+            client = NatLangChainClient(base_url="http://test:5000", agent_id="my-agent")
             assert client.base_url == "http://test:5000"
             assert client.agent_id == "my-agent"
 
@@ -76,7 +70,7 @@ class TestNatLangChainClient:
             "service": "NatLangChain API",
             "blocks": 5,
             "pending_entries": 2,
-            "llm_validation_available": True
+            "llm_validation_available": True,
         }
         mock_httpx_client.get.return_value = mock_response
 
@@ -102,18 +96,12 @@ class TestNatLangChainClient:
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "status": "success",
-            "entry": {
-                "content": "Test entry",
-                "author": "test-author",
-                "status": "pending"
-            }
+            "entry": {"content": "Test entry", "author": "test-author", "status": "pending"},
         }
         mock_httpx_client.post.return_value = mock_response
 
         success, result = chain_client.post_entry(
-            content="Test entry content",
-            author="test-author",
-            intent="Test intent"
+            content="Test entry content", author="test-author", intent="Test intent"
         )
 
         assert success is True
@@ -129,10 +117,7 @@ class TestNatLangChainClient:
 
         metadata = {"key": "value", "type": "test"}
         success, _ = chain_client.post_entry(
-            content="Test",
-            author="author",
-            intent="intent",
-            metadata=metadata
+            content="Test", author="author", intent="intent", metadata=metadata
         )
 
         assert success is True
@@ -144,10 +129,7 @@ class TestNatLangChainClient:
         """Test posting RRA transaction."""
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "status": "success",
-            "entry": {"id": "entry-123"}
-        }
+        mock_response.json.return_value = {"status": "success", "entry": {"id": "entry-123"}}
         mock_httpx_client.post.return_value = mock_response
 
         success, result = chain_client.post_rra_transaction(
@@ -155,7 +137,7 @@ class TestNatLangChainClient:
             buyer_id="buyer-123",
             license_model="MIT",
             price="0.5 ETH",
-            terms={"duration": "perpetual", "scope": "worldwide"}
+            terms={"duration": "perpetual", "scope": "worldwide"},
         )
 
         assert success is True
@@ -174,7 +156,7 @@ class TestNatLangChainClient:
         success, _ = chain_client.post_negotiation_intent(
             repo_url="https://github.com/test/repo",
             intent_type="quote_requested",
-            details={"budget": "1 ETH", "license_preference": "MIT"}
+            details={"budget": "1 ETH", "license_preference": "MIT"},
         )
 
         assert success is True
@@ -188,7 +170,7 @@ class TestNatLangChainClient:
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "status": "success",
-            "block": {"hash": "000abc123", "index": 5}
+            "block": {"hash": "000abc123", "index": 5},
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -218,7 +200,7 @@ class TestNatLangChainClient:
         mock_response.json.return_value = {
             "entries": [
                 {"content": "Entry 1", "author": "alice"},
-                {"content": "Entry 2", "author": "bob"}
+                {"content": "Entry 2", "author": "bob"},
             ]
         }
         mock_httpx_client.get.return_value = mock_response
@@ -235,7 +217,7 @@ class TestNatLangChainClient:
         mock_response.json.return_value = {
             "total_blocks": 10,
             "total_entries": 50,
-            "pending_entries": 3
+            "pending_entries": 3,
         }
         mock_httpx_client.get.return_value = mock_response
 
@@ -250,21 +232,17 @@ class TestGetChainClient:
 
     def test_get_sync_client(self):
         """Test getting sync client."""
-        with patch('rra.integration.natlangchain_client.httpx'):
+        with patch("rra.integration.natlangchain_client.httpx"):
             client = get_chain_client(
-                base_url="http://test:5000",
-                agent_id="test-agent",
-                async_mode=False
+                base_url="http://test:5000", agent_id="test-agent", async_mode=False
             )
             assert isinstance(client, NatLangChainClient)
 
     def test_get_async_client(self):
         """Test getting async client."""
-        with patch('rra.integration.natlangchain_client.httpx'):
+        with patch("rra.integration.natlangchain_client.httpx"):
             client = get_chain_client(
-                base_url="http://test:5000",
-                agent_id="test-agent",
-                async_mode=True
+                base_url="http://test:5000", agent_id="test-agent", async_mode=True
             )
             assert isinstance(client, AsyncNatLangChainClient)
 
@@ -291,8 +269,7 @@ class TestNatLangChainIntegration:
         """Create a client connected to live NatLangChain server."""
         try:
             client = NatLangChainClient(
-                base_url="http://localhost:5000",
-                agent_id="rra-integration-test"
+                base_url="http://localhost:5000", agent_id="rra-integration-test"
             )
             return client
         except ImportError:
@@ -319,7 +296,7 @@ class TestNatLangChainIntegration:
             author="rra-integration-test",
             intent="Test RRA-NatLangChain integration",
             metadata={"test": True, "timestamp": datetime.now().isoformat()},
-            auto_mine=True
+            auto_mine=True,
         )
 
         assert success is True
@@ -336,11 +313,7 @@ class TestNatLangChainIntegration:
             buyer_id="test-buyer-001",
             license_model="MIT",
             price="0.1 ETH",
-            terms={
-                "duration": "perpetual",
-                "scope": "worldwide",
-                "modifications_allowed": True
-            }
+            terms={"duration": "perpetual", "scope": "worldwide", "modifications_allowed": True},
         )
 
         assert success is True
@@ -367,14 +340,11 @@ class TestNatLangChainIntegration:
             content="Searchable test entry for RRA integration",
             author="rra-search-test",
             intent="Search test",
-            auto_mine=True
+            auto_mine=True,
         )
 
         # Then search for it
-        success, entries = live_client.search_entries(
-            author="rra-search-test",
-            limit=5
-        )
+        success, entries = live_client.search_entries(author="rra-search-test", limit=5)
 
         assert success is True
 
@@ -393,8 +363,8 @@ class TestNatLangChainIntegration:
             details={
                 "buyer_id": "buyer-flow-test",
                 "budget": "1 ETH",
-                "license_preference": "commercial"
-            }
+                "license_preference": "commercial",
+            },
         )
         assert success is True
 
@@ -405,8 +375,8 @@ class TestNatLangChainIntegration:
             details={
                 "price": "0.8 ETH",
                 "license_model": "commercial",
-                "terms": {"duration": "1 year"}
-            }
+                "terms": {"duration": "1 year"},
+            },
         )
         assert success is True
 
@@ -416,11 +386,7 @@ class TestNatLangChainIntegration:
             buyer_id="buyer-flow-test",
             license_model="commercial",
             price="0.75 ETH",
-            terms={
-                "duration": "1 year",
-                "scope": "worldwide",
-                "exclusive": False
-            }
+            terms={"duration": "1 year", "scope": "worldwide", "exclusive": False},
         )
         assert success is True
 
@@ -441,7 +407,7 @@ class TestAsyncNatLangChainClient:
     @pytest.fixture
     def mock_async_client(self):
         """Mock async httpx client."""
-        with patch('rra.integration.natlangchain_client.httpx') as mock_httpx:
+        with patch("rra.integration.natlangchain_client.httpx") as mock_httpx:
             mock_client = AsyncMock()
             mock_httpx.AsyncClient.return_value = mock_client
             yield mock_client
@@ -456,7 +422,7 @@ class TestAsyncNatLangChainClient:
             "service": "NatLangChain API",
             "blocks": 5,
             "pending_entries": 0,
-            "llm_validation_available": True
+            "llm_validation_available": True,
         }
         mock_async_client.get = AsyncMock(return_value=mock_response)
 
@@ -478,9 +444,7 @@ class TestAsyncNatLangChainClient:
         async with AsyncNatLangChainClient() as client:
             client._client = mock_async_client
             success, result = await client.post_entry(
-                content="Async test",
-                author="async-author",
-                intent="Async test intent"
+                content="Async test", author="async-author", intent="Async test intent"
             )
 
             assert success is True
@@ -500,7 +464,7 @@ class TestAsyncNatLangChainClient:
                 buyer_id="async-buyer",
                 license_model="MIT",
                 price="0.3 ETH",
-                terms={"scope": "global"}
+                terms={"scope": "global"},
             )
 
             assert success is True

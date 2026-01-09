@@ -83,16 +83,12 @@ class TestDisputeWarningGenerator:
         report = generator.generate_warnings(sample_clauses)
 
         # Check for ambiguity warnings
-        ambiguity_warnings = [
-            w for w in report.warnings
-            if w.category == WarningCategory.AMBIGUITY
-        ]
+        ambiguity_warnings = [w for w in report.warnings if w.category == WarningCategory.AMBIGUITY]
         assert len(ambiguity_warnings) > 0
 
         # Should detect "reasonable time"
         reasonable_warning = next(
-            (w for w in ambiguity_warnings if "reasonable" in w.title.lower()),
-            None
+            (w for w in ambiguity_warnings if "reasonable" in w.title.lower()), None
         )
         assert reasonable_warning is not None
         assert reasonable_warning.severity in [WarningSeverity.HIGH, WarningSeverity.MEDIUM]
@@ -102,8 +98,7 @@ class TestDisputeWarningGenerator:
         report = generator.generate_warnings(sample_clauses)
 
         best_efforts_warning = next(
-            (w for w in report.warnings if "best efforts" in w.title.lower()),
-            None
+            (w for w in report.warnings if "best efforts" in w.title.lower()), None
         )
         assert best_efforts_warning is not None
         assert len(best_efforts_warning.mitigations) > 0
@@ -113,8 +108,7 @@ class TestDisputeWarningGenerator:
         report = generator.generate_warnings(sample_clauses)
 
         scope_warning = next(
-            (w for w in report.warnings if "including but not limited" in w.title.lower()),
-            None
+            (w for w in report.warnings if "including but not limited" in w.title.lower()), None
         )
         assert scope_warning is not None
 
@@ -122,10 +116,7 @@ class TestDisputeWarningGenerator:
         """Test detection of 'material breach' language."""
         report = generator.generate_warnings(sample_clauses)
 
-        material_warning = next(
-            (w for w in report.warnings if "material" in w.title.lower()),
-            None
-        )
+        material_warning = next((w for w in report.warnings if "material" in w.title.lower()), None)
         assert material_warning is not None
 
     def test_clean_clauses_fewer_warnings(self, generator, sample_clauses, clean_clauses):
@@ -134,8 +125,12 @@ class TestDisputeWarningGenerator:
         clean_report = generator.generate_warnings(clean_clauses)
 
         # Clean clauses should have fewer ambiguity warnings
-        dirty_ambiguity = sum(1 for w in dirty_report.warnings if w.category == WarningCategory.AMBIGUITY)
-        clean_ambiguity = sum(1 for w in clean_report.warnings if w.category == WarningCategory.AMBIGUITY)
+        dirty_ambiguity = sum(
+            1 for w in dirty_report.warnings if w.category == WarningCategory.AMBIGUITY
+        )
+        clean_ambiguity = sum(
+            1 for w in clean_report.warnings if w.category == WarningCategory.AMBIGUITY
+        )
         assert clean_ambiguity < dirty_ambiguity
 
     def test_missing_clause_detection(self, generator):
@@ -148,16 +143,12 @@ class TestDisputeWarningGenerator:
         report = generator.generate_warnings(minimal_clauses, license_type="commercial")
 
         missing_warnings = [
-            w for w in report.warnings
-            if w.category == WarningCategory.MISSING_CLAUSE
+            w for w in report.warnings if w.category == WarningCategory.MISSING_CLAUSE
         ]
         assert len(missing_warnings) > 0
 
         # Should warn about missing dispute resolution
-        dispute_warning = next(
-            (w for w in missing_warnings if "dispute" in w.title.lower()),
-            None
-        )
+        dispute_warning = next((w for w in missing_warnings if "dispute" in w.title.lower()), None)
         assert dispute_warning is not None
 
     def test_severity_levels(self, generator):
@@ -225,8 +216,7 @@ class TestDisputeWarningGenerator:
         report = generator.generate_warnings([complex_clause])
 
         complexity_warning = next(
-            (w for w in report.warnings if w.category == WarningCategory.COMPLEXITY),
-            None
+            (w for w in report.warnings if w.category == WarningCategory.COMPLEXITY), None
         )
         assert complexity_warning is not None
 
@@ -236,10 +226,7 @@ class TestDisputeWarningGenerator:
 
         report = generator.generate_warnings([clause_with_placeholder])
 
-        undefined_warnings = [
-            w for w in report.warnings
-            if w.category == WarningCategory.UNDEFINED
-        ]
+        undefined_warnings = [w for w in report.warnings if w.category == WarningCategory.UNDEFINED]
         assert len(undefined_warnings) > 0
 
     def test_license_type_affects_required_clauses(self, generator):
@@ -251,8 +238,12 @@ class TestDisputeWarningGenerator:
         oss_report = generator.generate_warnings(minimal_clauses, license_type="open_source")
 
         # Different license types should have different requirements
-        commercial_missing = sum(1 for w in commercial_report.warnings if w.category == WarningCategory.MISSING_CLAUSE)
-        saas_missing = sum(1 for w in saas_report.warnings if w.category == WarningCategory.MISSING_CLAUSE)
+        commercial_missing = sum(
+            1 for w in commercial_report.warnings if w.category == WarningCategory.MISSING_CLAUSE
+        )
+        saas_missing = sum(
+            1 for w in saas_report.warnings if w.category == WarningCategory.MISSING_CLAUSE
+        )
         sum(1 for w in oss_report.warnings if w.category == WarningCategory.MISSING_CLAUSE)
 
         # All should have some missing clauses, but counts may differ
@@ -288,8 +279,9 @@ class TestDisputeWarningGenerator:
                 next_idx = severity_order.index(report.warnings[i + 1].severity)
                 # Lower index means higher severity
                 assert current_idx <= next_idx or (
-                    current_idx == next_idx and
-                    report.warnings[i].dispute_probability >= report.warnings[i + 1].dispute_probability
+                    current_idx == next_idx
+                    and report.warnings[i].dispute_probability
+                    >= report.warnings[i + 1].dispute_probability
                 )
 
 
@@ -442,10 +434,7 @@ class TestTermAnalyzer:
         clauses = ["The party shall respond within a reasonable time frame."]
         report = analyzer.analyze_contract(clauses)
 
-        reasonable_term = next(
-            (t for t in report.terms if "reasonable" in t.term.lower()),
-            None
-        )
+        reasonable_term = next((t for t in report.terms if "reasonable" in t.term.lower()), None)
         if reasonable_term and reasonable_term.occurrences:
             assert reasonable_term.occurrences[0].context
             assert "reasonable" in reasonable_term.occurrences[0].context.lower()
@@ -505,9 +494,9 @@ class TestSerialization:
 
     def test_warning_to_dict(self, generator):
         """Test warning dictionary conversion."""
-        report = generator.generate_warnings([
-            "Respond within a reasonable time using best efforts."
-        ])
+        report = generator.generate_warnings(
+            ["Respond within a reasonable time using best efforts."]
+        )
 
         if report.warnings:
             warning_dict = report.warnings[0].to_dict()
@@ -521,9 +510,9 @@ class TestSerialization:
 
     def test_report_to_dict(self, generator):
         """Test report dictionary conversion."""
-        report = generator.generate_warnings([
-            "The Licensee shall respond within a reasonable time."
-        ])
+        report = generator.generate_warnings(
+            ["The Licensee shall respond within a reasonable time."]
+        )
 
         report_dict = report.to_dict()
         assert "contract_id" in report_dict
@@ -535,9 +524,7 @@ class TestSerialization:
 
     def test_mitigation_serialization(self, generator):
         """Test mitigation serialization."""
-        report = generator.generate_warnings([
-            "Respond within a reasonable time."
-        ])
+        report = generator.generate_warnings(["Respond within a reasonable time."])
 
         if report.warnings:
             warning_dict = report.warnings[0].to_dict()
@@ -580,10 +567,9 @@ class TestIntegration:
         term_names = set(t.term.lower() for t in terms.terms)
 
         # Should have some overlap
-        assert any(
-            any(t in wt for wt in warning_terms)
-            for t in term_names
-        ) or (len(term_names) > 0)
+        assert any(any(t in wt for wt in warning_terms) for t in term_names) or (
+            len(term_names) > 0
+        )
 
     def test_complete_contract_analysis_flow(self):
         """Test complete analysis flow for a contract."""
@@ -616,11 +602,13 @@ class TestIntegration:
 
         # Higher-risk scenarios should be detected
         high_risk_warnings = [
-            w for w in warning_report.warnings
+            w
+            for w in warning_report.warnings
             if w.severity in [WarningSeverity.HIGH, WarningSeverity.CRITICAL]
         ]
         high_risk_terms = [
-            t for t in term_report.terms
+            t
+            for t in term_report.terms
             if t.risk_level in [TermRiskLevel.HIGH, TermRiskLevel.CRITICAL]
         ]
 
@@ -696,15 +684,10 @@ class TestEdgeCases:
 
     def test_multiple_same_terms(self, analyzer):
         """Test handling of multiple occurrences of same term."""
-        clause = [
-            "Respond promptly. Act promptly. Deliver promptly."
-        ]
+        clause = ["Respond promptly. Act promptly. Deliver promptly."]
 
         report = analyzer.analyze_contract(clause)
 
-        promptly_term = next(
-            (t for t in report.terms if "promptly" in t.term.lower()),
-            None
-        )
+        promptly_term = next((t for t in report.terms if "promptly" in t.term.lower()), None)
         if promptly_term:
             assert promptly_term.frequency >= 3

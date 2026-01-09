@@ -25,6 +25,7 @@ from rra.api.rate_limiter import (
 # Configuration Tests
 # =============================================================================
 
+
 class TestRateLimitConfig:
     """Tests for RateLimitConfig."""
 
@@ -39,12 +40,15 @@ class TestRateLimitConfig:
 
     def test_from_env(self):
         """Test configuration from environment variables."""
-        with patch.dict("os.environ", {
-            "RRA_RATE_LIMIT_REQUESTS": "100",
-            "RRA_RATE_LIMIT_HOUR": "2000",
-            "RRA_RATE_LIMIT_DAY": "20000",
-            "RRA_RATE_LIMIT_BURST": "20",
-        }):
+        with patch.dict(
+            "os.environ",
+            {
+                "RRA_RATE_LIMIT_REQUESTS": "100",
+                "RRA_RATE_LIMIT_HOUR": "2000",
+                "RRA_RATE_LIMIT_DAY": "20000",
+                "RRA_RATE_LIMIT_BURST": "20",
+            },
+        ):
             config = RateLimitConfig.from_env()
             assert config.requests_per_minute == 100
             assert config.requests_per_hour == 2000
@@ -55,6 +59,7 @@ class TestRateLimitConfig:
 # =============================================================================
 # Backend Tests
 # =============================================================================
+
 
 class TestInMemoryBackend:
     """Tests for InMemoryBackend."""
@@ -125,6 +130,7 @@ class TestInMemoryBackend:
 # Token Bucket Tests
 # =============================================================================
 
+
 class TestTokenBucketLimiter:
     """Tests for TokenBucketLimiter."""
 
@@ -174,6 +180,7 @@ class TestTokenBucketLimiter:
 # Sliding Window Tests
 # =============================================================================
 
+
 class TestSlidingWindowLimiter:
     """Tests for SlidingWindowLimiter."""
 
@@ -207,6 +214,7 @@ class TestSlidingWindowLimiter:
 # =============================================================================
 # RateLimiter Integration Tests
 # =============================================================================
+
 
 class TestRateLimiter:
     """Tests for RateLimiter."""
@@ -308,12 +316,14 @@ class TestRateLimiter:
 # Decorator Tests
 # =============================================================================
 
+
 class TestRateLimitDecorator:
     """Tests for rate_limit decorator."""
 
     @pytest.mark.asyncio
     async def test_decorator_allows_requests(self):
         """Test that decorated function allows requests within limit."""
+
         @rate_limit(requests=5, window=60)
         async def test_endpoint(request):
             return "success"

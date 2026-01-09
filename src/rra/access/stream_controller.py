@@ -306,7 +306,9 @@ class StreamAccessController:
         stopped_count = len([lic for lic in licenses if lic.status == StreamStatus.STOPPED])
         revoked_count = len([lic for lic in licenses if lic.status == StreamStatus.REVOKED])
 
-        total_mrr = sum(lic.monthly_cost_usd for lic in licenses if lic.status == StreamStatus.ACTIVE)
+        total_mrr = sum(
+            lic.monthly_cost_usd for lic in licenses if lic.status == StreamStatus.ACTIVE
+        )
 
         return {
             "repo_id": repo_id,

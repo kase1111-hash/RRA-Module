@@ -95,10 +95,7 @@ class TestBatchProcessor:
 
     def test_batch_disputes(self, processor):
         """Test batch dispute submission."""
-        batch_data = [
-            (random_hash(), random_hash(), random_hash(), 1000000)
-            for _ in range(5)
-        ]
+        batch_data = [(random_hash(), random_hash(), random_hash(), 1000000) for _ in range(5)]
 
         disputes = processor.add_disputes_batch(batch_data)
 

@@ -215,8 +215,12 @@ class HashValidator(EventValidator):
         if expected_hash:
             import hmac
 
-            calculated_bytes = calculated_hash.encode() if isinstance(calculated_hash, str) else calculated_hash
-            expected_bytes = expected_hash.lower().encode() if isinstance(expected_hash, str) else expected_hash
+            calculated_bytes = (
+                calculated_hash.encode() if isinstance(calculated_hash, str) else calculated_hash
+            )
+            expected_bytes = (
+                expected_hash.lower().encode() if isinstance(expected_hash, str) else expected_hash
+            )
             if hmac.compare_digest(calculated_bytes, expected_bytes):
                 passed.append("hash_match")
             else:

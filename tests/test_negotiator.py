@@ -15,17 +15,14 @@ from rra.exceptions import ConfigurationError
 @pytest.fixture
 def sample_kb():
     """Create a sample knowledge base for testing."""
-    kb = KnowledgeBase(
-        repo_path=Path("."),
-        repo_url="https://github.com/test/repo.git"
-    )
+    kb = KnowledgeBase(repo_path=Path("."), repo_url="https://github.com/test/repo.git")
 
     kb.market_config = MarketConfig(
         target_price="0.05 ETH",
         floor_price="0.02 ETH",
         license_model=LicenseModel.PER_SEAT,
         negotiation_style=NegotiationStyle.CONCISE,
-        features=["Full access", "Updates", "Support"]
+        features=["Full access", "Updates", "Support"],
     )
 
     kb.statistics = {
@@ -49,10 +46,7 @@ def test_negotiator_creation(sample_kb):
 
 def test_negotiator_without_config():
     """Test that negotiator requires market config."""
-    kb = KnowledgeBase(
-        repo_path=Path("."),
-        repo_url="https://github.com/test/repo.git"
-    )
+    kb = KnowledgeBase(repo_path=Path("."), repo_url="https://github.com/test/repo.git")
 
     with pytest.raises(ConfigurationError):
         NegotiatorAgent(kb)

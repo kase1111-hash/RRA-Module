@@ -25,6 +25,7 @@ from rra.exceptions import ValidationError
 # TEST: Command Injection Prevention
 # =============================================================================
 
+
 class TestCommandInjection:
     """Test protection against command injection attacks."""
 
@@ -92,6 +93,7 @@ class TestCommandInjection:
 # TEST: Path Traversal Prevention
 # =============================================================================
 
+
 class TestPathTraversal:
     """Test protection against path traversal attacks."""
 
@@ -143,6 +145,7 @@ class TestPathTraversal:
 # =============================================================================
 # TEST: SSRF Prevention
 # =============================================================================
+
 
 class TestSSRFPrevention:
     """Test protection against Server-Side Request Forgery."""
@@ -206,6 +209,7 @@ class TestSSRFPrevention:
 # =============================================================================
 # TEST: Input Validation
 # =============================================================================
+
 
 class TestInputValidation:
     """Test input validation across the application."""
@@ -275,7 +279,7 @@ class TestInputValidation:
             buyer_address="0x" + "1" * 40,
             seller_address="0x" + "2" * 40,
             monthly_price_usd=10.0,
-            grace_period_hours=24
+            grace_period_hours=24,
         )
         assert req.grace_period_hours == 24
 
@@ -286,7 +290,7 @@ class TestInputValidation:
                 buyer_address="0x" + "1" * 40,
                 seller_address="0x" + "2" * 40,
                 monthly_price_usd=10.0,
-                grace_period_hours=-1
+                grace_period_hours=-1,
             )
 
         # Should reject too large (>1 year)
@@ -296,7 +300,7 @@ class TestInputValidation:
                 buyer_address="0x" + "1" * 40,
                 seller_address="0x" + "2" * 40,
                 monthly_price_usd=10.0,
-                grace_period_hours=9000
+                grace_period_hours=9000,
             )
 
     def test_validate_session_id_format(self):
@@ -315,6 +319,7 @@ class TestInputValidation:
 # =============================================================================
 # TEST: ReDoS Prevention
 # =============================================================================
+
 
 class TestReDoSPrevention:
     """Test protection against Regular Expression Denial of Service."""
@@ -360,6 +365,7 @@ class TestReDoSPrevention:
 # TEST: Rate Limiting
 # =============================================================================
 
+
 class TestRateLimiting:
     """Test rate limiting functionality."""
 
@@ -395,6 +401,7 @@ class TestRateLimiting:
 # TEST: Session Security
 # =============================================================================
 
+
 class TestSessionSecurity:
     """Test session management security."""
 
@@ -424,6 +431,7 @@ class TestSessionSecurity:
 # TEST: Cryptographic Security
 # =============================================================================
 
+
 class TestCryptographicSecurity:
     """Test cryptographic operations."""
 
@@ -440,12 +448,9 @@ class TestCryptographicSecurity:
         # Generate valid signature
         import json
         import hmac
-        payload_bytes = json.dumps(payload, sort_keys=True, separators=(',', ':')).encode()
-        valid_sig = "sha256=" + hmac.new(
-            secret.encode(),
-            payload_bytes,
-            hashlib.sha256
-        ).hexdigest()
+
+        payload_bytes = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+        valid_sig = "sha256=" + hmac.new(secret.encode(), payload_bytes, hashlib.sha256).hexdigest()
 
         # Verify correct signature works
         assert security.verify_signature(agent_id, payload, valid_sig)
@@ -473,6 +478,7 @@ class TestCryptographicSecurity:
 # TEST: Resource Limits
 # =============================================================================
 
+
 class TestResourceLimits:
     """Test resource consumption limits."""
 
@@ -481,8 +487,9 @@ class TestResourceLimits:
         from rra.ingestion import repo_ingester
 
         # MAX_FILES should be defined at module level
-        assert hasattr(repo_ingester, 'MAX_FILES'), \
-            "repo_ingester module should define MAX_FILES limit"
+        assert hasattr(
+            repo_ingester, "MAX_FILES"
+        ), "repo_ingester module should define MAX_FILES limit"
 
         # Should be a reasonable limit
         assert repo_ingester.MAX_FILES > 0
@@ -507,6 +514,7 @@ class TestResourceLimits:
 # =============================================================================
 # TEST: Error Information Disclosure
 # =============================================================================
+
 
 class TestErrorDisclosure:
     """Test that errors don't leak sensitive information."""

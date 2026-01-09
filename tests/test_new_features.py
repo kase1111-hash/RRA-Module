@@ -33,6 +33,7 @@ from rra.pricing import (
 # Multi-Chain Tests
 # =============================================================================
 
+
 class TestChainConfig:
     """Test chain configuration."""
 
@@ -154,11 +155,7 @@ class TestChainManager:
     def test_estimate_gas_cost(self):
         """Test gas cost estimation."""
         manager = ChainManager()
-        cost = manager.estimate_gas_cost_usd(
-            chain_id=137,
-            gas_units=100000,
-            native_price_usd=0.80
-        )
+        cost = manager.estimate_gas_cost_usd(chain_id=137, gas_units=100000, native_price_usd=0.80)
         assert cost > 0
         assert cost < 100  # Should be reasonable
 
@@ -166,6 +163,7 @@ class TestChainManager:
 # =============================================================================
 # Bundling Tests
 # =============================================================================
+
 
 class TestBundleDiscount:
     """Test bundle discount calculations."""
@@ -333,9 +331,7 @@ class TestBundleManager:
     def setup_method(self):
         """Create temp directory for tests."""
         self.temp_dir = tempfile.mkdtemp()
-        self.manager = BundleManager(
-            storage_path=Path(self.temp_dir) / "bundles.json"
-        )
+        self.manager = BundleManager(storage_path=Path(self.temp_dir) / "bundles.json")
 
     def teardown_method(self):
         """Clean up temp directory."""
@@ -404,6 +400,7 @@ class TestBundleManager:
 # =============================================================================
 # Adaptive Pricing Tests
 # =============================================================================
+
 
 class TestAdaptivePricing:
     """Test adaptive pricing engine."""

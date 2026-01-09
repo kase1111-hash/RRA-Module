@@ -33,19 +33,15 @@ Security Properties Tested:
 
 import pytest
 import os
-import struct
 import random
-from typing import List
 
 from rra.crypto.viewing_keys import (
     ViewingKey,
-    ViewingKeyManager,
     EncryptedData,
     KeyPurpose,
 )
 from rra.crypto.shamir import (
     ShamirSecretSharing,
-    KeyShare,
     ThresholdConfig,
     ShareHolder,
     PRIME,
@@ -88,6 +84,7 @@ def set_random_seed():
 # ============================================================================
 # Shamir Secret Sharing Fuzzing Tests
 # ============================================================================
+
 
 class TestShamirFuzzing:
     """Fuzzing tests for Shamir Secret Sharing."""
@@ -156,11 +153,7 @@ class TestShamirFuzzing:
 
         for threshold, total in configs:
             holders = [ShareHolder.USER] * total  # Dummy holders
-            config = ThresholdConfig(
-                threshold=threshold,
-                total_shares=total,
-                holders=holders
-            )
+            config = ThresholdConfig(threshold=threshold, total_shares=total, holders=holders)
 
             shares = shamir.split(secret, config, "config-test")
 
@@ -244,6 +237,7 @@ class TestShamirFuzzing:
 # ============================================================================
 # Pedersen Commitment Fuzzing Tests
 # ============================================================================
+
 
 class TestPedersenFuzzing:
     """Fuzzing tests for Pedersen Commitments."""
@@ -361,7 +355,10 @@ class TestPedersenFuzzing:
         for data in invalid_cases:
             if len(data) == 64:
                 # Point may fail curve check or subgroup check depending on coordinates
-                with pytest.raises(ValueError, match="(not on the BN254 curve|not in the BN254 G1 prime-order subgroup)"):
+                with pytest.raises(
+                    ValueError,
+                    match="(not on the BN254 curve|not in the BN254 G1 prime-order subgroup)",
+                ):
                     _bytes_to_point(data)
             else:
                 with pytest.raises(ValueError, match="64 bytes"):
@@ -385,6 +382,7 @@ class TestPedersenFuzzing:
 # ============================================================================
 # ECIES / Viewing Key Fuzzing Tests
 # ============================================================================
+
 
 class TestViewingKeyFuzzing:
     """Fuzzing tests for ECIES viewing keys."""
@@ -486,18 +484,12 @@ class TestViewingKeyFuzzing:
         """Test that expired keys cannot decrypt."""
         from datetime import datetime, timedelta
 
-        key = ViewingKey.generate(
-            KeyPurpose.DISPUTE_EVIDENCE,
-            "expire-test",
-            expires_in_days=1
-        )
+        key = ViewingKey.generate(KeyPurpose.DISPUTE_EVIDENCE, "expire-test", expires_in_days=1)
 
         # Manually expire the key
         key.expires_at = datetime.utcnow() - timedelta(days=1)
 
-        encrypted = ViewingKey.generate(
-            KeyPurpose.DISPUTE_EVIDENCE, "other"
-        ).encrypt(b"test")
+        encrypted = ViewingKey.generate(KeyPurpose.DISPUTE_EVIDENCE, "other").encrypt(b"test")
         encrypted.key_commitment = key.commitment
 
         # Should fail due to expiration
@@ -540,6 +532,7 @@ class TestViewingKeyFuzzing:
 # ============================================================================
 # Timing Attack Resistance Tests
 # ============================================================================
+
 
 class TestTimingResistance:
     """Tests to verify timing attack resistance properties."""
@@ -610,6 +603,7 @@ class TestTimingResistance:
 # Boundary Condition Tests
 # ============================================================================
 
+
 class TestBoundaryConditions:
     """Test behavior at mathematical boundaries."""
 
@@ -657,6 +651,7 @@ class TestBoundaryConditions:
 # ============================================================================
 # Stress Tests
 # ============================================================================
+
 
 class TestStress:
     """Stress tests for cryptographic operations."""

@@ -24,7 +24,7 @@ from typing import Dict, List, Optional, Any
 from enum import Enum
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from rra.config.market_config import MarketConfig
 from rra.agents.negotiator import NegotiatorAgent, NegotiationPhase
@@ -39,10 +39,7 @@ def create_test_agent(target_price: str, floor_price: str) -> NegotiatorAgent:
     # Create a temporary directory for the test KB
     temp_dir = tempfile.mkdtemp()
 
-    kb = KnowledgeBase(
-        repo_path=Path(temp_dir),
-        repo_url="https://github.com/test/repo"
-    )
+    kb = KnowledgeBase(repo_path=Path(temp_dir), repo_url="https://github.com/test/repo")
     kb.market_config = MarketConfig(
         target_price=target_price,
         floor_price=floor_price,
@@ -52,6 +49,7 @@ def create_test_agent(target_price: str, floor_price: str) -> NegotiatorAgent:
 
 class TransactionResult(Enum):
     """Transaction test result."""
+
     SUCCESS = "success"
     FAILURE = "failure"
     SOFT_LOCK = "soft_lock"
@@ -64,6 +62,7 @@ class TransactionResult(Enum):
 @dataclass
 class TransactionTest:
     """A single transaction test case."""
+
     test_id: int
     test_type: str
     input_data: Dict[str, Any]
@@ -77,6 +76,7 @@ class TransactionTest:
 @dataclass
 class AuditReport:
     """Full audit report."""
+
     total_tests: int = 0
     passed: int = 0
     failed: int = 0
@@ -106,8 +106,11 @@ class AuditReport:
                     "error": t.error_message,
                     "result": t.actual_result.value if t.actual_result else "unknown",
                 }
-                for t in self.soft_locks + self.race_conditions + self.validation_bypasses + self.price_manipulations
-            ]
+                for t in self.soft_locks
+                + self.race_conditions
+                + self.validation_bypasses
+                + self.price_manipulations
+            ],
         }
 
 
@@ -169,7 +172,7 @@ class TransactionSimulator:
                     "floor_price": f"{random.uniform(0.001, 0.1):.4f} ETH",
                     "buyer_offer": f"{random.uniform(0.005, 5.0):.4f} ETH",
                 },
-                expected_behavior="Transaction completes within valid price range"
+                expected_behavior="Transaction completes within valid price range",
             )
 
             try:
@@ -177,7 +180,7 @@ class TransactionSimulator:
                 result = self._simulate_negotiation(
                     test.input_data["target_price"],
                     test.input_data["floor_price"],
-                    test.input_data["buyer_offer"]
+                    test.input_data["buyer_offer"],
                 )
                 test.execution_time = time.time() - start
 
@@ -211,7 +214,12 @@ class TransactionSimulator:
             ("0.01 ETH", "0.01 ETH", "-0.05 ETH", "negative_offer"),
             ("0.01 ETH", "10 ETH", "5 ETH", "floor_above_target"),
             ("999999999999999 ETH", "1 ETH", "100 ETH", "overflow_target"),
-            ("0.000000000000001 ETH", "0.000000000000001 ETH", "0.000000000000001 ETH", "precision_limit"),
+            (
+                "0.000000000000001 ETH",
+                "0.000000000000001 ETH",
+                "0.000000000000001 ETH",
+                "precision_limit",
+            ),
             ("1.123456789012345678901234567890 ETH", "0.1 ETH", "1 ETH", "excessive_decimals"),
             ("not_a_number ETH", "0.1 ETH", "0.5 ETH", "invalid_format"),
             ("1 FAKE_CURRENCY", "0.1 ETH", "0.5 ETH", "unknown_currency"),
@@ -228,7 +236,7 @@ class TransactionSimulator:
                     "floor_price": edge[1],
                     "buyer_offer": edge[2],
                 },
-                expected_behavior=f"Should reject or handle {edge[3]} gracefully"
+                expected_behavior=f"Should reject or handle {edge[3]} gracefully",
             )
 
             try:
@@ -276,7 +284,12 @@ class TransactionSimulator:
             try:
                 offer = f"{random.uniform(0.1, 0.5):.4f} ETH"
                 response = shared_agent.respond(f"I offer {offer}")
-                return {"buyer_id": buyer_id, "offer": offer, "response": response[:100], "success": True}
+                return {
+                    "buyer_id": buyer_id,
+                    "offer": offer,
+                    "response": response[:100],
+                    "success": True,
+                }
             except Exception as e:
                 return {"buyer_id": buyer_id, "error": str(e), "success": False}
 
@@ -297,7 +310,7 @@ class TransactionSimulator:
                 test_type="concurrent_transaction",
                 input_data={"buyer_id": result.get("buyer_id"), "offer": result.get("offer")},
                 expected_behavior="Should handle concurrent requests without race conditions",
-                details=result
+                details=result,
             )
 
             if result["success"]:
@@ -320,7 +333,7 @@ class TransactionSimulator:
                 input_data={"concurrent_phase_changes": len(phase_changes)},
                 expected_behavior="Only one phase change should occur",
                 actual_result=TransactionResult.RACE_CONDITION,
-                error_message=f"Multiple concurrent phase changes detected: {len(phase_changes)}"
+                error_message=f"Multiple concurrent phase changes detected: {len(phase_changes)}",
             )
             self.report.race_conditions.append(test)
             self.report.all_tests.append(test)
@@ -349,7 +362,7 @@ class TransactionSimulator:
                     "initial_phase": test_case[0],
                     "action": test_case[1],
                 },
-                expected_behavior=test_case[2]
+                expected_behavior=test_case[2],
             )
 
             try:
@@ -380,13 +393,43 @@ class TransactionSimulator:
 
         manipulation_attempts = [
             # (description, target, floor, offer, attack_type)
-            ("bait_and_switch", "10 ETH", "1 ETH", "0.01 ETH", "Offer below floor then claim agreed"),
+            (
+                "bait_and_switch",
+                "10 ETH",
+                "1 ETH",
+                "0.01 ETH",
+                "Offer below floor then claim agreed",
+            ),
             ("decimal_confusion", "1.0 ETH", "0.1 ETH", "1,0 ETH", "Use comma instead of decimal"),
-            ("currency_confusion", "100 USDC", "10 USDC", "100 ETH", "Switch currencies mid-negotiation"),
-            ("scientific_notation", "1 ETH", "0.1 ETH", "1e-10 ETH", "Use tiny scientific notation"),
+            (
+                "currency_confusion",
+                "100 USDC",
+                "10 USDC",
+                "100 ETH",
+                "Switch currencies mid-negotiation",
+            ),
+            (
+                "scientific_notation",
+                "1 ETH",
+                "0.1 ETH",
+                "1e-10 ETH",
+                "Use tiny scientific notation",
+            ),
             ("unicode_injection", "1 ETH", "0.1 ETH", "1\u0000 ETH", "Null byte injection"),
-            ("sql_injection", "1 ETH", "0.1 ETH", "1'; DROP TABLE licenses;-- ETH", "SQL injection in price"),
-            ("overflow_attack", "1 ETH", "0.1 ETH", "115792089237316195423570985008687907853269984665640564039457584007913129639935 ETH", "uint256 max"),
+            (
+                "sql_injection",
+                "1 ETH",
+                "0.1 ETH",
+                "1'; DROP TABLE licenses;-- ETH",
+                "SQL injection in price",
+            ),
+            (
+                "overflow_attack",
+                "1 ETH",
+                "0.1 ETH",
+                "115792089237316195423570985008687907853269984665640564039457584007913129639935 ETH",
+                "uint256 max",
+            ),
         ]
 
         for i in range(count):
@@ -401,7 +444,7 @@ class TransactionSimulator:
                     "malicious_offer": attack[3],
                     "attack_type": attack[4],
                 },
-                expected_behavior=f"Should detect and reject {attack[0]} attack"
+                expected_behavior=f"Should detect and reject {attack[0]} attack",
             )
 
             try:
@@ -446,7 +489,9 @@ class TransactionSimulator:
                 "success": True,
                 "response": response,
                 "accepted": accepted,
-                "final_phase": agent.current_phase.value if hasattr(agent, 'current_phase') else "unknown"
+                "final_phase": (
+                    agent.current_phase.value if hasattr(agent, "current_phase") else "unknown"
+                ),
             }
 
         except ValueError as e:
@@ -462,7 +507,7 @@ class TransactionSimulator:
             "is_soft_lock": False,
             "reason": "",
             "phases_visited": [],
-            "timeout_detected": False
+            "timeout_detected": False,
         }
 
         # Track phase changes
@@ -470,7 +515,11 @@ class TransactionSimulator:
         if action == "immediate_agreement":
             # Try to jump directly to agreement
             agent.respond("I agree to buy now!")
-            phase = agent.current_phase if hasattr(agent, 'current_phase') else NegotiationPhase.INTRODUCTION
+            phase = (
+                agent.current_phase
+                if hasattr(agent, "current_phase")
+                else NegotiationPhase.INTRODUCTION
+            )
 
             # Check if we skipped required phases
             if phase == NegotiationPhase.AGREEMENT:
@@ -483,7 +532,7 @@ class TransactionSimulator:
             agent.respond("What's the price?")
 
             # Check if there's a timeout mechanism
-            if not hasattr(agent, 'timeout') and not hasattr(agent, 'expires_at'):
+            if not hasattr(agent, "timeout") and not hasattr(agent, "expires_at"):
                 result["is_soft_lock"] = True
                 result["reason"] = "No timeout mechanism - negotiation can hang forever"
 
@@ -493,9 +542,9 @@ class TransactionSimulator:
             agent.respond("I offer 0.5 ETH")
 
             # Check if stuck in proposal
-            phase = agent.current_phase if hasattr(agent, 'current_phase') else None
+            phase = agent.current_phase if hasattr(agent, "current_phase") else None
             if phase and phase.value == "proposal":
-                if not hasattr(agent, 'proposal_timeout'):
+                if not hasattr(agent, "proposal_timeout"):
                     result["is_soft_lock"] = True
                     result["reason"] = "Stuck in proposal phase with no timeout"
 
@@ -504,7 +553,7 @@ class TransactionSimulator:
             agent.respond("I agree to the terms")
             agent.respond("Actually, I changed my mind")
 
-            phase = agent.current_phase if hasattr(agent, 'current_phase') else None
+            phase = agent.current_phase if hasattr(agent, "current_phase") else None
             if phase and phase.value == "agreement":
                 # Good - agreement is final
                 result["is_soft_lock"] = False
@@ -523,8 +572,12 @@ class TransactionSimulator:
         print(f"{'='*60}\n")
 
         print(f"Total Tests: {self.report.total_tests}")
-        print(f"Passed: {self.report.passed} ({100*self.report.passed/max(1,self.report.total_tests):.1f}%)")
-        print(f"Failed: {self.report.failed} ({100*self.report.failed/max(1,self.report.total_tests):.1f}%)")
+        print(
+            f"Passed: {self.report.passed} ({100*self.report.passed/max(1,self.report.total_tests):.1f}%)"
+        )
+        print(
+            f"Failed: {self.report.failed} ({100*self.report.failed/max(1,self.report.total_tests):.1f}%)"
+        )
 
         print(f"\n{'='*40}")
         print("CRITICAL ISSUES FOUND:")
@@ -581,7 +634,7 @@ def run_simulation():
 
     # Save report
     report_path = os.path.join(os.path.dirname(__file__), "simulation_report.json")
-    with open(report_path, 'w') as f:
+    with open(report_path, "w") as f:
         json.dump(report.to_dict(), f, indent=2)
 
     print(f"\nReport saved to: {report_path}")

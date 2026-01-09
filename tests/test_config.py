@@ -10,7 +10,7 @@ from rra.config.market_config import (
     MarketConfig,
     LicenseModel,
     NegotiationStyle,
-    create_default_config
+    create_default_config,
 )
 
 
@@ -20,7 +20,7 @@ def test_market_config_creation():
         target_price="0.05 ETH",
         floor_price="0.02 ETH",
         license_model=LicenseModel.PER_SEAT,
-        negotiation_style=NegotiationStyle.CONCISE
+        negotiation_style=NegotiationStyle.CONCISE,
     )
 
     assert config.target_price == "0.05 ETH"
@@ -32,25 +32,16 @@ def test_market_config_creation():
 def test_price_validation():
     """Test price format validation."""
     # Valid prices
-    config = MarketConfig(
-        target_price="0.05 ETH",
-        floor_price="0.02 ETH"
-    )
+    config = MarketConfig(target_price="0.05 ETH", floor_price="0.02 ETH")
     assert config.target_price == "0.05 ETH"
 
     # Invalid format should raise error
     with pytest.raises(ValueError):
-        MarketConfig(
-            target_price="invalid",
-            floor_price="0.02 ETH"
-        )
+        MarketConfig(target_price="invalid", floor_price="0.02 ETH")
 
     # Negative price should raise error
     with pytest.raises(ValueError):
-        MarketConfig(
-            target_price="-0.05 ETH",
-            floor_price="0.02 ETH"
-        )
+        MarketConfig(target_price="-0.05 ETH", floor_price="0.02 ETH")
 
 
 def test_config_to_yaml():
@@ -87,7 +78,7 @@ license_model: "perpetual"
 negotiation_style: "persuasive"
 allow_custom_fork_rights: true
 """
-        with open(file_path, 'w') as f:
+        with open(file_path, "w") as f:
             f.write(yaml_content)
 
         config = MarketConfig.from_yaml(file_path)
@@ -106,7 +97,7 @@ def test_config_to_contract_params():
         floor_price="0.02 ETH",
         license_model=LicenseModel.PER_SEAT,
         royalty_on_derivatives=0.15,
-        developer_wallet="0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+        developer_wallet="0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
     )
 
     params = config.to_contract_params()

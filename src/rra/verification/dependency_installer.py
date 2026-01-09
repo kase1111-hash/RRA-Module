@@ -204,7 +204,9 @@ class DependencyInstaller:
             # Create environment dict for subprocess
             activate_env = os.environ.copy()
             activate_env["VIRTUAL_ENV"] = str(venv_path)
-            activate_env["PATH"] = str(python_path.parent) + os.pathsep + activate_env.get("PATH", "")
+            activate_env["PATH"] = (
+                str(python_path.parent) + os.pathsep + activate_env.get("PATH", "")
+            )
 
             # Upgrade pip first (silently)
             subprocess.run(

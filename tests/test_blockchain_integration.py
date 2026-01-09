@@ -209,9 +209,7 @@ class TestLicenseNFTIntegration:
             assert contract.abi is not None
             assert len(contract.abi) > 0
 
-    def test_license_nft_deploy_transaction(
-        self, mock_web3, test_accounts, mock_contract_artifact
-    ):
+    def test_license_nft_deploy_transaction(self, mock_web3, test_accounts, mock_contract_artifact):
         """Test LicenseNFTContract deployment builds correct transaction."""
         from rra.contracts.license_nft import LicenseNFTContract
         from rra.contracts.artifacts import ContractArtifact
@@ -308,9 +306,7 @@ class TestStoryProtocolIntegration:
             "PILicenseTemplate": "0x5555555555555555555555555555555555555555",
         }
 
-        client = StoryProtocolClient(
-            web3=mock_web3, network="testnet", custom_addresses=custom
-        )
+        client = StoryProtocolClient(web3=mock_web3, network="testnet", custom_addresses=custom)
 
         assert client.addresses["IPAssetRegistry"] == "0x1111111111111111111111111111111111111111"
         assert client.addresses["LicenseRegistry"] == "0x2222222222222222222222222222222222222222"
@@ -543,9 +539,7 @@ class TestE2EBlockchainFlow:
             mock_web3.set_contract_function_return(
                 contract_address, "registrar", test_accounts["registrar"]["address"]
             )
-            mock_web3.set_contract_function_return(
-                contract_address, "isLicenseValid", True
-            )
+            mock_web3.set_contract_function_return(contract_address, "isLicenseValid", True)
 
             # 3. Verify contract state
             registrar = contract.contract.functions.registrar().call()

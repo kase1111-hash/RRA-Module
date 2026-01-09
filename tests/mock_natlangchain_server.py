@@ -24,24 +24,26 @@ blocks = [
         "timestamp": datetime.now().isoformat(),
         "entries": [],
         "previous_hash": "0",
-        "hash": "genesis_block_hash"
+        "hash": "genesis_block_hash",
     }
 ]
 
 
-@app.route('/health', methods=['GET'])
+@app.route("/health", methods=["GET"])
 def health():
     """Health check endpoint."""
-    return jsonify({
-        "status": "healthy",
-        "service": "NatLangChain API (Mock)",
-        "llm_validation_available": False,
-        "blocks": len(blocks),
-        "pending_entries": len(entries)
-    })
+    return jsonify(
+        {
+            "status": "healthy",
+            "service": "NatLangChain API (Mock)",
+            "llm_validation_available": False,
+            "blocks": len(blocks),
+            "pending_entries": len(entries),
+        }
+    )
 
 
-@app.route('/stats', methods=['GET'])
+@app.route("/stats", methods=["GET"])
 def stats():
     """Get blockchain statistics."""
     total_entries = sum(len(b.get("entries", [])) for b in blocks)
@@ -50,19 +52,21 @@ def stats():
         for entry in block.get("entries", []):
             authors.add(entry.get("author", ""))
 
-    return jsonify({
-        "total_blocks": len(blocks),
-        "total_entries": total_entries,
-        "pending_entries": len(entries),
-        "unique_authors": len(authors),
-        "validated_entries": total_entries,
-        "chain_valid": True,
-        "latest_block_hash": blocks[-1]["hash"] if blocks else "",
-        "llm_validation_enabled": False
-    })
+    return jsonify(
+        {
+            "total_blocks": len(blocks),
+            "total_entries": total_entries,
+            "pending_entries": len(entries),
+            "unique_authors": len(authors),
+            "validated_entries": total_entries,
+            "chain_valid": True,
+            "latest_block_hash": blocks[-1]["hash"] if blocks else "",
+            "llm_validation_enabled": False,
+        }
+    )
 
 
-@app.route('/entry', methods=['POST'])
+@app.route("/entry", methods=["POST"])
 def add_entry():
     """Add a new entry to the blockchain."""
     data = request.get_json()
@@ -85,7 +89,7 @@ def add_entry():
         "metadata": data.get("metadata", {}),
         "timestamp": datetime.now().isoformat(),
         "validation_status": "valid" if data.get("validate", True) else "unvalidated",
-        "validation_paraphrases": []
+        "validation_paraphrases": [],
     }
 
     entries.append(entry)
@@ -94,22 +98,24 @@ def add_entry():
     if data.get("auto_mine", False):
         mine_block()
 
-    return jsonify({
-        "status": "success",
-        "entry": {
-            "status": "pending" if not data.get("auto_mine") else "mined",
-            "message": "Entry added",
-            "entry": entry
-        },
-        "validation": {
-            "symbolic_validation": {"valid": True, "issues": []},
-            "llm_validation": {"status": "skipped"},
-            "overall_decision": "VALID"
+    return jsonify(
+        {
+            "status": "success",
+            "entry": {
+                "status": "pending" if not data.get("auto_mine") else "mined",
+                "message": "Entry added",
+                "entry": entry,
+            },
+            "validation": {
+                "symbolic_validation": {"valid": True, "issues": []},
+                "llm_validation": {"status": "skipped"},
+                "overall_decision": "VALID",
+            },
         }
-    })
+    )
 
 
-@app.route('/mine', methods=['POST'])
+@app.route("/mine", methods=["POST"])
 def mine():
     """Mine pending entries into a new block."""
     result = mine_block()
@@ -120,19 +126,18 @@ def mine_block():
     """Internal function to mine a block."""
     # entries and blocks are module-level lists; no 'global' needed for mutating methods
     if not entries:
-        return {
-            "status": "no_entries",
-            "message": "No pending entries to mine"
-        }
+        return {"status": "no_entries", "message": "No pending entries to mine"}
 
     # Create new block
     previous_block = blocks[-1]
-    block_data = json.dumps({
-        "index": len(blocks),
-        "entries": entries,
-        "previous_hash": previous_block["hash"],
-        "timestamp": datetime.now().isoformat()
-    })
+    block_data = json.dumps(
+        {
+            "index": len(blocks),
+            "entries": entries,
+            "previous_hash": previous_block["hash"],
+            "timestamp": datetime.now().isoformat(),
+        }
+    )
     block_hash = hashlib.sha256(block_data.encode()).hexdigest()
 
     new_block = {
@@ -140,7 +145,7 @@ def mine_block():
         "timestamp": datetime.now().isoformat(),
         "entries": entries.copy(),
         "previous_hash": previous_block["hash"],
-        "hash": block_hash
+        "hash": block_hash,
     }
 
     blocks.append(new_block)
@@ -151,12 +156,12 @@ def mine_block():
         "block": {
             "index": new_block["index"],
             "hash": new_block["hash"],
-            "entries_count": len(new_block["entries"])
-        }
+            "entries_count": len(new_block["entries"]),
+        },
     }
 
 
-@app.route('/chain/narrative', methods=['GET'])
+@app.route("/chain/narrative", methods=["GET"])
 def narrative():
     """Get human-readable narrative of the chain."""
     narrative_parts = []
@@ -164,21 +169,21 @@ def narrative():
     for block in blocks:
         narrative_parts.append(f"Block {block['index']} (Hash: {block['hash'][:12]}...):")
         for entry in block.get("entries", []):
-            narrative_parts.append(f"  - {entry.get('author', 'Unknown')}: {entry.get('intent', 'No intent')}")
+            narrative_parts.append(
+                f"  - {entry.get('author', 'Unknown')}: {entry.get('intent', 'No intent')}"
+            )
             narrative_parts.append(f"    \"{entry.get('content', '')[:100]}...\"")
 
-    return jsonify({
-        "narrative": "\n".join(narrative_parts) if narrative_parts else "Empty chain"
-    })
+    return jsonify({"narrative": "\n".join(narrative_parts) if narrative_parts else "Empty chain"})
 
 
-@app.route('/entries/search', methods=['GET'])
+@app.route("/entries/search", methods=["GET"])
 def search():
     """Search entries on the chain."""
-    query = request.args.get('q', '')
-    author = request.args.get('author', '')
-    intent = request.args.get('intent', '')
-    limit = int(request.args.get('limit', 10))
+    query = request.args.get("q", "")
+    author = request.args.get("author", "")
+    intent = request.args.get("intent", "")
+    limit = int(request.args.get("limit", 10))
 
     results = []
     for block in blocks:
@@ -191,13 +196,10 @@ def search():
                 continue
             results.append(entry)
 
-    return jsonify({
-        "entries": results[:limit],
-        "total": len(results)
-    })
+    return jsonify({"entries": results[:limit], "total": len(results)})
 
 
-@app.route('/entries', methods=['POST'])
+@app.route("/entries", methods=["POST"])
 def submit_entry():
     """Submit entry (chain_interface style)."""
     data = request.get_json()
@@ -217,22 +219,19 @@ def submit_entry():
         "content": content_str,
         "intent": f"{entry_type} entry",
         "metadata": metadata,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
     }
 
     entries.append(entry)
 
-    return jsonify({
-        "status": "success",
-        "entryId": entry["id"]
-    })
+    return jsonify({"status": "success", "entryId": entry["id"]})
 
 
 def run_mock_server(port=5000, debug=False):
     """Run the mock server."""
     print(f"Starting Mock NatLangChain server on port {port}...")
-    app.run(host='0.0.0.0', port=port, debug=debug)
+    app.run(host="0.0.0.0", port=port, debug=debug)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run_mock_server(debug=True)

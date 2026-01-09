@@ -101,7 +101,7 @@ class TestWebhookSecurity:
             payload = {"message": "hello", "test": 123}
 
             # Compute signature the same way
-            payload_bytes = json.dumps(payload, sort_keys=True, separators=(',', ':')).encode()
+            payload_bytes = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
             signature = hmac.new(secret.encode(), payload_bytes, hashlib.sha256).hexdigest()
 
             # Verify without prefix
@@ -149,8 +149,8 @@ class TestWebhookSecurity:
             payload = {"test": 1}
             old_sig = hmac.new(
                 old_secret.encode(),
-                json.dumps(payload, sort_keys=True, separators=(',', ':')).encode(),
-                hashlib.sha256
+                json.dumps(payload, sort_keys=True, separators=(",", ":")).encode(),
+                hashlib.sha256,
             ).hexdigest()
 
             assert security.verify_signature("test_agent", payload, old_sig) is False
@@ -171,8 +171,8 @@ class TestWebhookSecurity:
             payload = {"test": 1}
             sig = hmac.new(
                 secret.encode(),
-                json.dumps(payload, sort_keys=True, separators=(',', ':')).encode(),
-                hashlib.sha256
+                json.dumps(payload, sort_keys=True, separators=(",", ":")).encode(),
+                hashlib.sha256,
             ).hexdigest()
 
             assert security.verify_signature("test_agent", payload, sig) is False
@@ -228,8 +228,8 @@ class TestWebhookSecurity:
             payload = {"test": 1}
             sig = hmac.new(
                 secret.encode(),
-                json.dumps(payload, sort_keys=True, separators=(',', ':')).encode(),
-                hashlib.sha256
+                json.dumps(payload, sort_keys=True, separators=(",", ":")).encode(),
+                hashlib.sha256,
             ).hexdigest()
 
             assert security2.verify_signature("persistent_agent", payload, sig) is True

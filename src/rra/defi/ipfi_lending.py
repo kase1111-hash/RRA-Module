@@ -666,7 +666,8 @@ class IPFiLendingManager:
                 oid: LoanOffer.from_dict(offer) for oid, offer in state.get("offers", {}).items()
             }
             self.collaterals = {
-                cid: Collateral.from_dict(coll) for cid, coll in state.get("collaterals", {}).items()
+                cid: Collateral.from_dict(coll)
+                for cid, coll in state.get("collaterals", {}).items()
             }
         except (json.JSONDecodeError, KeyError):
             pass

@@ -14,6 +14,7 @@ from web3 import Web3
 # Try to import the official SDK, fall back to manual implementation
 try:
     from story_protocol_python_sdk import StoryClient
+
     STORY_SDK_AVAILABLE = True
 except ImportError:
     STORY_SDK_AVAILABLE = False
@@ -108,8 +109,7 @@ class StoryProtocolClient:
         self.w3 = web3
         self.network = network
         self.chain_id = (
-            self.STORY_MAINNET_CHAIN_ID if network == "mainnet"
-            else self.STORY_TESTNET_CHAIN_ID
+            self.STORY_MAINNET_CHAIN_ID if network == "mainnet" else self.STORY_TESTNET_CHAIN_ID
         )
         self._story_client = None
         self._account = None
@@ -136,20 +136,16 @@ class StoryProtocolClient:
         ]
 
         self.ip_asset_registry = self.w3.eth.contract(
-            address=self.addresses["IPAssetRegistry"],
-            abi=minimal_abi
+            address=self.addresses["IPAssetRegistry"], abi=minimal_abi
         )
         self.license_registry = self.w3.eth.contract(
-            address=self.addresses["LicenseRegistry"],
-            abi=minimal_abi
+            address=self.addresses["LicenseRegistry"], abi=minimal_abi
         )
         self.royalty_module = self.w3.eth.contract(
-            address=self.addresses["RoyaltyModule"],
-            abi=minimal_abi
+            address=self.addresses["RoyaltyModule"], abi=minimal_abi
         )
         self.pil_license_template = self.w3.eth.contract(
-            address=self.addresses["PILicenseTemplate"],
-            abi=minimal_abi
+            address=self.addresses["PILicenseTemplate"], abi=minimal_abi
         )
 
     def _init_sdk_client(self, private_key: str) -> None:
@@ -325,12 +321,19 @@ class StoryProtocolClient:
             link_result = self._story_client.IPAsset.register_derivative(
                 child_ip_id=derivative_ip_id,
                 parent_ip_ids=[parent_ip_asset_id],
-                license_terms_ids=[int(license_terms_id.replace("terms_", "")) if license_terms_id.startswith("terms_") else 1],
+                license_terms_ids=[
+                    (
+                        int(license_terms_id.replace("terms_", ""))
+                        if license_terms_id.startswith("terms_")
+                        else 1
+                    )
+                ],
                 license_template=self.addresses["PILicenseTemplate"],
             )
 
             return {
-                "tx_hash": link_result.get("txHash") or link_result.get("tx_hash", result.get("tx_hash")),
+                "tx_hash": link_result.get("txHash")
+                or link_result.get("tx_hash", result.get("tx_hash")),
                 "derivative_ip_asset_id": derivative_ip_id,
                 "parent_ip_asset_id": parent_ip_asset_id,
                 "status": "success",
@@ -453,8 +456,7 @@ def register_repository_ip(
     # Default RPC URLs
     if not rpc_url:
         rpc_url = (
-            "https://mainnet.storyrpc.io" if network == "mainnet"
-            else "https://aeneid.storyrpc.io"
+            "https://mainnet.storyrpc.io" if network == "mainnet" else "https://aeneid.storyrpc.io"
         )
 
     # Connect to Story Protocol

@@ -23,15 +23,14 @@ Tests all security fixes from the 2025-12-20 security audit:
 """
 
 import pytest
-import hmac
 import time
 import os
-from typing import Tuple
 
 
 # =============================================================================
 # CRITICAL-001: BN254 Constant Verification
 # =============================================================================
+
 
 class TestBN254ConstantVerification:
     """Test CRITICAL-001: BN254 prime and curve constants are verified."""
@@ -50,7 +49,7 @@ class TestBN254ConstantVerification:
         from rra.crypto.pedersen import BN254_FIELD_PRIME
 
         # EIP-196 hex representation
-        expected_hex = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47
+        expected_hex = 0x30644E72E131A029B85045B68181585D97816A916871CA8D3C208C16D87CFD47
 
         assert BN254_FIELD_PRIME == expected_hex, "Field prime hex mismatch"
 
@@ -67,8 +66,7 @@ class TestBN254ConstantVerification:
         """Field prime must be greater than curve order (security property)."""
         from rra.crypto.pedersen import BN254_FIELD_PRIME, BN254_CURVE_ORDER
 
-        assert BN254_FIELD_PRIME > BN254_CURVE_ORDER, \
-            "Field prime must be > curve order for BN254"
+        assert BN254_FIELD_PRIME > BN254_CURVE_ORDER, "Field prime must be > curve order for BN254"
 
     def test_constants_are_prime(self):
         """Verify both constants are actually prime numbers."""
@@ -91,6 +89,7 @@ class TestBN254ConstantVerification:
 
             # Witness loop
             import random
+
             for _ in range(k):
                 a = random.randrange(2, n - 1)
                 x = pow(a, d, n)
@@ -112,12 +111,13 @@ class TestBN254ConstantVerification:
 # CRITICAL-002: Point-at-Infinity Rejection
 # =============================================================================
 
+
 class TestPointAtInfinityRejection:
     """Test CRITICAL-002: Point-at-infinity is rejected in commit()."""
 
     def test_commit_rejects_point_at_infinity(self):
         """Commitment resulting in point-at-infinity must raise ValueError."""
-        from rra.crypto.pedersen import PedersenCommitment, BN254_CURVE_ORDER
+        from rra.crypto.pedersen import PedersenCommitment
 
         pedersen = PedersenCommitment()
 
@@ -146,6 +146,7 @@ class TestPointAtInfinityRejection:
 # CRITICAL-003: Shamir Prime Verification
 # =============================================================================
 
+
 class TestShamirPrimeVerification:
     """Test CRITICAL-003: Shamir prime is mathematically verified."""
 
@@ -163,6 +164,7 @@ class TestShamirPrimeVerification:
         # Use sympy if available, otherwise Miller-Rabin
         try:
             import sympy
+
             assert sympy.isprime(PRIME), "Shamir prime failed primality test"
         except ImportError:
             # Fallback to Miller-Rabin
@@ -180,6 +182,7 @@ class TestShamirPrimeVerification:
                     d //= 2
 
                 import random
+
                 for _ in range(k):
                     a = random.randrange(2, n - 1)
                     x = pow(a, d, n)
@@ -199,6 +202,7 @@ class TestShamirPrimeVerification:
 # =============================================================================
 # HIGH-002/003: Timing-Safe Operations
 # =============================================================================
+
 
 class TestTimingSafeOperations:
     """Test HIGH-002/003: Polynomial and Lagrange operations are timing-safe."""
@@ -239,13 +243,15 @@ class TestTimingSafeOperations:
         mean_time = sum(times) / len(times)
         max_time = max(times)
 
-        assert max_time < mean_time * 3, \
-            f"Timing variance too high: max={max_time:.6f}s, mean={mean_time:.6f}s"
+        assert (
+            max_time < mean_time * 3
+        ), f"Timing variance too high: max={max_time:.6f}s, mean={mean_time:.6f}s"
 
 
 # =============================================================================
 # HIGH-004: Share Verification Fails Closed
 # =============================================================================
+
 
 class TestShareVerificationFailsClosed:
     """Test HIGH-004: Share verification fails closed with insufficient shares."""
@@ -277,6 +283,7 @@ class TestShareVerificationFailsClosed:
 # HIGH-005: Secure Key Export
 # =============================================================================
 
+
 class TestSecureKeyExport:
     """Test HIGH-005: Key export has security warnings and encrypted option."""
 
@@ -285,21 +292,15 @@ class TestSecureKeyExport:
         from rra.crypto.viewing_keys import ViewingKey, KeyPurpose
         import warnings
 
-        key = ViewingKey.generate(
-            purpose=KeyPurpose.DISPUTE_EVIDENCE,
-            context_id="test-context"
-        )
+        key = ViewingKey.generate(purpose=KeyPurpose.DISPUTE_EVIDENCE, context_id="test-context")
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always", DeprecationWarning)
             _ = key.export_private()
 
             # Should have at least one deprecation warning
-            deprecation_warnings = [
-                x for x in w if issubclass(x.category, DeprecationWarning)
-            ]
-            assert len(deprecation_warnings) >= 1, \
-                "export_private() should emit DeprecationWarning"
+            deprecation_warnings = [x for x in w if issubclass(x.category, DeprecationWarning)]
+            assert len(deprecation_warnings) >= 1, "export_private() should emit DeprecationWarning"
 
     def test_export_key_for_escrow_requires_acknowledgment(self):
         """export_key_for_escrow() requires security acknowledgment."""
@@ -314,16 +315,14 @@ class TestSecureKeyExport:
             manager.export_key_for_escrow("test-dispute")
 
         # Should succeed with acknowledgment
-        key_bytes = manager.export_key_for_escrow(
-            "test-dispute",
-            _acknowledge_security_risk=True
-        )
+        key_bytes = manager.export_key_for_escrow("test-dispute", _acknowledge_security_risk=True)
         assert key_bytes is not None
 
 
 # =============================================================================
 # MEDIUM-001: Key Commitment with Blinding
 # =============================================================================
+
 
 class TestKeyCommitmentWithBlinding:
     """Test MEDIUM-001: Key commitments use random blinding factors."""
@@ -332,39 +331,33 @@ class TestKeyCommitmentWithBlinding:
         """Different keys should produce different commitments."""
         from rra.crypto.viewing_keys import ViewingKey, KeyPurpose
 
-        key1 = ViewingKey.generate(
-            purpose=KeyPurpose.DISPUTE_EVIDENCE,
-            context_id="test-context-1"
-        )
-        key2 = ViewingKey.generate(
-            purpose=KeyPurpose.DISPUTE_EVIDENCE,
-            context_id="test-context-2"
-        )
+        key1 = ViewingKey.generate(purpose=KeyPurpose.DISPUTE_EVIDENCE, context_id="test-context-1")
+        key2 = ViewingKey.generate(purpose=KeyPurpose.DISPUTE_EVIDENCE, context_id="test-context-2")
 
         # Different keys should give different commitments
-        assert key1.commitment != key2.commitment, \
-            "Different keys should have different commitments"
+        assert (
+            key1.commitment != key2.commitment
+        ), "Different keys should have different commitments"
 
     def test_commitment_is_hiding(self):
         """Commitment should hide the public key (not just hash of pubkey)."""
         from rra.crypto.viewing_keys import ViewingKey, KeyPurpose
         from eth_utils import keccak
 
-        key = ViewingKey.generate(
-            purpose=KeyPurpose.DISPUTE_EVIDENCE,
-            context_id="test-context"
-        )
+        key = ViewingKey.generate(purpose=KeyPurpose.DISPUTE_EVIDENCE, context_id="test-context")
 
         # Commitment should NOT be just keccak(public_key)
         naive_commitment = keccak(key.public_key.to_bytes())
 
-        assert key.commitment != naive_commitment, \
-            "Commitment should include blinding, not just hash of pubkey"
+        assert (
+            key.commitment != naive_commitment
+        ), "Commitment should include blinding, not just hash of pubkey"
 
 
 # =============================================================================
 # LOW-001: Constant-Time Comparisons
 # =============================================================================
+
 
 class TestConstantTimeComparisons:
     """Test LOW-001: All crypto comparisons use hmac.compare_digest."""
@@ -373,10 +366,7 @@ class TestConstantTimeComparisons:
         """Commitment verification should use constant-time comparison."""
         from rra.crypto.viewing_keys import ViewingKey, KeyPurpose
 
-        key = ViewingKey.generate(
-            purpose=KeyPurpose.DISPUTE_EVIDENCE,
-            context_id="test-context"
-        )
+        key = ViewingKey.generate(purpose=KeyPurpose.DISPUTE_EVIDENCE, context_id="test-context")
         commitment = key.commitment
         blinding = key._commitment_blinding
 
@@ -403,13 +393,15 @@ class TestConstantTimeComparisons:
 
         # Should be within 2x of each other
         ratio = max(mean_correct, mean_wrong) / min(mean_correct, mean_wrong)
-        assert ratio < 2.0, \
-            f"Timing difference too large: correct={mean_correct:.9f}s, wrong={mean_wrong:.9f}s"
+        assert (
+            ratio < 2.0
+        ), f"Timing difference too large: correct={mean_correct:.9f}s, wrong={mean_wrong:.9f}s"
 
 
 # =============================================================================
 # LOW-003: Address Validation
 # =============================================================================
+
 
 class TestAddressValidation:
     """Test LOW-003: Ethereum addresses are validated before use."""
@@ -464,6 +456,7 @@ class TestAddressValidation:
 # LOW-005: Robust Generator Derivation
 # =============================================================================
 
+
 class TestRobustGeneratorDerivation:
     """Test LOW-005: Generator point derivation is robust."""
 
@@ -489,14 +482,13 @@ class TestRobustGeneratorDerivation:
 # LOW-006: Point Order Validation
 # =============================================================================
 
+
 class TestPointOrderValidation:
     """Test LOW-006: Generator points have correct order."""
 
     def test_g_point_has_correct_order(self):
         """G_POINT must have order equal to curve order."""
-        from rra.crypto.pedersen import (
-            G_POINT, BN254_CURVE_ORDER, _scalar_mult
-        )
+        from rra.crypto.pedersen import G_POINT, BN254_CURVE_ORDER, _scalar_mult
 
         # n * G should equal point at infinity
         result = _scalar_mult(BN254_CURVE_ORDER, G_POINT)
@@ -504,9 +496,7 @@ class TestPointOrderValidation:
 
     def test_h_point_has_correct_order(self):
         """H_POINT must have order equal to curve order."""
-        from rra.crypto.pedersen import (
-            H_POINT, BN254_CURVE_ORDER, _scalar_mult
-        )
+        from rra.crypto.pedersen import H_POINT, BN254_CURVE_ORDER, _scalar_mult
 
         # n * H should equal point at infinity
         result = _scalar_mult(BN254_CURVE_ORDER, H_POINT)
@@ -517,6 +507,7 @@ class TestPointOrderValidation:
 # LOW-007: Test Vectors
 # =============================================================================
 
+
 class TestVectorVerification:
     """Test LOW-007: Test vectors are verified at module load."""
 
@@ -524,8 +515,7 @@ class TestVectorVerification:
         """Test vectors should be defined."""
         from rra.crypto.pedersen import PEDERSEN_TEST_VECTORS
 
-        assert len(PEDERSEN_TEST_VECTORS) >= 3, \
-            "Should have at least 3 test vectors"
+        assert len(PEDERSEN_TEST_VECTORS) >= 3, "Should have at least 3 test vectors"
 
     def test_verify_function_exists(self):
         """verify_test_vectors function should exist."""
@@ -533,8 +523,7 @@ class TestVectorVerification:
 
         result = verify_test_vectors()
 
-        assert result["passed"] is True, \
-            f"Test vectors failed: {result.get('errors')}"
+        assert result["passed"] is True, f"Test vectors failed: {result.get('errors')}"
         assert result["total_vectors"] >= 3
         assert result["failed"] == 0
 
@@ -543,14 +532,13 @@ class TestVectorVerification:
 # LOW-008: Subgroup Membership Validation
 # =============================================================================
 
+
 class TestSubgroupMembershipValidation:
     """Test LOW-008: Points are validated for subgroup membership."""
 
     def test_valid_point_passes_subgroup_check(self):
         """Valid curve points should pass subgroup check."""
-        from rra.crypto.pedersen import (
-            G_POINT, H_POINT, _is_in_subgroup
-        )
+        from rra.crypto.pedersen import G_POINT, H_POINT, _is_in_subgroup
 
         assert _is_in_subgroup(G_POINT), "G_POINT should be in subgroup"
         assert _is_in_subgroup(H_POINT), "H_POINT should be in subgroup"
@@ -567,8 +555,7 @@ class TestSubgroupMembershipValidation:
 
         # Random point almost certainly not on curve
         invalid_point = (12345, 67890)
-        assert not _is_in_subgroup(invalid_point), \
-            "Invalid point should not be in subgroup"
+        assert not _is_in_subgroup(invalid_point), "Invalid point should not be in subgroup"
 
     def test_bytes_to_point_validates_subgroup(self):
         """_bytes_to_point should validate subgroup membership."""
@@ -587,6 +574,7 @@ class TestSubgroupMembershipValidation:
 # Integration: Full Commitment Flow
 # =============================================================================
 
+
 class TestFullCommitmentFlow:
     """Integration test for complete commitment workflow."""
 
@@ -601,17 +589,18 @@ class TestFullCommitmentFlow:
         commitment, blinding = pedersen.commit(value)
 
         # Verify commitment (note: parameter order is commitment, value, blinding)
-        assert pedersen.verify(commitment, value, blinding), \
-            "Commitment verification failed"
+        assert pedersen.verify(commitment, value, blinding), "Commitment verification failed"
 
         # Wrong value should fail
-        assert not pedersen.verify(commitment, b"wrong_value", blinding), \
-            "Wrong value should not verify"
+        assert not pedersen.verify(
+            commitment, b"wrong_value", blinding
+        ), "Wrong value should not verify"
 
         # Wrong blinding should fail
         wrong_blinding = os.urandom(32)
-        assert not pedersen.verify(commitment, value, wrong_blinding), \
-            "Wrong blinding should not verify"
+        assert not pedersen.verify(
+            commitment, value, wrong_blinding
+        ), "Wrong blinding should not verify"
 
     def test_aggregate_commitments_flow(self):
         """Test commitment aggregation for multiple values."""
@@ -639,6 +628,7 @@ class TestFullCommitmentFlow:
 # =============================================================================
 # Integration: Shamir Secret Sharing with Security
 # =============================================================================
+
 
 class TestShamirSecurityIntegration:
     """Integration test for Shamir with security fixes."""
@@ -673,6 +663,7 @@ class TestShamirSecurityIntegration:
 # Integration: Viewing Keys with Security
 # =============================================================================
 
+
 class TestViewingKeySecurityIntegration:
     """Integration test for viewing keys with security fixes."""
 
@@ -705,7 +696,7 @@ class TestViewingKeySecurityIntegration:
         key = manager.generate_for_dispute("export-test-dispute")
 
         # Regular export should work but warn
-        with warnings.catch_warnings(record=True) as w:
+        with warnings.catch_warnings(record=True):
             warnings.simplefilter("always")
             _ = key.export_private()
 
