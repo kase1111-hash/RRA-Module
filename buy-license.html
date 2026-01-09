@@ -104,17 +104,27 @@
     <script>
         // ============================================
         // LICENSE PRICE CONFIGURATION
-        // Set your own price here (in ETH)
+        // Set your own price here (in IP - Story Protocol's native token)
         // This value should match your .market.yaml target_price
         // ============================================
-        const LICENSE_PRICE_ETH = 0.005;  // Price in ETH
-        const PRICE_WEI = (LICENSE_PRICE_ETH * 1e18).toString();  // Automatically converted to wei
+        const LICENSE_PRICE_IP = 0.005;  // Price in IP (Story Protocol token)
+        const PRICE_WEI = (LICENSE_PRICE_IP * 1e18).toString();  // Automatically converted to wei
 
         // Story Protocol Configuration
         const IP_ASSET_ID = "0xb77ABcfFbf063a3e6BACA37D72353750475D4E70";
         const LICENSE_TERMS_ID = 3;
-        const STORY_CHAIN_ID = 1514;
-        const STORY_RPC = "https://mainnet.storyrpc.io";
+
+        // Network Configuration (supports both mainnet and testnet)
+        const STORY_MAINNET_CHAIN_ID = 1514;
+        const STORY_TESTNET_CHAIN_ID = 1315;  // Aeneid testnet
+        const STORY_CHAIN_ID = STORY_TESTNET_CHAIN_ID;  // Change to STORY_MAINNET_CHAIN_ID for mainnet
+        const STORY_RPC = "https://aeneid.storyrpc.io";  // Change to mainnet.storyrpc.io for mainnet
+
+        // Explorer URLs for transaction links
+        const EXPLORER_URLS = {
+            [STORY_MAINNET_CHAIN_ID]: "https://explorer.story.foundation",
+            [STORY_TESTNET_CHAIN_ID]: "https://aeneid.explorer.story.foundation"
+        };
 
         // Story Protocol Licensing Module Address
         const LICENSING_MODULE = "0xd81fd78f557b457b4350cB95D20b547bFEb4D857";
@@ -125,7 +135,7 @@
 
         // Initialize price displays on page load
         function initializePriceDisplays() {
-            const priceText = `${LICENSE_PRICE_ETH} ETH`;
+            const priceText = `${LICENSE_PRICE_IP} IP`;
             document.getElementById('price-display').textContent = priceText;
             document.getElementById('btn-price-display').textContent = priceText;
         }
@@ -154,14 +164,15 @@
                     } catch (switchError) {
                         // Chain not added, add it
                         if (switchError.code === 4902) {
+                            const isTestnet = STORY_CHAIN_ID === STORY_TESTNET_CHAIN_ID;
                             await window.ethereum.request({
                                 method: 'wallet_addEthereumChain',
                                 params: [{
                                     chainId: '0x' + STORY_CHAIN_ID.toString(16),
-                                    chainName: 'Story Protocol',
+                                    chainName: isTestnet ? 'Story Aeneid Testnet' : 'Story Protocol',
                                     nativeCurrency: { name: 'IP', symbol: 'IP', decimals: 18 },
                                     rpcUrls: [STORY_RPC],
-                                    blockExplorerUrls: ['https://storyscan.io'],
+                                    blockExplorerUrls: [EXPLORER_URLS[STORY_CHAIN_ID]],
                                 }],
                             });
                         }
@@ -244,8 +255,9 @@
 
                 loadingDiv.classList.add('hidden');
                 successDiv.classList.remove('hidden');
+                const explorerUrl = EXPLORER_URLS[STORY_CHAIN_ID] || EXPLORER_URLS[STORY_TESTNET_CHAIN_ID];
                 document.getElementById('tx-link').href =
-                    `https://storyscan.io/tx/${tx.hash}`;
+                    `${explorerUrl}/tx/${tx.hash}`;
 
             } catch (error) {
                 console.error('Purchase error:', error);
