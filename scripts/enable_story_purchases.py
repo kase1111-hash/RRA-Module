@@ -78,7 +78,7 @@ class PILTermsConfig:
     derivatives_attribution: bool = True
     derivatives_reciprocal: bool = False
     minting_fee: int = 0  # Fee in wei
-    currency: str = STORY_MAINNET_CONTRACTS["zero_address"]  # Default to ETH
+    currency: str = STORY_MAINNET_CONTRACTS["zero_address"]  # Default to Native IP
     revenue_share: int = 0  # Percentage in basis points (0-10000)
     transferable: bool = True
     expiration: int = 0  # 0 = never expires
@@ -341,7 +341,7 @@ class StoryProtocolPurchaseEnabler:
             False,  # derivativesApproval
             terms.derivatives_reciprocal,  # derivativesReciprocal
             0,  # derivativeRevCeiling (0 = unlimited)
-            Web3.to_checksum_address(self.contracts["wip_token"]),  # currency (WIP token)
+            Web3.to_checksum_address(self.contracts["zero_address"]),  # currency (Native IP)
             "",  # uri (empty for on-chain terms)
         )
 
