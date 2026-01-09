@@ -3,9 +3,19 @@ const nextConfig = {
   reactStrictMode: true,
 
   // =========================================================================
+  // GitHub Pages Configuration
+  // =========================================================================
+  // Static export for GitHub Pages deployment
+  output: 'export',
+  basePath: '/RRA-Module',
+  assetPrefix: '/RRA-Module/',
+  trailingSlash: true,
+
+  // =========================================================================
   // Image Optimization
   // =========================================================================
   images: {
+    unoptimized: true,  // Required for static export
     remotePatterns: [
       {
         protocol: 'https',
@@ -21,16 +31,17 @@ const nextConfig = {
   },
 
   // =========================================================================
-  // API Rewrites
+  // API Rewrites (disabled for static export)
   // =========================================================================
-  async rewrites() {
-    return [
-      {
-        source: '/api/rra/:path*',
-        destination: 'http://localhost:8000/api/:path*',
-      },
-    ];
-  },
+  // Note: Rewrites don't work with static export. For development, use proxy config.
+  // async rewrites() {
+  //   return [
+  //     {
+  //       source: '/api/rra/:path*',
+  //       destination: 'http://localhost:8000/api/:path*',
+  //     },
+  //   ];
+  // },
 
   // =========================================================================
   // Bundle Optimization
@@ -112,53 +123,14 @@ const nextConfig = {
   },
 
   // =========================================================================
-  // Headers for caching
+  // Headers for caching (disabled for static export - configure in hosting)
   // =========================================================================
-  async headers() {
-    return [
-      {
-        // Security headers for wallet connections (RainbowKit/WalletConnect)
-        source: '/:path*',
-        headers: [
-          {
-            key: 'Cross-Origin-Opener-Policy',
-            value: 'same-origin-allow-popups',
-          },
-          {
-            key: 'Cross-Origin-Embedder-Policy',
-            value: 'credentialless',
-          },
-        ],
-      },
-      {
-        // Cache static assets aggressively
-        source: '/_next/static/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-      {
-        // Cache images
-        source: '/images/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=86400, stale-while-revalidate=604800',
-          },
-        ],
-      },
-    ];
-  },
+  // Note: Headers don't work with static export. Configure in GitHub Pages or hosting provider.
+  // async headers() { ... }
 
   // =========================================================================
-  // Output Configuration
+  // Production Configuration
   // =========================================================================
-
-  // Generate smaller output
-  output: 'standalone',
 
   // Reduce source map size in production
   productionBrowserSourceMaps: false,
