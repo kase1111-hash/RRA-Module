@@ -10,40 +10,34 @@ const docSections = [
     articles: [
       { title: 'Quick Start Guide', href: '/docs/quickstart' },
       { title: 'How It Works', href: '/docs/how-it-works' },
-      { title: 'Creating Your First Agent', href: '/docs/first-agent' },
     ],
   },
   {
     title: 'Configuration',
     description: 'Configure your repository for the marketplace',
     icon: Settings,
-    href: '/docs/configuration',
+    href: '/docs/market-yaml',
     articles: [
       { title: 'market.yaml Reference', href: '/docs/market-yaml' },
-      { title: 'Pricing Strategies', href: '/docs/pricing' },
-      { title: 'License Models', href: '/docs/licenses' },
     ],
   },
   {
     title: 'Integration',
     description: 'Integrate with NatLangChain and other systems',
     icon: Code,
-    href: '/docs/integration',
+    href: '/docs/natlangchain',
     articles: [
       { title: 'NatLangChain Integration', href: '/docs/natlangchain' },
       { title: 'API Reference', href: '/docs/api' },
-      { title: 'Webhooks', href: '/docs/webhooks' },
     ],
   },
   {
     title: 'Security',
     description: 'Security best practices and verification',
     icon: Shield,
-    href: '/docs/security',
+    href: '/docs/verification',
     articles: [
       { title: 'Code Verification', href: '/docs/verification' },
-      { title: 'Smart Contract Security', href: '/docs/smart-contracts' },
-      { title: 'Identity & DID', href: '/docs/identity' },
     ],
   },
 ];

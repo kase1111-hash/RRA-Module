@@ -2,7 +2,7 @@
 
 Complete documentation for the Revenant Repo Agent Module.
 
-**Version:** 1.0.0-beta | **Tests:** 1,085 passing | **Security:** A- rating | **Modules:** 36+
+**Version:** 1.0.1-beta | **Tests:** 1,237 passing | **Security:** A- rating | **Modules:** 36+
 
 ## Quick Navigation
 
@@ -22,14 +22,13 @@ Complete documentation for the Revenant Repo Agent Module.
 - **[Blockchain Licensing](BLOCKCHAIN-LICENSING.md)** - Complete blockchain monetization integration guide
 
 #### Integration Guides
-- **[NatLangChain Integration](NATLANGCHAIN_INTEGRATION.md)** - Agent-OS, synth-mind, boundary-daemon integration
-- **[Story Protocol Integration](STORY-PROTOCOL-INTEGRATION.md)** - Programmable IP licensing with Story Protocol
+- **[Integrations Guide](INTEGRATIONS.md)** - NatLangChain ecosystem, API client, and Story Protocol (consolidated)
 - **[DeFi Integration Guide](DEFI-INTEGRATION.md)** - Superfluid streaming, IPFi lending, yield tokens, fractional IP
 - **[Mobile SDK Guide](MOBILE_SDK.md)** - iOS and Android integration
 
 #### Project Status
 - **[Roadmap](../ROADMAP.md)** - Viral distribution strategy and product roadmap
-- **[Testing Results](TESTING-RESULTS.md)** - Test suite results (1,085 tests passing)
+- **[Testing Results](TESTING-RESULTS.md)** - Test suite results (1,237 tests passing)
 - **[Monitoring Guide](MONITORING.md)** - Production monitoring and alerting setup
 
 ### Security & Privacy
@@ -95,12 +94,10 @@ RRA-Module/
 │   ├── README.md                          # This file
 │   ├── USAGE-GUIDE.md                     # Comprehensive usage guide
 │   ├── BLOCKCHAIN-LICENSING.md            # Blockchain monetization
-│   ├── NATLANGCHAIN_INTEGRATION.md        # NatLangChain ecosystem
-│   ├── INTEGRATION.md                     # Ecosystem integration modes
-│   ├── STORY-PROTOCOL-INTEGRATION.md      # Story Protocol guide
+│   ├── INTEGRATIONS.md                    # NatLangChain + Story Protocol (consolidated)
 │   ├── DEFI-INTEGRATION.md                # DeFi integration guide
 │   ├── MOBILE_SDK.md                      # Mobile SDK documentation
-│   ├── TESTING-RESULTS.md                 # Test results (1,085 tests)
+│   ├── TESTING-RESULTS.md                 # Test results (1,237 tests)
 │   ├── MONITORING.md                      # Monitoring and alerting
 │   ├── HARDWARE-AUTHENTICATION.md         # FIDO2/WebAuthn (Phase 5)
 │   ├── TRANSACTION-SECURITY.md            # Two-step verification
@@ -168,12 +165,12 @@ RRA-Module/
 - [FSL-1.1-ALv2 License](../LICENSE.md)
 - [SPDX Headers](../LICENSING.md#file-headers)
 - [License Verification](../LICENSING.md#verifying-license-compliance)
-- [Programmable IP Licenses](STORY-PROTOCOL-INTEGRATION.md#2-programmable-ip-licenses-pil)
+- [Programmable IP Licenses](INTEGRATIONS.md#programmable-ip-licenses-pil)
 - [Jurisdiction Detection](../README.md#governance--legal-layer) - Automatic jurisdiction compliance
 - [RWA Tokenization](../README.md#governance--legal-layer) - Real-world asset support
 
 #### DeFi Integration
-- [Story Protocol](STORY-PROTOCOL-INTEGRATION.md) - Programmable IP licensing
+- [Story Protocol](INTEGRATIONS.md#story-protocol) - Programmable IP licensing
 - [Superfluid Streaming](DEFI-INTEGRATION.md#2-superfluid---streaming-payments)
 - [IPFi Lending](DEFI-INTEGRATION.md#3-ipfi-lending-nftfi-style) - NFTfi-style collateralized loans
 - [Fractional IP Ownership](DEFI-INTEGRATION.md#4-fractional-ip-ownership) - ERC-20 fractionalization
@@ -217,10 +214,10 @@ RRA-Module/
 - [Reputation System](../README.md#advanced-processing-layer) - Weighted voting power
 
 #### Ecosystem Integration
-- [NatLangChain Integration](NATLANGCHAIN_INTEGRATION.md) - Full ecosystem
-- [Agent-OS Runtime](NATLANGCHAIN_INTEGRATION.md) - Agent execution environment
-- [synth-mind LLM](NATLANGCHAIN_INTEGRATION.md) - LLM integration
-- [boundary-daemon](NATLANGCHAIN_INTEGRATION.md) - Permissions management
+- [Integrations Guide](INTEGRATIONS.md) - NatLangChain ecosystem + Story Protocol
+- [NatLangChain Ecosystem](INTEGRATIONS.md#natlangchain-ecosystem) - Agent runtime, state persistence
+- [NatLangChain API](INTEGRATIONS.md#natlangchain-api) - On-chain transaction recording
+- [Story Protocol](INTEGRATIONS.md#story-protocol) - IP asset registration, PIL
 - [Network Resilience](../README.md#integration-layer) - Auto-retry with exponential backoff
 
 #### Strategy & Risk Management

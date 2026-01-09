@@ -5,6 +5,39 @@ All notable changes to the RRA Module will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1-beta] - 2026-01-05
+
+### Fixed
+
+#### GUI Fixes
+- Fixed 9 broken documentation links in marketplace docs page
+- Fixed breadcrumb navigation links in docs/verification, docs/market-yaml, docs/natlangchain pages
+- Removed placeholder social media links (Twitter/Discord) from Footer component
+- ChainStatus component now displays blockchain network name ("Aeneid Testnet")
+
+#### Story Protocol Network Standardization
+- Unified all Story Protocol references to use Aeneid Testnet (Chain ID: 1315)
+- Updated buy-license.html: RPC URL, PIL template address, explorer URL
+- Updated StoryProtocolPurchase.tsx to default to testnet
+- API chain health endpoint now returns network metadata
+
+### Added
+- 22 new crypto tests for v1.0.1-beta features (1,237 total tests)
+  - Encrypted key export/import roundtrip tests
+  - Pedersen commitment performance tests
+  - Shamir secret sharing security tests
+  - Backwards compatibility tests
+  - Optional dependency detection tests
+
+### Documentation
+- Consolidated integration docs into single `docs/INTEGRATIONS.md`:
+  - NatLangChain Ecosystem integration
+  - NatLangChain API client usage
+  - Story Protocol configuration and contracts
+- Updated version references to 1.0.1-beta
+
+---
+
 ## [1.0.0-rc1] - 2026-01-05
 
 ### Security Fixes (24 findings addressed)

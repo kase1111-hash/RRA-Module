@@ -9,8 +9,6 @@ export default function VerificationPage() {
         <nav className="flex items-center gap-2 text-sm text-gray-500">
           <Link href="/docs" className="hover:text-gray-700 dark:hover:text-gray-300">Docs</Link>
           <ChevronRight className="h-4 w-4" />
-          <Link href="/docs/security" className="hover:text-gray-700 dark:hover:text-gray-300">Security</Link>
-          <ChevronRight className="h-4 w-4" />
           <span className="text-gray-900 dark:text-white">Code Verification</span>
         </nav>
 
@@ -130,16 +128,16 @@ License Details:
         {/* Next Steps */}
         <div className="mt-12 flex gap-4">
           <Link
-            href="/docs/security"
+            href="/docs"
             className="rounded-lg border border-gray-300 px-6 py-3 font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
           >
-            ← Security Overview
+            ← Back to Docs
           </Link>
           <Link
-            href="/docs/smart-contracts"
+            href="/docs/api"
             className="rounded-lg bg-indigo-600 px-6 py-3 font-medium text-white hover:bg-indigo-700"
           >
-            Smart Contracts →
+            API Reference →
           </Link>
         </div>
       </div>

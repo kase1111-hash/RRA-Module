@@ -7,9 +7,12 @@ Enables RRA agents to communicate with other agents in the NatLangChain
 ecosystem through the mediator network.
 """
 
+import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from collections import deque
+
+logger = logging.getLogger(__name__)
 
 from rra.integration.base import MessageRouterProtocol
 from rra.integration.config import get_integration_config
@@ -105,7 +108,7 @@ class MediatorNodeRouter:
         try:
             self.client.route_message(to_agent=to_agent, message=message, priority="normal")
         except Exception as e:
-            print(f"Warning: Failed to send via mediator-node: {e}")
+            logger.warning(f"Failed to send via mediator-node: {e}")
             if not hasattr(self, "_fallback"):
                 self._fallback = LocalMessageRouter(self.agent_id)
             self._fallback.send_message(to_agent, message)
@@ -118,7 +121,7 @@ class MediatorNodeRouter:
         try:
             return self.client.poll_message(timeout=0)
         except Exception as e:
-            print(f"Warning: Failed to receive from mediator-node: {e}")
+            logger.warning(f"Failed to receive from mediator-node: {e}")
             if not hasattr(self, "_fallback"):
                 self._fallback = LocalMessageRouter(self.agent_id)
             return self._fallback.receive_message()

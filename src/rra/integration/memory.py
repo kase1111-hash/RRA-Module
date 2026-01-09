@@ -7,10 +7,13 @@ Provides state persistence for agents when running in integrated mode.
 Falls back to local file storage in standalone mode.
 """
 
+import logging
 from typing import Dict, Any, Optional
 from pathlib import Path
 import json
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 from rra.integration.base import AgentStateProtocol
 from rra.integration.config import get_integration_config
@@ -110,7 +113,7 @@ class MemoryVaultStateManager:
             )
         except Exception as e:
             # Fall back to local storage on error
-            print(f"Warning: Failed to save to memory-vault: {e}")
+            logger.warning(f"Failed to save to memory-vault: {e}")
             if not hasattr(self, "_fallback"):
                 self._fallback = LocalStateManager(self.agent_id)
             self._fallback.save_state(state)
@@ -124,7 +127,7 @@ class MemoryVaultStateManager:
             result = self.client.retrieve(f"agent_state:{self.agent_id}")
             return result.get("value", {}) if result else {}
         except Exception as e:
-            print(f"Warning: Failed to load from memory-vault: {e}")
+            logger.warning(f"Failed to load from memory-vault: {e}")
             if not hasattr(self, "_fallback"):
                 self._fallback = LocalStateManager(self.agent_id)
             return self._fallback.load_state()
