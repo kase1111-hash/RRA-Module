@@ -853,7 +853,7 @@ class TestYieldAPI:
                 "description": "Created via API",
                 "strategy": "hybrid",
                 "base_apy": 0.05,
-            }
+            },
         )
 
         assert response.status_code == 200
@@ -869,7 +869,7 @@ class TestYieldAPI:
             json={
                 "name": "List Test Pool",
                 "description": "For list testing",
-            }
+            },
         )
 
         response = client.get("/api/yield/pools")
@@ -881,6 +881,7 @@ class TestYieldAPI:
     def test_stake_license_endpoint(self, client):
         """Test POST /api/yield/stake endpoint."""
         import uuid
+
         unique_id = str(uuid.uuid4())[:8]
 
         # Create pool first
@@ -889,7 +890,7 @@ class TestYieldAPI:
             json={
                 "name": "Stake Test Pool",
                 "description": "For staking test",
-            }
+            },
         )
         pool_id = pool_resp.json()["pool_id"]
 
@@ -903,7 +904,7 @@ class TestYieldAPI:
                 "license_value": 1.0,
                 "staker_address": "0x1234567890123456789012345678901234567890",
                 "lock_days": 0,
-            }
+            },
         )
 
         assert response.status_code == 200
@@ -929,17 +930,14 @@ class TestYieldAPI:
                 "name": "Invalid Pool",
                 "description": "Has invalid strategy",
                 "strategy": "invalid_strategy",
-            }
+            },
         )
 
         assert response.status_code == 422  # Validation error
 
     def test_invalid_address_validation(self, client):
         """Test validation rejects invalid addresses."""
-        pool_resp = client.post(
-            "/api/yield/pools",
-            json={"name": "Test", "description": "Test"}
-        )
+        pool_resp = client.post("/api/yield/pools", json={"name": "Test", "description": "Test"})
         pool_id = pool_resp.json()["pool_id"]
 
         response = client.post(
@@ -951,7 +949,7 @@ class TestYieldAPI:
                 "repo_url": "https://github.com/test/repo",
                 "license_value": 1.0,
                 "staker_address": "not_an_address",
-            }
+            },
         )
 
         assert response.status_code == 422  # Validation error

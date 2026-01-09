@@ -32,6 +32,7 @@ from rra.transaction.safeguards import (
 # Price Commitment Tests
 # ============================================================================
 
+
 class TestPriceCommitment:
     """Tests for PriceCommitment class."""
 
@@ -98,6 +99,7 @@ class TestPriceCommitment:
 # ============================================================================
 # Transaction Confirmation Tests
 # ============================================================================
+
 
 class TestTransactionConfirmation:
     """Tests for TransactionConfirmation manager."""
@@ -379,6 +381,7 @@ class TestTransactionConfirmation:
 # Transaction Safeguards Tests
 # ============================================================================
 
+
 class TestTransactionSafeguards:
     """Tests for TransactionSafeguards class."""
 
@@ -399,26 +402,17 @@ class TestTransactionSafeguards:
     def test_validate_price_with_floor_check(self, safeguards):
         """Test price validation against floor."""
         # Price above floor - valid
-        result = safeguards.validate_price(
-            "0.5 ETH",
-            floor_price="0.3 ETH"
-        )
+        result = safeguards.validate_price("0.5 ETH", floor_price="0.3 ETH")
         assert result.is_valid is True
 
         # Price below floor - invalid
-        result = safeguards.validate_price(
-            "0.2 ETH",
-            floor_price="0.3 ETH"
-        )
+        result = safeguards.validate_price("0.2 ETH", floor_price="0.3 ETH")
         assert result.is_valid is False
         assert any("below floor" in e for e in result.errors)
 
     def test_validate_price_with_target_warning(self, safeguards):
         """Test warning when price is below target."""
-        result = safeguards.validate_price(
-            "0.4 ETH",
-            target_price="0.6 ETH"
-        )
+        result = safeguards.validate_price("0.4 ETH", target_price="0.6 ETH")
 
         assert result.is_valid is True
         assert result.has_warnings is True
@@ -501,9 +495,9 @@ class TestTransactionSafeguards:
                 "repo_url": "https://github.com/test/repo",
                 "license_model": "perpetual",
                 "price": "0.5 ETH",
-                "warnings": ["Price is below target"]
+                "warnings": ["Price is below target"],
             },
-            time_remaining=120
+            time_remaining=120,
         )
 
         assert "TRANSACTION CONFIRMATION" in screen
@@ -518,6 +512,7 @@ class TestTransactionSafeguards:
 # ============================================================================
 # Integration Tests
 # ============================================================================
+
 
 class TestIntegration:
     """Integration tests for confirmation and safeguards together."""
@@ -539,9 +534,7 @@ class TestIntegration:
 
         # Step 1: Validate price
         validation = safeguards.validate_price(
-            "0.5 ETH",
-            floor_price="0.3 ETH",
-            target_price="0.6 ETH"
+            "0.5 ETH", floor_price="0.3 ETH", target_price="0.6 ETH"
         )
         assert validation.is_valid
 
@@ -566,7 +559,7 @@ class TestIntegration:
             user_input,
             pending.price_commitment.amount,
             pending.price_commitment.currency,
-            validation.safeguard_level
+            validation.safeguard_level,
         )
         assert valid
 
@@ -628,6 +621,7 @@ class TestIntegration:
 # ============================================================================
 # Edge Cases and Security Tests
 # ============================================================================
+
 
 class TestSecurityEdgeCases:
     """Security-focused edge case tests."""

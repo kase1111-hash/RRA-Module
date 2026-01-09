@@ -37,6 +37,7 @@ from eth_utils import keccak
 
 try:
     from py_ecc.bn128 import bn128_curve as _bn128
+
     PY_ECC_AVAILABLE = True
 except ImportError:
     PY_ECC_AVAILABLE = False
@@ -52,6 +53,7 @@ except ImportError:
 try:
     import gmpy2
     from gmpy2 import mpz, invert as gmpy2_invert
+
     GMPY2_AVAILABLE = True
 except ImportError:
     GMPY2_AVAILABLE = False
@@ -523,10 +525,7 @@ def _py_ecc_scalar_mult(k: int, point: Tuple[int, int]) -> Tuple[int, int]:
     if point == (0, 0):
         py_point = None
     else:
-        py_point = (
-            _bn128.FQ(point[0]),
-            _bn128.FQ(point[1])
-        )
+        py_point = (_bn128.FQ(point[0]), _bn128.FQ(point[1]))
 
     # Perform multiplication
     result = _bn128.multiply(py_point, k)
@@ -565,6 +564,7 @@ def _py_ecc_point_add(p1: Tuple[int, int], p2: Tuple[int, int]) -> Tuple[int, in
     if result is None:
         return (0, 0)
     return (int(result[0]), int(result[1]))
+
 
 # Thread pool for parallel operations (lazy initialized)
 _thread_pool = None
@@ -623,8 +623,7 @@ def _scalar_mult_fast(k: int, point: Tuple[int, int]) -> Tuple[int, int]:
 
 
 def _parallel_scalar_mult_pair(
-    k1: int, point1: Tuple[int, int],
-    k2: int, point2: Tuple[int, int]
+    k1: int, point1: Tuple[int, int], k2: int, point2: Tuple[int, int]
 ) -> Tuple[Tuple[int, int], Tuple[int, int]]:
     """
     Compute two scalar multiplications in parallel.
@@ -839,8 +838,8 @@ def _validate_curve_constants() -> None:
     expected_n = 21888242871839275222246405745257275088548364400416034343698204186575808495617
 
     # Expected values from EIP-196 (hexadecimal) - cross-verification
-    expected_p_hex = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47
-    expected_n_hex = 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001
+    expected_p_hex = 0x30644E72E131A029B85045B68181585D97816A916871CA8D3C208C16D87CFD47
+    expected_n_hex = 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001
 
     # Verify decimal values match
     if BN254_FIELD_PRIME != expected_p:
@@ -1311,20 +1310,24 @@ def verify_test_vectors() -> Dict[str, Any]:
             # Parse commitment point
             point = _bytes_to_point(commitment)
 
-            results.append({
-                "vector_index": i,
-                "description": vector.get("description", f"Vector {i}"),
-                "commitment_x": hex(point[0]),
-                "commitment_y": hex(point[1]),
-                "commitment_hex": commitment.hex(),
-                "valid": True,
-            })
+            results.append(
+                {
+                    "vector_index": i,
+                    "description": vector.get("description", f"Vector {i}"),
+                    "commitment_x": hex(point[0]),
+                    "commitment_y": hex(point[1]),
+                    "commitment_hex": commitment.hex(),
+                    "valid": True,
+                }
+            )
         except Exception as e:
-            errors.append({
-                "vector_index": i,
-                "description": vector.get("description", f"Vector {i}"),
-                "error": str(e),
-            })
+            errors.append(
+                {
+                    "vector_index": i,
+                    "description": vector.get("description", f"Vector {i}"),
+                    "error": str(e),
+                }
+            )
 
     return {
         "passed": len(errors) == 0,
@@ -1352,9 +1355,7 @@ def _verify_test_vectors_on_load() -> None:
         error_details = "; ".join(
             f"{e['description']}: {e['error']}" for e in verification["errors"]
         )
-        raise RuntimeError(
-            f"Pedersen commitment test vector verification failed: {error_details}"
-        )
+        raise RuntimeError(f"Pedersen commitment test vector verification failed: {error_details}")
 
 
 # Run test vector verification at module load (after all classes are defined)

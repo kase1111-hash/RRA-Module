@@ -11,11 +11,7 @@ import pytest
 from unittest.mock import Mock, patch
 from web3 import Web3
 
-from rra.contracts.story_protocol import (
-    StoryProtocolClient,
-    IPAssetMetadata,
-    PILTerms
-)
+from rra.contracts.story_protocol import StoryProtocolClient, IPAssetMetadata, PILTerms
 from rra.integrations.story_integration import StoryIntegrationManager
 from rra.config.market_config import MarketConfig
 
@@ -61,7 +57,7 @@ def sample_market_config():
         pil_derivatives_reciprocal=False,
         derivative_royalty_percentage=0.15,
         developer_wallet="0x1234567890123456789012345678901234567890",
-        description="Test repository for Story Protocol"
+        description="Test repository for Story Protocol",
     )
 
 
@@ -75,7 +71,7 @@ class TestIPAssetMetadata:
             description="A test repository",
             ipType="SOFTWARE_REPOSITORY",
             createdAt=1234567890,
-            externalUrl="https://github.com/test/repo"
+            externalUrl="https://github.com/test/repo",
         )
 
         assert metadata.name == "Test Repository"
@@ -92,7 +88,7 @@ class TestPILTerms:
             commercial_use=True,
             derivatives_allowed=True,
             derivatives_attribution=True,
-            commercial_revenue_share=1500  # 15%
+            commercial_revenue_share=1500,  # 15%
         )
 
         assert terms.commercial_use is True
@@ -118,68 +114,63 @@ class TestStoryProtocolClient:
         assert "RoyaltyModule" in story_client.addresses
         assert "PILicenseTemplate" in story_client.addresses
 
-    @patch.object(StoryProtocolClient, 'register_ip_asset')
+    @patch.object(StoryProtocolClient, "register_ip_asset")
     def test_register_ip_asset(self, mock_register, story_client):
         """Test IP Asset registration."""
         mock_register.return_value = {
             "tx_hash": "0xabc123",
             "ip_asset_id": "ip_asset_test123",
             "block_number": 12345,
-            "status": "success"
+            "status": "success",
         }
 
         metadata = IPAssetMetadata(
-            name="Test Repo",
-            description="Test",
-            ipType="SOFTWARE_REPOSITORY",
-            createdAt=1234567890
+            name="Test Repo", description="Test", ipType="SOFTWARE_REPOSITORY", createdAt=1234567890
         )
 
         result = story_client.register_ip_asset(
             owner_address="0x1234567890123456789012345678901234567890",
             metadata=metadata,
-            private_key="0xprivatekey"
+            private_key="0xprivatekey",
         )
 
         assert result["status"] == "success"
         assert "ip_asset_id" in result
         assert "tx_hash" in result
 
-    @patch.object(StoryProtocolClient, 'attach_license_terms')
+    @patch.object(StoryProtocolClient, "attach_license_terms")
     def test_attach_license_terms(self, mock_attach, story_client):
         """Test attaching PIL terms to IP Asset."""
         mock_attach.return_value = "0xtx_hash_abc"
 
         terms = PILTerms(
-            commercial_use=True,
-            derivatives_allowed=True,
-            commercial_revenue_share=1500
+            commercial_use=True, derivatives_allowed=True, commercial_revenue_share=1500
         )
 
         tx_hash = story_client.attach_license_terms(
             ip_asset_id="ip_asset_123",
             pil_terms=terms,
             owner_address="0x1234567890123456789012345678901234567890",
-            private_key="0xprivatekey"
+            private_key="0xprivatekey",
         )
 
         assert tx_hash.startswith("0x")
 
-    @patch.object(StoryProtocolClient, 'register_derivative')
+    @patch.object(StoryProtocolClient, "register_derivative")
     def test_register_derivative(self, mock_register_deriv, story_client):
         """Test registering a derivative work."""
         mock_register_deriv.return_value = {
             "tx_hash": "0xderivative_tx",
             "derivative_ip_asset_id": "ip_asset_derivative_123",
             "parent_ip_asset_id": "ip_asset_parent_123",
-            "status": "success"
+            "status": "success",
         }
 
         derivative_metadata = IPAssetMetadata(
             name="Forked Repo",
             description="Fork of original",
             ipType="SOFTWARE_REPOSITORY_DERIVATIVE",
-            createdAt=1234567890
+            createdAt=1234567890,
         )
 
         result = story_client.register_derivative(
@@ -187,14 +178,14 @@ class TestStoryProtocolClient:
             derivative_owner_address="0xfork_owner",
             derivative_metadata=derivative_metadata,
             license_terms_id="terms_123",
-            private_key="0xprivatekey"
+            private_key="0xprivatekey",
         )
 
         assert result["status"] == "success"
         assert result["parent_ip_asset_id"] == "ip_asset_parent_123"
         assert "derivative_ip_asset_id" in result
 
-    @patch.object(StoryProtocolClient, 'set_royalty_policy')
+    @patch.object(StoryProtocolClient, "set_royalty_policy")
     def test_set_royalty_policy(self, mock_set_royalty, story_client):
         """Test setting royalty policy."""
         mock_set_royalty.return_value = "0xroyalty_tx"
@@ -204,7 +195,7 @@ class TestStoryProtocolClient:
             royalty_percentage=1500,  # 15%
             payment_token="0x0000000000000000000000000000000000000000",
             owner_address="0x1234567890123456789012345678901234567890",
-            private_key="0xprivatekey"
+            private_key="0xprivatekey",
         )
 
         assert tx_hash.startswith("0x")
@@ -217,7 +208,7 @@ class TestStoryProtocolClient:
                 royalty_percentage=15000,  # 150% - invalid
                 payment_token="0x0000000000000000000000000000000000000000",
                 owner_address="0x1234567890123456789012345678901234567890",
-                private_key="0xprivatekey"
+                private_key="0xprivatekey",
             )
 
 
@@ -229,7 +220,7 @@ class TestStoryIntegrationManager:
         assert story_manager.network == "testnet"
         assert story_manager.story_client is not None
 
-    @patch.object(StoryIntegrationManager, 'register_repository_as_ip_asset')
+    @patch.object(StoryIntegrationManager, "register_repository_as_ip_asset")
     def test_register_repository(self, mock_register, story_manager, sample_market_config):
         """Test repository registration as IP Asset."""
         mock_register.return_value = {
@@ -237,14 +228,14 @@ class TestStoryIntegrationManager:
             "ip_asset_id": "ip_asset_repo_123",
             "tx_hash": "0xabc",
             "pil_terms_tx": "0xdef",
-            "royalty_tx": "0xghi"
+            "royalty_tx": "0xghi",
         }
 
         result = story_manager.register_repository_as_ip_asset(
             repo_url="https://github.com/test/repo",
             market_config=sample_market_config,
             owner_address="0x1234567890123456789012345678901234567890",
-            private_key="0xprivatekey"
+            private_key="0xprivatekey",
         )
 
         assert result["status"] == "success"
@@ -254,9 +245,7 @@ class TestStoryIntegrationManager:
     def test_register_repository_requires_story_enabled(self, story_manager):
         """Test that Story Protocol must be enabled in config."""
         config_without_story = MarketConfig(
-            target_price="0.05 ETH",
-            floor_price="0.02 ETH",
-            story_protocol_enabled=False
+            target_price="0.05 ETH", floor_price="0.02 ETH", story_protocol_enabled=False
         )
 
         with pytest.raises(ValueError, match="Story Protocol not enabled"):
@@ -264,16 +253,16 @@ class TestStoryIntegrationManager:
                 repo_url="https://github.com/test/repo",
                 market_config=config_without_story,
                 owner_address="0x1234567890123456789012345678901234567890",
-                private_key="0xprivatekey"
+                private_key="0xprivatekey",
             )
 
-    @patch.object(StoryIntegrationManager, 'register_derivative_repository')
+    @patch.object(StoryIntegrationManager, "register_derivative_repository")
     def test_register_fork(self, mock_register_fork, story_manager):
         """Test registering a forked repository."""
         mock_register_fork.return_value = {
             "status": "success",
             "derivative_ip_asset_id": "ip_asset_fork_123",
-            "parent_ip_asset_id": "ip_asset_original_123"
+            "parent_ip_asset_id": "ip_asset_original_123",
         }
 
         result = story_manager.register_derivative_repository(
@@ -283,7 +272,7 @@ class TestStoryIntegrationManager:
             fork_description="Fork with enhancements",
             license_terms_id="terms_123",
             fork_owner_address="0xfork_owner",
-            private_key="0xprivatekey"
+            private_key="0xprivatekey",
         )
 
         assert result["status"] == "success"
@@ -327,9 +316,7 @@ class TestMarketConfigStoryIntegration:
     def test_story_disabled_config(self):
         """Test config with Story Protocol disabled."""
         config = MarketConfig(
-            target_price="0.05 ETH",
-            floor_price="0.02 ETH",
-            story_protocol_enabled=False
+            target_price="0.05 ETH", floor_price="0.02 ETH", story_protocol_enabled=False
         )
 
         params = config.to_contract_params()
@@ -339,7 +326,7 @@ class TestMarketConfigStoryIntegration:
 class TestDerivativeTracking:
     """Test derivative tracking functionality."""
 
-    @patch.object(StoryIntegrationManager, 'get_repository_derivatives')
+    @patch.object(StoryIntegrationManager, "get_repository_derivatives")
     def test_get_derivatives(self, mock_get_derivs, story_manager):
         """Test getting derivatives for a repository."""
         mock_get_derivs.return_value = {
@@ -348,8 +335,8 @@ class TestDerivativeTracking:
             "derivatives": [
                 {"id": "deriv_1", "owner": "0xowner1"},
                 {"id": "deriv_2", "owner": "0xowner2"},
-                {"id": "deriv_3", "owner": "0xowner3"}
-            ]
+                {"id": "deriv_3", "owner": "0xowner3"},
+            ],
         }
 
         result = story_manager.get_repository_derivatives("ip_asset_parent")
@@ -357,7 +344,7 @@ class TestDerivativeTracking:
         assert result["derivative_count"] == 3
         assert len(result["derivatives"]) == 3
 
-    @patch.object(StoryIntegrationManager, 'get_royalty_stats')
+    @patch.object(StoryIntegrationManager, "get_royalty_stats")
     def test_get_royalty_stats(self, mock_get_royalty, story_manager, mock_web3):
         """Test getting royalty statistics."""
         mock_get_royalty.return_value = {
@@ -366,7 +353,7 @@ class TestDerivativeTracking:
             "payment_token": "0x0000000000000000000000000000000000000000",
             "total_collected_wei": 1000000000000000000,
             "total_collected_eth": 1.0,
-            "last_payment_timestamp": 1234567890
+            "last_payment_timestamp": 1234567890,
         }
 
         stats = story_manager.get_royalty_stats("ip_asset_123")

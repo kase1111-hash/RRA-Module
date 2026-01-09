@@ -432,8 +432,6 @@ class ShamirSecretSharing:
         - This implementation is suitable for threshold secret sharing
           where the number of points is small (typically 2-5).
         """
-        n = len(points)
-
         # First pass: compute all numerators and denominators
         numerators = []
         denominators = []

@@ -28,30 +28,21 @@ class TestCalculateDelayCost:
     def test_zero_elapsed_days(self):
         """No cost for zero elapsed time."""
         cost = calculate_delay_cost(
-            total_stake=1.0,
-            elapsed_days=0,
-            base_rate_bps=10,
-            half_life_days=7
+            total_stake=1.0, elapsed_days=0, base_rate_bps=10, half_life_days=7
         )
         assert cost == 0.0
 
     def test_negative_elapsed_days(self):
         """No cost for negative elapsed time."""
         cost = calculate_delay_cost(
-            total_stake=1.0,
-            elapsed_days=-1,
-            base_rate_bps=10,
-            half_life_days=7
+            total_stake=1.0, elapsed_days=-1, base_rate_bps=10, half_life_days=7
         )
         assert cost == 0.0
 
     def test_one_day_elapsed(self):
         """Cost after one day."""
         cost = calculate_delay_cost(
-            total_stake=1.0,
-            elapsed_days=1,
-            base_rate_bps=10,
-            half_life_days=7
+            total_stake=1.0, elapsed_days=1, base_rate_bps=10, half_life_days=7
         )
         # 0.001 * (2^(1/7) - 1) ≈ 0.0001
         assert cost > 0
@@ -60,16 +51,10 @@ class TestCalculateDelayCost:
     def test_half_life_doubling(self):
         """Cost should approximately double after half_life_days."""
         cost_7 = calculate_delay_cost(
-            total_stake=1.0,
-            elapsed_days=7,
-            base_rate_bps=10,
-            half_life_days=7
+            total_stake=1.0, elapsed_days=7, base_rate_bps=10, half_life_days=7
         )
         cost_14 = calculate_delay_cost(
-            total_stake=1.0,
-            elapsed_days=14,
-            base_rate_bps=10,
-            half_life_days=7
+            total_stake=1.0, elapsed_days=14, base_rate_bps=10, half_life_days=7
         )
 
         # At 7 days: multiplier = 1 (base cost)
@@ -81,26 +66,17 @@ class TestCalculateDelayCost:
     def test_stake_proportional(self):
         """Cost should be proportional to stake."""
         cost_1 = calculate_delay_cost(
-            total_stake=1.0,
-            elapsed_days=7,
-            base_rate_bps=10,
-            half_life_days=7
+            total_stake=1.0, elapsed_days=7, base_rate_bps=10, half_life_days=7
         )
         cost_2 = calculate_delay_cost(
-            total_stake=2.0,
-            elapsed_days=7,
-            base_rate_bps=10,
-            half_life_days=7
+            total_stake=2.0, elapsed_days=7, base_rate_bps=10, half_life_days=7
         )
 
         assert abs(cost_2 - 2 * cost_1) < 0.0001
 
     def test_exponential_growth(self):
         """Cost should grow exponentially."""
-        costs = [
-            calculate_delay_cost(1.0, days, 10, 7)
-            for days in range(0, 28, 7)
-        ]
+        costs = [calculate_delay_cost(1.0, days, 10, 7) for days in range(0, 28, 7)]
 
         # Each week should roughly double
         for i in range(1, len(costs) - 1):
@@ -125,11 +101,7 @@ class TestPressureConfig:
 
     def test_custom_values(self):
         """Test custom configuration."""
-        config = PressureConfig(
-            max_counter_proposals=3,
-            half_life_days=14,
-            min_stake_eth=0.1
-        )
+        config = PressureConfig(max_counter_proposals=3, half_life_days=14, min_stake_eth=0.1)
         assert config.max_counter_proposals == 3
         assert config.half_life_days == 14
         assert config.min_stake_eth == 0.1
@@ -160,11 +132,7 @@ class TestNegotiationPressure:
     @pytest.fixture
     def custom_pressure(self):
         """Create pressure manager with custom config."""
-        config = PressureConfig(
-            max_counter_proposals=3,
-            base_delay_rate_bps=100,
-            half_life_days=3
-        )
+        config = PressureConfig(max_counter_proposals=3, base_delay_rate_bps=100, half_life_days=3)
         return NegotiationPressure(config)
 
     def test_start_negotiation(self, pressure):
@@ -174,7 +142,7 @@ class TestNegotiationPressure:
             initiator_id="alice@example.com",
             responder_id="bob@example.com",
             initiator_stake=1.0,
-            duration_days=30
+            duration_days=30,
         )
 
         assert state.negotiation_id == "test_001"
@@ -192,7 +160,7 @@ class TestNegotiationPressure:
                 initiator_id="alice",
                 responder_id="bob",
                 initiator_stake=0.001,  # Below minimum
-                duration_days=30
+                duration_days=30,
             )
 
     def test_start_negotiation_long_duration(self, pressure):
@@ -203,7 +171,7 @@ class TestNegotiationPressure:
                 initiator_id="alice",
                 responder_id="bob",
                 initiator_stake=1.0,
-                duration_days=100  # Above maximum
+                duration_days=100,  # Above maximum
             )
 
     def test_join_negotiation(self, pressure):
@@ -213,7 +181,7 @@ class TestNegotiationPressure:
             initiator_id="alice",
             responder_id="bob",
             initiator_stake=1.0,
-            duration_days=30
+            duration_days=30,
         )
 
         state = pressure.join_negotiation("test_004", responder_stake=0.5)
@@ -234,15 +202,13 @@ class TestNegotiationPressure:
             initiator_id="alice",
             responder_id="bob",
             initiator_stake=1.0,
-            duration_days=30
+            duration_days=30,
         )
         pressure.join_negotiation("test_005", responder_stake=1.0)
 
         # Submit proposal
         cp, penalty = pressure.submit_counter_proposal(
-            negotiation_id="test_005",
-            party="initiator",
-            proposal_hash="0xabc123"
+            negotiation_id="test_005", party="initiator", proposal_hash="0xabc123"
         )
 
         assert cp.party == "initiator"
@@ -261,21 +227,17 @@ class TestNegotiationPressure:
             initiator_id="alice",
             responder_id="bob",
             initiator_stake=1.0,
-            duration_days=30
+            duration_days=30,
         )
         custom_pressure.join_negotiation("test_006", responder_stake=1.0)
 
         # Submit max proposals (no penalty)
         for i in range(3):
-            cp, penalty = custom_pressure.submit_counter_proposal(
-                "test_006", "initiator", f"0x{i}"
-            )
+            cp, penalty = custom_pressure.submit_counter_proposal("test_006", "initiator", f"0x{i}")
             assert penalty is None
 
         # 4th proposal should incur penalty
-        cp, penalty = custom_pressure.submit_counter_proposal(
-            "test_006", "initiator", "0x999"
-        )
+        cp, penalty = custom_pressure.submit_counter_proposal("test_006", "initiator", "0x999")
         assert penalty is not None
         assert penalty > 0
 
@@ -291,7 +253,7 @@ class TestNegotiationPressure:
             initiator_id="alice",
             responder_id="bob",
             initiator_stake=1.0,
-            duration_days=30
+            duration_days=30,
         )
         pressure.join_negotiation("test_007", responder_stake=1.0)
 
@@ -316,7 +278,7 @@ class TestNegotiationPressure:
             initiator_id="alice",
             responder_id="bob",
             initiator_stake=1.0,
-            duration_days=1  # 1 day duration
+            duration_days=1,  # 1 day duration
         )
         pressure.join_negotiation("test_008", responder_stake=1.0)
 
@@ -339,7 +301,7 @@ class TestNegotiationPressure:
             initiator_id="alice",
             responder_id="bob",
             initiator_stake=1.0,
-            duration_days=30
+            duration_days=30,
         )
         pressure.join_negotiation("test_009", responder_stake=1.0)
 
@@ -359,7 +321,7 @@ class TestNegotiationPressure:
             initiator_id="alice",
             responder_id="bob",
             initiator_stake=1.0,
-            duration_days=30
+            duration_days=30,
         )
         pressure.join_negotiation("test_010", responder_stake=1.0)
 
@@ -383,7 +345,7 @@ class TestNegotiationPressure:
                 initiator_id=f"alice_{i}",
                 responder_id=f"bob_{i}",
                 initiator_stake=1.0,
-                duration_days=30
+                duration_days=30,
             )
 
         active = pressure.get_all_active()
@@ -397,7 +359,7 @@ class TestNegotiationPressure:
             initiator_id="alice",
             responder_id="bob",
             initiator_stake=1.0,
-            duration_days=30
+            duration_days=30,
         )
         pressure.join_negotiation("test_200", responder_stake=1.0)
         pressure.record_agreement("test_200", "0xagreement")
@@ -442,7 +404,7 @@ class TestCounterProposal:
             timestamp=datetime.utcnow(),
             delay_cost_at_time=0.01,
             proposal_number=1,
-            penalty_applied=0.0
+            penalty_applied=0.0,
         )
 
         data = cp.to_dict()
@@ -466,7 +428,7 @@ class TestPressureStatus:
             time_remaining=timedelta(days=10),
             stake_at_risk_initiator=0.0005,
             stake_at_risk_responder=0.0005,
-            urgency_level="low"
+            urgency_level="low",
         )
 
         data = status.to_dict()
@@ -489,7 +451,7 @@ class TestIntegration:
             initiator_id="seller@example.com",
             responder_id="buyer@example.com",
             initiator_stake=0.5,
-            duration_days=14
+            duration_days=14,
         )
         assert state.status == NegotiationStatus.PENDING
 
@@ -499,12 +461,8 @@ class TestIntegration:
 
         # Exchange proposals
         for i in range(3):
-            pressure.submit_counter_proposal(
-                "integration_001", "initiator", f"proposal_{i}_init"
-            )
-            pressure.submit_counter_proposal(
-                "integration_001", "responder", f"proposal_{i}_resp"
-            )
+            pressure.submit_counter_proposal("integration_001", "initiator", f"proposal_{i}_init")
+            pressure.submit_counter_proposal("integration_001", "responder", f"proposal_{i}_resp")
 
         # Check status
         status = pressure.get_pressure_status("integration_001")
@@ -512,9 +470,7 @@ class TestIntegration:
         assert status.remaining_proposals_responder == 2
 
         # Agree
-        init_refund, resp_refund, delay = pressure.record_agreement(
-            "integration_001", "0xfinal"
-        )
+        init_refund, resp_refund, delay = pressure.record_agreement("integration_001", "0xfinal")
 
         state = pressure.get_negotiation("integration_001")
         assert state.status == NegotiationStatus.AGREED
@@ -530,7 +486,7 @@ class TestIntegration:
             initiator_id="seller",
             responder_id="buyer",
             initiator_stake=1.0,
-            duration_days=7
+            duration_days=7,
         )
         pressure.join_negotiation("penalty_test", responder_stake=1.0)
 
@@ -539,9 +495,7 @@ class TestIntegration:
 
         # Submit 4 proposals (2 over cap)
         for i in range(4):
-            _, penalty = pressure.submit_counter_proposal(
-                "penalty_test", "initiator", f"p{i}"
-            )
+            _, penalty = pressure.submit_counter_proposal("penalty_test", "initiator", f"p{i}")
             if penalty:
                 penalties.append(penalty)
 

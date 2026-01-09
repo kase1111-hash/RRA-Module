@@ -36,6 +36,7 @@ from rra.governance.treasury_votes import (
 # TreasuryCoordinator Tests
 # =============================================================================
 
+
 class TestTreasuryCoordinator:
     """Test treasury coordinator functionality."""
 
@@ -292,10 +293,18 @@ class TestTreasuryCoordinator:
         )
 
         # Stake from both (MIN_STAKE is 10**16)
-        coordinator.stake(dispute.dispute_id, treasury1.treasury_id, 2 * 10**16,
-                          "0x1111111111111111111111111111111111111111")
-        coordinator.stake(dispute.dispute_id, treasury2.treasury_id, 10**16,
-                          "0x2222222222222222222222222222222222222222")
+        coordinator.stake(
+            dispute.dispute_id,
+            treasury1.treasury_id,
+            2 * 10**16,
+            "0x1111111111111111111111111111111111111111",
+        )
+        coordinator.stake(
+            dispute.dispute_id,
+            treasury2.treasury_id,
+            10**16,
+            "0x2222222222222222222222222222222222222222",
+        )
 
         # Create proposal
         proposal = coordinator.create_proposal(
@@ -348,10 +357,18 @@ class TestTreasuryCoordinator:
         )
 
         # Stake from both (MIN_STAKE is 10**16)
-        coordinator.stake(dispute.dispute_id, treasury1.treasury_id, 2 * 10**16,
-                          "0x1111111111111111111111111111111111111111")
-        coordinator.stake(dispute.dispute_id, treasury2.treasury_id, 10**16,
-                          "0x2222222222222222222222222222222222222222")
+        coordinator.stake(
+            dispute.dispute_id,
+            treasury1.treasury_id,
+            2 * 10**16,
+            "0x1111111111111111111111111111111111111111",
+        )
+        coordinator.stake(
+            dispute.dispute_id,
+            treasury2.treasury_id,
+            10**16,
+            "0x2222222222222222222222222222222222222222",
+        )
 
         # Create and pass proposal
         proposal = coordinator.create_proposal(
@@ -366,12 +383,20 @@ class TestTreasuryCoordinator:
         )
 
         # Both vote support (majority stake)
-        coordinator.vote(dispute.dispute_id, proposal.proposal_id,
-                         treasury1.treasury_id, VoteChoice.SUPPORT,
-                         "0x1111111111111111111111111111111111111111")
-        coordinator.vote(dispute.dispute_id, proposal.proposal_id,
-                         treasury2.treasury_id, VoteChoice.SUPPORT,
-                         "0x2222222222222222222222222222222222222222")
+        coordinator.vote(
+            dispute.dispute_id,
+            proposal.proposal_id,
+            treasury1.treasury_id,
+            VoteChoice.SUPPORT,
+            "0x1111111111111111111111111111111111111111",
+        )
+        coordinator.vote(
+            dispute.dispute_id,
+            proposal.proposal_id,
+            treasury2.treasury_id,
+            VoteChoice.SUPPORT,
+            "0x2222222222222222222222222222222222222222",
+        )
 
         # Execute resolution
         payout = coordinator.execute_resolution(dispute.dispute_id)
@@ -408,10 +433,18 @@ class TestTreasuryCoordinator:
         )
 
         # Stake to move to voting
-        coordinator.stake(dispute.dispute_id, treasury1.treasury_id, 10**16,
-                          "0x1111111111111111111111111111111111111111")
-        coordinator.stake(dispute.dispute_id, treasury2.treasury_id, 10**16,
-                          "0x2222222222222222222222222222222222222222")
+        coordinator.stake(
+            dispute.dispute_id,
+            treasury1.treasury_id,
+            10**16,
+            "0x1111111111111111111111111111111111111111",
+        )
+        coordinator.stake(
+            dispute.dispute_id,
+            treasury2.treasury_id,
+            10**16,
+            "0x2222222222222222222222222222222222222222",
+        )
 
         # Request mediation (only works in VOTING or EXPIRED state)
         success = coordinator.request_mediation(
@@ -445,6 +478,7 @@ class TestTreasuryCoordinator:
 # =============================================================================
 # TreasuryVotingManager Tests
 # =============================================================================
+
 
 class TestTreasuryVotingManager:
     """Test treasury voting manager functionality."""
@@ -674,6 +708,7 @@ class TestTreasuryVotingManager:
 # Integration Tests
 # =============================================================================
 
+
 class TestTreasuryIntegration:
     """Integration tests for treasury coordination."""
 
@@ -711,10 +746,18 @@ class TestTreasuryIntegration:
         assert dispute.status == DisputeStatus.CREATED
 
         # 3. Stake funds
-        coordinator.stake(dispute.dispute_id, corp_treasury.treasury_id, 2 * 10**16,
-                          "0x1111111111111111111111111111111111111111")
-        coordinator.stake(dispute.dispute_id, dao_treasury.treasury_id, 10**16,
-                          "0x2222222222222222222222222222222222222222")
+        coordinator.stake(
+            dispute.dispute_id,
+            corp_treasury.treasury_id,
+            2 * 10**16,
+            "0x1111111111111111111111111111111111111111",
+        )
+        coordinator.stake(
+            dispute.dispute_id,
+            dao_treasury.treasury_id,
+            10**16,
+            "0x2222222222222222222222222222222222222222",
+        )
 
         dispute = coordinator.get_dispute(dispute.dispute_id)
         assert dispute.total_stake == 3 * 10**16
@@ -732,12 +775,20 @@ class TestTreasuryIntegration:
         )
 
         # 5. Vote
-        coordinator.vote(dispute.dispute_id, proposal.proposal_id,
-                         corp_treasury.treasury_id, VoteChoice.SUPPORT,
-                         "0x1111111111111111111111111111111111111111")
-        coordinator.vote(dispute.dispute_id, proposal.proposal_id,
-                         dao_treasury.treasury_id, VoteChoice.SUPPORT,
-                         "0x2222222222222222222222222222222222222222")
+        coordinator.vote(
+            dispute.dispute_id,
+            proposal.proposal_id,
+            corp_treasury.treasury_id,
+            VoteChoice.SUPPORT,
+            "0x1111111111111111111111111111111111111111",
+        )
+        coordinator.vote(
+            dispute.dispute_id,
+            proposal.proposal_id,
+            dao_treasury.treasury_id,
+            VoteChoice.SUPPORT,
+            "0x2222222222222222222222222222222222222222",
+        )
 
         # 6. Execute resolution
         payout = coordinator.execute_resolution(dispute.dispute_id)
@@ -777,10 +828,18 @@ class TestTreasuryIntegration:
         )
 
         # Stake (MIN_STAKE is 10**16)
-        coordinator.stake(dispute.dispute_id, treasury1.treasury_id, 10**16,
-                          "0x1111111111111111111111111111111111111111")
-        coordinator.stake(dispute.dispute_id, treasury2.treasury_id, 10**16,
-                          "0x2222222222222222222222222222222222222222")
+        coordinator.stake(
+            dispute.dispute_id,
+            treasury1.treasury_id,
+            10**16,
+            "0x1111111111111111111111111111111111111111",
+        )
+        coordinator.stake(
+            dispute.dispute_id,
+            treasury2.treasury_id,
+            10**16,
+            "0x2222222222222222222222222222222222222222",
+        )
 
         # Create proposal
         proposal = coordinator.create_proposal(
@@ -795,12 +854,20 @@ class TestTreasuryIntegration:
         )
 
         # Treasury 1 supports, Treasury 2 opposes (deadlock)
-        coordinator.vote(dispute.dispute_id, proposal.proposal_id,
-                         treasury1.treasury_id, VoteChoice.SUPPORT,
-                         "0x1111111111111111111111111111111111111111")
-        coordinator.vote(dispute.dispute_id, proposal.proposal_id,
-                         treasury2.treasury_id, VoteChoice.OPPOSE,
-                         "0x2222222222222222222222222222222222222222")
+        coordinator.vote(
+            dispute.dispute_id,
+            proposal.proposal_id,
+            treasury1.treasury_id,
+            VoteChoice.SUPPORT,
+            "0x1111111111111111111111111111111111111111",
+        )
+        coordinator.vote(
+            dispute.dispute_id,
+            proposal.proposal_id,
+            treasury2.treasury_id,
+            VoteChoice.OPPOSE,
+            "0x2222222222222222222222222222222222222222",
+        )
 
         # Request mediation
         coordinator.request_mediation(
@@ -837,10 +904,18 @@ class TestTreasuryIntegration:
             creator_address="0x1111111111111111111111111111111111111111",
         )
 
-        coordinator.stake(dispute.dispute_id, treasury1.treasury_id, 10**16,
-                          "0x1111111111111111111111111111111111111111")
-        coordinator.stake(dispute.dispute_id, treasury2.treasury_id, 15 * 10**15,  # 1.5x min stake
-                          "0x2222222222222222222222222222222222222222")
+        coordinator.stake(
+            dispute.dispute_id,
+            treasury1.treasury_id,
+            10**16,
+            "0x1111111111111111111111111111111111111111",
+        )
+        coordinator.stake(
+            dispute.dispute_id,
+            treasury2.treasury_id,
+            15 * 10**15,  # 1.5x min stake
+            "0x2222222222222222222222222222222222222222",
+        )
 
         # Proposal from Treasury 1
         coordinator.create_proposal(
@@ -870,9 +945,13 @@ class TestTreasuryIntegration:
         assert len(dispute.proposals) == 2
 
         # Treasury 2 has more stake, votes for own proposal
-        coordinator.vote(dispute.dispute_id, proposal2.proposal_id,
-                         treasury2.treasury_id, VoteChoice.SUPPORT,
-                         "0x2222222222222222222222222222222222222222")
+        coordinator.vote(
+            dispute.dispute_id,
+            proposal2.proposal_id,
+            treasury2.treasury_id,
+            VoteChoice.SUPPORT,
+            "0x2222222222222222222222222222222222222222",
+        )
 
         # Check proposal 2 has more support
         dispute = coordinator.get_dispute(dispute.dispute_id)
@@ -882,6 +961,7 @@ class TestTreasuryIntegration:
 # =============================================================================
 # Edge Cases and Error Handling
 # =============================================================================
+
 
 class TestTreasuryEdgeCases:
     """Test edge cases and error handling."""
@@ -918,10 +998,18 @@ class TestTreasuryEdgeCases:
         )
 
         # Only treasury1 and treasury2 stake - treasury3 does not stake
-        coordinator.stake(dispute.dispute_id, treasury1.treasury_id, 10**16,
-                          "0x1111111111111111111111111111111111111111")
-        coordinator.stake(dispute.dispute_id, treasury2.treasury_id, 10**16,
-                          "0x2222222222222222222222222222222222222222")
+        coordinator.stake(
+            dispute.dispute_id,
+            treasury1.treasury_id,
+            10**16,
+            "0x1111111111111111111111111111111111111111",
+        )
+        coordinator.stake(
+            dispute.dispute_id,
+            treasury2.treasury_id,
+            10**16,
+            "0x2222222222222222222222222222222222222222",
+        )
         # Note: treasury3 doesn't stake, so all_staked is False, voting won't start
 
         # Check that proposal creation fails because not all have staked
@@ -995,10 +1083,18 @@ class TestTreasuryEdgeCases:
         )
 
         # Both treasuries stake to enter VOTING state
-        coordinator.stake(dispute.dispute_id, treasury1.treasury_id, 10**16,
-                          "0x1111111111111111111111111111111111111111")
-        coordinator.stake(dispute.dispute_id, treasury2.treasury_id, 10**16,
-                          "0x2222222222222222222222222222222222222222")
+        coordinator.stake(
+            dispute.dispute_id,
+            treasury1.treasury_id,
+            10**16,
+            "0x1111111111111111111111111111111111111111",
+        )
+        coordinator.stake(
+            dispute.dispute_id,
+            treasury2.treasury_id,
+            10**16,
+            "0x2222222222222222222222222222222222222222",
+        )
 
         proposal = coordinator.create_proposal(
             dispute_id=dispute.dispute_id,
@@ -1012,14 +1108,20 @@ class TestTreasuryEdgeCases:
         )
 
         # First vote from treasury1
-        coordinator.vote(dispute.dispute_id, proposal.proposal_id,
-                         treasury1.treasury_id, VoteChoice.SUPPORT,
-                         "0x1111111111111111111111111111111111111111")
+        coordinator.vote(
+            dispute.dispute_id,
+            proposal.proposal_id,
+            treasury1.treasury_id,
+            VoteChoice.SUPPORT,
+            "0x1111111111111111111111111111111111111111",
+        )
 
         # Second vote from same treasury (should be rejected since already voted)
         second_vote_result = coordinator.vote(
-            dispute.dispute_id, proposal.proposal_id,
-            treasury1.treasury_id, VoteChoice.OPPOSE,
+            dispute.dispute_id,
+            proposal.proposal_id,
+            treasury1.treasury_id,
+            VoteChoice.OPPOSE,
             "0x1111111111111111111111111111111111111111",
         )
 

@@ -275,7 +275,9 @@ class TestCodeCategorizer:
             tmp_path = Path(tmp_dir)
 
             # Create a CLI-like structure
-            (tmp_path / "cli.py").write_text("import click\n@click.command()\ndef main():\n    pass")
+            (tmp_path / "cli.py").write_text(
+                "import click\n@click.command()\ndef main():\n    pass"
+            )
             (tmp_path / "__main__.py").write_text("from cli import main\nmain()")
 
             result = categorizer.categorize(

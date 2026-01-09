@@ -54,14 +54,12 @@ class TestWebAuthnClient:
         client = WebAuthnClient("rra.example.com", "RRA Module")
 
         # Generate mock public key (uncompressed P-256 format)
-        mock_public_key = b'\x04' + os.urandom(64)
+        mock_public_key = b"\x04" + os.urandom(64)
         credential_id = os.urandom(32)
         user_id = os.urandom(16)
 
         credential = client.register_credential(
-            credential_id=credential_id,
-            public_key_cose=mock_public_key,
-            user_id=user_id
+            credential_id=credential_id, public_key_cose=mock_public_key, user_id=user_id
         )
 
         assert credential.credential_id == credential_id
@@ -76,14 +74,12 @@ class TestWebAuthnClient:
 
         client = WebAuthnClient("rra.example.com", "RRA Module")
 
-        mock_public_key = b'\x04' + os.urandom(64)
+        mock_public_key = b"\x04" + os.urandom(64)
         credential_id = os.urandom(32)
         user_id = os.urandom(16)
 
         registered = client.register_credential(
-            credential_id=credential_id,
-            public_key_cose=mock_public_key,
-            user_id=user_id
+            credential_id=credential_id, public_key_cose=mock_public_key, user_id=user_id
         )
 
         # Retrieve by ID
@@ -110,27 +106,25 @@ class TestWebAuthnClient:
         client = WebAuthnClient("rra.example.com", "RRA Module")
 
         # Register credential
-        mock_public_key = b'\x04' + os.urandom(64)
+        mock_public_key = b"\x04" + os.urandom(64)
         credential_id = os.urandom(32)
         user_id = os.urandom(16)
 
         client.register_credential(
-            credential_id=credential_id,
-            public_key_cose=mock_public_key,
-            user_id=user_id
+            credential_id=credential_id, public_key_cose=mock_public_key, user_id=user_id
         )
 
         # Create mock assertion
-        rp_id_hash = b'\x00' * 32
+        rp_id_hash = b"\x00" * 32
         flags = 0x01  # User present
         sign_count = 1
-        auth_data = rp_id_hash + bytes([flags]) + sign_count.to_bytes(4, 'big')
+        auth_data = rp_id_hash + bytes([flags]) + sign_count.to_bytes(4, "big")
 
         assertion = AuthenticatorAssertion(
             credential_id=credential_id,
             authenticator_data=auth_data,
             client_data_json=b'{"type":"webauthn.get","challenge":"test"}',
-            signature=b'\x30\x44\x02\x20' + os.urandom(32) + b'\x02\x20' + os.urandom(32)
+            signature=b"\x30\x44\x02\x20" + os.urandom(32) + b"\x02\x20" + os.urandom(32),
         )
 
         contract_data = client.prepare_for_contract(assertion)
@@ -149,7 +143,7 @@ class TestHardwareIdentity:
         """Test identity generation."""
         from rra.auth.identity import HardwareIdentity
 
-        credential_public_key = b'\x04' + os.urandom(64)
+        credential_public_key = b"\x04" + os.urandom(64)
 
         identity = HardwareIdentity.generate(credential_public_key)
 
@@ -163,8 +157,8 @@ class TestHardwareIdentity:
         """Test identity is deterministic with same entropy."""
         from rra.auth.identity import HardwareIdentity
 
-        credential_public_key = b'\x04' + os.urandom(64)
-        user_entropy = b'deterministic_test'
+        credential_public_key = b"\x04" + os.urandom(64)
+        user_entropy = b"deterministic_test"
 
         identity1 = HardwareIdentity.generate(credential_public_key, user_entropy)
         identity2 = HardwareIdentity.generate(credential_public_key, user_entropy)
@@ -176,7 +170,7 @@ class TestHardwareIdentity:
         """Test nullifier derivation for different scopes."""
         from rra.auth.identity import HardwareIdentity
 
-        credential_public_key = b'\x04' + os.urandom(64)
+        credential_public_key = b"\x04" + os.urandom(64)
         identity = HardwareIdentity.generate(credential_public_key)
 
         nullifier1 = identity.derive_nullifier(1)
@@ -190,7 +184,7 @@ class TestHardwareIdentity:
         """Test ZK input preparation."""
         from rra.auth.identity import HardwareIdentity
 
-        credential_public_key = b'\x04' + os.urandom(64)
+        credential_public_key = b"\x04" + os.urandom(64)
         identity = HardwareIdentity.generate(credential_public_key)
 
         action_hash = os.urandom(32)
@@ -209,7 +203,7 @@ class TestHardwareIdentity:
         """Test identity serialization/deserialization."""
         from rra.auth.identity import HardwareIdentity
 
-        credential_public_key = b'\x04' + os.urandom(64)
+        credential_public_key = b"\x04" + os.urandom(64)
         identity = HardwareIdentity.generate(credential_public_key)
 
         data = identity.to_dict()
@@ -242,7 +236,7 @@ class TestIdentityGroupManager:
         manager = IdentityGroupManager(depth=10)
         group_id = manager.create_group("test_group")
 
-        credential_public_key = b'\x04' + os.urandom(64)
+        credential_public_key = b"\x04" + os.urandom(64)
         identity = HardwareIdentity.generate(credential_public_key)
 
         index, root = manager.add_member(group_id, identity)
@@ -258,7 +252,7 @@ class TestIdentityGroupManager:
         manager = IdentityGroupManager(depth=10)
         group_id = manager.create_group("test_group")
 
-        credential_public_key = b'\x04' + os.urandom(64)
+        credential_public_key = b"\x04" + os.urandom(64)
         identity = HardwareIdentity.generate(credential_public_key)
 
         manager.add_member(group_id, identity)
@@ -276,7 +270,7 @@ class TestIdentityGroupManager:
         # Add multiple members
         identities = []
         for i in range(3):
-            credential = b'\x04' + os.urandom(64)
+            credential = b"\x04" + os.urandom(64)
             identity = HardwareIdentity.generate(credential)
             manager.add_member(group_id, identity)
             identities.append(identity)
@@ -323,13 +317,10 @@ class TestScopedDelegation:
             agent="0x0987654321098765432109876543210987654321",
             credential_id_hash=os.urandom(32),
             allowed_actions=[ActionType.MARKET_MATCH, ActionType.DISPUTE_STAKE],
-            token_limits={
-                "0xtoken1": 1000,
-                "0xtoken2": 500
-            },
+            token_limits={"0xtoken1": 1000, "0xtoken2": 500},
             eth_limit=10**18,  # 1 ETH
             duration_seconds=86400,  # 1 day
-            description="Test delegation"
+            description="Test delegation",
         )
 
         assert scope.is_valid
@@ -351,7 +342,7 @@ class TestScopedDelegation:
             token_limits={"0xtoken": 100},
             eth_limit=1000,
             duration_seconds=86400,
-            description="Limited delegation"
+            description="Limited delegation",
         )
 
         # Check limits
@@ -377,15 +368,12 @@ class TestScopedDelegation:
             token_limits={"0xtoken": 100},
             eth_limit=1000,
             duration_seconds=86400,
-            description="Test"
+            description="Test",
         )
 
         # Use some ETH
         result = manager.use_delegation(
-            scope.delegation_id,
-            ActionType.MARKET_MATCH,
-            None,  # ETH
-            500
+            scope.delegation_id, ActionType.MARKET_MATCH, None, 500  # ETH
         )
         assert result
 
@@ -393,12 +381,7 @@ class TestScopedDelegation:
         assert scope.eth_remaining == 500
 
         # Try to overspend
-        result = manager.use_delegation(
-            scope.delegation_id,
-            ActionType.MARKET_MATCH,
-            None,
-            600
-        )
+        result = manager.use_delegation(scope.delegation_id, ActionType.MARKET_MATCH, None, 600)
         assert not result
 
     def test_revoke_delegation(self):
@@ -416,7 +399,7 @@ class TestScopedDelegation:
             token_limits={},
             eth_limit=1000,
             duration_seconds=86400,
-            description="Test"
+            description="Test",
         )
 
         assert scope.is_valid
@@ -428,12 +411,7 @@ class TestScopedDelegation:
         assert not scope.is_valid
 
         # Can't use after revocation
-        result = manager.use_delegation(
-            scope.delegation_id,
-            ActionType.MARKET_MATCH,
-            None,
-            100
-        )
+        result = manager.use_delegation(scope.delegation_id, ActionType.MARKET_MATCH, None, 100)
         assert not result
 
     def test_check_delegation(self):
@@ -450,25 +428,15 @@ class TestScopedDelegation:
             token_limits={},
             eth_limit=1000,
             duration_seconds=86400,
-            description="Test"
+            description="Test",
         )
 
         # Check allowed action
-        result = manager.check_delegation(
-            scope.delegation_id,
-            ActionType.MARKET_MATCH,
-            None,
-            500
-        )
+        result = manager.check_delegation(scope.delegation_id, ActionType.MARKET_MATCH, None, 500)
         assert result["allowed"]
 
         # Check disallowed action
-        result = manager.check_delegation(
-            scope.delegation_id,
-            ActionType.WITHDRAW,
-            None,
-            500
-        )
+        result = manager.check_delegation(scope.delegation_id, ActionType.WITHDRAW, None, 500)
         assert not result["allowed"]
         assert "not allowed" in result["reason"]
 
@@ -486,14 +454,12 @@ class TestIntegration:
         webauthn_client = WebAuthnClient("rra.example.com", "RRA Module")
 
         # 2. Register hardware credential
-        mock_public_key = b'\x04' + os.urandom(64)
+        mock_public_key = b"\x04" + os.urandom(64)
         credential_id = os.urandom(32)
         user_id = os.urandom(16)
 
         credential = webauthn_client.register_credential(
-            credential_id=credential_id,
-            public_key_cose=mock_public_key,
-            user_id=user_id
+            credential_id=credential_id, public_key_cose=mock_public_key, user_id=user_id
         )
 
         # 3. Generate hardware-backed identity
@@ -509,10 +475,7 @@ class TestIntegration:
         webauthn_client.create_challenge(action_hash)
 
         # 6. Prepare ZK inputs
-        zk_inputs = identity.prepare_zk_inputs(
-            action_hash=action_hash,
-            external_nullifier=group_id
-        )
+        zk_inputs = identity.prepare_zk_inputs(action_hash=action_hash, external_nullifier=group_id)
 
         # 7. Get Merkle proof for membership
         siblings, path_indices = group_manager.get_merkle_proof(group_id, identity)
@@ -520,7 +483,7 @@ class TestIntegration:
             merkle_siblings=siblings,
             merkle_path_indices=path_indices,
             signal_hash=action_hash,
-            external_nullifier=group_id
+            external_nullifier=group_id,
         )
 
         # 8. Create delegation for agent
@@ -533,7 +496,7 @@ class TestIntegration:
             token_limits={},
             eth_limit=10**18,
             duration_seconds=3600,
-            description="1-hour dispute authorization"
+            description="1-hour dispute authorization",
         )
 
         # Verify everything is set up

@@ -38,9 +38,7 @@ class TestEncryptedStorage:
         assert result.provider == StorageProvider.MOCK
 
         # Retrieve
-        retrieved_evidence, metadata = storage.retrieve_evidence(
-            result.uri, viewing_key
-        )
+        retrieved_evidence, metadata = storage.retrieve_evidence(result.uri, viewing_key)
 
         assert retrieved_evidence == evidence
         assert metadata.get("dispute_id") == dispute_id
@@ -60,9 +58,7 @@ class TestEncryptedStorage:
             "severity": "high",
         }
 
-        result = storage.store_evidence(
-            evidence, viewing_key, dispute_id=1, metadata=metadata
-        )
+        result = storage.store_evidence(evidence, viewing_key, dispute_id=1, metadata=metadata)
 
         assert result.success is True
 
@@ -249,9 +245,7 @@ class TestStorageIntegration:
         )
 
         # 6. Retrieve and decrypt with recovered key
-        retrieved_evidence, metadata = storage.retrieve_evidence(
-            result.uri, recovered_key
-        )
+        retrieved_evidence, metadata = storage.retrieve_evidence(result.uri, recovered_key)
 
         assert retrieved_evidence == evidence
         assert metadata["severity"] == "critical"

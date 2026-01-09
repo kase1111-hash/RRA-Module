@@ -20,6 +20,7 @@ import shutil
 # IPFi Lending Tests
 # =============================================================================
 
+
 class TestIPFiLending:
     """Tests for IPFi lending integration."""
 
@@ -32,6 +33,7 @@ class TestIPFiLending:
     @pytest.fixture
     def manager(self, temp_dir):
         from rra.defi.ipfi_lending import IPFiLendingManager
+
         return IPFiLendingManager(data_dir=temp_dir)
 
     def test_register_collateral(self, manager):
@@ -155,6 +157,7 @@ class TestIPFiLending:
 # Fractional IP Tests
 # =============================================================================
 
+
 class TestFractionalIP:
     """Tests for fractional IP ownership."""
 
@@ -167,6 +170,7 @@ class TestFractionalIP:
     @pytest.fixture
     def manager(self, temp_dir):
         from rra.defi.fractional_ip import FractionalIPManager
+
         return FractionalIPManager(data_dir=temp_dir)
 
     def test_fractionalize_asset(self, manager):
@@ -273,6 +277,7 @@ class TestFractionalIP:
 # DAO Governance Tests
 # =============================================================================
 
+
 class TestDAOGovernance:
     """Tests for DAO governance."""
 
@@ -285,6 +290,7 @@ class TestDAOGovernance:
     @pytest.fixture
     def manager(self, temp_dir):
         from rra.governance.dao import DAOGovernanceManager
+
         return DAOGovernanceManager(data_dir=temp_dir)
 
     def test_create_dao(self, manager):
@@ -362,8 +368,12 @@ class TestDAOGovernance:
         )
 
         # Cast votes
-        manager.vote(proposal.proposal_id, "0x1111111111111111111111111111111111111111", VoteChoice.FOR)
-        manager.vote(proposal.proposal_id, "0x2222222222222222222222222222222222222222", VoteChoice.FOR)
+        manager.vote(
+            proposal.proposal_id, "0x1111111111111111111111111111111111111111", VoteChoice.FOR
+        )
+        manager.vote(
+            proposal.proposal_id, "0x2222222222222222222222222222222222222222", VoteChoice.FOR
+        )
 
         updated_proposal = manager.get_proposal(proposal.proposal_id)
         assert updated_proposal.votes_for == 1500
@@ -393,6 +403,7 @@ class TestDAOGovernance:
 # Boundary Daemon Tests
 # =============================================================================
 
+
 class TestBoundaryDaemon:
     """Tests for boundary daemon permissions."""
 
@@ -405,6 +416,7 @@ class TestBoundaryDaemon:
     @pytest.fixture
     def daemon(self, temp_dir):
         from rra.integration.boundary_daemon import BoundaryDaemon
+
         return BoundaryDaemon(data_dir=temp_dir)
 
     def test_register_principal(self, daemon):
@@ -491,12 +503,14 @@ class TestBoundaryDaemon:
 # Synth Mind Tests
 # =============================================================================
 
+
 class TestSynthMind:
     """Tests for synth-mind LLM integration."""
 
     @pytest.fixture
     def router(self):
         from rra.integration.synth_mind import SynthMindRouter
+
         return SynthMindRouter()
 
     def test_list_models(self, router):
@@ -554,6 +568,7 @@ class TestSynthMind:
 # Agent-OS Runtime Tests
 # =============================================================================
 
+
 class TestAgentOSRuntime:
     """Tests for Agent-OS runtime."""
 
@@ -566,6 +581,7 @@ class TestAgentOSRuntime:
     @pytest.fixture
     def runtime(self, temp_dir):
         from rra.integration.agent_os import AgentOSRuntime
+
         return AgentOSRuntime(data_dir=temp_dir)
 
     def test_register_node(self, runtime):
@@ -661,6 +677,7 @@ class TestAgentOSRuntime:
 # Import Tests
 # =============================================================================
 
+
 class TestImports:
     """Test that all modules import correctly."""
 
@@ -670,6 +687,7 @@ class TestImports:
             IPFiLendingManager,
             FractionalIPManager,
         )
+
         assert StakingManager is not None
         assert IPFiLendingManager is not None
         assert FractionalIPManager is not None
@@ -680,6 +698,7 @@ class TestImports:
             IPDAO,
             Proposal,
         )
+
         assert DAOGovernanceManager is not None
         assert IPDAO is not None
         assert Proposal is not None
@@ -690,6 +709,7 @@ class TestImports:
             SynthMindRouter,
             AgentOSRuntime,
         )
+
         assert BoundaryDaemon is not None
         assert SynthMindRouter is not None
         assert AgentOSRuntime is not None

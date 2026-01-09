@@ -439,11 +439,17 @@ class SuperfluidManager:
     def get_stats(self) -> Dict[str, Any]:
         """Get streaming payment statistics."""
         active = len([lic for lic in self._licenses.values() if lic.status == StreamStatus.ACTIVE])
-        stopped = len([lic for lic in self._licenses.values() if lic.status == StreamStatus.STOPPED])
-        revoked = len([lic for lic in self._licenses.values() if lic.status == StreamStatus.REVOKED])
+        stopped = len(
+            [lic for lic in self._licenses.values() if lic.status == StreamStatus.STOPPED]
+        )
+        revoked = len(
+            [lic for lic in self._licenses.values() if lic.status == StreamStatus.REVOKED]
+        )
 
         total_monthly_revenue = sum(
-            lic.monthly_cost_usd for lic in self._licenses.values() if lic.status == StreamStatus.ACTIVE
+            lic.monthly_cost_usd
+            for lic in self._licenses.values()
+            if lic.status == StreamStatus.ACTIVE
         )
 
         return {

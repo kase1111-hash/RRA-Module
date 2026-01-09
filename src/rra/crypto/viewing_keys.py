@@ -775,7 +775,9 @@ class ViewingKeyManager:
 
         return self._key_cache[dispute_id].commitment
 
-    def export_key_for_escrow(self, dispute_id: str, _acknowledge_security_risk: bool = False) -> bytes:
+    def export_key_for_escrow(
+        self, dispute_id: str, _acknowledge_security_risk: bool = False
+    ) -> bytes:
         """
         Export a key's private bytes for escrow.
 

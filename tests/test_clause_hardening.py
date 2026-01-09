@@ -524,10 +524,12 @@ class TestDefaultTemplates:
         assert template is not None
         assert template.category == TemplateCategory.DISPUTE_RESOLUTION
 
-        rendered = template.render({
-            "mediation_location": "New York, NY",
-            "arbitration_location": "New York, NY",
-        })
+        rendered = template.render(
+            {
+                "mediation_location": "New York, NY",
+                "arbitration_location": "New York, NY",
+            }
+        )
         assert "New York" in rendered
         assert "mediation" in rendered.lower()
         assert "arbitration" in rendered.lower()
@@ -539,9 +541,11 @@ class TestDefaultTemplates:
         assert template is not None
         assert template.category == TemplateCategory.LIABILITY
 
-        rendered = template.render({
-            "liability_cap": "$500,000",
-        })
+        rendered = template.render(
+            {
+                "liability_cap": "$500,000",
+            }
+        )
         assert "$500,000" in rendered
 
 

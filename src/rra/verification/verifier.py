@@ -479,7 +479,8 @@ class CodeVerifier:
                 continue
             if any(
                 part.startswith(".")
-                or part in {"node_modules", "venv", "__pycache__", "tests", "test", "docs", "examples"}
+                or part
+                in {"node_modules", "venv", "__pycache__", "tests", "test", "docs", "examples"}
                 for part in file_path.parts
             ):
                 continue
@@ -755,7 +756,9 @@ class CodeVerifier:
                 found_ci.append(ci_name)
                 # Count GitHub Actions workflows
                 if config_path == ".github/workflows" and full_path.is_dir():
-                    workflow_count = len(list(full_path.glob("*.yml"))) + len(list(full_path.glob("*.yaml")))
+                    workflow_count = len(list(full_path.glob("*.yml"))) + len(
+                        list(full_path.glob("*.yaml"))
+                    )
 
         if found_ci:
             details = {"ci_systems": found_ci}
@@ -783,6 +786,7 @@ class CodeVerifier:
         """Check repository maturity (age and commit frequency)."""
         try:
             import git
+
             repo = git.Repo(repo_path)
 
             # Get commit history
@@ -803,6 +807,7 @@ class CodeVerifier:
 
             if first_commit and last_commit:
                 from datetime import datetime, timezone
+
                 first_date = datetime.fromtimestamp(first_commit.committed_date, tz=timezone.utc)
                 last_date = datetime.fromtimestamp(last_commit.committed_date, tz=timezone.utc)
                 now = datetime.now(timezone.utc)
@@ -1128,7 +1133,8 @@ class CodeVerifier:
                         output = result.stdout + result.stderr
                         # Count lines that look like linting errors (path:line:col: code)
                         issue_lines = [
-                            line for line in output.split("\n")
+                            line
+                            for line in output.split("\n")
                             if line.strip() and ":" in line and not line.startswith(" ")
                         ]
                         issue_count = len(issue_lines)
@@ -1181,7 +1187,8 @@ class CodeVerifier:
                 output = result.stdout + result.stderr
                 # Count lines that look like linting errors (path:line:col: code)
                 issue_lines = [
-                    line for line in output.split("\n")
+                    line
+                    for line in output.split("\n")
                     if line.strip() and ":" in line and not line.startswith(" ")
                 ]
                 issue_count = len(issue_lines)
@@ -1316,9 +1323,9 @@ class CodeVerifier:
             "documentation": 10,
             "license": 5,
             "readme_alignment": 5,
-            "cicd": 5,           # NEW: CI/CD presence
-            "maturity": 10,      # NEW: Repository maturity
-            "completeness": 5,   # NEW: Project completeness
+            "cicd": 5,  # NEW: CI/CD presence
+            "maturity": 10,  # NEW: Repository maturity
+            "completeness": 5,  # NEW: Project completeness
         }
 
         score = 0.0
@@ -1332,7 +1339,11 @@ class CodeVerifier:
                 score += weight
             elif check.status == VerificationStatus.WARNING:
                 # For tests, use proportional scoring based on pass rate
-                if check.name == "tests" and check.details and check.details.get("pass_rate") is not None:
+                if (
+                    check.name == "tests"
+                    and check.details
+                    and check.details.get("pass_rate") is not None
+                ):
                     pass_rate = check.details["pass_rate"]
                     score += weight * (pass_rate / 100)  # Proportional to pass rate
                 else:

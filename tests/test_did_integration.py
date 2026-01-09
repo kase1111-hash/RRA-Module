@@ -639,15 +639,17 @@ class TestNLCDIDResolverOnChain:
     def nlc_resolver(self):
         """Create an NLC DID resolver instance."""
         from src.rra.identity.did_resolver import NLCDIDResolver
+
         return NLCDIDResolver(
             registry_address="0x1234567890123456789012345678901234567890",
-            rpc_url="https://eth.llamarpc.com"
+            rpc_url="https://eth.llamarpc.com",
         )
 
     @pytest.fixture
     def nlc_resolver_no_registry(self):
         """Create an NLC DID resolver without registry address."""
         from src.rra.identity.did_resolver import NLCDIDResolver
+
         return NLCDIDResolver(registry_address="", rpc_url="https://eth.llamarpc.com")
 
     def test_supports_nlc_did(self, nlc_resolver):
@@ -773,7 +775,7 @@ class TestNLCDIDResolverOnChain:
         )
         mock_contract.functions.getServices.return_value.call.return_value = [mock_svc]
 
-        with patch.object(nlc_resolver, '_get_contract', return_value=mock_contract):
+        with patch.object(nlc_resolver, "_get_contract", return_value=mock_contract):
             doc = await nlc_resolver.resolve(did)
 
         assert doc is not None
@@ -807,7 +809,7 @@ class TestNLCDIDResolverOnChain:
         )
         mock_contract.functions.getDocument.return_value.call.return_value = mock_document
 
-        with patch.object(nlc_resolver, '_get_contract', return_value=mock_contract):
+        with patch.object(nlc_resolver, "_get_contract", return_value=mock_contract):
             doc = await nlc_resolver.resolve(did)
 
         assert doc is None
@@ -835,7 +837,7 @@ class TestNLCDIDResolverOnChain:
         )
         mock_contract.functions.getDocument.return_value.call.return_value = mock_document
 
-        with patch.object(nlc_resolver, '_get_contract', return_value=mock_contract):
+        with patch.object(nlc_resolver, "_get_contract", return_value=mock_contract):
             doc = await nlc_resolver.resolve(did)
 
         assert doc is None
@@ -878,9 +880,11 @@ class TestNLCDIDResolverOnChain:
 
         did = "did:nlc:error_test"
         mock_contract = MagicMock()
-        mock_contract.functions.getDocument.return_value.call.side_effect = Exception("Network error")
+        mock_contract.functions.getDocument.return_value.call.side_effect = Exception(
+            "Network error"
+        )
 
-        with patch.object(nlc_resolver, '_get_contract', return_value=mock_contract):
+        with patch.object(nlc_resolver, "_get_contract", return_value=mock_contract):
             doc = await nlc_resolver.resolve(did)
 
         assert doc is None
@@ -911,12 +915,19 @@ class TestNLCDIDResolverOnChain:
         # One active, one inactive verification method
         mock_vms = [
             (bytes.fromhex("ab" * 32), 0, "0x1234", bytes.fromhex("04ab" * 16), True, 1234567890),
-            (bytes.fromhex("cd" * 32), 1, "0x5678", bytes.fromhex("ed01" + "cd" * 16), False, 1234567890),
+            (
+                bytes.fromhex("cd" * 32),
+                1,
+                "0x5678",
+                bytes.fromhex("ed01" + "cd" * 16),
+                False,
+                1234567890,
+            ),
         ]
         mock_contract.functions.getVerificationMethods.return_value.call.return_value = mock_vms
         mock_contract.functions.getServices.return_value.call.return_value = []
 
-        with patch.object(nlc_resolver, '_get_contract', return_value=mock_contract):
+        with patch.object(nlc_resolver, "_get_contract", return_value=mock_contract):
             doc = await nlc_resolver.resolve(did)
 
         assert doc is not None
@@ -947,7 +958,7 @@ class TestNLCDIDResolverOnChain:
         mock_contract.functions.getVerificationMethods.return_value.call.return_value = []
         mock_contract.functions.getServices.return_value.call.return_value = []
 
-        with patch.object(nlc_resolver, '_get_contract', return_value=mock_contract):
+        with patch.object(nlc_resolver, "_get_contract", return_value=mock_contract):
             doc = await nlc_resolver.resolve(did)
 
         assert doc is not None

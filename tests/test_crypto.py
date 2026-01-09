@@ -37,15 +37,13 @@ from rra.crypto.pedersen import (
 # Viewing Keys Tests
 # ============================================================================
 
+
 class TestViewingKey:
     """Tests for ViewingKey class."""
 
     def test_generate_key(self):
         """Test generating a viewing key."""
-        key = ViewingKey.generate(
-            purpose=KeyPurpose.DISPUTE_EVIDENCE,
-            context_id="dispute-123"
-        )
+        key = ViewingKey.generate(purpose=KeyPurpose.DISPUTE_EVIDENCE, context_id="dispute-123")
 
         assert key.private_key is not None
         assert key.public_key is not None
@@ -57,9 +55,7 @@ class TestViewingKey:
     def test_generate_with_expiration(self):
         """Test generating key with expiration."""
         key = ViewingKey.generate(
-            purpose=KeyPurpose.DISPUTE_EVIDENCE,
-            context_id="dispute-123",
-            expires_in_days=30
+            purpose=KeyPurpose.DISPUTE_EVIDENCE, context_id="dispute-123", expires_in_days=30
         )
 
         assert key.expires_at is not None
@@ -70,19 +66,9 @@ class TestViewingKey:
         """Test deriving key from master key."""
         master_key = os.urandom(32)
 
-        key1 = ViewingKey.derive(
-            master_key,
-            KeyPurpose.DISPUTE_EVIDENCE,
-            "dispute-123",
-            index=0
-        )
+        key1 = ViewingKey.derive(master_key, KeyPurpose.DISPUTE_EVIDENCE, "dispute-123", index=0)
 
-        key2 = ViewingKey.derive(
-            master_key,
-            KeyPurpose.DISPUTE_EVIDENCE,
-            "dispute-123",
-            index=0
-        )
+        key2 = ViewingKey.derive(master_key, KeyPurpose.DISPUTE_EVIDENCE, "dispute-123", index=0)
 
         # Same derivation should produce same key (compare public keys, not commitments,
         # since commitments use random blinding per MED-001 security fix)
@@ -102,10 +88,7 @@ class TestViewingKey:
         """Test encryption and decryption."""
         from eth_utils import keccak as eth_keccak
 
-        key = ViewingKey.generate(
-            purpose=KeyPurpose.DISPUTE_EVIDENCE,
-            context_id="dispute-123"
-        )
+        key = ViewingKey.generate(purpose=KeyPurpose.DISPUTE_EVIDENCE, context_id="dispute-123")
 
         plaintext = b"This is secret evidence for the dispute."
         encrypted = key.encrypt(plaintext)
@@ -139,7 +122,7 @@ class TestViewingKey:
             encrypted_bytes,
             password,
             KeyPurpose.DISPUTE_EVIDENCE,
-            "d-1"
+            "d-1",
         )
 
         # Compare public keys since commitments use random blinding per MED-001
@@ -207,6 +190,7 @@ class TestViewingKeyManager:
 # Shamir Secret Sharing Tests
 # ============================================================================
 
+
 class TestShamirSecretSharing:
     """Tests for Shamir's Secret Sharing."""
 
@@ -224,7 +208,7 @@ class TestShamirSecretSharing:
                 ShareHolder.ESCROW_SERVICE_1,
                 ShareHolder.ESCROW_SERVICE_2,
                 ShareHolder.COMPLIANCE_OFFICER,
-            ]
+            ],
         )
 
         shares = shamir.split(secret, config, "context-1")
@@ -310,7 +294,11 @@ class TestThresholdConfig:
             ThresholdConfig(
                 threshold=1,
                 total_shares=3,
-                holders=[ShareHolder.USER, ShareHolder.DAO_GOVERNANCE, ShareHolder.COMPLIANCE_OFFICER]
+                holders=[
+                    ShareHolder.USER,
+                    ShareHolder.DAO_GOVERNANCE,
+                    ShareHolder.COMPLIANCE_OFFICER,
+                ],
             )
 
     def test_threshold_exceeds_total(self):
@@ -319,7 +307,11 @@ class TestThresholdConfig:
             ThresholdConfig(
                 threshold=4,
                 total_shares=3,
-                holders=[ShareHolder.USER, ShareHolder.DAO_GOVERNANCE, ShareHolder.COMPLIANCE_OFFICER]
+                holders=[
+                    ShareHolder.USER,
+                    ShareHolder.DAO_GOVERNANCE,
+                    ShareHolder.COMPLIANCE_OFFICER,
+                ],
             )
 
 
@@ -352,20 +344,19 @@ class TestEscrowManager:
 
         # With 3 holders - should be possible
         assert manager.verify_reconstruction_possible(
-            "d-1",
-            [ShareHolder.USER, ShareHolder.DAO_GOVERNANCE, ShareHolder.ESCROW_SERVICE_1]
+            "d-1", [ShareHolder.USER, ShareHolder.DAO_GOVERNANCE, ShareHolder.ESCROW_SERVICE_1]
         )
 
         # With only 2 - should not be possible
         assert not manager.verify_reconstruction_possible(
-            "d-1",
-            [ShareHolder.USER, ShareHolder.DAO_GOVERNANCE]
+            "d-1", [ShareHolder.USER, ShareHolder.DAO_GOVERNANCE]
         )
 
 
 # ============================================================================
 # Pedersen Commitment Tests
 # ============================================================================
+
 
 class TestPedersenCommitment:
     """Tests for Pedersen commitments."""
@@ -479,6 +470,7 @@ class TestEvidenceCommitmentManager:
 # Integration Tests
 # ============================================================================
 
+
 class TestCryptoIntegration:
     """Integration tests for crypto modules."""
 
@@ -507,9 +499,7 @@ class TestCryptoIntegration:
 
         # 5. Restore viewing key and decrypt
         restored_vk = ViewingKey.from_private_bytes(
-            recovered_key,
-            KeyPurpose.DISPUTE_EVIDENCE,
-            "dispute-123"
+            recovered_key, KeyPurpose.DISPUTE_EVIDENCE, "dispute-123"
         )
         decrypted = restored_vk.decrypt(encrypted)
 

@@ -26,42 +26,33 @@ class TestLicenseCompliance(unittest.TestCase):
 
     def test_license_file_exists(self):
         """Test that LICENSE.md file exists."""
-        self.assertTrue(
-            self.license_file.exists(),
-            "LICENSE.md file must exist in repository root"
-        )
+        self.assertTrue(self.license_file.exists(), "LICENSE.md file must exist in repository root")
 
     def test_license_contains_fsl(self):
         """Test that LICENSE.md contains FSL-1.1-ALv2 identifier."""
-        with open(self.license_file, 'r', encoding='utf-8') as f:
+        with open(self.license_file, "r", encoding="utf-8") as f:
             content = f.read()
 
-        self.assertIn(
-            "FSL-1.1-ALv2",
-            content,
-            "LICENSE.md must contain FSL-1.1-ALv2 identifier"
-        )
+        self.assertIn("FSL-1.1-ALv2", content, "LICENSE.md must contain FSL-1.1-ALv2 identifier")
 
     def test_license_contains_copyright(self):
         """Test that LICENSE.md contains copyright notice."""
-        with open(self.license_file, 'r', encoding='utf-8') as f:
+        with open(self.license_file, "r", encoding="utf-8") as f:
             content = f.read()
 
         self.assertIn(
-            "Copyright 2025 Kase Branham",
-            content,
-            "LICENSE.md must contain copyright notice"
+            "Copyright 2025 Kase Branham", content, "LICENSE.md must contain copyright notice"
         )
 
     def test_license_contains_future_grant(self):
         """Test that LICENSE.md contains Apache 2.0 future grant."""
-        with open(self.license_file, 'r', encoding='utf-8') as f:
+        with open(self.license_file, "r", encoding="utf-8") as f:
             content = f.read()
 
         self.assertIn(
             "Apache License, Version 2.0",
             content,
-            "LICENSE.md must contain Apache 2.0 future license grant"
+            "LICENSE.md must contain Apache 2.0 future license grant",
         )
 
     def test_source_files_have_headers(self):
@@ -75,17 +66,15 @@ class TestLicenseCompliance(unittest.TestCase):
 
         files_without_headers = []
         for py_file in python_files:
-            with open(py_file, 'r', encoding='utf-8') as f:
+            with open(py_file, "r", encoding="utf-8") as f:
                 # Read first 10 lines
-                first_lines = ''.join([next(f, '') for _ in range(10)])
+                first_lines = "".join([next(f, "") for _ in range(10)])
 
             if "SPDX-License-Identifier" not in first_lines:
                 files_without_headers.append(py_file.relative_to(self.repo_root))
 
         self.assertEqual(
-            len(files_without_headers),
-            0,
-            f"Files without license headers: {files_without_headers}"
+            len(files_without_headers), 0, f"Files without license headers: {files_without_headers}"
         )
 
     def test_examples_have_headers(self):
@@ -99,13 +88,13 @@ class TestLicenseCompliance(unittest.TestCase):
             self.skipTest("No Python files in examples/")
 
         for py_file in python_files:
-            with open(py_file, 'r', encoding='utf-8') as f:
-                first_lines = ''.join([next(f, '') for _ in range(10)])
+            with open(py_file, "r", encoding="utf-8") as f:
+                first_lines = "".join([next(f, "") for _ in range(10)])
 
             self.assertIn(
                 "SPDX-License-Identifier",
                 first_lines,
-                f"Example file {py_file} missing license header"
+                f"Example file {py_file} missing license header",
             )
 
     def test_scripts_have_headers(self):
@@ -119,38 +108,31 @@ class TestLicenseCompliance(unittest.TestCase):
             self.skipTest("No Python files in scripts/")
 
         for py_file in python_files:
-            with open(py_file, 'r', encoding='utf-8') as f:
-                first_lines = ''.join([next(f, '') for _ in range(10)])
+            with open(py_file, "r", encoding="utf-8") as f:
+                first_lines = "".join([next(f, "") for _ in range(10)])
 
             self.assertIn(
                 "SPDX-License-Identifier",
                 first_lines,
-                f"Script file {py_file} missing license header"
+                f"Script file {py_file} missing license header",
             )
 
     def test_verification_script_exists(self):
         """Test that license verification script exists."""
         verify_script = self.repo_root / "scripts" / "verify_license.py"
-        self.assertTrue(
-            verify_script.exists(),
-            "License verification script must exist"
-        )
+        self.assertTrue(verify_script.exists(), "License verification script must exist")
 
     def test_github_workflow_exists(self):
         """Test that GitHub Actions license verification workflow exists."""
         workflow_file = self.repo_root / ".github" / "workflows" / "license-verification.yml"
         self.assertTrue(
-            workflow_file.exists(),
-            "GitHub Actions license verification workflow must exist"
+            workflow_file.exists(), "GitHub Actions license verification workflow must exist"
         )
 
     def test_licensing_documentation_exists(self):
         """Test that LICENSING.md documentation exists."""
         licensing_doc = self.repo_root / "LICENSING.md"
-        self.assertTrue(
-            licensing_doc.exists(),
-            "LICENSING.md documentation must exist"
-        )
+        self.assertTrue(licensing_doc.exists(), "LICENSING.md documentation must exist")
 
 
 class TestSPDXHeaders(unittest.TestCase):
@@ -167,8 +149,8 @@ class TestSPDXHeaders(unittest.TestCase):
         """Test that SPDX headers follow correct format."""
         test_file = Path(__file__)
 
-        with open(test_file, 'r', encoding='utf-8') as f:
-            first_lines = ''.join([next(f, '') for _ in range(5)])
+        with open(test_file, "r", encoding="utf-8") as f:
+            first_lines = "".join([next(f, "") for _ in range(5)])
 
         # Check for proper SPDX format
         self.assertIn(self.EXPECTED_SPDX, first_lines)
@@ -178,15 +160,12 @@ class TestSPDXHeaders(unittest.TestCase):
         """Test that SPDX headers are placed at the top of files."""
         test_file = Path(__file__)
 
-        with open(test_file, 'r', encoding='utf-8') as f:
-            lines = [next(f, '') for _ in range(10)]
+        with open(test_file, "r", encoding="utf-8") as f:
+            lines = [next(f, "") for _ in range(10)]
 
         # SPDX should appear in first few lines (after shebang/encoding)
         found_in_first_5 = any(self.EXPECTED_SPDX in line for line in lines[:5])
-        self.assertTrue(
-            found_in_first_5,
-            "SPDX header should appear in first 5 lines"
-        )
+        self.assertTrue(found_in_first_5, "SPDX header should appear in first 5 lines")
 
 
 class TestLicenseIntegration(unittest.TestCase):
@@ -204,7 +183,8 @@ class TestLicenseIntegration(unittest.TestCase):
         try:
             # Import should work without errors
             import verify_license
-            self.assertTrue(hasattr(verify_license, 'LicenseVerifier'))
+
+            self.assertTrue(hasattr(verify_license, "LicenseVerifier"))
         except ImportError as e:
             self.fail(f"Failed to import verify_license: {e}")
         finally:
@@ -224,7 +204,7 @@ class TestLicenseIntegration(unittest.TestCase):
         self.assertEqual(
             result.returncode,
             0,
-            f"License verification script should exit with code 0. stderr: {result.stderr}"
+            f"License verification script should exit with code 0. stderr: {result.stderr}",
         )
 
 

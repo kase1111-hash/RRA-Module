@@ -95,9 +95,7 @@ class TestDeepLinkService:
         """Test markdown badge generation."""
         service = DeepLinkService(base_url="https://test.io")
         badge = service.generate_badge_markdown(
-            "https://github.com/user/repo",
-            style="flat",
-            label="License This"
+            "https://github.com/user/repo", style="flat", label="License This"
         )
 
         assert "[![License This]" in badge
@@ -108,9 +106,7 @@ class TestDeepLinkService:
         """Test HTML badge generation."""
         service = DeepLinkService(base_url="https://test.io")
         badge = service.generate_badge_html(
-            "https://github.com/user/repo",
-            style="flat",
-            label="License This"
+            "https://github.com/user/repo", style="flat", label="License This"
         )
 
         assert "<a href=" in badge
@@ -161,8 +157,7 @@ class TestDeepLinkServicePersistence:
 
             # Register
             repo_id = service.register_repo(
-                "https://github.com/user/repo",
-                metadata={"name": "repo", "owner": "user"}
+                "https://github.com/user/repo", metadata={"name": "repo", "owner": "user"}
             )
 
             assert len(repo_id) == 12

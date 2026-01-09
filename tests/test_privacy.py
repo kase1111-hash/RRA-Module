@@ -60,7 +60,7 @@ class TestViewingKeys:
         evidence = {
             "description": "Test dispute evidence",
             "documents": ["doc1.pdf", "doc2.txt"],
-            "timestamp": 1234567890
+            "timestamp": 1234567890,
         }
         dispute_id = 42
 
@@ -136,7 +136,7 @@ class TestSecretSharing:
 
         # Should raise with too few shares
         with pytest.raises(ValueError):
-            sss.reconstruct(shares[:threshold - 1])
+            sss.reconstruct(shares[: threshold - 1])
 
     def test_any_threshold_shares_work(self):
         """Test that any combination of threshold shares works."""
@@ -248,10 +248,7 @@ class TestIdentity:
 
         # Prepare as initiator
         inputs = manager.prepare_membership_inputs(
-            initiator,
-            initiator.identity_hash,
-            counterparty.identity_hash,
-            is_initiator=True
+            initiator, initiator.identity_hash, counterparty.identity_hash, is_initiator=True
         )
 
         assert inputs["roleSelector"] == "0"
@@ -260,10 +257,7 @@ class TestIdentity:
 
         # Prepare as counterparty
         inputs = manager.prepare_membership_inputs(
-            counterparty,
-            initiator.identity_hash,
-            counterparty.identity_hash,
-            is_initiator=False
+            counterparty, initiator.identity_hash, counterparty.identity_hash, is_initiator=False
         )
 
         assert inputs["roleSelector"] == "1"
@@ -344,29 +338,21 @@ class TestIntegration:
         evidence = {
             "claim": "License violation detected",
             "repo_url": "https://github.com/example/repo",
-            "evidence_links": ["https://example.com/proof1"]
+            "evidence_links": ["https://example.com/proof1"],
         }
         dispute_id = 1
 
-        encrypted, evidence_hash = encrypt_evidence(
-            evidence, viewing_key, dispute_id
-        )
+        encrypted, evidence_hash = encrypt_evidence(evidence, viewing_key, dispute_id)
 
         # 4. Split viewing key for escrow
         shares = split_secret(viewing_key.private_key, threshold=3, total_shares=5)
 
         # 5. Prepare ZK inputs for both parties
         initiator_inputs = manager.prepare_membership_inputs(
-            initiator,
-            initiator.identity_hash,
-            counterparty.identity_hash,
-            is_initiator=True
+            initiator, initiator.identity_hash, counterparty.identity_hash, is_initiator=True
         )
         counterparty_inputs = manager.prepare_membership_inputs(
-            counterparty,
-            initiator.identity_hash,
-            counterparty.identity_hash,
-            is_initiator=False
+            counterparty, initiator.identity_hash, counterparty.identity_hash, is_initiator=False
         )
 
         # 6. Simulate compliance recovery
@@ -375,11 +361,12 @@ class TestIntegration:
 
         # 7. Decrypt evidence with recovered key
         from rra.privacy.viewing_keys import ViewingKey
+
         recovered_viewing_key = ViewingKey(
             private_key=recovered_key,
             public_key=viewing_key.public_key,
             commitment=viewing_key.commitment,
-            blinding_factor=viewing_key.blinding_factor
+            blinding_factor=viewing_key.blinding_factor,
         )
 
         decrypted = decrypt_evidence(encrypted, recovered_viewing_key)

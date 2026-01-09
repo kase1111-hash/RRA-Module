@@ -48,10 +48,16 @@ class TestEndToEndGitHubFlow:
                 {"path": "README.md", "content": "# Test Repo\n\nA sample project."},
                 {"path": "src/main.py", "content": "def hello():\n    return 'Hello, World!'"},
                 {"path": "src/utils.py", "content": "def add(a, b):\n    return a + b"},
-                {"path": "tests/test_main.py", "content": "def test_hello():\n    assert hello() == 'Hello, World!'"},
+                {
+                    "path": "tests/test_main.py",
+                    "content": "def test_hello():\n    assert hello() == 'Hello, World!'",
+                },
                 {"path": "LICENSE", "content": "MIT License\n\nCopyright 2025..."},
-                {"path": "pyproject.toml", "content": "[project]\nname = \"test-repo\"\nversion = \"1.0.0\""},
-            ]
+                {
+                    "path": "pyproject.toml",
+                    "content": '[project]\nname = "test-repo"\nversion = "1.0.0"',
+                },
+            ],
         }
 
     @pytest.fixture
@@ -76,7 +82,7 @@ class TestEndToEndGitHubFlow:
                 "base_price": 0.5,
                 "currency": "ETH",
                 "negotiable": True,
-            }
+            },
         }
 
     def test_step1_repository_ingestion(self, temp_dir, mock_github_repo):
@@ -84,7 +90,7 @@ class TestEndToEndGitHubFlow:
         print("\n=== Step 1: Repository Ingestion ===")
 
         # Mock the repo ingester
-        with patch('rra.ingestion.repo_ingester.RepoIngester') as MockIngester:
+        with patch("rra.ingestion.repo_ingester.RepoIngester") as MockIngester:
             mock_ingester = MagicMock()
             MockIngester.return_value = mock_ingester
 
@@ -194,6 +200,7 @@ class TestEndToEndGitHubFlow:
 
         # Wait for timeout and test half-open
         import time
+
         time.sleep(1.1)
 
         assert cb.state == CircuitState.HALF_OPEN
@@ -213,7 +220,7 @@ class TestEndToEndGitHubFlow:
         from rra.integration.natlangchain_client import NatLangChainClient
 
         # Create client with mocked HTTP
-        with patch('rra.integration.natlangchain_client.httpx') as mock_httpx:
+        with patch("rra.integration.natlangchain_client.httpx") as mock_httpx:
             # Mock successful response
             mock_response = MagicMock()
             mock_response.status_code = 200
@@ -222,7 +229,7 @@ class TestEndToEndGitHubFlow:
                 "entry": {
                     "id": "entry-12345",
                     "block_hash": "0xabc123...",
-                }
+                },
             }
 
             mock_client_instance = MagicMock()
@@ -248,7 +255,7 @@ class TestEndToEndGitHubFlow:
                     "duration": "perpetual",
                     "scope": "worldwide",
                     "commercial_use": True,
-                }
+                },
             )
 
             assert success is True
@@ -281,15 +288,12 @@ class TestEndToEndGitHubFlow:
         print(f"  ✓ Root endpoint returns {len(data['endpoints'])} endpoint categories")
 
         # Test protected endpoint without auth (should fail)
-        response = client.post(
-            "/api/ingest",
-            json={"repo_url": mock_github_repo["url"]}
-        )
+        response = client.post("/api/ingest", json={"repo_url": mock_github_repo["url"]})
         assert response.status_code == 401
         print("  ✓ Protected endpoint requires authentication")
 
         # Test with API key
-        with patch.dict('os.environ', {'RRA_API_KEYS': 'test-api-key-12345'}):
+        with patch.dict("os.environ", {"RRA_API_KEYS": "test-api-key-12345"}):
             # Recreate app to pick up new env
             app = create_app()
             client = TestClient(app)
@@ -297,7 +301,7 @@ class TestEndToEndGitHubFlow:
             response = client.post(
                 "/api/ingest",
                 json={"repo_url": mock_github_repo["url"]},
-                headers={"X-API-Key": "test-api-key-12345"}
+                headers={"X-API-Key": "test-api-key-12345"},
             )
             # Will fail because repo doesn't exist, but auth should pass
             # Status could be 500 (repo not found) or 200 (if mocked)
@@ -314,14 +318,14 @@ class TestEndToEndGitHubFlow:
         )
 
         # Test development config
-        with patch.dict('os.environ', {'RRA_ENV': 'development'}):
+        with patch.dict("os.environ", {"RRA_ENV": "development"}):
             config = reload_config()
             assert config.environment == Environment.DEVELOPMENT
             assert config.debug is True
             print(f"  ✓ Development config: debug={config.debug}")
 
         # Test production config
-        with patch.dict('os.environ', {'RRA_ENV': 'production', 'RRA_JWT_SECRET': 'secret123'}):
+        with patch.dict("os.environ", {"RRA_ENV": "production", "RRA_JWT_SECRET": "secret123"}):
             config = reload_config()
             assert config.environment == Environment.PRODUCTION
             assert config.debug is False
@@ -338,10 +342,13 @@ class TestEndToEndGitHubFlow:
         )
 
         # Test environment backend
-        with patch.dict('os.environ', {
-            'RRA_API_KEY': 'secret-api-key',
-            'RRA_JWT_SECRET': 'jwt-secret-123',
-        }):
+        with patch.dict(
+            "os.environ",
+            {
+                "RRA_API_KEY": "secret-api-key",
+                "RRA_JWT_SECRET": "jwt-secret-123",
+            },
+        ):
             env_backend = EnvironmentSecretsBackend(prefix="RRA_")
 
             api_key = env_backend.get("API_KEY")
@@ -360,7 +367,7 @@ class TestEndToEndGitHubFlow:
 
         # Test secrets manager with caching
         manager = SecretsManager(backend=env_backend)
-        with patch.dict('os.environ', {'RRA_CACHED_SECRET': 'cached-value'}):
+        with patch.dict("os.environ", {"RRA_CACHED_SECRET": "cached-value"}):
             # First call
             val1 = manager.get("CACHED_SECRET")
             # Second call (should use cache)
@@ -370,9 +377,9 @@ class TestEndToEndGitHubFlow:
 
     def test_full_e2e_flow(self, temp_dir, mock_github_repo, mock_knowledge_base):
         """Run complete end-to-end flow."""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("FULL END-TO-END TEST: GitHub Scan → NatLangChain Upload")
-        print("="*60)
+        print("=" * 60)
 
         # Step 1: Ingest
         self.test_step1_repository_ingestion(temp_dir, mock_github_repo)
@@ -395,9 +402,9 @@ class TestEndToEndGitHubFlow:
         # Step 7: Secrets Management
         self.test_step7_secrets_management(temp_dir)
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("✓ ALL END-TO-END TESTS PASSED")
-        print("="*60)
+        print("=" * 60)
 
 
 if __name__ == "__main__":

@@ -42,6 +42,7 @@ from rra.oracles.validators import (
 # EventBridge Tests
 # =============================================================================
 
+
 class TestEventBridge:
     """Test EventBridge functionality."""
 
@@ -326,6 +327,7 @@ class TestEventBridge:
 # Event Fetcher Tests
 # =============================================================================
 
+
 class TestAPIEventFetcher:
     """Test API event fetcher."""
 
@@ -384,6 +386,7 @@ class TestGitHubEventFetcher:
 # =============================================================================
 # Validator Tests
 # =============================================================================
+
 
 class TestSchemaValidator:
     """Test schema validator."""
@@ -463,9 +466,7 @@ class TestHashValidator:
         validator = HashValidator()
 
         data = {"key": "value"}
-        expected_hash = hashlib.sha256(
-            json.dumps(data, sort_keys=True).encode()
-        ).hexdigest()
+        expected_hash = hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
 
         report = validator.validate(data, expected_hash=expected_hash)
         assert report.result == ValidationResult.VALID
@@ -669,6 +670,7 @@ class TestFinancialEventValidator:
 # =============================================================================
 # Integration Tests
 # =============================================================================
+
 
 class TestEventBridgeIntegration:
     """Integration tests for event bridge."""

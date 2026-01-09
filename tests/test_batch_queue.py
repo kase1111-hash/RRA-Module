@@ -28,6 +28,7 @@ from rra.privacy.batch_queue import (
 # BatchQueueClient Tests
 # ============================================================================
 
+
 class TestBatchQueueClient:
     """Tests for BatchQueueClient."""
 
@@ -321,6 +322,7 @@ class TestBatchConfig:
 # PrivacyEnhancer Tests
 # ============================================================================
 
+
 class TestPrivacyEnhancer:
     """Tests for PrivacyEnhancer."""
 
@@ -420,6 +422,7 @@ class TestPrivacyEnhancer:
 # Serialization Tests
 # ============================================================================
 
+
 class TestSerialization:
     """Tests for data serialization."""
 
@@ -465,6 +468,7 @@ class TestSerialization:
 # ============================================================================
 # Convenience Function Tests
 # ============================================================================
+
 
 class TestConvenienceFunctions:
     """Tests for convenience functions."""
