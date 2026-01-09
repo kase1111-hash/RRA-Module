@@ -22,7 +22,7 @@ This repository is **live on Story Protocol**. Buy a license NFT to use this cod
 
 ---
 
-The RRA‑Module repository is a Python/Smart‑contract powered extension for the NatLangChain framework that turns a static GitHub repo into an autonomous agent which:
+The RRA‑Module (Revenant Repo Agent) is a **dead code revival** and **abandoned repo monetization** system—a Python/Smart‑contract powered extension for the NatLangChain framework that transforms dormant GitHub repositories into **autonomous licensing agents**. This **AI repository agent** enables **passive income from code** through **automated license negotiation** and **repository resurrection**, turning any static repo into a self-sustaining agent which:
 
 ✔ Ingests a repo's source code
 
@@ -44,8 +44,13 @@ The RRA‑Module repository is a Python/Smart‑contract powered extension for t
 
 This modular pipeline transforms repos into living AI agents with monetization features.
 
-Module Overview
-The Revenant Repo Agent Module (RRA) is a transformative extension for NatLangChain designed to resurrect dormant or unmanaged GitHub repositories, converting them into self-sustaining, autonomous agents capable of generating revenue through on-chain negotiations and licensing. By leveraging AI-driven ingestion, negotiation, and blockchain entitlements, RRA minimizes developer involvement while maximizing the economic potential of "zombie" codebases. This module empowers developers worldwide to monetize their intellectual property effortlessly, fostering a decentralized, value-driven code economy.
+## Module Overview
+
+The Revenant Repo Agent Module (RRA) is a transformative extension for NatLangChain designed to **revive unmaintained repos** and resurrect dormant or unmanaged GitHub repositories. It converts them into self-sustaining, autonomous agents capable of generating revenue through on-chain negotiations and **abandoned software licensing**.
+
+**How to make money from abandoned GitHub repos?** RRA provides the answer: an **autonomous code marketplace** that enables developers to **monetize old GitHub projects** through **AI negotiation for developers**. By leveraging AI-driven ingestion, negotiation, and blockchain entitlements, RRA minimizes developer involvement while maximizing the economic potential of "zombie" codebases through **zombie repo activation**.
+
+This module empowers developers worldwide to achieve **passive developer income** effortlessly, serving as a complete **AI agent for licensing** that fosters a decentralized, value-driven code economy. Whether you're asking "how to monetize old code projects" or seeking "passive income for developers," RRA provides **autonomous software licensing** that works while you sleep.
 Key Benefits:
 
 Automation-First Design: Once configured, the module operates independently, handling updates, negotiations, and transactions without ongoing oversight.
@@ -310,6 +315,28 @@ Cryptographic operations optimized for production use:
 - **[FAQ](FAQ.md)** - Challenges and resilience analysis
 - **[Founding Contributor Pledge](Founding-Contributor-Pledge.md)** - Ethical commitments
 - **[Buyer Beware](Buyer-Beware.md)** - Important notice for marketplace users
+
+## Part of the NatLangChain Ecosystem
+
+RRA-Module is part of a larger ecosystem of tools for natural language blockchain, autonomous agents, and digital sovereignty. Related repositories:
+
+### NatLangChain Core
+- **[NatLangChain](https://github.com/kase1111-hash/NatLangChain)** - Prose-first, intent-native blockchain protocol for recording human intent in natural language
+- **[IntentLog](https://github.com/kase1111-hash/IntentLog)** - Git for human reasoning. Tracks "why" changes happen via prose commits
+- **[mediator-node](https://github.com/kase1111-hash/mediator-node)** - LLM mediation layer for matching, negotiation, and closure proposals
+- **[ILR-module](https://github.com/kase1111-hash/ILR-module)** - IP & Licensing Reconciliation: Dispute resolution for intellectual property conflicts
+- **[Finite-Intent-Executor](https://github.com/kase1111-hash/Finite-Intent-Executor)** - Posthumous execution of predefined intent (Solidity smart contract)
+
+### Agent-OS Ecosystem
+- **[Agent-OS](https://github.com/kase1111-hash/Agent-OS)** - Natural-language native operating system for AI agents
+- **[synth-mind](https://github.com/kase1111-hash/synth-mind)** - NLOS-based agent with six interconnected psychological modules for emergent continuity
+- **[boundary-daemon-](https://github.com/kase1111-hash/boundary-daemon-)** - Mandatory trust enforcement layer defining cognition boundaries for AI agents
+- **[memory-vault](https://github.com/kase1111-hash/memory-vault)** - Secure, offline-capable, owner-sovereign storage for cognitive artifacts
+- **[value-ledger](https://github.com/kase1111-hash/value-ledger)** - Economic accounting layer for cognitive work (ideas, effort, novelty)
+- **[learning-contracts](https://github.com/kase1111-hash/learning-contracts)** - Safety protocols for AI learning and data management
+
+### Security Infrastructure
+- **[Boundary-SIEM](https://github.com/kase1111-hash/Boundary-SIEM)** - Security Information and Event Management for AI systems
 
 ## License
 
