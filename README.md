@@ -4,7 +4,7 @@
 [![Security](https://img.shields.io/badge/security-A--rating-blue)](docs/SECURITY-AUDIT.md)
 [![License](https://img.shields.io/badge/license-FSL--1.1--ALv2-orange)](LICENSE.md)
 [![Python](https://img.shields.io/badge/python-3.9+-blue)](pyproject.toml)
-[![Buy License](https://img.shields.io/badge/Buy_License-0.05_ETH-6366f1)](https://kase1111-hash.github.io/RRA-Module/marketplace/public/buy-license.html)
+[![Buy License](https://img.shields.io/badge/Buy_License-0.005_ETH-6366f1)](https://kase1111-hash.github.io/RRA-Module/marketplace/public/buy-license.html)
 
 ---
 
@@ -14,7 +14,7 @@ This repository is **live on Story Protocol**. Buy a license NFT to use this cod
 
 | | |
 |---|---|
-| **Price** | 0.05 ETH |
+| **Price** | 0.005 ETH |
 | **License Type** | Perpetual, Transferable |
 | **What You Get** | Full source access, commercial use, derivative rights |
 | **Purchase** | **[Buy Now →](https://kase1111-hash.github.io/RRA-Module/marketplace/public/buy-license.html)** |
