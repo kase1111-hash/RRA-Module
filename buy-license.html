@@ -371,7 +371,7 @@
                     }
                 ];
 
-                // ABI for mintLicenseTokens
+                // ABI for mintLicenseTokens (updated with maxMintingFee & maxRevenueShare)
                 const licensingABI = [
                     {
                         "inputs": [
@@ -380,7 +380,9 @@
                             {"name": "licenseTermsId", "type": "uint256"},
                             {"name": "amount", "type": "uint256"},
                             {"name": "receiver", "type": "address"},
-                            {"name": "royaltyContext", "type": "bytes"}
+                            {"name": "royaltyContext", "type": "bytes"},
+                            {"name": "maxMintingFee", "type": "uint256"},
+                            {"name": "maxRevenueShare", "type": "uint32"}
                         ],
                         "name": "mintLicenseTokens",
                         "outputs": [{"name": "", "type": "uint256[]"}],
@@ -444,8 +446,9 @@
                         CONFIG.licenseTermsId,
                         1,
                         receiverAddress,
-                        "0x"
-                        // NO value - payment is via WIP token approval
+                        "0x",
+                        priceWei,  // maxMintingFee - max we're willing to pay
+                        10000      // maxRevenueShare - 100% (in basis points)
                     );
                     logDebugInfo('Gas Estimate', gasEstimate.toString());
                 } catch (estimateError) {
@@ -460,7 +463,9 @@
                             CONFIG.licenseTermsId,
                             1,
                             receiverAddress,
-                            "0x"
+                            "0x",
+                            priceWei,
+                            10000
                         );
                     } catch (staticError) {
                         logDebugInfo('Static Call Error', staticError.reason || staticError.message);
@@ -478,6 +483,8 @@
                     1,
                     receiverAddress,
                     "0x",
+                    priceWei,  // maxMintingFee
+                    10000,     // maxRevenueShare
                     { gasLimit: gasEstimate * 120n / 100n } // 20% buffer, NO value
                 );
 
