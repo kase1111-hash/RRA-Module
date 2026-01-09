@@ -12,7 +12,7 @@
         <div class="bg-gray-800 rounded-2xl p-8 shadow-xl">
             <div class="text-center mb-8">
                 <h1 class="text-3xl font-bold mb-2">Purchase License</h1>
-                <p class="text-gray-400">Powered by Story Protocol (Aeneid Testnet)</p>
+                <p class="text-gray-400">Powered by Story Protocol</p>
             </div>
 
             <!-- License Details -->
@@ -21,7 +21,7 @@
                 <div class="space-y-3">
                     <div class="flex justify-between">
                         <span class="text-gray-400">Price</span>
-                        <span class="font-mono text-green-400">0.05 ETH</span>
+                        <span id="price-display" class="font-mono text-green-400"></span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-400">Type</span>
@@ -39,10 +39,10 @@
                 <h2 class="text-xl font-semibold mb-4">Included Features</h2>
                 <ul class="space-y-2">
                     <li class="flex items-center gap-2"><span class="text-green-500">&#10003;</span>AI-Driven Negotiation Agents</li>
-<li class="flex items-center gap-2"><span class="text-green-500">&#10003;</span>Blockchain License Management</li>
-<li class="flex items-center gap-2"><span class="text-green-500">&#10003;</span>GitHub Integration</li>
-<li class="flex items-center gap-2"><span class="text-green-500">&#10003;</span>Automated Revenue Distribution</li>
-<li class="flex items-center gap-2"><span class="text-green-500">&#10003;</span>Knowledge Base Generation</li>
+                    <li class="flex items-center gap-2"><span class="text-green-500">&#10003;</span>Blockchain License Management</li>
+                    <li class="flex items-center gap-2"><span class="text-green-500">&#10003;</span>GitHub Integration</li>
+                    <li class="flex items-center gap-2"><span class="text-green-500">&#10003;</span>Automated Revenue Distribution</li>
+                    <li class="flex items-center gap-2"><span class="text-green-500">&#10003;</span>Knowledge Base Generation</li>
                 </ul>
             </div>
 
@@ -70,7 +70,7 @@
                     onclick="purchaseLicense()"
                     class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-xl transition-colors"
                 >
-                    Purchase License for 0.05 ETH
+                    Purchase License for <span id="btn-price-display"></span>
                 </button>
             </div>
 
@@ -92,9 +92,9 @@
 
         <!-- Story Protocol Info -->
         <div class="text-center mt-8 text-gray-500">
-            <p>License NFT minted on <a href="https://story.foundation" target="_blank" class="text-blue-400 hover:underline">Story Protocol</a> (Aeneid Testnet)</p>
+            <p>License NFT minted on <a href="https://story.foundation" target="_blank" class="text-blue-400 hover:underline">Story Protocol</a></p>
             <p class="text-sm mt-2">
-                <a href="https://aeneid.explorer.story.foundation/token/0xb77ABcfFbf063a3e6BACA37D72353750475D4E70" target="_blank" class="hover:underline">
+                <a id="ip-asset-link" href="#" target="_blank" class="hover:underline">
                     View IP Asset on Explorer
                 </a>
             </p>
@@ -102,20 +102,65 @@
     </div>
 
     <script>
-        const IP_ASSET_ID = "0xb77ABcfFbf063a3e6BACA37D72353750475D4E70";
-        const LICENSE_TERMS_ID = 3;
-        const PRICE_WEI = "50000000000000000";
-        // Story Protocol Aeneid Testnet
-        const STORY_CHAIN_ID = 1315;
-        const STORY_RPC = "https://aeneid.storyrpc.io";
-        const EXPLORER_URL = "https://aeneid.explorer.story.foundation";
+        // ============================================
+        // USER CONFIGURATION - Match these to your .market.yaml
+        // ============================================
+        const CONFIG = {
+            // Pricing (from .market.yaml target_price)
+            price: 0.005,
+            currency: "ETH",  // Native token for payments
 
-        // Story Protocol Licensing Module Address (Testnet)
+            // Network: "mainnet" or "testnet"
+            network: "mainnet",
+
+            // Story Protocol IP Asset (your registered IP)
+            ipAssetId: "0xb77ABcfFbf063a3e6BACA37D72353750475D4E70",
+            licenseTermsId: 3
+        };
+
+        // ============================================
+        // NETWORK CONFIGURATION (auto-configured based on CONFIG.network)
+        // ============================================
+        const NETWORKS = {
+            mainnet: {
+                chainId: 1514,
+                rpc: "https://mainnet.storyrpc.io",
+                explorer: "https://explorer.story.foundation",
+                name: "Story Protocol"
+            },
+            testnet: {
+                chainId: 1315,
+                rpc: "https://aeneid.storyrpc.io",
+                explorer: "https://aeneid.explorer.story.foundation",
+                name: "Story Aeneid Testnet"
+            }
+        };
+
+        // Derived configuration
+        const NETWORK = NETWORKS[CONFIG.network];
+        const PRICE_WEI = (CONFIG.price * 1e18).toString();
+
+        // Story Protocol Contract Addresses
         const LICENSING_MODULE = "0xd81fd78f557b457b4350cB95D20b547bFEb4D857";
         const PIL_TEMPLATE = "0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316";
 
         let provider;
         let signer;
+
+        // Initialize page displays on page load
+        function initializeDisplays() {
+            // Set price displays
+            const priceText = `${CONFIG.price} ${CONFIG.currency}`;
+            document.getElementById('price-display').textContent = priceText;
+            document.getElementById('btn-price-display').textContent = priceText;
+
+            // Set IP Asset explorer link
+            document.getElementById('ip-asset-link').href =
+                `${NETWORK.explorer}/address/${CONFIG.ipAssetId}`;
+        }
+
+        // Run initialization when DOM is ready
+        document.addEventListener('DOMContentLoaded', initializeDisplays);
 
         async function connectWallet() {
             if (typeof window.ethereum === 'undefined') {
@@ -129,11 +174,11 @@
 
                 // Check if on Story Protocol network
                 const network = await provider.getNetwork();
-                if (Number(network.chainId) !== STORY_CHAIN_ID) {
+                if (Number(network.chainId) !== NETWORK.chainId) {
                     try {
                         await window.ethereum.request({
                             method: 'wallet_switchEthereumChain',
-                            params: [{ chainId: '0x' + STORY_CHAIN_ID.toString(16) }],
+                            params: [{ chainId: '0x' + NETWORK.chainId.toString(16) }],
                         });
                     } catch (switchError) {
                         // Chain not added, add it
@@ -141,11 +186,11 @@
                             await window.ethereum.request({
                                 method: 'wallet_addEthereumChain',
                                 params: [{
-                                    chainId: '0x' + STORY_CHAIN_ID.toString(16),
-                                    chainName: 'Story Protocol Aeneid Testnet',
-                                    nativeCurrency: { name: 'IP', symbol: 'IP', decimals: 18 },
-                                    rpcUrls: [STORY_RPC],
-                                    blockExplorerUrls: [EXPLORER_URL],
+                                    chainId: '0x' + NETWORK.chainId.toString(16),
+                                    chainName: NETWORK.name,
+                                    nativeCurrency: { name: CONFIG.currency, symbol: CONFIG.currency, decimals: 18 },
+                                    rpcUrls: [NETWORK.rpc],
+                                    blockExplorerUrls: [NETWORK.explorer],
                                 }],
                             });
                         }
@@ -211,9 +256,9 @@
 
                 // Mint license token
                 const tx = await licensingModule.mintLicenseTokens(
-                    IP_ASSET_ID,
+                    CONFIG.ipAssetId,
                     PIL_TEMPLATE,
-                    LICENSE_TERMS_ID,
+                    CONFIG.licenseTermsId,
                     1, // amount
                     receiverAddress,
                     "0x", // royaltyContext
@@ -229,7 +274,7 @@
                 loadingDiv.classList.add('hidden');
                 successDiv.classList.remove('hidden');
                 document.getElementById('tx-link').href =
-                    `${EXPLORER_URL}/tx/${tx.hash}`;
+                    `${NETWORK.explorer}/tx/${tx.hash}`;
 
             } catch (error) {
                 console.error('Purchase error:', error);
