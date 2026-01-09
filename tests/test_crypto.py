@@ -130,12 +130,14 @@ class TestViewingKey:
             key2.decrypt(encrypted)
 
     def test_export_import(self):
-        """Test key export and import."""
+        """Test key export and import using encrypted export (HIGH-005)."""
         key = ViewingKey.generate(KeyPurpose.DISPUTE_EVIDENCE, "d-1")
-        private_bytes = key.export_private()
+        password = b"test_password_12345"
+        encrypted_bytes = key.export_private_encrypted(password)
 
-        restored = ViewingKey.from_private_bytes(
-            private_bytes,
+        restored = ViewingKey.import_private_encrypted(
+            encrypted_bytes,
+            password,
             KeyPurpose.DISPUTE_EVIDENCE,
             "d-1"
         )

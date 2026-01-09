@@ -7,11 +7,14 @@ Tracks licensing deals, payments, and revenue metrics when running
 in integrated mode.
 """
 
+import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from pathlib import Path
 import json
 from dataclasses import dataclass, asdict
+
+logger = logging.getLogger(__name__)
 
 from rra.integration.config import get_integration_config
 
@@ -195,7 +198,7 @@ class ValueLedgerService:
             )
             return Transaction(**result)
         except Exception as e:
-            print(f"Warning: Failed to record to value-ledger: {e}")
+            logger.warning(f"Failed to record to value-ledger: {e}")
             if not hasattr(self, "_fallback"):
                 self._fallback = LocalLedger(self.agent_id)
             return self._fallback.record_transaction(
@@ -211,7 +214,7 @@ class ValueLedgerService:
         try:
             self.client.update_status(transaction_id, status)
         except Exception as e:
-            print(f"Warning: Failed to update in value-ledger: {e}")
+            logger.warning(f"Failed to update in value-ledger: {e}")
             if not hasattr(self, "_fallback"):
                 self._fallback = LocalLedger(self.agent_id)
             self._fallback.update_transaction_status(transaction_id, status)

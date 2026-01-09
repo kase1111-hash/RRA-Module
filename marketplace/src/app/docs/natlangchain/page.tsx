@@ -9,8 +9,6 @@ export default function NatLangChainPage() {
         <nav className="flex items-center gap-2 text-sm text-gray-500">
           <Link href="/docs" className="hover:text-gray-700 dark:hover:text-gray-300">Docs</Link>
           <ChevronRight className="h-4 w-4" />
-          <Link href="/docs/integration" className="hover:text-gray-700 dark:hover:text-gray-300">Integration</Link>
-          <ChevronRight className="h-4 w-4" />
           <span className="text-gray-900 dark:text-white">NatLangChain</span>
         </nav>
 

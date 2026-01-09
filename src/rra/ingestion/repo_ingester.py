@@ -480,7 +480,7 @@ class RepoIngester:
 
             return metadata
         except Exception as e:
-            print(f"Warning: Could not extract git metadata: {e}")
+            logger.warning(f"Could not extract git metadata: {e}")
             return {}
 
     def _parse_code_structure(self, repo_path: Path) -> Dict[str, List[str]]:
@@ -596,7 +596,7 @@ class RepoIngester:
                     with open(file_path, "r", encoding="utf-8") as f:
                         docs[doc_file] = f.read()
                 except Exception as e:
-                    print(f"Warning: Could not read {doc_file}: {e}")
+                    logger.warning(f"Could not read {doc_file}: {e}")
 
         return docs
 

@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
-"""
-Script to add SPDX license headers to all Python source files.
-
-SPDX-License-Identifier: FSL-1.1-ALv2
-Copyright 2025 Kase Branham
-"""
+# SPDX-License-Identifier: FSL-1.1-ALv2
+# Copyright 2025 Kase Branham
+"""Script to add SPDX license headers to all Python source files."""
 
 import os
 from pathlib import Path

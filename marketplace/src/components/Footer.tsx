@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Github, Twitter, MessageCircle } from 'lucide-react';
+import { Github } from 'lucide-react';
 
 export function Footer() {
   return (
@@ -155,24 +155,7 @@ export function Footer() {
               <span className="sr-only">GitHub</span>
               <Github className="h-5 w-5" />
             </a>
-            <a
-              href="https://twitter.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
-            >
-              <span className="sr-only">Twitter</span>
-              <Twitter className="h-5 w-5" />
-            </a>
-            <a
-              href="https://discord.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
-            >
-              <span className="sr-only">Discord</span>
-              <MessageCircle className="h-5 w-5" />
-            </a>
+            {/* TODO: Add Twitter/Discord links when social accounts are set up */}
           </div>
         </div>
       </div>

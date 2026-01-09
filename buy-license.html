@@ -12,7 +12,7 @@
         <div class="bg-gray-800 rounded-2xl p-8 shadow-xl">
             <div class="text-center mb-8">
                 <h1 class="text-3xl font-bold mb-2">Purchase License</h1>
-                <p class="text-gray-400">Powered by Story Protocol</p>
+                <p class="text-gray-400">Powered by Story Protocol (Aeneid Testnet)</p>
             </div>
 
             <!-- License Details -->
@@ -92,10 +92,10 @@
 
         <!-- Story Protocol Info -->
         <div class="text-center mt-8 text-gray-500">
-            <p>License NFT minted on <a href="https://story.foundation" target="_blank" class="text-blue-400 hover:underline">Story Protocol</a></p>
+            <p>License NFT minted on <a href="https://story.foundation" target="_blank" class="text-blue-400 hover:underline">Story Protocol</a> (Aeneid Testnet)</p>
             <p class="text-sm mt-2">
-                <a href="https://www.storyscan.io/token/0xb77ABcfFbf063a3e6BACA37D72353750475D4E70" target="_blank" class="hover:underline">
-                    View IP Asset on StoryScan
+                <a href="https://aeneid.explorer.story.foundation/token/0xb77ABcfFbf063a3e6BACA37D72353750475D4E70" target="_blank" class="hover:underline">
+                    View IP Asset on Explorer
                 </a>
             </p>
         </div>
@@ -113,12 +113,15 @@
         // Story Protocol Configuration
         const IP_ASSET_ID = "0xb77ABcfFbf063a3e6BACA37D72353750475D4E70";
         const LICENSE_TERMS_ID = 3;
-        const STORY_CHAIN_ID = 1514;
-        const STORY_RPC = "https://mainnet.storyrpc.io";
+        const PRICE_WEI = "50000000000000000";
+        // Story Protocol Aeneid Testnet
+        const STORY_CHAIN_ID = 1315;
+        const STORY_RPC = "https://aeneid.storyrpc.io";
+        const EXPLORER_URL = "https://aeneid.explorer.story.foundation";
 
-        // Story Protocol Licensing Module Address
+        // Story Protocol Licensing Module Address (Testnet)
         const LICENSING_MODULE = "0xd81fd78f557b457b4350cB95D20b547bFEb4D857";
-        const PIL_TEMPLATE = "0x0752B15Ee7303033854bdE1B32bc7A4008752Dc0";
+        const PIL_TEMPLATE = "0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316";
 
         let provider;
         let signer;
@@ -158,10 +161,10 @@
                                 method: 'wallet_addEthereumChain',
                                 params: [{
                                     chainId: '0x' + STORY_CHAIN_ID.toString(16),
-                                    chainName: 'Story Protocol',
+                                    chainName: 'Story Protocol Aeneid Testnet',
                                     nativeCurrency: { name: 'IP', symbol: 'IP', decimals: 18 },
                                     rpcUrls: [STORY_RPC],
-                                    blockExplorerUrls: ['https://storyscan.io'],
+                                    blockExplorerUrls: [EXPLORER_URL],
                                 }],
                             });
                         }
@@ -245,7 +248,7 @@
                 loadingDiv.classList.add('hidden');
                 successDiv.classList.remove('hidden');
                 document.getElementById('tx-link').href =
-                    `https://storyscan.io/tx/${tx.hash}`;
+                    `${EXPLORER_URL}/tx/${tx.hash}`;
 
             } catch (error) {
                 console.error('Purchase error:', error);
