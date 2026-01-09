@@ -7,29 +7,29 @@ import { ArrowRight, Package, DollarSign, MessageSquare, TrendingUp, Clock, Chec
 const stats = [
   { label: 'Total Repositories', value: '3', icon: Package, change: '+1 this month' },
   { label: 'Total Revenue', value: '2.45 ETH', icon: DollarSign, change: '+0.8 ETH this month' },
-  { label: 'Active Negotiations', value: '5', icon: MessageSquare, change: '2 pending response' },
-  { label: 'Completed Sales', value: '12', icon: CheckCircle, change: '+3 this week' },
+  { label: 'Active Chats', value: '5', icon: MessageSquare, change: '2 pending response' },
+  { label: 'Licenses Issued', value: '12', icon: CheckCircle, change: '+3 this week' },
 ];
 
 const recentActivity = [
   {
     id: 1,
-    type: 'sale',
-    message: 'License sold for RRA-Module',
+    type: 'license',
+    message: 'License purchased for RRA-Module',
     amount: '0.05 ETH',
     time: '2 hours ago',
   },
   {
     id: 2,
-    type: 'negotiation',
-    message: 'New negotiation started for web3-utils',
+    type: 'inquiry',
+    message: 'New license inquiry for web3-utils',
     amount: null,
     time: '5 hours ago',
   },
   {
     id: 3,
-    type: 'sale',
-    message: 'Enterprise license sold for ml-pipeline',
+    type: 'license',
+    message: 'Enterprise license purchased for ml-pipeline',
     amount: '0.15 ETH',
     time: '1 day ago',
   },
@@ -46,25 +46,25 @@ const myRepositories = [
   {
     id: 'rra-module-abc123',
     name: 'RRA-Module',
-    sales: 8,
+    licenses: 8,
     revenue: '0.40 ETH',
-    activeNegotiations: 2,
+    activeChats: 2,
     status: 'active',
   },
   {
     id: 'web3-utils-def456',
     name: 'web3-utils',
-    sales: 3,
+    licenses: 3,
     revenue: '0.06 ETH',
-    activeNegotiations: 1,
+    activeChats: 1,
     status: 'active',
   },
   {
     id: 'ml-pipeline-ghi789',
     name: 'ml-pipeline',
-    sales: 1,
+    licenses: 1,
     revenue: '0.15 ETH',
-    activeNegotiations: 2,
+    activeChats: 2,
     status: 'pending_verification',
   },
 ];
@@ -137,9 +137,9 @@ export default function DashboardPage() {
                   <div>
                     <p className="font-medium text-gray-900 dark:text-white">{repo.name}</p>
                     <div className="mt-1 flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                      <span>{repo.sales} sales</span>
+                      <span>{repo.licenses} licenses</span>
                       <span>{repo.revenue}</span>
-                      <span>{repo.activeNegotiations} active chats</span>
+                      <span>{repo.activeChats} active chats</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

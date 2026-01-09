@@ -45,7 +45,7 @@ rra ingest .
   {
     number: 4,
     title: 'Push and go live!',
-    description: 'Commit your config and your AI agent is ready to negotiate licenses',
+    description: 'Commit your config and your AI agent is ready to help buyers choose licenses',
     code: `# Commit your marketplace config
 git add .market.yaml
 git commit -m "Add RRA marketplace configuration"
@@ -167,7 +167,7 @@ export default function QuickstartPage() {
                   {step.number === 4 && (
                     <div className="mt-4 rounded-lg border border-primary-200 bg-primary-50 p-4 dark:border-primary-800 dark:bg-primary-900/20">
                       <p className="text-sm text-primary-700 dark:text-primary-300">
-                        🎉 <strong>You&apos;re all set!</strong> Your AI agent will handle license negotiations,
+                        🎉 <strong>You&apos;re all set!</strong> Your AI agent will help buyers choose the right license,
                         and royalties are automatically enforced via Story Protocol smart contracts.
                       </p>
                     </div>

@@ -19,7 +19,7 @@ export interface MarketConfig {
   license_model: string;
   target_price: string;
   floor_price: string;
-  negotiation_style: string;
+  communication_style: string;
   features: string[];
   developer_wallet?: string;
   copyright_holder?: string;
@@ -36,17 +36,17 @@ export interface AgentDetails {
   };
   reputation: {
     score: number;
-    total_sales: number;
+    total_licenses: number;
     total_revenue: string;
   };
 }
 
 export interface AgentStats {
-  total_sales: number;
+  total_licenses: number;
   total_revenue: string;
   average_price: string;
   reputation_score: number;
-  active_negotiations: number;
+  active_chats: number;
 }
 
 // Negotiation Types

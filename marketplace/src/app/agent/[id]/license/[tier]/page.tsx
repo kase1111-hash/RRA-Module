@@ -109,7 +109,7 @@ export default function LicenseTierPage() {
     alert(`Initiating purchase of ${selectedTier.name} license for ${selectedTier.price}`);
   };
 
-  const handleNegotiate = () => {
+  const handleChat = () => {
     router.push(`/agent/${id}/chat`);
   };
 
@@ -248,11 +248,11 @@ export default function LicenseTierPage() {
                     Purchase License
                   </button>
                   <button
-                    onClick={handleNegotiate}
+                    onClick={handleChat}
                     className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 py-3 font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                   >
                     <MessageCircle className="h-4 w-4" />
-                    Negotiate Price
+                    Ask Questions
                   </button>
                 </>
               ) : (

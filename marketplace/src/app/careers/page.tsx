@@ -23,7 +23,7 @@ const positions = [
     department: 'AI',
     location: 'Remote',
     type: 'Full-time',
-    description: 'Develop and improve our AI negotiation agents and license recommendation systems.',
+    description: 'Develop and improve our AI license advisors and recommendation systems.',
   },
   {
     id: 4,

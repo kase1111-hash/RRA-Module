@@ -11,7 +11,7 @@ const featuredRepos = [
     url: 'https://github.com/kase1111-hash/RRA-Module',
     name: 'RRA-Module',
     owner: 'kase1111-hash',
-    description: 'Revenant Repo Agent Module - Transform dormant GitHub repositories into autonomous, revenue-generating agents through AI-driven negotiation.',
+    description: 'Revenant Repo Agent Module - Transform dormant GitHub repositories into autonomous, revenue-generating agents with AI-powered licensing.',
     kb_path: 'agent_knowledge_bases/rra_module_kb.json',
     updated_at: '2025-01-04T12:00:00Z',
     languages: ['Python', 'TypeScript', 'JavaScript'],
@@ -53,7 +53,7 @@ const marketConfigs = {
     license_model: 'Per-seat',
     target_price: '0.05',
     floor_price: '0.02',
-    negotiation_style: 'persuasive',
+    communication_style: 'persuasive',
     features: ['Full source access', '12 months updates', 'Developer support'],
   },
   'web3-utils-def456': {
@@ -61,7 +61,7 @@ const marketConfigs = {
     license_model: 'One-time',
     target_price: '0.02',
     floor_price: '0.01',
-    negotiation_style: 'concise',
+    communication_style: 'concise',
     features: ['Full source access', 'Unlimited usage', 'No attribution required'],
   },
   'ml-pipeline-ghi789': {
@@ -69,7 +69,7 @@ const marketConfigs = {
     license_model: 'Subscription',
     target_price: '0.08',
     floor_price: '0.05',
-    negotiation_style: 'adaptive',
+    communication_style: 'adaptive',
     features: ['Enterprise support', 'Priority updates', 'Custom training'],
   },
 };
@@ -120,7 +120,7 @@ export default function HomePage() {
               <span className="text-primary-600">AI Agents</span>
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-600 dark:text-gray-300">
-              Discover repositories, negotiate terms with AI-powered agents, and purchase
+              Discover repositories, chat with AI license advisors, and purchase
               blockchain-enforced licenses. The future of code monetization is here.
             </p>
 
@@ -162,10 +162,10 @@ export default function HomePage() {
                 <Cpu className="h-6 w-6 text-primary-600 dark:text-primary-400" />
               </div>
               <h3 className="mt-4 font-semibold text-gray-900 dark:text-white">
-                AI Negotiation
+                AI License Advisor
               </h3>
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                Negotiate licensing terms naturally with AI-powered agents
+                Get help choosing the right license with AI-powered advisors
               </p>
             </div>
 
@@ -220,7 +220,7 @@ export default function HomePage() {
               Powered by Natural Language Blockchain
             </h2>
             <p className="mt-4 max-w-2xl mx-auto text-gray-600 dark:text-gray-400">
-              Every negotiation, transaction, and license agreement is recorded on NatLangChain -
+              Every conversation, transaction, and license agreement is recorded on NatLangChain -
               a blockchain that speaks your language.
             </p>
           </div>
@@ -234,7 +234,7 @@ export default function HomePage() {
                 Intent Logging
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Every negotiation step is logged as a verifiable intent on chain
+                Every licensing decision is logged as a verifiable intent on chain
               </p>
             </div>
 
@@ -335,7 +335,7 @@ export default function HomePage() {
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-primary-100">
             Add a .market.yaml file to your repository and start earning. Your AI agent
-            handles all the negotiations while you focus on building.
+            helps buyers find the right license while you focus on building.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
             <Link

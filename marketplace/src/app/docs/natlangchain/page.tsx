@@ -22,8 +22,8 @@ export default function NatLangChainPage() {
         </div>
 
         <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
-          NatLangChain powers the AI negotiation agents in RRA. It provides natural language
-          understanding for license discussions and autonomous deal execution.
+          NatLangChain powers the AI license advisors in RRA. It provides natural language
+          understanding for license discussions and autonomous transaction execution.
         </p>
 
         {/* What is NatLangChain */}
@@ -36,9 +36,9 @@ export default function NatLangChainPage() {
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
               <MessageSquare className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-              <h3 className="mt-4 font-semibold text-gray-900 dark:text-white">AI Negotiation</h3>
+              <h3 className="mt-4 font-semibold text-gray-900 dark:text-white">License Assistance</h3>
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                Natural language discussions about licensing terms, pricing, and usage rights.
+                Natural language discussions about licensing options, tiers, and usage rights.
               </p>
             </div>
             <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
@@ -67,12 +67,11 @@ export default function NatLangChainPage() {
           <pre className="mt-4 overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm text-gray-100">
             <code>{`# .market.yaml
 agent:
-  negotiation_enabled: true
+  enabled: true
   llm_provider: "natlangchain"  # or "openai", "anthropic"
 
-  # Negotiation parameters
-  max_discount: 10          # Max discount agent can offer
-  auto_approve_threshold: "0.5"  # Auto-approve deals under this price
+  # Agent parameters
+  auto_approve_threshold: "0.5"  # Auto-approve purchases under this price
   response_style: "professional"  # or "friendly", "technical"
 
   # NatLangChain specific
@@ -86,7 +85,7 @@ agent:
         <div className="mt-12">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">API Usage</h2>
           <pre className="mt-4 overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm text-gray-100">
-            <code>{`// Send a message to the negotiation agent
+            <code>{`// Send a message to the license advisor
 const response = await fetch('/api/agent/chat', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
