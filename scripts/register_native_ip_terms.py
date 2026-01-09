@@ -181,11 +181,14 @@ def main():
     license_terms_id = None
     try:
         existing_id = pil_template.functions.getLicenseTermsId(pil_terms).call()
+        print(f"  getLicenseTermsId returned: {existing_id}")
         if existing_id > 0:
             print(f"  Terms already exist with ID: {existing_id}")
             license_terms_id = existing_id
+        else:
+            print("  Terms don't exist yet (ID = 0)")
     except Exception as e:
-        print(f"  Terms don't exist yet: {e}")
+        print(f"  Error checking existing terms: {e}")
 
     # Step 2: Register terms if needed
     if license_terms_id is None:

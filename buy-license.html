@@ -150,6 +150,7 @@
         // See: https://docs.story.foundation/developers/deployed-smart-contracts
         const LICENSING_MODULE = "0x04fbd8a2e56dd85CFD5500A4A4DfA955B9f1dE6f";  // Mainnet
         const PIL_TEMPLATE = "0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316";      // Mainnet
+        const WIP_TOKEN = "0x1514000000000000000000000000000000000000";          // Wrapped IP Token
 
         let provider;
         let signer;
@@ -317,9 +318,10 @@
                 logDebugInfo('Chain ID', NETWORK.chainId);
                 logDebugInfo('LicensingModule', LICENSING_MODULE);
                 logDebugInfo('PIL Template', PIL_TEMPLATE);
+                logDebugInfo('WIP Token', WIP_TOKEN);
                 logDebugInfo('IP Asset ID', CONFIG.ipAssetId);
                 logDebugInfo('License Terms ID', CONFIG.licenseTermsId);
-                logDebugInfo('Price (ETH)', CONFIG.price);
+                logDebugInfo('Price (WIP)', CONFIG.price);
                 logDebugInfo('Price (Wei)', PRICE_WEI);
 
                 // Verify network
@@ -330,7 +332,45 @@
                     throw new Error(`Wrong network! Expected chain ${NETWORK.chainId}, got ${network.chainId}`);
                 }
 
-                // ABI for mintLicenseTokens with error definitions
+                // ERC20 ABI for WIP token
+                const erc20ABI = [
+                    {
+                        "inputs": [{"name": "account", "type": "address"}],
+                        "name": "balanceOf",
+                        "outputs": [{"name": "", "type": "uint256"}],
+                        "stateMutability": "view",
+                        "type": "function"
+                    },
+                    {
+                        "inputs": [
+                            {"name": "spender", "type": "address"},
+                            {"name": "amount", "type": "uint256"}
+                        ],
+                        "name": "approve",
+                        "outputs": [{"name": "", "type": "bool"}],
+                        "stateMutability": "nonpayable",
+                        "type": "function"
+                    },
+                    {
+                        "inputs": [
+                            {"name": "owner", "type": "address"},
+                            {"name": "spender", "type": "address"}
+                        ],
+                        "name": "allowance",
+                        "outputs": [{"name": "", "type": "uint256"}],
+                        "stateMutability": "view",
+                        "type": "function"
+                    },
+                    {
+                        "inputs": [],
+                        "name": "deposit",
+                        "outputs": [],
+                        "stateMutability": "payable",
+                        "type": "function"
+                    }
+                ];
+
+                // ABI for mintLicenseTokens
                 const licensingABI = [
                     {
                         "inputs": [
@@ -348,25 +388,52 @@
                     }
                 ];
 
-                const licensingModule = new ethers.Contract(
-                    LICENSING_MODULE,
-                    licensingABI,
-                    signer
-                );
+                const wipToken = new ethers.Contract(WIP_TOKEN, erc20ABI, signer);
+                const licensingModule = new ethers.Contract(LICENSING_MODULE, licensingABI, signer);
 
                 const receiverAddress = await signer.getAddress();
                 logDebugInfo('Receiver Address', receiverAddress);
 
-                // Check wallet balance
-                const balance = await provider.getBalance(receiverAddress);
-                const balanceEth = ethers.formatEther(balance);
-                logDebugInfo('Wallet Balance', `${balanceEth} ${CONFIG.currency}`);
+                // Check native IP balance (for gas)
+                const nativeBalance = await provider.getBalance(receiverAddress);
+                logDebugInfo('Native IP Balance', `${ethers.formatEther(nativeBalance)} IP`);
 
-                if (balance < BigInt(PRICE_WEI)) {
-                    throw new Error(`Insufficient balance. Have: ${balanceEth} ${CONFIG.currency}, Need: ${CONFIG.price} ${CONFIG.currency}`);
+                // Check WIP token balance
+                const wipBalance = await wipToken.balanceOf(receiverAddress);
+                const wipBalanceFormatted = ethers.formatEther(wipBalance);
+                logDebugInfo('WIP Token Balance', `${wipBalanceFormatted} WIP`);
+
+                const priceWei = BigInt(PRICE_WEI);
+
+                // If insufficient WIP, offer to wrap native IP
+                if (wipBalance < priceWei) {
+                    logDebugInfo('Status', 'Insufficient WIP tokens, wrapping native IP...');
+
+                    if (nativeBalance < priceWei + BigInt("100000000000000")) { // price + gas buffer
+                        throw new Error(`Insufficient balance. Need ${CONFIG.price} IP to wrap to WIP. Have: ${ethers.formatEther(nativeBalance)} IP`);
+                    }
+
+                    // Wrap native IP to WIP
+                    const wrapTx = await wipToken.deposit({ value: priceWei });
+                    logDebugInfo('Wrap TX', wrapTx.hash);
+                    await wrapTx.wait();
+                    logDebugInfo('Status', 'Successfully wrapped IP to WIP!');
                 }
 
-                // Estimate gas first to catch errors before sending
+                // Check current allowance
+                const currentAllowance = await wipToken.allowance(receiverAddress, LICENSING_MODULE);
+                logDebugInfo('Current Allowance', ethers.formatEther(currentAllowance));
+
+                // Approve WIP spending if needed
+                if (currentAllowance < priceWei) {
+                    logDebugInfo('Status', 'Approving WIP tokens...');
+                    const approveTx = await wipToken.approve(LICENSING_MODULE, priceWei);
+                    logDebugInfo('Approve TX', approveTx.hash);
+                    await approveTx.wait();
+                    logDebugInfo('Status', 'WIP tokens approved!');
+                }
+
+                // Estimate gas for mintLicenseTokens (NO value sent - WIP is used)
                 logDebugInfo('Status', 'Estimating gas...');
                 let gasEstimate;
                 try {
@@ -376,8 +443,8 @@
                         CONFIG.licenseTermsId,
                         1,
                         receiverAddress,
-                        "0x",
-                        { value: PRICE_WEI }
+                        "0x"
+                        // NO value - payment is via WIP token approval
                     );
                     logDebugInfo('Gas Estimate', gasEstimate.toString());
                 } catch (estimateError) {
@@ -392,8 +459,7 @@
                             CONFIG.licenseTermsId,
                             1,
                             receiverAddress,
-                            "0x",
-                            { value: PRICE_WEI }
+                            "0x"
                         );
                     } catch (staticError) {
                         logDebugInfo('Static Call Error', staticError.reason || staticError.message);
@@ -402,8 +468,8 @@
                     throw estimateError;
                 }
 
-                // Send transaction
-                logDebugInfo('Status', 'Sending transaction...');
+                // Send transaction (NO value - WIP token is used)
+                logDebugInfo('Status', 'Minting license token...');
                 const tx = await licensingModule.mintLicenseTokens(
                     CONFIG.ipAssetId,
                     PIL_TEMPLATE,
@@ -411,7 +477,7 @@
                     1,
                     receiverAddress,
                     "0x",
-                    { value: PRICE_WEI, gasLimit: gasEstimate * 120n / 100n } // 20% buffer
+                    { gasLimit: gasEstimate * 120n / 100n } // 20% buffer, NO value
                 );
 
                 logDebugInfo('Transaction Hash', tx.hash);
