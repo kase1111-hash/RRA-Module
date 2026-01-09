@@ -11,15 +11,16 @@ import { cn } from '@/lib/utils';
 const STORY_MAINNET_CHAIN_ID = 1514;
 const STORY_TESTNET_CHAIN_ID = 1315;
 
-// Story Protocol Contract Addresses
+// Story Protocol Contract Addresses (from deployment-1514.json and deployment-1315.json)
+// See: https://docs.story.foundation/developers/deployed-smart-contracts
 const STORY_CONTRACTS = {
   mainnet: {
-    licensingModule: '0xd81fd78f557b457b4350cB95D20b547bFEb4D857' as Address,
-    pilTemplate: '0x0752B15Ee7303033854bdE1B32bc7A4008752Dc0' as Address,
-    explorer: 'https://storyscan.io',
+    licensingModule: '0x04fbd8a2e56dd85CFD5500A4A4DfA955B9f1dE6f' as Address,
+    pilTemplate: '0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316' as Address,
+    explorer: 'https://explorer.story.foundation',
   },
   testnet: {
-    licensingModule: '0xd81fd78f557b457b4350cB95D20b547bFEb4D857' as Address,
+    licensingModule: '0x5a7D9Fa17DE09350F481A53B470D798c1c1aabae' as Address,
     pilTemplate: '0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316' as Address,
     explorer: 'https://aeneid.explorer.story.foundation',
   },

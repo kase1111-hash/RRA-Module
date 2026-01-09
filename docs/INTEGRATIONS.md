@@ -232,12 +232,23 @@ result = manager.mint_license_token(
 )
 ```
 
-### Contract Addresses (Aeneid Testnet)
+### Contract Addresses (Mainnet - Chain ID 1514)
 
 | Contract | Address |
 |----------|---------|
-| Licensing Module | `0xd81fd78f557b457b4350cB95D20b547bFEb4D857` |
+| Licensing Module | `0x04fbd8a2e56dd85CFD5500A4A4DfA955B9f1dE6f` |
 | PIL Template | `0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316` |
+| IP Asset Registry | `0x77319B4031e6eF1250907aa00018B8B1c67a244b` |
+
+### Contract Addresses (Aeneid Testnet - Chain ID 1315)
+
+| Contract | Address |
+|----------|---------|
+| Licensing Module | `0x5a7D9Fa17DE09350F481A53B470D798c1c1aabae` |
+| PIL Template | `0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316` |
+| IP Asset Registry | `0x1a9d0d28a0422F26D31Be72Edc6f13ea4371E11B` |
+
+See: https://docs.story.foundation/developers/deployed-smart-contracts
 
 ---
 
