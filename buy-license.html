@@ -86,8 +86,12 @@
                     <a id="tx-link" href="#" target="_blank" class="text-blue-400 hover:underline">View on Explorer</a>
                 </div>
                 <div id="status-error" class="hidden text-red-400">
-                    <p id="error-message"></p>
+                    <div id="error-message"></div>
                 </div>
+            </div>
+
+            <!-- Debug Output -->
+            <div id="debug-output" class="hidden mt-6 bg-gray-900 rounded-xl p-4 text-left font-mono overflow-auto max-h-64 border border-gray-700">
             </div>
         </div>
 
@@ -214,6 +218,78 @@
             }
         }
 
+        // Parse detailed error messages from contract reverts
+        function parseContractError(error) {
+            const errorInfo = {
+                type: 'unknown',
+                message: 'Transaction failed',
+                details: ''
+            };
+
+            // Check for user rejection
+            if (error.code === 4001 || error.code === 'ACTION_REJECTED') {
+                errorInfo.type = 'rejected';
+                errorInfo.message = 'Transaction rejected by user';
+                return errorInfo;
+            }
+
+            // Check for insufficient funds
+            if (error.code === 'INSUFFICIENT_FUNDS' ||
+                (error.message && error.message.includes('insufficient funds'))) {
+                errorInfo.type = 'insufficient_funds';
+                errorInfo.message = 'Insufficient funds for transaction';
+                errorInfo.details = `Required: ${CONFIG.price} ${CONFIG.currency} + gas fees`;
+                return errorInfo;
+            }
+
+            // Parse revert reasons
+            const revertReason = error.reason || error.data?.message || '';
+            const errorMessage = error.message || '';
+
+            // Known Story Protocol errors
+            const knownErrors = {
+                'LicensingModule__LicenseTermsNotFound': 'License terms ID not found. The license terms may not be registered.',
+                'LicensingModule__IpNotRegistered': 'IP Asset not registered in Story Protocol.',
+                'LicensingModule__LicenseNotAttachedToIp': 'License terms not attached to this IP Asset.',
+                'LicensingModule__MintingFeeTokenMismatch': 'Payment token mismatch. Check if ETH or a specific token is required.',
+                'LicensingModule__InsufficientMintingFee': 'Insufficient minting fee sent.',
+                'LicensingModule__ReceiverZeroAddress': 'Receiver address cannot be zero.',
+                'PILicenseTemplate__ZeroLicenseTemplate': 'Invalid PIL template address.',
+                'require(false)': 'Contract requirement failed. Possible causes:\n• License terms not attached to IP\n• IP not registered\n• Wrong license terms ID\n• Incorrect payment amount'
+            };
+
+            for (const [key, msg] of Object.entries(knownErrors)) {
+                if (revertReason.includes(key) || errorMessage.includes(key)) {
+                    errorInfo.type = 'contract_error';
+                    errorInfo.message = msg;
+                    errorInfo.details = `Error code: ${key}`;
+                    return errorInfo;
+                }
+            }
+
+            // Generic revert
+            if (revertReason) {
+                errorInfo.type = 'revert';
+                errorInfo.message = revertReason;
+            } else if (errorMessage) {
+                errorInfo.type = 'error';
+                errorInfo.message = errorMessage.substring(0, 200);
+            }
+
+            return errorInfo;
+        }
+
+        // Log debug information
+        function logDebugInfo(label, data) {
+            console.log(`[DEBUG] ${label}:`, data);
+            const debugDiv = document.getElementById('debug-output');
+            if (debugDiv) {
+                const timestamp = new Date().toLocaleTimeString();
+                debugDiv.innerHTML += `<div class="text-xs"><span class="text-gray-500">[${timestamp}]</span> <span class="text-blue-400">${label}:</span> ${typeof data === 'object' ? JSON.stringify(data, null, 2) : data}</div>`;
+                debugDiv.scrollTop = debugDiv.scrollHeight;
+            }
+        }
+
         async function purchaseLicense() {
             if (!signer) {
                 alert('Please connect your wallet first');
@@ -224,14 +300,37 @@
             const loadingDiv = document.getElementById('status-loading');
             const successDiv = document.getElementById('status-success');
             const errorDiv = document.getElementById('status-error');
+            const debugDiv = document.getElementById('debug-output');
 
             statusDiv.classList.remove('hidden');
             loadingDiv.classList.remove('hidden');
             successDiv.classList.add('hidden');
             errorDiv.classList.add('hidden');
+            if (debugDiv) {
+                debugDiv.classList.remove('hidden');
+                debugDiv.innerHTML = '<div class="text-yellow-400 font-bold mb-2">Transaction Debug Log:</div>';
+            }
 
             try {
-                // ABI for mintLicenseTokens
+                // Log configuration
+                logDebugInfo('Network', CONFIG.network);
+                logDebugInfo('Chain ID', NETWORK.chainId);
+                logDebugInfo('LicensingModule', LICENSING_MODULE);
+                logDebugInfo('PIL Template', PIL_TEMPLATE);
+                logDebugInfo('IP Asset ID', CONFIG.ipAssetId);
+                logDebugInfo('License Terms ID', CONFIG.licenseTermsId);
+                logDebugInfo('Price (ETH)', CONFIG.price);
+                logDebugInfo('Price (Wei)', PRICE_WEI);
+
+                // Verify network
+                const network = await provider.getNetwork();
+                logDebugInfo('Connected Chain ID', Number(network.chainId));
+
+                if (Number(network.chainId) !== NETWORK.chainId) {
+                    throw new Error(`Wrong network! Expected chain ${NETWORK.chainId}, got ${network.chainId}`);
+                }
+
+                // ABI for mintLicenseTokens with error definitions
                 const licensingABI = [
                     {
                         "inputs": [
@@ -256,23 +355,73 @@
                 );
 
                 const receiverAddress = await signer.getAddress();
+                logDebugInfo('Receiver Address', receiverAddress);
 
-                // Mint license token
+                // Check wallet balance
+                const balance = await provider.getBalance(receiverAddress);
+                const balanceEth = ethers.formatEther(balance);
+                logDebugInfo('Wallet Balance', `${balanceEth} ${CONFIG.currency}`);
+
+                if (balance < BigInt(PRICE_WEI)) {
+                    throw new Error(`Insufficient balance. Have: ${balanceEth} ${CONFIG.currency}, Need: ${CONFIG.price} ${CONFIG.currency}`);
+                }
+
+                // Estimate gas first to catch errors before sending
+                logDebugInfo('Status', 'Estimating gas...');
+                let gasEstimate;
+                try {
+                    gasEstimate = await licensingModule.mintLicenseTokens.estimateGas(
+                        CONFIG.ipAssetId,
+                        PIL_TEMPLATE,
+                        CONFIG.licenseTermsId,
+                        1,
+                        receiverAddress,
+                        "0x",
+                        { value: PRICE_WEI }
+                    );
+                    logDebugInfo('Gas Estimate', gasEstimate.toString());
+                } catch (estimateError) {
+                    logDebugInfo('Gas Estimation Failed', estimateError.message || estimateError);
+
+                    // Try to get more details via static call
+                    logDebugInfo('Status', 'Attempting static call for detailed error...');
+                    try {
+                        await licensingModule.mintLicenseTokens.staticCall(
+                            CONFIG.ipAssetId,
+                            PIL_TEMPLATE,
+                            CONFIG.licenseTermsId,
+                            1,
+                            receiverAddress,
+                            "0x",
+                            { value: PRICE_WEI }
+                        );
+                    } catch (staticError) {
+                        logDebugInfo('Static Call Error', staticError.reason || staticError.message);
+                        throw staticError;
+                    }
+                    throw estimateError;
+                }
+
+                // Send transaction
+                logDebugInfo('Status', 'Sending transaction...');
                 const tx = await licensingModule.mintLicenseTokens(
                     CONFIG.ipAssetId,
                     PIL_TEMPLATE,
                     CONFIG.licenseTermsId,
-                    1, // amount
+                    1,
                     receiverAddress,
-                    "0x", // royaltyContext
-                    { value: PRICE_WEI }
+                    "0x",
+                    { value: PRICE_WEI, gasLimit: gasEstimate * 120n / 100n } // 20% buffer
                 );
 
-                console.log('Transaction sent:', tx.hash);
+                logDebugInfo('Transaction Hash', tx.hash);
+                logDebugInfo('Status', 'Waiting for confirmation...');
 
                 // Wait for confirmation
                 const receipt = await tx.wait();
-                console.log('Transaction confirmed:', receipt);
+                logDebugInfo('Block Number', receipt.blockNumber);
+                logDebugInfo('Gas Used', receipt.gasUsed.toString());
+                logDebugInfo('Status', 'SUCCESS!');
 
                 loadingDiv.classList.add('hidden');
                 successDiv.classList.remove('hidden');
@@ -281,10 +430,22 @@
 
             } catch (error) {
                 console.error('Purchase error:', error);
+                logDebugInfo('ERROR', error.message || error);
+
+                const parsedError = parseContractError(error);
+                logDebugInfo('Parsed Error Type', parsedError.type);
+                logDebugInfo('Parsed Error Message', parsedError.message);
+
                 loadingDiv.classList.add('hidden');
                 errorDiv.classList.remove('hidden');
-                document.getElementById('error-message').textContent =
-                    error.reason || error.message || 'Transaction failed';
+
+                let errorHtml = `<p class="font-bold">${parsedError.message}</p>`;
+                if (parsedError.details) {
+                    errorHtml += `<p class="text-sm mt-2 text-gray-400">${parsedError.details}</p>`;
+                }
+                errorHtml += `<p class="text-xs mt-2 text-gray-500">Check browser console (F12) for full details</p>`;
+
+                document.getElementById('error-message').innerHTML = errorHtml;
             }
         }
     </script>
