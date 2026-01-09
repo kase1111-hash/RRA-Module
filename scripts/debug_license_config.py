@@ -119,6 +119,70 @@ def main():
     except Exception as e:
         print(f"  Could not check: {e}")
 
+    # Check license terms details from PILTemplate
+    print("\n" + "-" * 60)
+    print("License Terms Details (ID 28437):")
+    print("-" * 60)
+
+    PIL_TEMPLATE_ABI = [
+        {
+            "inputs": [{"name": "licenseTermsId", "type": "uint256"}],
+            "name": "getLicenseTerms",
+            "outputs": [
+                {
+                    "components": [
+                        {"name": "transferable", "type": "bool"},
+                        {"name": "royaltyPolicy", "type": "address"},
+                        {"name": "defaultMintingFee", "type": "uint256"},
+                        {"name": "expiration", "type": "uint256"},
+                        {"name": "commercialUse", "type": "bool"},
+                        {"name": "commercialAttribution", "type": "bool"},
+                        {"name": "commercializerChecker", "type": "address"},
+                        {"name": "commercializerCheckerData", "type": "bytes"},
+                        {"name": "commercialRevShare", "type": "uint32"},
+                        {"name": "commercialRevCeiling", "type": "uint256"},
+                        {"name": "derivativesAllowed", "type": "bool"},
+                        {"name": "derivativesAttribution", "type": "bool"},
+                        {"name": "derivativesApproval", "type": "bool"},
+                        {"name": "derivativesReciprocal", "type": "bool"},
+                        {"name": "derivativeRevCeiling", "type": "uint256"},
+                        {"name": "currency", "type": "address"},
+                        {"name": "uri", "type": "string"},
+                    ],
+                    "name": "terms",
+                    "type": "tuple",
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        }
+    ]
+
+    pil_template = w3.eth.contract(
+        address=Web3.to_checksum_address(PIL_LICENSE_TEMPLATE),
+        abi=PIL_TEMPLATE_ABI
+    )
+
+    try:
+        terms = pil_template.functions.getLicenseTerms(28437).call()
+        print(f"  Transferable: {terms[0]}")
+        print(f"  Royalty Policy: {terms[1]}")
+        print(f"  Minting Fee: {terms[2]} wei ({terms[2] / 10**18} IP)")
+        print(f"  Currency: {terms[15]}")
+        print(f"  Commercial Use: {terms[4]}")
+        print(f"  Derivatives Allowed: {terms[10]}")
+        print(f"  Revenue Share: {terms[8] / 100}%")
+
+        # Check currency
+        if terms[15] == "0x0000000000000000000000000000000000000000":
+            print("\n  >> Payment: Native IP (send value with transaction)")
+        elif terms[15] == "0x1514000000000000000000000000000000000000":
+            print("\n  >> Payment: WIP Token (need to approve + no value)")
+        else:
+            print(f"\n  >> Payment: ERC20 token at {terms[15]}")
+    except Exception as e:
+        print(f"  Could not get terms: {e}")
+
 
 if __name__ == "__main__":
     main()
