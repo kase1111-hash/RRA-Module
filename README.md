@@ -14,7 +14,7 @@ This repository is **live on Story Protocol**. Buy a license NFT to use this cod
 
 | | |
 |---|---|
-| **Price** | 0.005 ETH |
+| **Price** | 10 IP |
 | **License Type** | Perpetual, Transferable |
 | **What You Get** | Full source access, commercial use, derivative rights |
 | **Purchase** | **[Buy Now →](https://kase1111-hash.github.io/RRA-Module/buy-license.html)** |
