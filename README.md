@@ -24,23 +24,15 @@ This repository is **live on Story Protocol**. Buy a license NFT to use this cod
 
 The RRA‑Module (Revenant Repo Agent) is a **dead code revival** and **abandoned repo monetization** system—a Python/Smart‑contract powered extension for the NatLangChain framework that transforms dormant GitHub repositories into **autonomous licensing agents**. This **AI repository agent** enables **passive income from code** through **automated license negotiation** and **repository resurrection**, turning any static repo into a self-sustaining agent which:
 
-✔ Ingests a repo's source code
+✔ **AI-Driven Negotiation Agents** — Autonomous agents handle **AI negotiation for developers**, enabling **zombie repo activation** with zero ongoing involvement
 
-✔ Parses and vectorizes knowledge about the repo
+✔ **Blockchain License Management** — On-chain **abandoned software licensing** with NFT-based entitlements for **autonomous software licensing**
 
-✔ Wraps that knowledge into an agent/LLM workflow
+✔ **GitHub Integration** — Seamlessly **revive unmaintained repos** with automatic ingestion and **dead code revival** workflows
 
-✔ Enables automated on‑chain licensing/negotiation transactions
+✔ **Automated Revenue Distribution** — Generate **passive developer income** through smart contract royalties and **autonomous code marketplace** transactions
 
-✔ Interfaces with blockchain smart contracts (e.g., ERC‑721/ETH)
-✔ Maintains a license advisor agent that can assist buyer agents
-✔ Supports multi-chain deployments (Ethereum, Polygon, Arbitrum, Base, Optimism)
-
-✔ Provides L3 batch processing for high-throughput dispute resolution
-
-✔ Integrates DeFi features (yield tokens, IP lending, fractional ownership)
-
-✔ Includes comprehensive security with FIDO2/WebAuthn hardware authentication
+✔ **Knowledge Base Generation** — Transform any codebase into vectorized knowledge, powering your **AI agent for licensing** to **monetize old GitHub projects**
 
 This modular pipeline transforms repos into living AI agents with monetization features.
 
