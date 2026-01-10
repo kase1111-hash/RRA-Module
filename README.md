@@ -4,7 +4,7 @@
 [![Security](https://img.shields.io/badge/security-A--rating-blue)](docs/SECURITY-AUDIT.md)
 [![License](https://img.shields.io/badge/license-FSL--1.1--ALv2-orange)](LICENSE.md)
 [![Python](https://img.shields.io/badge/python-3.9+-blue)](pyproject.toml)
-[![Buy License](https://img.shields.io/badge/Buy_License-0.005_ETH-6366f1)](https://kase1111-hash.github.io/RRA-Module/buy-license.html)
+[![Buy License](https://img.shields.io/badge/Buy_License-10_IP-6366f1)](https://kase1111-hash.github.io/RRA-Module/buy-license.html)
 
 ---
 
