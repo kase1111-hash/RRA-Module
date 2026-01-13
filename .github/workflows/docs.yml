@@ -117,7 +117,7 @@ jobs:
           echo "- Documented items: ~$((DOCUMENTED / 2))" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload API docs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: api-docs
           path: docs/api

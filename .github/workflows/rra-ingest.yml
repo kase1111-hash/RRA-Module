@@ -49,7 +49,7 @@ jobs:
 
       - name: Upload Knowledge Base
         if: steps.check_config.outputs.config_exists == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: knowledge-base
           path: agent_knowledge_bases/*.json
