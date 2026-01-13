@@ -64,7 +64,7 @@ jobs:
           NEXT_PUBLIC_STORY_CHAIN_ID: 1514
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: marketplace-build
           path: marketplace/.next
