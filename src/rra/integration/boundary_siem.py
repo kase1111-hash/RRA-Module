@@ -398,7 +398,6 @@ class PersistentEventQueue:
         In the current implementation, events are removed when get_batch is called,
         so this is a no-op. Future versions may implement two-phase commit.
         """
-        pass
 
     def requeue(self, events: List[BoundaryEvent]) -> None:
         """Requeue events that failed to send."""

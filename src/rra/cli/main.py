@@ -1237,7 +1237,6 @@ def story():
     Register repositories as IP Assets, manage licenses, and track royalties
     on Story Protocol's programmable IP infrastructure.
     """
-    pass
 
 
 @story.command()

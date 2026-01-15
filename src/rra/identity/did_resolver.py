@@ -202,12 +202,10 @@ class DIDMethodResolver(ABC):
     @abstractmethod
     async def resolve(self, did: str) -> Optional[DIDDocument]:
         """Resolve a DID to a DID Document."""
-        pass
 
     @abstractmethod
     def supports(self, did: str) -> bool:
         """Check if this resolver supports the given DID."""
-        pass
 
 
 class EthrDIDResolver(DIDMethodResolver):

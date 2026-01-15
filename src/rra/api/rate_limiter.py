@@ -77,17 +77,14 @@ class RateLimitBackend(ABC):
     @abstractmethod
     async def get_tokens(self, key: str) -> Tuple[int, float]:
         """Get current token count and last update time."""
-        pass
 
     @abstractmethod
     async def set_tokens(self, key: str, tokens: int, timestamp: float, ttl: int) -> None:
         """Set token count and timestamp."""
-        pass
 
     @abstractmethod
     async def increment_counter(self, key: str, window: int) -> int:
         """Increment sliding window counter, return current count."""
-        pass
 
 
 class InMemoryBackend(RateLimitBackend):

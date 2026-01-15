@@ -159,14 +159,12 @@ class LLMProvider(ABC):
         Returns:
             Tuple of (content, tokens_used, finish_reason)
         """
-        pass
 
     @abstractmethod
     async def stream(
         self, model_name: str, messages: List[Dict[str, str]], max_tokens: int, temperature: float
     ) -> AsyncIterator[str]:
         """Stream a chat response."""
-        pass
 
 
 class MockLLMProvider(LLMProvider):

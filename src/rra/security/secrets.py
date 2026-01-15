@@ -49,12 +49,10 @@ class SecretsBackend(ABC):
     @abstractmethod
     def get(self, key: str) -> Optional[str]:
         """Get a secret value by key."""
-        pass
 
     @abstractmethod
     def has(self, key: str) -> bool:
         """Check if a secret exists."""
-        pass
 
     def get_all(self, prefix: str = "") -> Dict[str, str]:
         """Get all secrets with an optional prefix filter."""

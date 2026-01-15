@@ -16,7 +16,6 @@ import os
 from rra.crypto.viewing_keys import (
     ViewingKey,
     KeyPurpose,
-    EncryptedData,
 )
 from rra.crypto.pedersen import (
     PedersenCommitment,
@@ -24,7 +23,6 @@ from rra.crypto.pedersen import (
     PY_ECC_AVAILABLE,
     _scalar_mult,
     _scalar_mult_windowed,
-    _scalar_mult_fast,
     _mod_inverse,
     BN254_FIELD_PRIME,
     BN254_CURVE_ORDER,
