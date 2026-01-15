@@ -39,7 +39,7 @@ dependencies = [
     "eth-abi>=4.0.0",
     "eth-utils>=2.3.0",
     # Security - pinned to fix CVEs
-    "cryptography>=43.0.1",  # Fixes CVE-2023-50782, CVE-2024-0727
+    "cryptography>=44.0.0",  # Fixes CVE-2023-50782, CVE-2024-0727, PYSEC-2024-225, GHSA-h4gh-qq45-vh27
 ]
 
 [project.optional-dependencies]
