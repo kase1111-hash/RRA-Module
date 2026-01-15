@@ -180,7 +180,6 @@ class BaseAgent(ABC):
         Returns:
             Response message
         """
-        pass
 
     def log_intent(self, intent: str, context: Optional[Dict[str, Any]] = None) -> None:
         """
@@ -224,7 +223,6 @@ class BaseAgent(ABC):
         Returns:
             Dictionary containing agent state
         """
-        pass
 
     @abstractmethod
     def restore_state(self, state: Dict[str, Any]) -> None:
@@ -234,7 +232,6 @@ class BaseAgent(ABC):
         Args:
             state: Previously saved state
         """
-        pass
 
     def is_integrated(self) -> bool:
         """Check if running in integrated mode."""

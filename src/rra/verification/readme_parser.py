@@ -115,7 +115,6 @@ class ReadmeParser:
 
     def __init__(self):
         """Initialize the README parser."""
-        pass
 
     def parse(self, readme_path: Path) -> ReadmeMetadata:
         """

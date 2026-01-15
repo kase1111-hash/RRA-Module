@@ -69,12 +69,10 @@ class EventValidator(ABC):
     @abstractmethod
     def validate(self, event_data: Dict[str, Any], **kwargs) -> ValidationReport:
         """Validate event data."""
-        pass
 
     @abstractmethod
     def get_required_fields(self) -> List[str]:
         """Get list of required fields."""
-        pass
 
 
 class SchemaValidator(EventValidator):

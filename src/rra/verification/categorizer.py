@@ -278,7 +278,6 @@ class CodeCategorizer:
 
     def __init__(self):
         """Initialize the code categorizer."""
-        pass
 
     def categorize(
         self,

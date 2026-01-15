@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=70.0", "wheel"]  # >=70.0 fixes CVE-2024-6345
+requires = ["setuptools>=78.1.1", "wheel"]  # >=78.1.1 fixes CVE-2024-6345, CVE-2025-47273, CVE-2025-48876
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -39,7 +39,7 @@ dependencies = [
     "eth-abi>=4.0.0",
     "eth-utils>=2.3.0",
     # Security - pinned to fix CVEs
-    "cryptography>=43.0.1",  # Fixes CVE-2023-50782, CVE-2024-0727
+    "cryptography>=44.0.0",  # Fixes CVE-2023-50782, CVE-2024-0727, PYSEC-2024-225, GHSA-h4gh-qq45-vh27
 ]
 
 [project.optional-dependencies]
@@ -53,6 +53,8 @@ dev = [
     # Type stubs
     "types-PyYAML>=6.0.12",
     "types-requests>=2.31.0",
+    # Security - ensure pip is up to date
+    "pip>=25.0",  # Fixes CVE-2025-8869
 ]
 
 # NatLangChain ecosystem integration (optional)

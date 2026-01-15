@@ -192,12 +192,10 @@ class EventFetcher(ABC):
     @abstractmethod
     async def fetch(self, uri: str, **kwargs) -> EventData:
         """Fetch event data from source."""
-        pass
 
     @abstractmethod
     def validate_uri(self, uri: str) -> bool:
         """Validate the source URI format."""
-        pass
 
 
 class APIEventFetcher(EventFetcher):

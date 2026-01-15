@@ -314,7 +314,6 @@ class TreasuryCoordinator:
 
     def _save_state(self) -> None:
         """Save coordinator state (placeholder for persistence)."""
-        pass
 
     # =========================================================================
     # Treasury Management

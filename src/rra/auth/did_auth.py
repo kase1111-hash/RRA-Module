@@ -38,31 +38,26 @@ class AuthStatus(Enum):
 class AuthError(Exception):
     """Base exception for authentication errors."""
 
-    pass
 
 
 class ChallengeExpiredError(AuthError):
     """Challenge has expired."""
 
-    pass
 
 
 class InvalidSignatureError(AuthError):
     """Signature verification failed."""
 
-    pass
 
 
 class DIDResolutionError(AuthError):
     """Failed to resolve DID document."""
 
-    pass
 
 
 class InsufficientScoreError(AuthError):
     """Identity score below required threshold."""
 
-    pass
 
 
 @dataclass
