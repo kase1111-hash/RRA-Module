@@ -1,0 +1,45 @@
+# CODEOWNERS - Defines code ownership for pull request reviews
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything in the repo
+* @kase1111-hash
+
+# Core Python package
+/src/rra/ @kase1111-hash
+
+# Smart contracts require careful review
+/contracts/ @kase1111-hash
+
+# Security-sensitive modules
+/src/rra/auth/ @kase1111-hash
+/src/rra/crypto/ @kase1111-hash
+/src/rra/security/ @kase1111-hash
+/src/rra/privacy/ @kase1111-hash
+
+# Blockchain and DeFi modules
+/src/rra/contracts/ @kase1111-hash
+/src/rra/chains/ @kase1111-hash
+/src/rra/defi/ @kase1111-hash
+/src/rra/transaction/ @kase1111-hash
+
+# Configuration and API
+/src/rra/config/ @kase1111-hash
+/src/rra/api/ @kase1111-hash
+/src/rra/cli/ @kase1111-hash
+
+# Documentation
+/docs/ @kase1111-hash
+*.md @kase1111-hash
+
+# CI/CD workflows
+/.github/workflows/ @kase1111-hash
+
+# Build configuration
+pyproject.toml @kase1111-hash
+setup.cfg @kase1111-hash
+requirements.txt @kase1111-hash
+Dockerfile @kase1111-hash
+docker-compose*.yml @kase1111-hash
+
+# Tests
+/tests/ @kase1111-hash

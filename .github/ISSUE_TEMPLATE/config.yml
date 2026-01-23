@@ -1,0 +1,14 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://github.com/kase1111-hash/RRA-Module/blob/main/docs/USAGE-GUIDE.md
+    about: Check the documentation before opening an issue
+  - name: FAQ
+    url: https://github.com/kase1111-hash/RRA-Module/blob/main/FAQ.md
+    about: Read the FAQ for common questions and answers
+  - name: Security Vulnerabilities
+    url: https://github.com/kase1111-hash/RRA-Module/blob/main/SECURITY.md
+    about: Report security vulnerabilities privately (do not open a public issue)
+  - name: Discussions
+    url: https://github.com/kase1111-hash/RRA-Module/discussions
+    about: Ask questions and discuss ideas with the community
