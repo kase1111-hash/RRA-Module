@@ -83,7 +83,7 @@ jobs:
         run: forge build
 
       - name: Run Slither
-        uses: crytic/slither-action@v0.4.0
+        uses: crytic/slither-action@v0.4.2
         id: slither
         with:
           target: contracts/
