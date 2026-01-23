@@ -132,8 +132,16 @@ npx hardhat run scripts/deploy.js --network sepolia
 - Update relevant docs in `docs/` directory
 - Maintain cross-references in docs/README.md
 
+## Reporting Issues
+
+Use our issue templates for better organization:
+
+- **[Bug Reports](https://github.com/kase1111-hash/RRA-Module/issues/new?template=bug_report.yml)** - Report bugs and unexpected behavior
+- **[Feature Requests](https://github.com/kase1111-hash/RRA-Module/issues/new?template=feature_request.yml)** - Suggest new features
+
 ## Questions?
 
+- Check the [Support Guide](SUPPORT.md) for help resources
 - Open an issue for bugs or feature requests
 - Join discussions in GitHub Discussions
 - Contact maintainers via GitHub

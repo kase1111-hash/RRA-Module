@@ -48,6 +48,7 @@ Complete documentation for the Revenant Repo Agent Module.
 ### User Information
 - **[Buyer Beware](../Buyer-Beware.md)** - Important notice for marketplace users
 - **[FAQ](../FAQ.md)** - Frequently asked questions
+- **[Support](../SUPPORT.md)** - How to get help and support
 
 ### Strategy & Planning
 - **[Risk Mitigation](../Risk-mitigation.md)** - Legal, technical, financial, and operational risk mitigation
@@ -71,6 +72,8 @@ RRA-Module/
 ├── SPECIFICATION.md                       # Complete technical specification
 ├── CONTRIBUTING.md                        # Contributing guidelines
 ├── CODE_OF_CONDUCT.md                     # Community guidelines
+├── SUPPORT.md                             # Support and help guide
+├── AUTHORS.md                             # Authors and contributors
 │
 ├── LICENSE.md                             # FSL-1.1-ALv2 license text
 ├── LICENSING.md                           # License compliance guide

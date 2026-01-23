@@ -304,6 +304,8 @@ Cryptographic operations optimized for production use:
 ### Community
 - **[Contributing](CONTRIBUTING.md)** - How to contribute
 - **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community guidelines
+- **[Support](SUPPORT.md)** - How to get help
+- **[Authors](AUTHORS.md)** - Authors and contributors
 - **[FAQ](FAQ.md)** - Challenges and resilience analysis
 - **[Founding Contributor Pledge](Founding-Contributor-Pledge.md)** - Ethical commitments
 - **[Buyer Beware](Buyer-Beware.md)** - Important notice for marketplace users
