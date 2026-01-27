@@ -16,6 +16,7 @@ Validates:
 
 import pytest
 import time
+from decimal import Decimal
 
 from rra.transaction.confirmation import (
     TransactionConfirmation,
@@ -48,16 +49,16 @@ class TestPriceCommitment:
     def test_create_various_formats(self):
         """Test price parsing with various formats."""
         test_cases = [
-            ("0.5 ETH", 0.5, "ETH"),
-            ("100 USDC", 100, "USDC"),
-            ("1.234567 eth", 1.234567, "ETH"),
-            ("50.00 USD", 50.00, "USD"),
-            ("0.001ETH", 0.001, "ETH"),
+            ("0.5 ETH", Decimal("0.5"), "ETH"),
+            ("100 USDC", Decimal("100"), "USDC"),
+            ("1.234567 eth", Decimal("1.234567"), "ETH"),
+            ("50.00 USD", Decimal("50.00"), "USD"),
+            ("0.001ETH", Decimal("0.001"), "ETH"),
         ]
 
         for price_str, expected_amount, expected_currency in test_cases:
             commitment = PriceCommitment.create(price_str)
-            assert abs(commitment.amount - expected_amount) < 0.0001
+            assert commitment.amount == expected_amount
             assert commitment.currency == expected_currency
 
     def test_reject_negative_price(self):

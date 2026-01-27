@@ -7,6 +7,7 @@ Manages contract deployment, configuration, and lifecycle.
 """
 
 import logging
+import os
 from typing import Optional, Dict, Any
 from pathlib import Path
 import json
@@ -59,9 +60,16 @@ class ContractManager:
 
     def _get_default_provider(self, network: str) -> Web3:
         """Get default provider for a network."""
+        infura_key = os.environ.get("INFURA_API_KEY", "")
+        if not infura_key and network in ("mainnet", "sepolia"):
+            logger.warning(
+                f"INFURA_API_KEY environment variable not set for network '{network}'. "
+                "Set it to enable blockchain connectivity."
+            )
+
         providers = {
-            "mainnet": "https://mainnet.infura.io/v3/YOUR_INFURA_KEY",
-            "sepolia": "https://sepolia.infura.io/v3/YOUR_INFURA_KEY",
+            "mainnet": f"https://mainnet.infura.io/v3/{infura_key}",
+            "sepolia": f"https://sepolia.infura.io/v3/{infura_key}",
             "localhost": "http://127.0.0.1:8545",
         }
 
