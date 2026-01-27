@@ -29,6 +29,7 @@ Example Flow:
 import os
 import re
 import threading
+from decimal import Decimal, InvalidOperation
 from enum import Enum
 from typing import Dict, Any, Optional, List, Callable
 from dataclasses import dataclass, field
@@ -63,9 +64,10 @@ class PriceCommitment:
     Cryptographic commitment to a specific price.
 
     Prevents price manipulation between agreement and execution.
+    Uses Decimal for precise financial calculations.
     """
 
-    amount: float
+    amount: Decimal
     currency: str
     commitment_hash: bytes
     created_at: datetime
@@ -86,13 +88,17 @@ class PriceCommitment:
         if not match:
             raise ValueError(f"Invalid price format: {price_str}")
 
-        amount = float(match.group(1))
+        try:
+            amount = Decimal(match.group(1))
+        except InvalidOperation as e:
+            raise ValueError(f"Invalid price amount: {match.group(1)}") from e
+
         currency = match.group(2).upper()
 
         # Validate amount
         if amount <= 0:
             raise ValueError("Price must be positive")
-        if amount > 1e18:  # Reasonable upper bound
+        if amount > Decimal("1e18"):  # Reasonable upper bound
             raise ValueError("Price exceeds maximum allowed")
 
         # Create commitment hash
@@ -106,16 +112,20 @@ class PriceCommitment:
         )
 
     def verify(self, price_str: str) -> bool:
-        """Verify a price matches this commitment."""
+        """Verify a price matches this commitment using exact Decimal comparison."""
         match = re.match(r"([\d.]+)\s*(\w+)", price_str.strip())
         if not match:
             return False
 
-        amount = float(match.group(1))
+        try:
+            amount = Decimal(match.group(1))
+        except InvalidOperation:
+            return False
+
         currency = match.group(2).upper()
 
-        # Allow small floating point tolerance
-        return abs(amount - self.amount) < 0.0001 and currency == self.currency
+        # Exact Decimal comparison (no floating point tolerance needed)
+        return amount == self.amount and currency == self.currency
 
     def __str__(self) -> str:
         return f"{self.amount} {self.currency}"
@@ -127,6 +137,7 @@ class PendingTransaction:
     Transaction awaiting confirmation.
 
     Holds all details in a locked state until user confirms or timeout expires.
+    Uses Decimal for precise financial calculations.
     """
 
     transaction_id: str
@@ -135,8 +146,8 @@ class PendingTransaction:
     repo_url: str
     license_model: str
     price_commitment: PriceCommitment
-    floor_price: float
-    target_price: float
+    floor_price: Decimal
+    target_price: Decimal
     created_at: datetime
     expires_at: datetime
     status: TransactionStatus = TransactionStatus.PENDING_CONFIRMATION
@@ -358,8 +369,8 @@ class TransactionConfirmation:
         floor_match = re.match(r"([\d.]+)", floor_price)
         target_match = re.match(r"([\d.]+)", target_price)
 
-        floor_value = float(floor_match.group(1)) if floor_match else 0
-        target_value = float(target_match.group(1)) if target_match else price_commitment.amount
+        floor_value = Decimal(floor_match.group(1)) if floor_match else Decimal("0")
+        target_value = Decimal(target_match.group(1)) if target_match else price_commitment.amount
 
         # Validate floor <= agreed price
         if price_commitment.amount < floor_value:
