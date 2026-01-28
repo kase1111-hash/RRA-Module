@@ -423,7 +423,6 @@ class AdaptivePricingEngine:
         # Calculate final adjustment
         if adjustments:
             # Weighted geometric mean of adjustments
-            sum(self.DEFAULT_WEIGHTS.values())
             final_adjustment = 1.0
             for adj in adjustments:
                 final_adjustment *= adj
