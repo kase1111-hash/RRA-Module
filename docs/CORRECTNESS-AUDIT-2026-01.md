@@ -242,9 +242,9 @@ _safeMint(_licensee, tokenId);
 
 | ID | Severity | Location | Description | Status |
 |----|----------|----------|-------------|--------|
-| A1 | Low | `pricing/adaptive.py:426` | Dead code: `sum()` result not used | Cosmetic |
-| A2 | Info | `agents/negotiator.py:228` | Import inside function (could be module-level) | Cosmetic |
-| A3 | Info | `api/server.py:815` | `nosec B104` comment for host binding | Documented |
+| A1 | Low | `pricing/adaptive.py:426` | Dead code: `sum()` result not used | **Fixed** |
+| A2 | Info | `agents/negotiator.py:228,315` | Import inside function (moved to module-level) | **Fixed** |
+| A3 | Info | `api/server.py:815` | `nosec B104` comment for host binding | Documented (intentional) |
 
 ### 7.2 Observations
 

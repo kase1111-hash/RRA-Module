@@ -10,6 +10,7 @@ configuration.
 Supports both standalone and NatLangChain-integrated modes.
 """
 
+import re
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 from enum import Enum
@@ -225,8 +226,6 @@ What's your intended use case?"""
         if any(word in message_lower for word in ["offer", "would pay", "can do", "counter"]):
             intent["proposes_price"] = True
             # Try to extract amount (simplified)
-            import re
-
             price_match = re.search(r"(\d+\.?\d*)\s*(eth|usdc|usd|\$)", message_lower)
             if price_match:
                 intent["proposed_amount"] = f"{price_match.group(1)} {price_match.group(2).upper()}"
@@ -312,8 +311,6 @@ I'm open to discussing terms that work for both of us. What's your budget?"""
 
         # Extract numeric value (simplified)
         try:
-            import re
-
             match = re.search(r"(\d+\.?\d*)", proposed_amount)
             if match:
                 proposed_value = float(match.group(1))
