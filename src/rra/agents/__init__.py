@@ -4,5 +4,27 @@
 
 from rra.agents.negotiator import NegotiatorAgent
 from rra.agents.buyer import BuyerAgent
+from rra.agents.intent_parser import (
+    IntentParser,
+    IntentType,
+    Sentiment,
+    ParsedIntent,
+    IntentMatch,
+    ExtractedEntity,
+    IntentPattern,
+    parse_buyer_intent,
+)
 
-__all__ = ["NegotiatorAgent", "BuyerAgent"]
+__all__ = [
+    "NegotiatorAgent",
+    "BuyerAgent",
+    # Intent parsing
+    "IntentParser",
+    "IntentType",
+    "Sentiment",
+    "ParsedIntent",
+    "IntentMatch",
+    "ExtractedEntity",
+    "IntentPattern",
+    "parse_buyer_intent",
+]

@@ -55,12 +55,28 @@ jobs:
           pip install -e ".[dev]"
           pip install types-PyYAML types-requests
 
-      - name: Run mypy
+      - name: Run mypy (strict modules)
         run: |
-          mypy src/rra --ignore-missing-imports --no-error-summary 2>&1 | head -100 || true
-          # For now, don't fail on type errors (263 remaining)
-          # Remove "|| true" once type errors are fixed
-          echo "Type checking completed (warnings only)"
+          # Strict type checking for core modules - these MUST pass
+          echo "Checking strictly-typed modules..."
+          mypy src/rra/exceptions.py \
+               src/rra/config/ \
+               src/rra/storage/session_store.py \
+               src/rra/oracles/price_oracle.py \
+               src/rra/transaction/safeguards.py \
+               src/rra/contracts/license_nft.py \
+               src/rra/contracts/gas_estimator.py \
+               src/rra/agents/negotiator.py \
+               src/rra/agents/intent_parser.py \
+               --config-file mypy.ini
+          echo "Strict modules type check passed!"
+
+      - name: Run mypy (full codebase - warnings)
+        run: |
+          # Full codebase check - informational only for remaining modules
+          echo "Running full codebase type check (warnings only for non-strict modules)..."
+          mypy src/rra --config-file mypy.ini 2>&1 | tail -20 || true
+          echo "Full type check completed"
 
   test:
     name: Test (Python ${{ matrix.python-version }})
@@ -172,9 +188,10 @@ jobs:
       - name: Check all jobs
         run: |
           if [[ "${{ needs.lint.result }}" == "failure" ]] || \
+             [[ "${{ needs.typecheck.result }}" == "failure" ]] || \
              [[ "${{ needs.test.result }}" == "failure" ]] || \
              [[ "${{ needs.build.result }}" == "failure" ]]; then
             echo "CI failed"
             exit 1
           fi
-          echo "✓ All CI checks passed"
+          echo "All CI checks passed"

@@ -19,6 +19,7 @@ from rra.ingestion.knowledge_base import KnowledgeBase
 from rra.config.market_config import NegotiationStyle
 from rra.integration.base import BaseAgent, IntegrationMode
 from rra.exceptions import ConfigurationError
+from rra.agents.intent_parser import IntentParser, IntentType, ParsedIntent
 
 
 class NegotiationPhase(str, Enum):
@@ -200,48 +201,39 @@ What's your intended use case?"""
 
     def _parse_buyer_intent(self, message: str) -> Dict[str, Any]:
         """
-        Parse buyer's message to understand intent.
+        Parse buyer's message to understand intent using enhanced intent parser.
 
-        This is a simplified implementation. In production, would use
-        NLP/LLM for more sophisticated intent recognition.
+        Uses the IntentParser module for:
+        - Configurable pattern matching with confidence scoring
+        - Multi-intent detection
+        - Entity extraction (prices, durations, quantities)
+        - Sentiment analysis
+
+        Args:
+            message: Buyer's message
+
+        Returns:
+            Dictionary with intent information (backward compatible format)
         """
-        message_lower = message.lower()
+        # Use the enhanced intent parser
+        if not hasattr(self, "_intent_parser"):
+            self._intent_parser = IntentParser()
 
-        intent = {
-            "type": "general",
-            "asks_about_price": False,
-            "proposes_price": False,
-            "asks_about_features": False,
-            "asks_about_terms": False,
-            "ready_to_purchase": False,
-            "proposed_amount": None,
-        }
+        parsed: ParsedIntent = self._intent_parser.parse(message)
 
-        # Price-related
-        if any(
-            word in message_lower for word in ["price", "cost", "how much", "expensive", "cheap"]
-        ):
-            intent["asks_about_price"] = True
+        # Convert to legacy format for backward compatibility
+        intent = parsed.to_dict()
 
-        if any(word in message_lower for word in ["offer", "would pay", "can do", "counter"]):
-            intent["proposes_price"] = True
-            # Try to extract amount (simplified)
-            price_match = re.search(r"(\d+\.?\d*)\s*(eth|usdc|usd|\$)", message_lower)
-            if price_match:
-                intent["proposed_amount"] = f"{price_match.group(1)} {price_match.group(2).upper()}"
-
-        # Feature-related
-        if any(word in message_lower for word in ["feature", "include", "what do", "capability"]):
-            intent["asks_about_features"] = True
-
-        # Terms-related
-        if any(word in message_lower for word in ["term", "condition", "duration", "license"]):
-            intent["asks_about_terms"] = True
-
-        # Ready to purchase
-        if any(word in message_lower for word in ["accept", "agree", "purchase", "buy", "deal"]):
-            intent["ready_to_purchase"] = True
-            intent["type"] = "purchase"
+        # Log intent parsing for debugging
+        self.log_intent(
+            "intent_parsed",
+            {
+                "primary": parsed.primary_intent.intent_type.value,
+                "confidence": parsed.primary_intent.confidence,
+                "sentiment": parsed.sentiment.value,
+                "entities_count": len(parsed.entities),
+            },
+        )
 
         return intent
 
