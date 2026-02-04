@@ -53,6 +53,19 @@ from .rwa_valuations import (
     create_valuation_oracle,
     create_valuation_aggregator,
 )
+from .price_oracle import (
+    PriceSource,
+    PriceData,
+    PriceCache,
+    PriceOracle,
+    ChainlinkOracle,
+    CoinGeckoOracle,
+    FallbackPriceOracle,
+    AggregatedPriceOracle,
+    get_price_oracle,
+    get_eth_usd_price,
+    convert_to_usd,
+)
 
 __all__ = [
     # Event Bridge
@@ -94,4 +107,16 @@ __all__ = [
     "ValuationOracleAggregator",
     "create_valuation_oracle",
     "create_valuation_aggregator",
+    # Price Oracle
+    "PriceSource",
+    "PriceData",
+    "PriceCache",
+    "PriceOracle",
+    "ChainlinkOracle",
+    "CoinGeckoOracle",
+    "FallbackPriceOracle",
+    "AggregatedPriceOracle",
+    "get_price_oracle",
+    "get_eth_usd_price",
+    "convert_to_usd",
 ]

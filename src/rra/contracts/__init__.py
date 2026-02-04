@@ -14,6 +14,15 @@ from rra.contracts.artifacts import (
     available_contracts,
 )
 from rra.contracts.story_protocol import StoryProtocolClient, IPAssetMetadata, PILTerms
+from rra.contracts.gas_estimator import (
+    GasEstimator,
+    GasEstimate,
+    GasEstimationStrategy,
+    TransactionType,
+    GasHistoryEntry,
+    get_gas_estimator,
+    estimate_gas,
+)
 
 __all__ = [
     # Core contract interfaces
@@ -31,4 +40,12 @@ __all__ = [
     "StoryProtocolClient",
     "IPAssetMetadata",
     "PILTerms",
+    # Gas estimation
+    "GasEstimator",
+    "GasEstimate",
+    "GasEstimationStrategy",
+    "TransactionType",
+    "GasHistoryEntry",
+    "get_gas_estimator",
+    "estimate_gas",
 ]

@@ -11,6 +11,11 @@ from web3 import Web3
 from web3.exceptions import ContractLogicError
 
 from rra.contracts.artifacts import load_contract, ContractArtifact
+from rra.contracts.gas_estimator import (
+    GasEstimator,
+    TransactionType,
+    GasEstimate,
+)
 from rra.exceptions import ContractError, ContractDeploymentError, ErrorCode
 
 
@@ -58,12 +63,15 @@ class LicenseNFTContract:
         else:
             self.contract = None
 
+        # Initialize gas estimator for dynamic gas estimation (M-003 fix)
+        self._gas_estimator = GasEstimator(web3=web3)
+
     def deploy(
         self,
         deployer_address: str,
         private_key: str,
         registrar_address: Optional[str] = None,
-        gas_limit: int = 5000000,
+        gas_limit: Optional[int] = None,
         wait_for_receipt: bool = True,
     ) -> str:
         """
@@ -73,7 +81,7 @@ class LicenseNFTContract:
             deployer_address: Address deploying the contract
             private_key: Private key for signing transaction
             registrar_address: Address of the registrar (defaults to deployer)
-            gas_limit: Gas limit for deployment transaction
+            gas_limit: Gas limit for deployment (None = dynamic estimation)
             wait_for_receipt: Whether to wait for transaction receipt
 
         Returns:
@@ -110,6 +118,14 @@ class LicenseNFTContract:
         # Build deployment transaction
         # Constructor: constructor(address _registrar)
         nonce = self.w3.eth.get_transaction_count(deployer_address)
+
+        # Use dynamic gas estimation if no explicit limit provided (M-003 fix)
+        if gas_limit is None:
+            gas_estimate = self._gas_estimator.estimate_with_gas_price(
+                TransactionType.DEPLOY,
+                from_address=deployer_address,
+            )
+            gas_limit = gas_estimate.gas_limit
 
         deploy_txn = contract_factory.constructor(registrar_address).build_transaction(
             {
@@ -153,7 +169,7 @@ class LicenseNFTContract:
         signature: bytes,
         developer_address: str,
         private_key: str,
-        gas_limit: int = 300000,
+        gas_limit: Optional[int] = None,
     ) -> str:
         """
         Register a repository for licensing.
@@ -166,7 +182,7 @@ class LicenseNFTContract:
             signature: Registrar signature authorizing registration
             developer_address: Developer's Ethereum address
             private_key: Private key for signing
-            gas_limit: Gas limit for transaction
+            gas_limit: Gas limit for transaction (None = dynamic estimation)
 
         Returns:
             Transaction hash
@@ -179,6 +195,14 @@ class LicenseNFTContract:
             )
 
         developer_address = Web3.to_checksum_address(developer_address)
+
+        # Use dynamic gas estimation if no explicit limit provided (M-003 fix)
+        if gas_limit is None:
+            gas_estimate = self._gas_estimator.estimate_with_gas_price(
+                TransactionType.REGISTER_REPOSITORY,
+                from_address=developer_address,
+            )
+            gas_limit = gas_estimate.gas_limit
 
         # Build transaction
         txn = self.contract.functions.registerRepository(
@@ -210,7 +234,7 @@ class LicenseNFTContract:
         token_uri: str,
         payment_wei: int,
         buyer_private_key: str,
-        gas_limit: int = 500000,
+        gas_limit: Optional[int] = None,
     ) -> str:
         """
         Issue a new license NFT.
@@ -226,7 +250,7 @@ class LicenseNFTContract:
             token_uri: Token metadata URI
             payment_wei: Payment amount in wei
             buyer_private_key: Private key for signing transaction
-            gas_limit: Gas limit for transaction
+            gas_limit: Gas limit for transaction (None = dynamic estimation)
 
         Returns:
             Transaction hash
@@ -239,6 +263,14 @@ class LicenseNFTContract:
             )
 
         licensee_address = Web3.to_checksum_address(licensee_address)
+
+        # Use dynamic gas estimation if no explicit limit provided (M-003 fix)
+        if gas_limit is None:
+            gas_estimate = self._gas_estimator.estimate_with_gas_price(
+                TransactionType.ISSUE_LICENSE,
+                from_address=licensee_address,
+            )
+            gas_limit = gas_estimate.gas_limit
 
         # Build transaction
         txn = self.contract.functions.issueLicense(

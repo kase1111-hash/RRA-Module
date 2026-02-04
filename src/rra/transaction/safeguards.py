@@ -19,11 +19,15 @@ Addresses:
 - Currency confusion
 """
 
+import logging
 import re
+from decimal import Decimal
 from enum import Enum
 from typing import Dict, Any, Optional, List, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+
+logger = logging.getLogger(__name__)
 
 
 class SafeguardLevel(str, Enum):
@@ -70,6 +74,7 @@ class TransactionSafeguards:
     - Safeguard level determination
     - Confirmation prompt generation
     - Rate limiting
+    - Live price feeds via oracle integration (H-002 fix)
     """
 
     # Price thresholds for safeguard levels (in USD equivalent)
@@ -77,9 +82,8 @@ class TransactionSafeguards:
     MEDIUM_THRESHOLD = 500
     HIGH_THRESHOLD = 5000
 
-    # Supported currencies and their approximate USD rates
-    CURRENCY_RATES = {
-        "ETH": 2000,  # Approximate ETH/USD
+    # Stablecoin rates (always 1:1 with USD)
+    STABLECOIN_RATES = {
         "USDC": 1,
         "USDT": 1,
         "DAI": 1,
@@ -94,21 +98,100 @@ class TransactionSafeguards:
     MAX_TRANSACTIONS_PER_HOUR = 10
 
     def __init__(
-        self, custom_rates: Optional[Dict[str, float]] = None, enable_rate_limiting: bool = True
+        self,
+        custom_rates: Optional[Dict[str, float]] = None,
+        enable_rate_limiting: bool = True,
+        enable_live_prices: bool = True,
     ):
         """
         Initialize safeguards.
 
         Args:
-            custom_rates: Custom currency exchange rates
+            custom_rates: Custom currency exchange rates (override oracle)
             enable_rate_limiting: Enable transaction rate limiting
+            enable_live_prices: Use live price oracle (set False for testing)
         """
-        self.currency_rates = {**self.CURRENCY_RATES}
-        if custom_rates:
-            self.currency_rates.update(custom_rates)
-
+        self.custom_rates = custom_rates or {}
         self.enable_rate_limiting = enable_rate_limiting
+        self.enable_live_prices = enable_live_prices
         self.transaction_timestamps: List[datetime] = []
+
+        # Lazy-loaded price oracle
+        self._price_oracle = None
+
+    @property
+    def price_oracle(self):
+        """Lazy-load price oracle to avoid import issues."""
+        if self._price_oracle is None and self.enable_live_prices:
+            try:
+                from rra.oracles.price_oracle import get_price_oracle
+
+                self._price_oracle = get_price_oracle()
+                logger.info("Price oracle initialized for transaction safeguards")
+            except ImportError:
+                logger.warning(
+                    "Price oracle module not available. Using fallback rates."
+                )
+            except Exception as e:
+                logger.warning(f"Failed to initialize price oracle: {e}")
+        return self._price_oracle
+
+    def get_currency_rate(self, currency: str) -> Tuple[float, str]:
+        """
+        Get USD exchange rate for a currency.
+
+        Uses oracle for live prices, falls back to stablecoins/custom rates.
+
+        Args:
+            currency: Currency code (e.g., "ETH")
+
+        Returns:
+            Tuple of (rate, source description)
+        """
+        currency = currency.upper()
+
+        # Check custom rates first (user overrides)
+        if currency in self.custom_rates:
+            return self.custom_rates[currency], "custom"
+
+        # Stablecoins are always 1:1
+        if currency in self.STABLECOIN_RATES:
+            return self.STABLECOIN_RATES[currency], "stablecoin"
+
+        # Try live oracle
+        if self.price_oracle is not None:
+            try:
+                price_data = self.price_oracle.get_price(currency, "USD")
+                if price_data is not None:
+                    rate = float(price_data.price)
+                    source = f"{price_data.source.value}"
+                    if price_data.is_stale:
+                        source += " (stale)"
+                    logger.debug(
+                        f"Got {currency}/USD rate {rate} from {source}"
+                    )
+                    return rate, source
+            except Exception as e:
+                logger.warning(f"Oracle price fetch failed for {currency}: {e}")
+
+        # Final fallback: conservative estimate with warning
+        fallback_rates = {
+            "ETH": 2000,
+            "BTC": 40000,
+            "LINK": 15,
+            "MATIC": 1,
+        }
+
+        if currency in fallback_rates:
+            logger.warning(
+                f"Using hardcoded fallback rate for {currency}. "
+                "Configure RRA_WEB3_PROVIDER_URL for live prices."
+            )
+            return fallback_rates[currency], "fallback (hardcoded)"
+
+        # Unknown currency
+        logger.warning(f"Unknown currency {currency}, assuming rate of 1")
+        return 1.0, "unknown"
 
     def validate_price(
         self,
@@ -155,9 +238,17 @@ class TransactionSafeguards:
                 amount = amount / 1e18
             currency = "ETH"
 
-        # Check currency is supported
-        if currency not in self.currency_rates:
+        # Check currency rate and source
+        rate, rate_source = self.get_currency_rate(currency)
+        if rate_source == "unknown":
             warnings.append(f"Unknown currency '{currency}'. Proceed with caution.")
+        elif rate_source.startswith("fallback"):
+            warnings.append(
+                f"Using fallback price for {currency}. "
+                "Live price data unavailable."
+            )
+        elif "stale" in rate_source:
+            warnings.append(f"Price data for {currency} may be outdated.")
 
         # Sanity checks
         if amount <= 0:
@@ -350,9 +441,18 @@ class TransactionSafeguards:
         return None
 
     def _to_usd(self, amount: float, currency: str) -> float:
-        """Convert amount to USD equivalent."""
+        """
+        Convert amount to USD equivalent using live oracle prices.
+
+        Args:
+            amount: Amount in source currency
+            currency: Source currency code
+
+        Returns:
+            USD equivalent value
+        """
         currency = currency.upper()
-        rate = self.currency_rates.get(currency, 1)
+        rate, source = self.get_currency_rate(currency)
         return amount * rate
 
     def _determine_safeguard_level(self, usd_value: float) -> SafeguardLevel:
