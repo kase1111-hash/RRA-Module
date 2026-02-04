@@ -32,6 +32,11 @@ from starlette.responses import Response
 from pydantic import BaseModel
 
 from rra.ingestion.repo_ingester import RepoIngester
+from rra.storage.session_store import (
+    SessionData,
+    get_session_store,
+    SessionStore,
+)
 
 
 # =============================================================================
@@ -248,36 +253,56 @@ class LicenseVerifyRequest(BaseModel):
     token_id: int
 
 
-# Session storage with expiry tracking
-class SessionData:
-    """Session data with expiry tracking."""
-
-    def __init__(self, agent: NegotiatorAgent):
-        self.agent = agent
-        self.created_at = datetime.utcnow()
-        self.last_activity = datetime.utcnow()
-
-    def is_expired(self) -> bool:
-        """Check if session has expired."""
-        expiry_time = timedelta(hours=SESSION_EXPIRY_HOURS)
-        return datetime.utcnow() - self.last_activity > expiry_time
-
-    def touch(self) -> None:
-        """Update last activity time."""
-        self.last_activity = datetime.utcnow()
+# =============================================================================
+# Session Storage (Redis-backed in production, in-memory fallback)
+# =============================================================================
+# Session store is lazily initialized via get_session_store()
+# Configure RRA_REDIS_URL environment variable for production Redis backend
+# Example: RRA_REDIS_URL=redis://localhost:6379/0
 
 
-# Global state (in production, use proper state management with Redis/DB)
-active_sessions: Dict[str, SessionData] = {}
+def get_session(session_id: str) -> Optional[SessionData]:
+    """
+    Retrieve a session from the store.
+
+    Args:
+        session_id: Session identifier
+
+    Returns:
+        SessionData if found and valid, None otherwise
+    """
+    store = get_session_store()
+    return store.get(session_id)
+
+
+def create_session(agent: NegotiatorAgent, metadata: Optional[Dict[str, Any]] = None) -> str:
+    """
+    Create a new session with the given agent.
+
+    Args:
+        agent: NegotiatorAgent instance
+        metadata: Optional session metadata
+
+    Returns:
+        Generated session ID
+    """
+    store = get_session_store()
+    session_id = generate_session_id()
+    session = SessionData(
+        payload=agent,
+        expiry_hours=SESSION_EXPIRY_HOURS,
+        metadata=metadata or {},
+    )
+    store.set(session_id, session)
+    return session_id
 
 
 def cleanup_expired_sessions() -> None:
-    """Remove expired sessions."""
-    expired = [sid for sid, data in active_sessions.items() if data.is_expired()]
-    if expired:
-        logger.info(f"Cleaning up {len(expired)} expired sessions")
-    for sid in expired:
-        del active_sessions[sid]
+    """Remove expired sessions from the store."""
+    store = get_session_store()
+    count = store.cleanup_expired()
+    if count > 0:
+        logger.info(f"Cleaned up {count} expired sessions")
 
 
 def create_app() -> FastAPI:
@@ -544,11 +569,11 @@ def create_app() -> FastAPI:
             # Start negotiation
             intro = negotiator.start_negotiation()
 
-            # Generate cryptographically secure session ID
-            session_id = generate_session_id()
-
-            # Store session with expiry tracking
-            active_sessions[session_id] = SessionData(negotiator)
+            # Create session with Redis-backed storage (or in-memory fallback)
+            session_id = create_session(
+                agent=negotiator,
+                metadata={"repo_url": kb.repo_url, "kb_path": str(request.kb_path)},
+            )
 
             logger.info(f"Negotiation session started: {session_id} for {kb.repo_url}")
             return NegotiationResponse(
@@ -579,23 +604,18 @@ def create_app() -> FastAPI:
 
         Requires API key authentication.
         """
-        if session_id not in active_sessions:
-            logger.warning(f"Message sent to unknown session: {session_id[:8]}...")
-            raise HTTPException(status_code=404, detail="Session not found")
+        store = get_session_store()
+        session = store.get(session_id)
 
-        session = active_sessions[session_id]
-
-        # Check if session has expired
-        if session.is_expired():
-            logger.info(f"Expired session accessed: {session_id[:8]}...")
-            del active_sessions[session_id]
-            raise HTTPException(status_code=401, detail="Session expired")
+        if session is None:
+            logger.warning(f"Message sent to unknown/expired session: {session_id[:8]}...")
+            raise HTTPException(status_code=404, detail="Session not found or expired")
 
         try:
             # Update last activity
-            session.touch()
+            store.touch(session_id)
 
-            negotiator = session.agent
+            negotiator = session.payload
             response = negotiator.respond(message)
 
             logger.debug(
@@ -627,16 +647,14 @@ def create_app() -> FastAPI:
 
         Requires API key authentication.
         """
-        if session_id not in active_sessions:
-            raise HTTPException(status_code=404, detail="Session not found")
+        store = get_session_store()
+        session = store.get(session_id)
 
-        session = active_sessions[session_id]
-        if session.is_expired():
-            del active_sessions[session_id]
-            raise HTTPException(status_code=401, detail="Session expired")
+        if session is None:
+            raise HTTPException(status_code=404, detail="Session not found or expired")
 
-        session.touch()
-        return session.agent.get_negotiation_summary()
+        store.touch(session_id)
+        return session.payload.get_negotiation_summary()
 
     @app.get("/api/repositories")
     async def list_repositories(

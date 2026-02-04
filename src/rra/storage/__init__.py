@@ -27,6 +27,16 @@ from .compression import (
     is_gzip_compressed,
 )
 
+from .session_store import (
+    SessionData,
+    SessionStore,
+    InMemorySessionStore,
+    RedisSessionStore,
+    create_session_store,
+    get_session_store,
+    reset_session_store,
+)
+
 __all__ = [
     # Storage
     "EncryptedIPFSStorage",
@@ -43,4 +53,12 @@ __all__ = [
     "CompressionResult",
     "StreamingCompressor",
     "is_gzip_compressed",
+    # Session Storage
+    "SessionData",
+    "SessionStore",
+    "InMemorySessionStore",
+    "RedisSessionStore",
+    "create_session_store",
+    "get_session_store",
+    "reset_session_store",
 ]
