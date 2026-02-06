@@ -123,9 +123,9 @@ buyer_requirements:
     - "USDC"
     - "DAI"
 
-# DeFi Protocol Integration Settings
-defi_integrations:
-  # Story Protocol - Programmable IP Licensing (Phase 3)
+# Protocol Integration Settings
+protocol_integrations:
+  # Story Protocol - Programmable IP Licensing
   story_protocol:
     enabled: true  # Story Protocol integration is now active
     ip_asset_id: "0xf08574c30337dde7C38869b8d399BA07ab23a07F"  # Mainnet IP Asset ID (registered 2025-01)
@@ -220,8 +220,8 @@ support:
 
 # Metadata
 metadata:
-  version: "1.0.0"
-  last_updated: "2025-12-19"
-  ingested: false  # Set to true after first ingestion
-  agent_id: null   # Populated when agent is spawned
+  version: "1.1.0"
+  last_updated: "2026-02-06"
+  ingested: true  # Dogfooding: this repo is its own first customer
+  agent_id: "rra-self-license-agent"  # Self-licensing agent
   contract_address: null  # Populated when deployed to blockchain

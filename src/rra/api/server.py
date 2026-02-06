@@ -794,10 +794,8 @@ def create_app() -> FastAPI:
         from rra.api.streaming import router as streaming_router
         from rra.api.widget import router as widget_router
         from rra.api.analytics import router as analytics_router
-        from rra.api.yield_api import router as yield_router
         from rra.api.entropy import router as entropy_router
         from rra.api.warnings import router as warnings_router
-        from rra.api.treasury import router as treasury_router
         from rra.api.verification_api import router as verification_router
 
         app.include_router(marketplace_router)
@@ -807,10 +805,8 @@ def create_app() -> FastAPI:
         app.include_router(streaming_router)
         app.include_router(widget_router)
         app.include_router(analytics_router)
-        app.include_router(yield_router)
         app.include_router(entropy_router)
         app.include_router(warnings_router)
-        app.include_router(treasury_router)
         app.include_router(verification_router)
         logger.info("All API routers loaded successfully")
     except ImportError as e:

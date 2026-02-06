@@ -135,13 +135,12 @@ class TestFeatureFlags:
         flags = FeatureFlags()
         assert flags.enable_story_protocol is True
         assert flags.enable_superfluid_streaming is False
-        assert flags.enable_l3_rollups is False
 
     def test_is_enabled(self):
         """Test is_enabled helper method."""
-        flags = FeatureFlags(enable_story_protocol=True, enable_zk_proofs=False)
+        flags = FeatureFlags(enable_story_protocol=True, enable_superfluid_streaming=False)
         assert flags.is_enabled("enable_story_protocol") is True
-        assert flags.is_enabled("enable_zk_proofs") is False
+        assert flags.is_enabled("enable_superfluid_streaming") is False
         assert flags.is_enabled("nonexistent_flag") is False
 
 
@@ -290,11 +289,11 @@ class TestEnvironmentOverrides:
 
         with patch.dict(
             os.environ,
-            {"RRA_FEATURE_enable_zk_proofs": "true", "RRA_FEATURE_enable_story_protocol": "false"},
+            {"RRA_FEATURE_enable_superfluid_streaming": "true", "RRA_FEATURE_enable_story_protocol": "false"},
         ):
             config = _apply_env_overrides(config)
 
-        assert config.features.enable_zk_proofs is True
+        assert config.features.enable_superfluid_streaming is True
         assert config.features.enable_story_protocol is False
 
 
