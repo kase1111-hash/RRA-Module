@@ -3,15 +3,11 @@
 # Copyright 2025 Kase Branham
 
 """
-Decentralized Identity (DID) Module for NatLangChain.
+Decentralized Identity (DID) Module for RRA.
 
-Provides DID-based identity management for the RRA ecosystem:
+Provides DID-based identity management:
 - DID resolution and verification (did:web, did:ethr, did:key)
-- Sybil-resistant participation in disputes
 - Portable identity across NatLangChain ecosystem
-- Privacy-preserving identity verification
-
-Part of Phase 6.3: DID Integration
 """
 
 from .did_resolver import (
@@ -21,12 +17,6 @@ from .did_resolver import (
     VerificationMethod,
     resolve_did,
 )
-from .sybil_resistance import (
-    SybilResistance,
-    IdentityScore,
-    ProofOfHumanity,
-    SybilCheck,
-)
 
 __all__ = [
     # DID Resolution
@@ -35,9 +25,4 @@ __all__ = [
     "DIDMethod",
     "VerificationMethod",
     "resolve_did",
-    # Sybil Resistance
-    "SybilResistance",
-    "IdentityScore",
-    "ProofOfHumanity",
-    "SybilCheck",
 ]

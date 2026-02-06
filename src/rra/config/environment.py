@@ -177,13 +177,10 @@ class FeatureFlags:
     # Core features
     enable_story_protocol: bool = True
     enable_superfluid_streaming: bool = False
-    enable_l3_rollups: bool = False
-    enable_zk_proofs: bool = False
 
     # Identity features
     enable_worldcoin_verification: bool = True
     enable_brightid_verification: bool = True
-    enable_hardware_auth: bool = True
     enable_ens_verification: bool = True
 
     # Experimental
@@ -440,8 +437,6 @@ def _get_production_config() -> EnvironmentConfig:
             # Experimental features disabled in prod
             enable_auto_pricing=False,
             enable_reputation_decay=False,
-            enable_l3_rollups=False,
-            enable_zk_proofs=False,
         ),
         monitoring=MonitoringConfig(
             metrics_enabled=True,

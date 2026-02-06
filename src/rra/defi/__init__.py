@@ -3,63 +3,8 @@
 """
 DeFi integration module for RRA.
 
-Provides yield-bearing license tokens, IP-backed lending,
-and fractional IP ownership functionality.
+Provides Superfluid streaming payments and Story Protocol integration
+for the core licensing flow.
 """
 
-from .yield_tokens import (
-    StakedLicense,
-    YieldPool,
-    YieldDistributor,
-    StakingManager,
-    YieldStrategy,
-    create_staking_manager,
-)
-
-from .ipfi_lending import (
-    Loan,
-    LoanOffer,
-    LoanTerms,
-    LoanStatus,
-    Collateral,
-    CollateralType,
-    CollateralValuator,
-    IPFiLendingManager,
-    create_lending_manager,
-)
-
-from .fractional_ip import (
-    FractionalAsset,
-    FractionStatus,
-    ShareHolder,
-    ShareOrder,
-    FractionalIPManager,
-    create_fractional_manager,
-)
-
-__all__ = [
-    # Yield tokens
-    "StakedLicense",
-    "YieldPool",
-    "YieldDistributor",
-    "StakingManager",
-    "YieldStrategy",
-    "create_staking_manager",
-    # IPFi Lending
-    "Loan",
-    "LoanOffer",
-    "LoanTerms",
-    "LoanStatus",
-    "Collateral",
-    "CollateralType",
-    "CollateralValuator",
-    "IPFiLendingManager",
-    "create_lending_manager",
-    # Fractional IP
-    "FractionalAsset",
-    "FractionStatus",
-    "ShareHolder",
-    "ShareOrder",
-    "FractionalIPManager",
-    "create_fractional_manager",
-]
+__all__: list[str] = []
