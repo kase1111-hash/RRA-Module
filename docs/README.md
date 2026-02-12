@@ -24,7 +24,7 @@ Complete documentation for the Revenant Repo Agent Module.
 #### Integration Guides
 - **[Integrations Guide](INTEGRATIONS.md)** - NatLangChain ecosystem, API client, and Story Protocol (consolidated)
 - **[DeFi Integration Guide](DEFI-INTEGRATION.md)** - Superfluid streaming, IPFi lending, yield tokens, fractional IP
-- **[Mobile SDK Guide](MOBILE_SDK.md)** - iOS and Android integration
+- **[Mobile SDK Guide](../sdks/README.md)** - iOS and Android integration
 
 #### Project Status
 - **[Roadmap](../ROADMAP.md)** - Viral distribution strategy and product roadmap
@@ -60,7 +60,6 @@ Complete documentation for the Revenant Repo Agent Module.
 - **[Examples Directory](../examples/README.md)** - Code examples and demonstrations
 - **[SDKs Directory](../sdks/README.md)** - SDK documentation
 - **[Marketplace](../marketplace/README.md)** - Marketplace frontend documentation
-- **[Circuits](../circuits/README.md)** - ZK circuit documentation
 - **[Contracts](../contracts/README.md)** - Smart contract documentation
 
 ## Documentation Structure
@@ -99,7 +98,6 @@ RRA-Module/
 │   ├── BLOCKCHAIN-LICENSING.md            # Blockchain monetization
 │   ├── INTEGRATIONS.md                    # NatLangChain + Story Protocol (consolidated)
 │   ├── DEFI-INTEGRATION.md                # DeFi integration guide
-│   ├── MOBILE_SDK.md                      # Mobile SDK documentation
 │   ├── TESTING-RESULTS.md                 # Test results (1,237 tests)
 │   ├── MONITORING.md                      # Monitoring and alerting
 │   ├── HARDWARE-AUTHENTICATION.md         # FIDO2/WebAuthn (Phase 5)
@@ -107,10 +105,11 @@ RRA-Module/
 │   ├── Dispute-Membership-Circuit.md      # ZK identity proofs
 │   └── Licensing-Reconciliation-Module-update.md  # Dispute resolution
 │
-├── src/rra/                               # Source code (36+ modules)
+├── src/rra/                               # Source code (31+ modules)
+│   ├── access/                            # Stream controller
 │   ├── agents/                            # Negotiator/Buyer agents
+│   ├── analytics/                         # Entropy scoring, clause patterns
 │   ├── api/                               # FastAPI server, webhooks
-│   ├── auth/                              # FIDO2, DID, delegation
 │   ├── bundling/                          # Multi-repo bundling
 │   ├── chains/                            # Multi-chain support
 │   ├── cli/                               # Command-line interface
@@ -119,31 +118,31 @@ RRA-Module/
 │   ├── crypto/                            # Cryptographic primitives
 │   ├── defi/                              # Yield tokens, lending
 │   ├── governance/                        # DAO, treasury voting
-│   ├── identity/                          # Sybil resistance
+│   ├── identity/                          # DID resolver
 │   ├── ingestion/                         # Repo ingestion
 │   ├── integration/                       # NatLangChain integration
 │   ├── integrations/                      # External protocols
-│   ├── l3/                                # L3 batch processing
 │   ├── legal/                             # Jurisdiction, compliance
 │   ├── negotiation/                       # Clause hardening
 │   ├── oracles/                           # Event bridging
+│   ├── predictions/                       # Dispute warnings
 │   ├── pricing/                           # Adaptive pricing
 │   ├── privacy/                           # Privacy features
 │   ├── reconciliation/                    # Dispute resolution
 │   ├── reputation/                        # Reputation tracking
-│   ├── rwa/                               # Real-world assets
 │   ├── security/                          # Security features
 │   ├── services/                          # Deep links, etc.
+│   ├── status/                            # Dreaming status
+│   ├── storage/                           # Session storage
+│   ├── templates/                         # Hardened clauses
 │   ├── transaction/                       # Transaction safeguards
-│   ├── treasury/                          # Treasury coordination
 │   └── verification/                      # Code verification
 │
-├── contracts/                             # Solidity smart contracts
-├── circuits/                              # ZK circuits (Circom)
+├── contracts/                             # Solidity smart contracts (Foundry)
 ├── marketplace/                           # Next.js marketplace UI
 ├── sdks/                                  # Mobile SDKs
 ├── examples/                              # Code examples
-└── tests/                                 # Test suite (40+ files)
+└── tests/                                 # Test suite (42 files, 1,237+ tests)
 ```
 
 ## Topic Index

@@ -16,7 +16,7 @@ Before seeking support, please check the available documentation:
 - **[Selling Licenses](docs/SELLING-LICENSES.md)** - Monetize your repository with Story Protocol
 - **[Blockchain Licensing](docs/BLOCKCHAIN-LICENSING.md)** - Automated license management
 - **[DeFi Integration](docs/DEFI-INTEGRATION.md)** - Yield tokens, IPFi lending
-- **[Mobile SDK](docs/MOBILE_SDK.md)** - iOS and Android integration
+- **[Mobile SDK](sdks/README.md)** - iOS and Android integration
 
 ### Security Documentation
 
@@ -73,7 +73,7 @@ Check your `.market.yaml` configuration:
 
 ```yaml
 # Minimum required configuration
-license_model: "Perpetual"
+license_model: "perpetual"
 target_price: "0.05 ETH"
 floor_price: "0.02 ETH"
 ```

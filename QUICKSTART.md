@@ -2,7 +2,7 @@
 
 Get started with the Revenant Repo Agent Module in minutes!
 
-**Version:** 0.1.0-alpha | **Tests:** 1,085 passing | **Security:** A- rating
+**Version:** 1.0.1-beta | **Tests:** 1,237 passing | **Security:** A- rating
 
 ## Installation
 
@@ -269,9 +269,9 @@ rra links https://github.com/user/repo.git --register
 - Read the [full README](README.md) for detailed information
 - Check out [examples](examples/README.md) for more use cases
 - Review [blockchain licensing guide](docs/BLOCKCHAIN-LICENSING.md) for monetization
-- Explore [Story Protocol integration](docs/STORY-PROTOCOL-INTEGRATION.md) for programmable IP
+- Explore [Story Protocol integration](docs/INTEGRATIONS.md#story-protocol) for programmable IP
 - See [DeFi integration](docs/DEFI-INTEGRATION.md) for yield tokens and lending
-- Review [security audit](docs/SECURITY-AUDIT.md) for security best practices
+- Review [security reports](SECURITY-REPORTS.md) for security best practices
 - See [full documentation index](docs/README.md) for all guides
 
 ## Getting Help
