@@ -64,17 +64,40 @@ mypy src/
 
 ```
 RRA-Module/
-├── src/rra/           # Main package
-│   ├── config/        # Configuration management
-│   ├── ingestion/     # Repository ingestion
-│   ├── agents/        # Negotiation agents
-│   ├── contracts/     # Smart contracts
-│   ├── api/           # REST API
-│   ├── cli/           # CLI interface
-│   └── reputation/    # Reputation tracking
-├── tests/             # Test suite
-├── examples/          # Usage examples
-└── docs/              # Documentation
+├── src/rra/              # Main package (31+ modules)
+│   ├── agents/           # Negotiator/Buyer agents
+│   ├── api/              # FastAPI server, webhooks, WebSocket
+│   ├── analytics/        # Entropy scoring, clause patterns
+│   ├── bundling/         # Multi-repo bundle management
+│   ├── chains/           # Multi-chain configuration
+│   ├── cli/              # Command-line interface
+│   ├── config/           # Configuration management
+│   ├── contracts/        # Smart contract interfaces
+│   ├── crypto/           # Pedersen commitments, Shamir sharing
+│   ├── governance/       # DAO, treasury, voting
+│   ├── identity/         # DID resolver
+│   ├── ingestion/        # Repository ingestion & knowledge base
+│   ├── integration/      # NatLangChain ecosystem
+│   ├── integrations/     # Story Protocol, Superfluid, GitHub
+│   ├── legal/            # Jurisdiction, compliance, RWA
+│   ├── negotiation/      # Clause hardening, pressure logic
+│   ├── oracles/          # Price oracle, event bridge
+│   ├── pricing/          # Adaptive pricing engine
+│   ├── privacy/          # Batch queue, secret sharing
+│   ├── reconciliation/   # Multi-party dispute resolution
+│   ├── reputation/       # Reputation tracking
+│   ├── security/         # API auth, secrets management
+│   ├── services/         # Deep links, URL generation
+│   ├── storage/          # Session storage, persistence
+│   ├── transaction/      # Two-step verification
+│   └── verification/     # Code verification, blockchain links
+├── contracts/            # Solidity smart contracts (Foundry)
+├── marketplace/          # Next.js marketplace frontend
+├── sdks/                 # iOS and Android SDKs
+├── tests/                # Test suite (42 files, 1,237+ tests)
+├── scripts/              # Blockchain & automation scripts
+├── examples/             # Usage examples and workflows
+└── docs/                 # Documentation
 ```
 
 ## Adding New Features
@@ -107,20 +130,21 @@ Follow conventional commits format:
 
 ## Smart Contract Development
 
-For contract changes:
+The project uses a Foundry-style layout for Solidity contracts in `contracts/`.
 
 ```bash
-# Install Hardhat (if not already installed)
-npm install --save-dev hardhat
+# Install Foundry (if not already installed)
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
 
 # Compile contracts
-npx hardhat compile
+forge build
 
 # Run contract tests
-npx hardhat test
+forge test
 
-# Deploy to testnet
-npx hardhat run scripts/deploy.js --network sepolia
+# Deploy (using Foundry scripts)
+forge script contracts/script/DeployLicenseEntropyOracle.s.sol --rpc-url <RPC_URL> --broadcast
 ```
 
 ## Documentation

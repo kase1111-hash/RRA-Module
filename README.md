@@ -1,7 +1,7 @@
 # Revenant Repo Agent (RRA Module)
 
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](tests/)
-[![Security](https://img.shields.io/badge/security-A--rating-blue)](docs/SECURITY-AUDIT.md)
+[![Security](https://img.shields.io/badge/security-A--rating-blue)](SECURITY-REPORTS.md)
 [![License](https://img.shields.io/badge/license-FSL--1.1--ALv2-orange)](LICENSE.md)
 [![Python](https://img.shields.io/badge/python-3.9+-blue)](pyproject.toml)
 [![Buy License](https://img.shields.io/badge/Buy_License-10_IP-6366f1)](https://kase1111-hash.github.io/RRA-Module/buy-license.html)
@@ -47,17 +47,17 @@ This repository is **live on Story Protocol**. Buy a license NFT to use this cod
 # Install
 pip install -e .
 
-# Configure your repo
-cp .market.yaml.example .market.yaml  # Edit pricing and terms
+# Initialize your repo with a .market.yaml config
+rra init /path/to/your-repo
 
-# Ingest a repository
+# Ingest a repository and build its knowledge base
 rra ingest https://github.com/your/repo
 
 # Start the negotiation agent
-rra agent start
+rra agent agent_knowledge_bases/repo_kb.json --simulate
 
 # Launch the API server
-rra serve
+uvicorn rra.api.server:app --reload
 ```
 
 ## Core Architecture
@@ -111,7 +111,7 @@ FastAPI server with REST endpoints, WebSocket real-time chat, webhook integratio
 - **[Integrations](docs/INTEGRATIONS.md)** — NatLangChain, API client, Story Protocol
 
 ### Security
-- **[Security Audit](docs/SECURITY-AUDIT.md)** — A- security rating
+- **[Security Reports](SECURITY-REPORTS.md)** — A- security rating
 - **[Cryptographic Audit](CRYPTOGRAPHIC-SECURITY-AUDIT-2025-12-20.md)** — 24 crypto fixes applied
 - **[Transaction Security](docs/TRANSACTION-SECURITY.md)** — Two-step verification
 
