@@ -452,6 +452,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return response
 
 
+# Shared backend for all @rate_limit decorators so counters are consistent
+_shared_decorator_backend = InMemoryBackend()
+
+
 def rate_limit(
     requests: int = 10, window: int = 60, key_func: Optional[Callable[[Request], str]] = None
 ):
@@ -469,8 +473,7 @@ def rate_limit(
         async def expensive_endpoint():
             ...
     """
-    backend = InMemoryBackend()
-    limiter = SlidingWindowLimiter(backend, limit=requests, window=window)
+    limiter = SlidingWindowLimiter(_shared_decorator_backend, limit=requests, window=window)
 
     def decorator(func):
         @wraps(func)

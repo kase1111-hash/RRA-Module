@@ -312,7 +312,12 @@ I'm open to discussing terms that work for both of us. What's your budget?"""
                 floor_value = float(floor_match.group(1)) if floor_match else 0
 
                 if proposed_value >= floor_value:
-                    # Acceptable offer
+                    # Acceptable offer — record it
+                    self.current_offer = {
+                        "price": proposed_amount,
+                        "value": proposed_value,
+                        "accepted": True,
+                    }
                     return f"""Your offer of {proposed_amount} is within acceptable range.
 
 I can agree to {proposed_amount} for a {context['pricing']['model']} license
@@ -320,7 +325,12 @@ including all standard features.
 
 Shall we proceed with the transaction?"""
                 else:
-                    # Below floor
+                    # Below floor — counter with floor price
+                    self.current_offer = {
+                        "price": context["pricing"]["floor_price"],
+                        "value": floor_value,
+                        "accepted": False,
+                    }
                     if self.config.negotiation_style == NegotiationStyle.STRICT:
                         return f"""Your offer of {proposed_amount} is below our floor price of {context['pricing']['floor_price']}.
 I cannot accept offers below this threshold. Final offer: {context['pricing']['floor_price']}."""

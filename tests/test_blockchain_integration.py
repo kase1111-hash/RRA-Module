@@ -531,10 +531,15 @@ class TestBlockchainErrorHandling:
 
     def test_invalid_address_handling(self, mock_web3):
         """Test handling of invalid addresses."""
-        # MockWeb3 accepts any address format for testing
-        # Real implementation would validate
-        checksum = mock_web3.to_checksum_address("invalid")
-        assert checksum == "0xinvalid"
+        # Real Web3 checksum rejects non-hex addresses
+        with pytest.raises(ValueError):
+            mock_web3.to_checksum_address("invalid")
+
+        # Valid addresses produce correct EIP-55 checksums
+        addr = "0x" + "ab" * 20
+        checksum = mock_web3.to_checksum_address(addr)
+        assert checksum.startswith("0x")
+        assert len(checksum) == 42
 
 
 # =============================================================================

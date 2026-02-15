@@ -15,16 +15,12 @@ Provides REST API endpoints for:
 import logging
 import re
 import os
-import secrets
-import hmac
 from typing import Optional, Dict, Any
 from pathlib import Path
-from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, Request, Security
-from fastapi.security import APIKeyHeader
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -37,96 +33,11 @@ from rra.storage.session_store import (
     get_session_store,
     SessionStore,
 )
-
-
-# =============================================================================
-# API Key Authentication
-# =============================================================================
-
-# API Key header
-API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
-
-# Session configuration
-SESSION_ID_LENGTH = 32  # bytes
-SESSION_EXPIRY_HOURS = 24
-
-
-def get_api_keys() -> set:
-    """
-    Get valid API keys from environment.
-
-    In production, these should come from a secure secrets manager.
-    """
-    keys_env = os.environ.get("RRA_API_KEYS", "")
-    if keys_env:
-        return set(key.strip() for key in keys_env.split(",") if key.strip())
-    return set()
-
-
-def verify_api_key(api_key: str = Security(API_KEY_HEADER)) -> bool:
-    """
-    Verify API key from request header.
-
-    Args:
-        api_key: API key from X-API-Key header
-
-    Returns:
-        True if valid
-
-    Raises:
-        HTTPException: If key is invalid
-    """
-    if not api_key:
-        logger.warning("API request rejected: missing API key")
-        raise HTTPException(
-            status_code=401,
-            detail="Missing API key",
-            headers={"WWW-Authenticate": "ApiKey"},
-        )
-
-    valid_keys = get_api_keys()
-
-    # Allow bypass in development with specific env var
-    if (
-        os.environ.get("RRA_ENV") == "development"
-        and os.environ.get("RRA_DEV_AUTH_BYPASS") == "true"
-    ):
-        logger.debug("API key verification bypassed in development mode")
-        return True
-
-    # If no keys configured in production, require setup
-    if not valid_keys:
-        if os.environ.get("RRA_ENV") == "development":
-            logger.debug("No API keys configured, allowing in development mode")
-            return True  # Allow in development if no keys configured
-        logger.error("API authentication not configured in production")
-        raise HTTPException(
-            status_code=500,
-            detail="API authentication not configured",
-        )
-
-    # Constant-time comparison to prevent timing attacks
-    for valid_key in valid_keys:
-        if hmac.compare_digest(api_key, valid_key):
-            logger.debug("API key verified successfully")
-            return True
-
-    logger.warning("API request rejected: invalid API key")
-    raise HTTPException(
-        status_code=401,
-        detail="Invalid API key",
-        headers={"WWW-Authenticate": "ApiKey"},
-    )
-
-
-def generate_session_id() -> str:
-    """
-    Generate a cryptographically secure session ID.
-
-    Returns:
-        URL-safe base64 encoded random string
-    """
-    return secrets.token_urlsafe(SESSION_ID_LENGTH)
+from rra.api.auth import (
+    verify_api_key,
+    generate_session_id,
+    SESSION_EXPIRY_HOURS,
+)
 
 
 # =============================================================================
@@ -243,6 +154,11 @@ class NegotiationRequest(BaseModel):
     message: Optional[str] = None
 
 
+class NegotiationMessageRequest(BaseModel):
+    session_id: str
+    message: str
+
+
 class NegotiationResponse(BaseModel):
     message: str
     phase: str
@@ -315,7 +231,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="RRA Module API",
         description="REST API for Revenant Repo Agent Module",
-        version="0.6.0",
+        version="1.0.1-beta",
     )
 
     # ==========================================================================
@@ -406,15 +322,28 @@ def create_app() -> FastAPI:
                 )
 
             # Content Security Policy
-            # Restrictive CSP - adjust based on actual needs
+            # Build connect-src from allowed CORS origins + self + ws/wss
+            connect_sources = "'self'"
+            cors_env = os.environ.get("RRA_CORS_ORIGINS", "")
+            if cors_env:
+                connect_sources += " " + " ".join(
+                    o.strip() for o in cors_env.split(",") if o.strip()
+                )
+
+            # Allow frame-ancestors for widget embed paths
+            if request.url.path.startswith("/api/widget"):
+                frame_ancestors = "'self' *"
+            else:
+                frame_ancestors = "'none'"
+
             csp_directives = [
                 "default-src 'self'",
                 "script-src 'self'",
                 "style-src 'self' 'unsafe-inline'",  # inline styles often needed
                 "img-src 'self' data: https:",
                 "font-src 'self'",
-                "connect-src 'self'",
-                "frame-ancestors 'none'",
+                f"connect-src {connect_sources}",
+                f"frame-ancestors {frame_ancestors}",
                 "base-uri 'self'",
                 "form-action 'self'",
             ]
@@ -441,7 +370,7 @@ def create_app() -> FastAPI:
         """Root endpoint."""
         return {
             "name": "RRA Module API",
-            "version": "0.5.0",
+            "version": "1.0.1-beta",
             "endpoints": {
                 "ingest": "/api/ingest",
                 "negotiate": "/api/negotiate",
@@ -588,47 +517,39 @@ def create_app() -> FastAPI:
 
     @app.post("/api/negotiate/message", response_model=NegotiationResponse)
     async def send_message(
-        session_id: str,
-        message: str,
+        request: NegotiationMessageRequest,
         authenticated: bool = Depends(verify_api_key),
     ):
         """
         Send a message in an active negotiation.
 
-        Args:
-            session_id: Active negotiation session ID
-            message: Message from buyer
-
-        Returns:
-            Response from negotiator
-
         Requires API key authentication.
         """
         store = get_session_store()
-        session = store.get(session_id)
+        session = store.get(request.session_id)
 
         if session is None:
-            logger.warning(f"Message sent to unknown/expired session: {session_id[:8]}...")
+            logger.warning(f"Message sent to unknown/expired session: {request.session_id[:8]}...")
             raise HTTPException(status_code=404, detail="Session not found or expired")
 
         try:
             # Update last activity
-            store.touch(session_id)
+            store.touch(request.session_id)
 
             negotiator = session.payload
-            response = negotiator.respond(message)
+            response = negotiator.respond(request.message)
 
             logger.debug(
-                f"Message processed for session {session_id[:8]}..., phase: {negotiator.current_phase.value}"
+                f"Message processed for session {request.session_id[:8]}..., phase: {negotiator.current_phase.value}"
             )
             return NegotiationResponse(
-                message=response, phase=negotiator.current_phase.value, session_id=session_id
+                message=response, phase=negotiator.current_phase.value, session_id=request.session_id
             )
 
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Message processing failed for session {session_id[:8]}...: {e}")
+            logger.error(f"Message processing failed for session {request.session_id[:8]}...: {e}")
             raise HTTPException(status_code=500, detail=sanitize_error_message(e))
 
     @app.get("/api/negotiate/summary/{session_id}")
@@ -772,13 +693,30 @@ def create_app() -> FastAPI:
         if request.token_id < 0:
             raise HTTPException(status_code=400, detail="Invalid token ID")
 
-        # In production, would check blockchain
-        # For now, return placeholder
-        return {
-            "token_id": request.token_id,
-            "valid": True,
-            "message": "License verification requires blockchain connection",
-        }
+        # Attempt on-chain verification via LicenseNFTContract
+        try:
+            from rra.contracts.license_nft import LicenseNFTContract
+            from rra.contracts.manager import ContractManager
+
+            manager = ContractManager()
+            contract = manager.get_license_contract()
+            is_valid = contract.is_license_valid(request.token_id)
+            details = contract.get_license_details(request.token_id) if is_valid else {}
+
+            return {
+                "token_id": request.token_id,
+                "valid": is_valid,
+                "details": details,
+                "message": "Verified on-chain",
+            }
+        except Exception as e:
+            # Blockchain not configured or unreachable — report unknown
+            logger.warning(f"On-chain verification unavailable for token {request.token_id}: {e}")
+            return {
+                "token_id": request.token_id,
+                "valid": None,
+                "message": "License verification unavailable: blockchain connection not configured",
+            }
 
     @app.get("/health")
     async def health_check():

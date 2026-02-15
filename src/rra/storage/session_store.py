@@ -14,9 +14,9 @@ Addresses H-001: In-memory session storage needs Redis/DB for production scaling
 import json
 import logging
 import os
-import pickle
+import threading
 from abc import ABC, abstractmethod
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional, TypeVar, Generic
 
 logger = logging.getLogger(__name__)
@@ -46,19 +46,19 @@ class SessionData(Generic[T]):
             metadata: Optional metadata about the session
         """
         self.payload = payload
-        self.created_at = datetime.utcnow()
-        self.last_activity = datetime.utcnow()
+        self.created_at = datetime.now(timezone.utc)
+        self.last_activity = datetime.now(timezone.utc)
         self.expiry_hours = expiry_hours
         self.metadata = metadata or {}
 
     def is_expired(self) -> bool:
         """Check if session has expired based on last activity."""
         expiry_time = timedelta(hours=self.expiry_hours)
-        return datetime.utcnow() - self.last_activity > expiry_time
+        return datetime.now(timezone.utc) - self.last_activity > expiry_time
 
     def touch(self) -> None:
         """Update last activity timestamp."""
-        self.last_activity = datetime.utcnow()
+        self.last_activity = datetime.now(timezone.utc)
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize session metadata (not payload) to dict."""
@@ -168,11 +168,14 @@ class InMemorySessionStore(SessionStore):
 
     WARNING: Not suitable for production - sessions lost on restart
     and cannot scale across multiple instances.
+
+    Thread-safe via internal lock for concurrent access.
     """
 
     def __init__(self):
         """Initialize in-memory store."""
         self._sessions: Dict[str, SessionData] = {}
+        self._lock = threading.Lock()
         logger.warning(
             "Using in-memory session store. "
             "Set RRA_REDIS_URL for production deployment."
@@ -180,24 +183,27 @@ class InMemorySessionStore(SessionStore):
 
     def get(self, session_id: str) -> Optional[SessionData]:
         """Retrieve session, returning None if expired."""
-        session = self._sessions.get(session_id)
-        if session is None:
-            return None
-        if session.is_expired():
-            del self._sessions[session_id]
-            return None
-        return session
+        with self._lock:
+            session = self._sessions.get(session_id)
+            if session is None:
+                return None
+            if session.is_expired():
+                del self._sessions[session_id]
+                return None
+            return session
 
     def set(self, session_id: str, session: SessionData) -> None:
         """Store session in memory."""
-        self._sessions[session_id] = session
+        with self._lock:
+            self._sessions[session_id] = session
 
     def delete(self, session_id: str) -> bool:
         """Delete session from memory."""
-        if session_id in self._sessions:
-            del self._sessions[session_id]
-            return True
-        return False
+        with self._lock:
+            if session_id in self._sessions:
+                del self._sessions[session_id]
+                return True
+            return False
 
     def exists(self, session_id: str) -> bool:
         """Check if valid session exists."""
@@ -205,17 +211,19 @@ class InMemorySessionStore(SessionStore):
 
     def touch(self, session_id: str) -> bool:
         """Update session activity timestamp."""
-        session = self.get(session_id)
-        if session:
+        with self._lock:
+            session = self._sessions.get(session_id)
+            if session is None or session.is_expired():
+                return False
             session.touch()
             return True
-        return False
 
     def cleanup_expired(self) -> int:
         """Remove expired sessions."""
-        expired = [sid for sid, s in self._sessions.items() if s.is_expired()]
-        for sid in expired:
-            del self._sessions[sid]
+        with self._lock:
+            expired = [sid for sid, s in self._sessions.items() if s.is_expired()]
+            for sid in expired:
+                del self._sessions[sid]
         if expired:
             logger.info(f"Cleaned up {len(expired)} expired in-memory sessions")
         return len(expired)
@@ -224,7 +232,8 @@ class InMemorySessionStore(SessionStore):
         """Count active sessions."""
         # Cleanup first to get accurate count
         self.cleanup_expired()
-        return len(self._sessions)
+        with self._lock:
+            return len(self._sessions)
 
 
 class RedisSessionStore(SessionStore):
@@ -302,14 +311,28 @@ class RedisSessionStore(SessionStore):
         return f"{self.key_prefix}{session_id}"
 
     def _serialize(self, session: SessionData) -> bytes:
-        """Serialize session data for Redis storage."""
-        return pickle.dumps(session)
+        """Serialize session metadata for Redis storage (JSON-safe, no pickle)."""
+        data = {
+            "created_at": session.created_at.isoformat(),
+            "last_activity": session.last_activity.isoformat(),
+            "expiry_hours": session.expiry_hours,
+            "metadata": session.metadata,
+        }
+        return json.dumps(data).encode("utf-8")
 
     def _deserialize(self, data: bytes) -> Optional[SessionData]:
-        """Deserialize session data from Redis."""
+        """Deserialize session data from Redis (JSON-safe, no pickle)."""
         try:
-            return pickle.loads(data)
-        except (pickle.PickleError, EOFError) as e:
+            parsed = json.loads(data.decode("utf-8"))
+            session = SessionData(
+                payload=None,  # Payload must be reconstructed by caller
+                expiry_hours=parsed.get("expiry_hours", self.default_ttl_hours),
+                metadata=parsed.get("metadata", {}),
+            )
+            session.created_at = datetime.fromisoformat(parsed["created_at"])
+            session.last_activity = datetime.fromisoformat(parsed["last_activity"])
+            return session
+        except (json.JSONDecodeError, KeyError, ValueError) as e:
             logger.warning(f"Failed to deserialize session: {e}")
             return None
 

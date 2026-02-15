@@ -46,9 +46,25 @@ def validate_eth_address(address: str) -> bool:
 
 router = APIRouter(prefix="/api/streaming", tags=["streaming-payments"])
 
-# Initialize managers
-sf_manager = SuperfluidManager()
-access_controller = StreamAccessController(sf_manager)
+# Lazy-initialized managers — avoids blocking module import if config is missing
+_sf_manager: Optional[SuperfluidManager] = None
+_access_controller: Optional[StreamAccessController] = None
+
+
+def _get_sf_manager() -> SuperfluidManager:
+    """Get or create the SuperfluidManager (lazy init)."""
+    global _sf_manager
+    if _sf_manager is None:
+        _sf_manager = SuperfluidManager()
+    return _sf_manager
+
+
+def _get_access_controller() -> StreamAccessController:
+    """Get or create the StreamAccessController (lazy init)."""
+    global _access_controller
+    if _access_controller is None:
+        _access_controller = StreamAccessController(_get_sf_manager())
+    return _access_controller
 
 
 # Request/Response models
@@ -166,7 +182,7 @@ async def create_streaming_license(
         Created license details
     """
     try:
-        license = sf_manager.create_streaming_license(
+        license = _get_sf_manager().create_streaming_license(
             repo_id=request.repo_id,
             buyer_address=request.buyer_address,
             seller_address=request.seller_address,
@@ -209,10 +225,10 @@ async def activate_stream(
         Activation result
     """
     try:
-        result = await sf_manager.activate_stream(license_id)
+        result = await _get_sf_manager().activate_stream(license_id)
 
         # Grant access
-        await access_controller.grant_access(license_id, AccessLevel.FULL)
+        await _get_access_controller().grant_access(license_id, AccessLevel.FULL)
 
         return result
 
@@ -239,9 +255,9 @@ async def stop_stream(
         Stop result with grace period info
     """
     try:
-        result = await sf_manager.stop_stream(license_id)
+        result = await _get_sf_manager().stop_stream(license_id)
 
-        license = sf_manager.get_license(license_id)
+        license = _get_sf_manager().get_license(license_id)
         if license:
             result["grace_period_hours"] = license.grace_period_seconds / 3600
             result["grace_ends_at"] = (
@@ -276,7 +292,7 @@ async def get_stream_status(
         Current status and payment details
     """
     try:
-        result = await sf_manager.check_stream_status(license_id)
+        result = await _get_sf_manager().check_stream_status(license_id)
         return StreamStatusResponse(**result)
 
     except ValueError as e:
@@ -299,7 +315,7 @@ async def check_access(
     Returns:
         Access status
     """
-    result = await access_controller.check_access(license_id)
+    result = await _get_access_controller().check_access(license_id)
     return AccessCheckResponse(**result)
 
 
@@ -319,7 +335,7 @@ async def check_access_by_buyer(
     Returns:
         Access status
     """
-    result = await access_controller.check_access_by_buyer(repo_id, buyer)
+    result = await _get_access_controller().check_access_by_buyer(repo_id, buyer)
     return AccessCheckResponse(**result)
 
 
@@ -337,7 +353,7 @@ async def get_buyer_licenses(
     Returns:
         List of licenses
     """
-    licenses = sf_manager.get_licenses_for_buyer(buyer_address)
+    licenses = _get_sf_manager().get_licenses_for_buyer(buyer_address)
     return {
         "buyer": buyer_address,
         "licenses": [license.to_dict() for license in licenses],
@@ -359,7 +375,7 @@ async def get_repo_licenses(
     Returns:
         List of licenses
     """
-    licenses = sf_manager.get_licenses_for_repo(repo_id)
+    licenses = _get_sf_manager().get_licenses_for_repo(repo_id)
     return {
         "repo_id": repo_id,
         "licenses": [license.to_dict() for license in licenses],
@@ -377,7 +393,7 @@ async def get_active_licenses(
     Returns:
         List of active licenses
     """
-    licenses = sf_manager.get_active_licenses()
+    licenses = _get_sf_manager().get_active_licenses()
     return {
         "licenses": [license.to_dict() for license in licenses],
         "total": len(licenses),
@@ -394,10 +410,10 @@ async def revoke_expired_licenses(
     Returns:
         List of revoked license IDs
     """
-    revoked = await sf_manager.revoke_expired_licenses()
+    revoked = await _get_sf_manager().revoke_expired_licenses()
 
     for license_id in revoked:
-        await access_controller.revoke_access(license_id)
+        await _get_access_controller().revoke_access(license_id)
 
     return {
         "revoked": revoked,
@@ -419,10 +435,10 @@ async def generate_stream_proposal(
     Returns:
         Formatted proposal text and details
     """
-    flow_rate = sf_manager.calculate_flow_rate(request.monthly_price)
-    per_second = request.monthly_price / sf_manager.SECONDS_PER_MONTH
+    flow_rate = _get_sf_manager().calculate_flow_rate(request.monthly_price)
+    per_second = request.monthly_price / _get_sf_manager().SECONDS_PER_MONTH
 
-    proposal_text = sf_manager.generate_stream_proposal(
+    proposal_text = _get_sf_manager().generate_stream_proposal(
         repo_name=request.repo_name,
         monthly_price=request.monthly_price,
         token=request.token,
@@ -434,7 +450,7 @@ async def generate_stream_proposal(
         flow_rate=flow_rate,
         per_second_rate=per_second,
         token=request.token,
-        network=sf_manager.network.value,
+        network=_get_sf_manager().network.value,
     )
 
 
@@ -454,8 +470,8 @@ async def calculate_flow_rate(
     Returns:
         Flow rate calculation
     """
-    flow_rate = sf_manager.calculate_flow_rate(monthly_usd)
-    per_second = monthly_usd / sf_manager.SECONDS_PER_MONTH
+    flow_rate = _get_sf_manager().calculate_flow_rate(monthly_usd)
+    per_second = monthly_usd / _get_sf_manager().SECONDS_PER_MONTH
 
     return FlowRateCalculation(
         monthly_usd=monthly_usd,
@@ -475,11 +491,11 @@ async def get_supported_tokens(
     Returns:
         List of token names and addresses
     """
-    tokens = sf_manager.get_supported_tokens()
+    tokens = _get_sf_manager().get_supported_tokens()
     return {
-        "network": sf_manager.network.value,
+        "network": _get_sf_manager().network.value,
         "tokens": tokens,
-        "addresses": {token: sf_manager.get_token_address(token) for token in tokens},
+        "addresses": {token: _get_sf_manager().get_token_address(token) for token in tokens},
     }
 
 
@@ -493,7 +509,7 @@ async def get_streaming_stats(
     Returns:
         Overall streaming stats
     """
-    stats = sf_manager.get_stats()
+    stats = _get_sf_manager().get_stats()
     return StreamStatsResponse(**stats)
 
 
@@ -511,5 +527,5 @@ async def get_repo_streaming_summary(
     Returns:
         Comprehensive streaming summary
     """
-    summary = await access_controller.get_access_summary(repo_id)
+    summary = await _get_access_controller().get_access_summary(repo_id)
     return summary

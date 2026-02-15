@@ -305,11 +305,15 @@ class MultiPartyOrchestrator:
 
         # Create voting system
         quorum_config = QuorumConfig(
-            threshold_percentage=quorum / 100,  # Convert to percentage
+            threshold_percentage=quorum / 100,  # Convert basis points to percentage
             require_majority=True,
         )
-        self._voting_systems[dispute_id] = VotingSystem(quorum_config)
+        voting_system = VotingSystem(quorum_config)
 
+        # Register the initiator as a voter so VotingSystem total weight stays in sync
+        voting_system.register_voter(initiator_hash, initiator_weight)
+
+        self._voting_systems[dispute_id] = voting_system
         self._disputes[dispute_id] = dispute
         return dispute
 
@@ -364,6 +368,10 @@ class MultiPartyOrchestrator:
         # Update dispute totals
         dispute.total_stake += stake_amount
         dispute.total_voting_weight += weight
+
+        # Register voter in VotingSystem to keep total weight in sync
+        voting_system = self._voting_systems[dispute_id]
+        voting_system.register_voter(party_hash, weight)
 
         # Check if all parties have staked
         if dispute.all_parties_staked:
@@ -722,20 +730,16 @@ class MultiPartyOrchestrator:
         return base_weight + bonus
 
     def _check_quorum(self, dispute: MultiPartyDispute, proposal_id: str) -> None:
-        """Check if a proposal has reached quorum."""
+        """Check if a proposal has reached quorum using VotingSystem."""
         voting_system = self._voting_systems[dispute.id]
-        result = voting_system.get_proposal_result(proposal_id)
+        result = voting_system.get_proposal_result(
+            proposal_id, total_weight=dispute.total_voting_weight
+        )
 
         if not result:
             return
 
-        # Calculate endorsement percentage
-        if dispute.total_voting_weight > 0:
-            endorse_percentage = (
-                result.endorse_weight / dispute.total_voting_weight
-            ) * self.PERCENTAGE_BASE
-
-            if endorse_percentage >= dispute.quorum_threshold:
-                proposal = dispute.proposals[proposal_id]
-                proposal.status = ProposalStatus.ENDORSED
-                dispute.winning_proposal_id = proposal_id
+        if result.quorum_reached and result.approved:
+            proposal = dispute.proposals[proposal_id]
+            proposal.status = ProposalStatus.ENDORSED
+            dispute.winning_proposal_id = proposal_id

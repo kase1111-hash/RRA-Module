@@ -15,7 +15,7 @@ import os
 
 # Set up authentication for tests and disable rate limiting
 os.environ["RRA_DEV_MODE"] = "true"
-os.environ["RRA_API_KEY"] = "test-key"
+os.environ["RRA_API_KEY"] = "test-api-key-for-testing"
 os.environ["RRA_RATE_LIMIT_ENABLED"] = "false"
 
 from rra.api.server import create_app
@@ -32,7 +32,7 @@ from rra.api.analytics import (
 )
 
 
-client = TestClient(app, headers={"X-API-Key": "test-key"})
+client = TestClient(app, headers={"X-API-Key": "test-api-key-for-testing"})
 
 
 class TestAnalyticsStore:
