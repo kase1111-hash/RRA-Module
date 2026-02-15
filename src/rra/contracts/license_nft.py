@@ -17,6 +17,7 @@ from rra.contracts.gas_estimator import (
     GasEstimate,
 )
 from rra.exceptions import ContractError, ContractDeploymentError, ErrorCode
+from rra.nft.metadata import NFTMetadataBuilder, LicenseMetadataInput
 
 
 class LicenseNFTContract:
@@ -235,6 +236,7 @@ class LicenseNFTContract:
         payment_wei: int,
         buyer_private_key: str,
         gas_limit: Optional[int] = None,
+        metadata_builder: Optional[NFTMetadataBuilder] = None,
     ) -> str:
         """
         Issue a new license NFT.
@@ -247,10 +249,13 @@ class LicenseNFTContract:
             max_seats: Maximum seats (0 for unlimited)
             allow_forks: Whether forking is allowed
             royalty_basis_points: Royalty percentage in basis points (0-10000)
-            token_uri: Token metadata URI
+            token_uri: Token metadata URI. If empty and metadata_builder is
+                provided, metadata will be generated and uploaded automatically.
             payment_wei: Payment amount in wei
             buyer_private_key: Private key for signing transaction
             gas_limit: Gas limit for transaction (None = dynamic estimation)
+            metadata_builder: Optional NFTMetadataBuilder for automatic
+                metadata generation when token_uri is not provided.
 
         Returns:
             Transaction hash
@@ -263,6 +268,24 @@ class LicenseNFTContract:
             )
 
         licensee_address = Web3.to_checksum_address(licensee_address)
+
+        # Auto-generate metadata if token_uri is empty and builder is provided
+        if not token_uri and metadata_builder:
+            # Extract repo name from URL (last path segment)
+            repo_name = repo_url.rstrip("/").rsplit("/", 1)[-1] or repo_url
+
+            license_input = LicenseMetadataInput(
+                repo_name=repo_name,
+                repo_url=repo_url,
+                license_type=license_type,
+                licensee_address=licensee_address,
+                price_wei=payment_wei,
+                max_seats=max_seats,
+                allow_forks=allow_forks,
+                royalty_basis_points=royalty_basis_points,
+                duration_seconds=duration,
+            )
+            token_uri = metadata_builder.build(license_input)
 
         # Use dynamic gas estimation if no explicit limit provided (M-003 fix)
         if gas_limit is None:

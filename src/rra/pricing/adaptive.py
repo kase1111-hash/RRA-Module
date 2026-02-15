@@ -13,7 +13,7 @@ Implements dynamic pricing based on:
 
 import json
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
 from enum import Enum
@@ -39,7 +39,7 @@ class PriceSignal:
     signal_type: str
     value: float
     weight: float = 1.0
-    timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -207,7 +207,7 @@ class AdaptivePricingEngine:
         self._price_history.append(
             {
                 "price": sale_price,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "base_price": self.base_price,
             }
         )
@@ -220,7 +220,7 @@ class AdaptivePricingEngine:
         Returns:
             Aggregated pricing metrics
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         day_ago = now - timedelta(days=1)
         week_ago = now - timedelta(days=7)
 
@@ -321,7 +321,7 @@ class AdaptivePricingEngine:
             return 1.0
 
         last_sale = datetime.fromisoformat(metrics.last_sale_at)
-        days_since = (datetime.utcnow() - last_sale).days
+        days_since = (datetime.now(timezone.utc) - last_sale).days
 
         if days_since > 90:
             return 0.85  # 15% decrease if no sales in 90 days
@@ -339,7 +339,7 @@ class AdaptivePricingEngine:
         Returns:
             Adjustment factor
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         # Q4 typically higher demand (budget season)
         if now.month in [10, 11, 12]:
@@ -369,7 +369,7 @@ class AdaptivePricingEngine:
             metrics.competitor_avg_price = competitor_price
 
         factors = []
-        adjustments = []
+        adjustments = []  # list of (factor, weight) tuples
 
         # Apply strategy-specific logic
         if self.strategy == PricingStrategy.FIXED:
@@ -386,7 +386,7 @@ class AdaptivePricingEngine:
         demand_factor = self._calculate_demand_factor(metrics)
         if demand_factor != 1.0:
             factors.append(f"demand_adjustment: {demand_factor:.2f}x")
-            adjustments.append(demand_factor * self.DEFAULT_WEIGHTS["demand"])
+            adjustments.append((demand_factor, self.DEFAULT_WEIGHTS["demand"]))
 
         # Conversion factor
         if self.strategy in [
@@ -396,37 +396,34 @@ class AdaptivePricingEngine:
             conv_factor = self._calculate_conversion_factor(metrics)
             if conv_factor != 1.0:
                 factors.append(f"conversion_adjustment: {conv_factor:.2f}x")
-                adjustments.append(conv_factor * self.DEFAULT_WEIGHTS["conversion"])
+                adjustments.append((conv_factor, self.DEFAULT_WEIGHTS["conversion"]))
 
         # Competition factor
         if self.strategy == PricingStrategy.COMPETITIVE and competitor_price:
             comp_ratio = competitor_price / self.base_price
             if comp_ratio < 0.8:
                 factors.append("competitor_undercutting")
-                adjustments.append(0.85)
+                adjustments.append((0.85, self.DEFAULT_WEIGHTS["competition"]))
             elif comp_ratio > 1.2:
                 factors.append("premium_positioning_available")
-                adjustments.append(1.1)
+                adjustments.append((1.1, self.DEFAULT_WEIGHTS["competition"]))
 
         # Recency factor
         recency_factor = self._calculate_recency_factor(metrics)
         if recency_factor != 1.0:
             factors.append(f"recency_adjustment: {recency_factor:.2f}x")
-            adjustments.append(recency_factor * self.DEFAULT_WEIGHTS["recency"])
+            adjustments.append((recency_factor, self.DEFAULT_WEIGHTS["recency"]))
 
         # Seasonality
         season_factor = self._calculate_seasonality_factor()
         if season_factor != 1.0:
             factors.append(f"seasonal_adjustment: {season_factor:.2f}x")
-            adjustments.append(season_factor * self.DEFAULT_WEIGHTS["seasonality"])
+            adjustments.append((season_factor, self.DEFAULT_WEIGHTS["seasonality"]))
 
-        # Calculate final adjustment
+        # Calculate final adjustment as weighted average of factors
         if adjustments:
-            # Weighted geometric mean of adjustments
-            final_adjustment = 1.0
-            for adj in adjustments:
-                final_adjustment *= adj
-            final_adjustment = final_adjustment ** (1 / len(adjustments))
+            total_weight = sum(w for _, w in adjustments)
+            final_adjustment = sum(f * w for f, w in adjustments) / total_weight
         else:
             final_adjustment = 1.0
 
@@ -470,7 +467,7 @@ class AdaptivePricingEngine:
         Returns:
             List of historical prices
         """
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         return [p for p in self._price_history if datetime.fromisoformat(p["timestamp"]) >= cutoff]
 
     def simulate_price(

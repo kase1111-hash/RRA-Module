@@ -328,13 +328,16 @@ class VotingSystem:
         if not delegation:
             raise ValueError("No valid delegation found")
 
+        # Apply voting strategy to delegated weight (same as cast_vote does)
+        effective_weight = self._apply_strategy(delegation.weight)
+
         # Cast vote with delegated weight
         vote = Vote(
             id=secrets.token_urlsafe(8),
             proposal_id=proposal_id,
             voter_id=delegator_id,
             choice=choice,
-            weight=delegation.weight,
+            weight=effective_weight,
             timestamp=datetime.now(timezone.utc),
             delegation_from=delegate_id,
         )
@@ -345,13 +348,13 @@ class VotingSystem:
         # Update proposal tallies
         proposal = self._proposals[proposal_id]
         if choice == VoteChoice.ENDORSE:
-            proposal.endorse_weight += delegation.weight
+            proposal.endorse_weight += effective_weight
         elif choice == VoteChoice.REJECT:
-            proposal.reject_weight += delegation.weight
+            proposal.reject_weight += effective_weight
         elif choice == VoteChoice.ABSTAIN:
-            proposal.abstain_weight += delegation.weight
+            proposal.abstain_weight += effective_weight
         elif choice == VoteChoice.AMEND:
-            proposal.amend_weight += delegation.weight
+            proposal.amend_weight += effective_weight
 
         proposal.voter_count += 1
 
@@ -384,7 +387,7 @@ class VotingSystem:
             id=delegation_id,
             delegator_id=delegator_id,
             delegate_id=delegate_id,
-            weight=self._apply_strategy(weight),
+            weight=weight,  # Store raw weight; strategy applied at vote time
             proposal_ids=proposal_ids,
             expires_at=expires_at,
         )
@@ -606,7 +609,38 @@ class ConvictionVoting(VotingSystem):
 
         effective_weight = weight * multiplier
 
-        vote = self.cast_vote(proposal_id, voter_id, effective_weight, choice)
+        # Record the vote directly — cast_vote would re-apply _apply_strategy
+        # on the already-multiplied weight, so we bypass it here.
+        proposal = self._proposals.get(proposal_id)
+        if not proposal:
+            raise ValueError(f"Proposal {proposal_id} not found")
+        if proposal.status != ProposalStatus.ACTIVE:
+            raise ValueError("Proposal is not active")
+        if voter_id in self._votes.get(proposal_id, {}):
+            raise ValueError("Voter has already voted on this proposal")
+
+        vote = Vote(
+            id=secrets.token_urlsafe(8),
+            proposal_id=proposal_id,
+            voter_id=voter_id,
+            choice=choice,
+            weight=effective_weight,
+            timestamp=datetime.now(timezone.utc),
+        )
+
+        if proposal_id not in self._votes:
+            self._votes[proposal_id] = {}
+        self._votes[proposal_id][voter_id] = vote
+
+        if choice == VoteChoice.ENDORSE:
+            proposal.endorse_weight += effective_weight
+        elif choice == VoteChoice.REJECT:
+            proposal.reject_weight += effective_weight
+        elif choice == VoteChoice.ABSTAIN:
+            proposal.abstain_weight += effective_weight
+        elif choice == VoteChoice.AMEND:
+            proposal.amend_weight += effective_weight
+        proposal.voter_count += 1
 
         # Track lock time
         if proposal_id not in self._vote_lock_times:

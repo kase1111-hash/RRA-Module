@@ -205,10 +205,10 @@ class MockWeb3:
 
     @staticmethod
     def to_checksum_address(address: str) -> str:
-        """Convert address to checksum format."""
-        # Simple mock - just return the address with proper formatting
-        addr = address.lower().replace("0x", "")
-        return "0x" + addr
+        """Convert address to EIP-55 checksum format using real Web3."""
+        from web3 import Web3 as _RealWeb3
+
+        return _RealWeb3.to_checksum_address(address)
 
     @staticmethod
     def to_wei(amount: float, unit: str = "ether") -> int:
@@ -257,7 +257,8 @@ def pytest_configure(config):
     # This allows any non-empty API key to pass authentication
     os.environ["RRA_DEV_MODE"] = "true"
 
-    # Set a default API key for tests
+    # Set valid API keys for tests (used by both dev-mode and production auth tests)
+    os.environ["RRA_API_KEYS"] = "test-api-key-for-testing,secondary-test-key"
     os.environ["RRA_API_KEY"] = "test-api-key-for-testing"
 
 
@@ -265,6 +266,22 @@ def pytest_configure(config):
 def api_headers():
     """Provide standard API headers for authenticated requests."""
     return {"X-API-Key": os.environ.get("RRA_API_KEY", "test-api-key-for-testing")}
+
+
+@pytest.fixture
+def production_auth_env(monkeypatch):
+    """
+    Fixture that disables dev mode to test production auth behavior.
+
+    Use this in tests that need to verify real API key validation:
+
+        def test_invalid_key_rejected(production_auth_env, ...):
+            # RRA_DEV_MODE is unset; only valid keys in RRA_API_KEYS are accepted
+            ...
+    """
+    monkeypatch.delenv("RRA_DEV_MODE", raising=False)
+    monkeypatch.setenv("RRA_API_KEYS", "valid-production-key-1,valid-production-key-2")
+    monkeypatch.delenv("RRA_API_KEY", raising=False)
 
 
 @pytest.fixture

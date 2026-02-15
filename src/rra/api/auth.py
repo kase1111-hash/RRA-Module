@@ -15,7 +15,7 @@ import os
 import hmac
 import secrets
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
 
 from fastapi import HTTPException, Security, Depends
@@ -36,17 +36,17 @@ class SessionData:
 
     session_id: str
     user_id: Optional[str] = None
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    last_activity: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    last_activity: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: dict = field(default_factory=dict)
 
     def is_expired(self) -> bool:
         """Check if session has expired."""
-        return datetime.utcnow() - self.last_activity > timedelta(hours=SESSION_EXPIRY_HOURS)
+        return datetime.now(timezone.utc) - self.last_activity > timedelta(hours=SESSION_EXPIRY_HOURS)
 
     def touch(self) -> None:
         """Update last activity timestamp."""
-        self.last_activity = datetime.utcnow()
+        self.last_activity = datetime.now(timezone.utc)
 
 
 def verify_api_key(api_key: str = Security(API_KEY_HEADER)) -> bool:
@@ -79,7 +79,12 @@ def verify_api_key(api_key: str = Security(API_KEY_HEADER)) -> bool:
 
     if not api_keys_env:
         # Development mode - accept any non-empty key
-        if os.environ.get("RRA_DEV_MODE", "").lower() == "true":
+        # Supports both RRA_DEV_MODE=true and RRA_ENV=development bypass
+        is_dev = (
+            os.environ.get("RRA_DEV_MODE", "").lower() == "true"
+            or os.environ.get("RRA_ENV") == "development"
+        )
+        if is_dev:
             return True
         raise HTTPException(
             status_code=500,
