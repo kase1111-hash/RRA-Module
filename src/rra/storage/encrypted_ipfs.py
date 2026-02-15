@@ -392,6 +392,70 @@ class EncryptedIPFSStorage:
             logger.warning(f"Evidence verification failed for {uri}: {e}")
             return False
 
+    def upload_raw(
+        self,
+        data: bytes,
+        filename: str = "file",
+    ) -> StorageResult:
+        """
+        Upload raw bytes to storage without encryption.
+
+        Unlike store_evidence(), this performs no encryption or viewing-key
+        operations. Useful for uploading NFT images and metadata JSON.
+
+        Args:
+            data: Raw bytes to upload
+            filename: Filename hint for the upload
+
+        Returns:
+            StorageResult with URI and content hash
+
+        Raises:
+            StorageUploadError: If upload fails
+        """
+        if not data:
+            raise ValidationError(
+                message="Data is required for upload",
+                field="data",
+                constraint="non-empty bytes",
+            )
+
+        content_hash = keccak(data)
+
+        try:
+            if self.config.provider == StorageProvider.MOCK:
+                cid = hashlib.sha256(data).hexdigest()[:46]
+                self._mock_storage[cid] = data
+                return StorageResult(
+                    success=True,
+                    uri=f"mock://{cid}",
+                    content_hash=content_hash,
+                    size_bytes=len(data),
+                    provider=StorageProvider.MOCK,
+                    timestamp=datetime.utcnow(),
+                    metadata={"filename": filename},
+                )
+            elif self.config.provider in (
+                StorageProvider.IPFS_LOCAL,
+                StorageProvider.IPFS_INFURA,
+            ):
+                return self._ipfs_upload(data, content_hash, 0)
+            elif self.config.provider == StorageProvider.IPFS_PINATA:
+                return self._pinata_upload(data, content_hash, 0)
+            elif self.config.provider == StorageProvider.ARWEAVE:
+                return self._arweave_upload(data, content_hash, 0)
+            else:
+                raise ValueError(f"Unsupported provider: {self.config.provider}")
+        except Exception as e:
+            if isinstance(e, (ValidationError, ValueError)):
+                raise
+            raise StorageUploadError(
+                provider=self.config.provider.value,
+                reason=str(e),
+                content_size=len(data),
+                cause=e,
+            )
+
     def _upload(self, data: bytes, dispute_id: int) -> StorageResult:
         """Upload data to storage provider."""
         content_hash = keccak(data)
