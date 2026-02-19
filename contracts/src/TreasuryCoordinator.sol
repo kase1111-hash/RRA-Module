@@ -106,8 +106,8 @@ contract TreasuryCoordinator is Ownable, AccessControl, ReentrancyGuard, Pausabl
         bool hasStaked;
         bool hasVoted;
         VoteChoice vote;
-        uint256 escrowedAmount;      // Funds in escrow
-        address escrowToken;         // Token address (address(0) for ETH)
+        uint256 escrowedEth;         // ETH in escrow
+        mapping(address => uint256) escrowedTokens; // token => amount
     }
 
     struct Proposal {
@@ -154,6 +154,11 @@ contract TreasuryCoordinator is Ownable, AccessControl, ReentrancyGuard, Pausabl
     mapping(uint256 => mapping(bytes32 => TreasuryParticipant)) public disputeParticipants;
     mapping(uint256 => Proposal[]) public disputeProposals;
     mapping(uint256 => mapping(bytes32 => mapping(uint256 => bool))) public hasVotedOnProposal;
+
+    // Per-token escrow tracking (fixes mixed ETH/ERC20 accounting)
+    mapping(uint256 => uint256) public disputeEthEscrow;                          // disputeId => ETH total
+    mapping(uint256 => mapping(address => uint256)) public disputeTokenEscrow;    // disputeId => token => total
+    mapping(uint256 => address[]) public disputeEscrowTokens;                     // disputeId => list of tokens
 
     // Configuration
     uint256 public stakingPeriod = 3 days;
@@ -374,16 +379,14 @@ contract TreasuryCoordinator is Ownable, AccessControl, ReentrancyGuard, Pausabl
 
         // Initialize participants
         for (uint256 i = 0; i < allTreasuries.length; i++) {
-            disputeParticipants[disputeId][allTreasuries[i]] = TreasuryParticipant({
-                treasuryId: allTreasuries[i],
-                stakeAmount: 0,
-                votingWeight: 0,
-                hasStaked: false,
-                hasVoted: false,
-                vote: VoteChoice.Abstain,
-                escrowedAmount: 0,
-                escrowToken: address(0)
-            });
+            TreasuryParticipant storage p = disputeParticipants[disputeId][allTreasuries[i]];
+            p.treasuryId = allTreasuries[i];
+            p.stakeAmount = 0;
+            p.votingWeight = 0;
+            p.hasStaked = false;
+            p.hasVoted = false;
+            p.vote = VoteChoice.Abstain;
+            p.escrowedEth = 0;
         }
 
         treasuries[_creatorTreasury].totalDisputes++;
@@ -451,9 +454,8 @@ contract TreasuryCoordinator is Ownable, AccessControl, ReentrancyGuard, Pausabl
         require(msg.value > 0, "No funds to escrow");
 
         TreasuryParticipant storage participant = disputeParticipants[_disputeId][_treasuryId];
-        participant.escrowedAmount += msg.value;
-        participant.escrowToken = address(0); // ETH
-        dispute.totalEscrow += msg.value;
+        participant.escrowedEth += msg.value;
+        disputeEthEscrow[_disputeId] += msg.value;
 
         emit FundsEscrowed(_disputeId, _treasuryId, address(0), msg.value);
     }
@@ -480,9 +482,12 @@ contract TreasuryCoordinator is Ownable, AccessControl, ReentrancyGuard, Pausabl
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
 
         TreasuryParticipant storage participant = disputeParticipants[_disputeId][_treasuryId];
-        participant.escrowedAmount += _amount;
-        participant.escrowToken = _token;
-        dispute.totalEscrow += _amount;
+        participant.escrowedTokens[_token] += _amount;
+        // Track token in dispute's token list if first escrow of this token
+        if (disputeTokenEscrow[_disputeId][_token] == 0) {
+            disputeEscrowTokens[_disputeId].push(_token);
+        }
+        disputeTokenEscrow[_disputeId][_token] += _amount;
 
         emit FundsEscrowed(_disputeId, _treasuryId, _token, _amount);
     }
@@ -626,7 +631,7 @@ contract TreasuryCoordinator is Ownable, AccessControl, ReentrancyGuard, Pausabl
     function requestMediation(
         uint256 _disputeId,
         bytes32 _treasuryId
-    ) external payable {
+    ) external payable nonReentrant {
         Dispute storage dispute = disputes[_disputeId];
         require(
             dispute.status == DisputeStatus.Voting ||
@@ -638,10 +643,17 @@ contract TreasuryCoordinator is Ownable, AccessControl, ReentrancyGuard, Pausabl
 
         dispute.status = DisputeStatus.Mediation;
 
-        // Transfer fee
-        payable(feeRecipient).transfer(msg.value);
+        // Transfer exact fee using call() (safe for contract recipients)
+        (bool success, ) = payable(feeRecipient).call{value: mediationFee}("");
+        require(success, "Fee transfer failed");
 
-        emit MediationRequested(_disputeId, _treasuryId, msg.value);
+        // Refund excess
+        if (msg.value > mediationFee) {
+            (bool refundSuccess, ) = payable(msg.sender).call{value: msg.value - mediationFee}("");
+            require(refundSuccess, "Refund failed");
+        }
+
+        emit MediationRequested(_disputeId, _treasuryId, mediationFee);
     }
 
     /**
@@ -663,7 +675,6 @@ contract TreasuryCoordinator is Ownable, AccessControl, ReentrancyGuard, Pausabl
     function executeResolution(uint256 _disputeId) external nonReentrant {
         Dispute storage dispute = disputes[_disputeId];
         require(dispute.status == DisputeStatus.Resolved, "Not resolved");
-        require(dispute.totalEscrow > 0, "No funds to distribute");
 
         Proposal storage proposal = disputeProposals[_disputeId][dispute.winningProposal];
         require(!proposal.executed, "Already executed");
@@ -672,25 +683,37 @@ contract TreasuryCoordinator is Ownable, AccessControl, ReentrancyGuard, Pausabl
         proposal.executed = true;
         dispute.status = DisputeStatus.Executed;
 
-        // Distribute escrowed funds according to proposal
-        for (uint256 i = 0; i < dispute.involvedTreasuries.length; i++) {
-            bytes32 treasuryId = dispute.involvedTreasuries[i];
-            TreasuryParticipant storage participant = disputeParticipants[_disputeId][treasuryId];
+        uint256 totalEth = disputeEthEscrow[_disputeId];
 
-            if (participant.escrowedAmount > 0) {
-                uint256 payout = (dispute.totalEscrow * proposal.payoutShares[i]) / PERCENTAGE_BASE;
-
-                if (participant.escrowToken == address(0)) {
-                    // ETH distribution
+        // Distribute ETH according to payout shares
+        if (totalEth > 0) {
+            for (uint256 i = 0; i < dispute.involvedTreasuries.length; i++) {
+                uint256 payout = (totalEth * proposal.payoutShares[i]) / PERCENTAGE_BASE;
+                if (payout > 0) {
+                    bytes32 treasuryId = dispute.involvedTreasuries[i];
                     address payoutAddress = treasuries[treasuryId].signers[0];
-                    payable(payoutAddress).transfer(payout);
-                } else {
-                    // Token distribution
-                    address payoutAddress = treasuries[treasuryId].signers[0];
-                    IERC20(participant.escrowToken).safeTransfer(payoutAddress, payout);
+                    (bool success, ) = payable(payoutAddress).call{value: payout}("");
+                    require(success, "ETH payout failed");
+                    emit FundsDistributed(_disputeId, treasuryId, address(0), payout);
                 }
+            }
+        }
 
-                emit FundsDistributed(_disputeId, treasuryId, participant.escrowToken, payout);
+        // Distribute each ERC20 token separately
+        address[] storage tokens = disputeEscrowTokens[_disputeId];
+        for (uint256 t = 0; t < tokens.length; t++) {
+            address token = tokens[t];
+            uint256 totalToken = disputeTokenEscrow[_disputeId][token];
+            if (totalToken > 0) {
+                for (uint256 i = 0; i < dispute.involvedTreasuries.length; i++) {
+                    uint256 payout = (totalToken * proposal.payoutShares[i]) / PERCENTAGE_BASE;
+                    if (payout > 0) {
+                        bytes32 treasuryId = dispute.involvedTreasuries[i];
+                        address payoutAddress = treasuries[treasuryId].signers[0];
+                        IERC20(token).safeTransfer(payoutAddress, payout);
+                        emit FundsDistributed(_disputeId, treasuryId, token, payout);
+                    }
+                }
             }
         }
 
@@ -739,9 +762,24 @@ contract TreasuryCoordinator is Ownable, AccessControl, ReentrancyGuard, Pausabl
                 address payoutAddress = treasuries[treasuryId].signers[0];
                 uint256 stakeToReturn = participant.stakeAmount;
                 participant.stakeAmount = 0;
-                payable(payoutAddress).transfer(stakeToReturn);
+                (bool success, ) = payable(payoutAddress).call{value: stakeToReturn}("");
+                require(success, "Stake return failed");
             }
         }
+    }
+
+    /**
+     * @notice Return stakes for expired/cancelled disputes
+     * @dev Allows participants to recover their stakes when no resolution was reached
+     */
+    function returnStakesForExpired(uint256 _disputeId) external nonReentrant {
+        Dispute storage dispute = disputes[_disputeId];
+        require(
+            dispute.status == DisputeStatus.Expired ||
+            dispute.status == DisputeStatus.Cancelled,
+            "Not expired or cancelled"
+        );
+        _returnStakes(_disputeId);
     }
 
     // =========================================================================

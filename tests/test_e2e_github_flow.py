@@ -280,12 +280,13 @@ class TestEndToEndGitHubFlow:
         assert response.status_code == 200
         print("  ✓ Health check passed")
 
-        # Test root endpoint
+        # Test root endpoint (unauthenticated returns minimal info)
         response = client.get("/")
         assert response.status_code == 200
         data = response.json()
-        assert "endpoints" in data
-        print(f"  ✓ Root endpoint returns {len(data['endpoints'])} endpoint categories")
+        assert data["status"] == "ok"
+        assert "version" in data
+        print(f"  ✓ Root endpoint returns status={data['status']}, version={data['version']}")
 
         # Test protected endpoint without auth (should fail)
         response = client.post("/api/ingest", json={"repo_url": mock_github_repo["url"]})

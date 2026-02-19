@@ -580,8 +580,17 @@ class EncryptedIPFSStorage:
                 error=str(e),
             )
 
+    @staticmethod
+    def _validate_cid(cid: str) -> None:
+        """Validate IPFS CID format to prevent injection attacks."""
+        import re
+        CID_PATTERN = re.compile(r'^(Qm[1-9A-HJ-NP-Za-km-z]{44,}|bafy[a-z2-7]{50,})$')
+        if not CID_PATTERN.match(cid):
+            raise ValueError(f"Invalid IPFS CID format: {cid}")
+
     def _ipfs_download(self, cid: str) -> bytes:
         """Download from IPFS."""
+        self._validate_cid(cid)
         # Try configured API first
         if self.config.api_url:
             url = f"{self.config.api_url}/cat?arg={cid}"
@@ -600,6 +609,7 @@ class EncryptedIPFSStorage:
 
     def _ipfs_pin(self, cid: str) -> bool:
         """Pin content on IPFS."""
+        self._validate_cid(cid)
         url = f"{self.config.api_url}/pin/add?arg={cid}"
         try:
             request = urllib.request.Request(url, method="POST")

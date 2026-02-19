@@ -18,8 +18,10 @@ upstream contracts for on-chain entropy queries.
 from typing import List, Optional, Dict, Any, cast
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel, Field
+
+from rra.api.auth import verify_api_key
 
 from rra.analytics.entropy_scorer import (
     EntropyScorer,
@@ -187,7 +189,7 @@ async def health_check() -> HealthResponse:
 
 
 @router.post("/score/clause", response_model=ClauseScoreResponse)
-async def score_clause(request: ClauseScoreRequest) -> ClauseScoreResponse:
+async def score_clause(request: ClauseScoreRequest, _: bool = Depends(verify_api_key)) -> ClauseScoreResponse:
     """
     Score a single clause for entropy/instability.
 
@@ -220,7 +222,7 @@ async def score_clause(request: ClauseScoreRequest) -> ClauseScoreResponse:
 
 
 @router.post("/score/contract", response_model=ContractScoreResponse)
-async def score_contract(request: ContractScoreRequest) -> ContractScoreResponse:
+async def score_contract(request: ContractScoreRequest, _: bool = Depends(verify_api_key)) -> ContractScoreResponse:
     """
     Score all clauses in a contract.
 
@@ -246,7 +248,7 @@ async def score_contract(request: ContractScoreRequest) -> ContractScoreResponse
 
 
 @router.post("/predict", response_model=DisputePredictionResponse)
-async def predict_disputes(request: DisputePredictionRequest) -> DisputePredictionResponse:
+async def predict_disputes(request: DisputePredictionRequest, _: bool = Depends(verify_api_key)) -> DisputePredictionResponse:
     """
     Predict dispute probability for a contract.
 
@@ -280,7 +282,7 @@ async def predict_disputes(request: DisputePredictionRequest) -> DisputePredicti
 
 
 @router.post("/analyze/pattern", response_model=PatternAnalysisResponse)
-async def analyze_pattern(request: PatternAnalysisRequest) -> PatternAnalysisResponse:
+async def analyze_pattern(request: PatternAnalysisRequest, _: bool = Depends(verify_api_key)) -> PatternAnalysisResponse:
     """
     Analyze clause patterns and identify dispute triggers.
 
@@ -344,7 +346,7 @@ async def get_score_by_hash(clause_hash: str) -> Dict[str, Any]:
 
 
 @router.post("/record/dispute")
-async def record_dispute(request: DisputeRecordRequest) -> Dict[str, str]:
+async def record_dispute(request: DisputeRecordRequest, _: bool = Depends(verify_api_key)) -> Dict[str, str]:
     """
     Record a dispute for model training.
 
@@ -427,7 +429,7 @@ async def get_statistics() -> Dict[str, Any]:
 
 
 @router.post("/batch/score")
-async def batch_score_clauses(clauses: List[str] = Query(..., max_length=50)) -> Dict[str, Any]:
+async def batch_score_clauses(clauses: List[str] = Query(..., max_length=50), _: bool = Depends(verify_api_key)) -> Dict[str, Any]:
     """
     Score multiple clauses in a single request.
 

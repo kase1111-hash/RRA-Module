@@ -26,6 +26,7 @@ Example Flow:
     4. Timeout expires -> auto-cancel
 """
 
+import collections
 import os
 import re
 import threading
@@ -301,7 +302,7 @@ class TransactionConfirmation:
 
         self.pending_transactions: Dict[str, PendingTransaction] = {}
         self.completed_transactions: Dict[str, PendingTransaction] = {}
-        self.audit_log: List[Dict[str, Any]] = []
+        self.audit_log: collections.deque = collections.deque(maxlen=10000)
 
         self._lock = threading.Lock()
         self._cleanup_thread: Optional[threading.Thread] = None
@@ -383,7 +384,7 @@ class TransactionConfirmation:
         tx_id = keccak(
             f"{buyer_id}:{seller_id}:{repo_url}:{datetime.utcnow().isoformat()}".encode()
             + os.urandom(8)
-        ).hex()[:16]
+        ).hex()[:32]  # 128-bit collision resistance
 
         # Calculate expiry
         timeout = timeout_seconds or self.default_timeout

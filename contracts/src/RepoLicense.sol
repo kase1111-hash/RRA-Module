@@ -193,15 +193,15 @@ contract RepoLicense is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         // 4. Update user licenses mapping
         userLicenses[_licensee].push(tokenId);
 
-        // INTERACTIONS - external calls last
+        // INTERACTIONS - ETH transfer before _safeMint to prevent reentrancy via onERC721Received
 
-        // 5. Mint token (may trigger onERC721Received callback)
-        _safeMint(_licensee, tokenId);
-        _setTokenURI(tokenId, _tokenURI);
-
-        // 6. Transfer payment to developer (external call)
+        // 5. Transfer payment to developer (external call)
         (bool success, ) = developer.call{value: msg.value}("");
         require(success, "Payment transfer failed");
+
+        // 6. Mint token (may trigger onERC721Received callback)
+        _safeMint(_licensee, tokenId);
+        _setTokenURI(tokenId, _tokenURI);
 
         emit LicenseIssued(tokenId, _licensee, _repoUrl, _licenseType);
         emit PaymentReceived(msg.sender, msg.value, tokenId);
@@ -327,6 +327,7 @@ contract RepoLicense is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
     ) public {
         Repository storage repo = repositories[_repoUrl];
         require(repo.developer == msg.sender, "Not repository owner");
+        require(_newTargetPrice >= _newFloorPrice, "Target must be >= floor");
 
         repo.targetPrice = _newTargetPrice;
         repo.floorPrice = _newFloorPrice;

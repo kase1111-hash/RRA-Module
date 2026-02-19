@@ -157,8 +157,8 @@ contract ComplianceEscrow is AccessControl, ReentrancyGuard, Pausable {
         bytes32 _keyCommitment,
         uint8 _threshold,
         uint8 _totalShares
-    ) external whenNotPaused returns (uint256) {
-        require(_threshold > 0 && _threshold <= _totalShares, "Invalid threshold");
+    ) external onlyRole(COMPLIANCE_COUNCIL_ROLE) whenNotPaused returns (uint256) {
+        require(_threshold >= 2 && _threshold <= _totalShares, "Invalid threshold: minimum 2");
         require(_totalShares <= 10, "Too many shares");
         require(_keyCommitment != bytes32(0), "Invalid commitment");
 

@@ -12,10 +12,13 @@ Provides automated fork detection and derivative tracking:
 import hmac
 import hashlib
 import json
+import logging
 import os
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 from pydantic import BaseModel, Field
 
@@ -105,7 +108,8 @@ class GitHubWebhookHandler:
             True if signature is valid
         """
         if not self.secret:
-            return True  # No secret configured, skip verification
+            logger.warning("GitHub webhook secret not configured — rejecting request")
+            return False  # SECURITY: Reject by default when no secret configured
 
         if not signature or not signature.startswith("sha256="):
             return False
@@ -325,9 +329,10 @@ Or visit: https://natlangchain.io/register-derivative/{ip_asset_id}
                             "error": f"GitHub API returned {response.status}: {error_text}",
                         }
         except Exception as e:
+            logger.error(f"Failed to create GitHub issue for {repo}: {e}")
             return {
                 "status": "error",
-                "error": str(e),
+                "error": "An internal error occurred",
             }
 
 

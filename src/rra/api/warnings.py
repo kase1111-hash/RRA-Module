@@ -16,8 +16,10 @@ Part of Phase 6.6: Predictive Dispute Warnings
 
 from typing import List, Optional, Dict, Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
+
+from rra.api.auth import verify_api_key
 
 from rra.predictions.dispute_warning import (
     DisputeWarningGenerator,
@@ -174,7 +176,7 @@ async def health_check() -> HealthResponse:
 
 
 @router.post("/generate", response_model=WarningResponse)
-async def generate_warnings(request: WarningRequest) -> WarningResponse:
+async def generate_warnings(request: WarningRequest, _: bool = Depends(verify_api_key)) -> WarningResponse:
     """
     Generate dispute warnings for a contract.
 
@@ -221,7 +223,7 @@ async def generate_warnings(request: WarningRequest) -> WarningResponse:
 
 
 @router.post("/analyze/terms", response_model=TermAnalysisResponse)
-async def analyze_terms(request: TermAnalysisRequest) -> TermAnalysisResponse:
+async def analyze_terms(request: TermAnalysisRequest, _: bool = Depends(verify_api_key)) -> TermAnalysisResponse:
     """
     Analyze terms in contract clauses.
 
@@ -257,7 +259,7 @@ async def analyze_terms(request: TermAnalysisRequest) -> TermAnalysisResponse:
 
 
 @router.post("/analyze/term", response_model=SingleTermResponse)
-async def analyze_single_term(request: SingleTermRequest) -> SingleTermResponse:
+async def analyze_single_term(request: SingleTermRequest, _: bool = Depends(verify_api_key)) -> SingleTermResponse:
     """
     Analyze a single term.
 
@@ -287,7 +289,7 @@ async def analyze_single_term(request: SingleTermRequest) -> SingleTermResponse:
 
 
 @router.post("/high-entropy")
-async def find_high_entropy_terms(request: HighEntropyRequest) -> Dict[str, Any]:
+async def find_high_entropy_terms(request: HighEntropyRequest, _: bool = Depends(verify_api_key)) -> Dict[str, Any]:
     """
     Find high-entropy terms above a threshold.
 
@@ -313,7 +315,7 @@ async def find_high_entropy_terms(request: HighEntropyRequest) -> Dict[str, Any]
 
 
 @router.post("/acknowledge")
-async def acknowledge_warning(request: WarningAcknowledgeRequest) -> Dict[str, Any]:
+async def acknowledge_warning(request: WarningAcknowledgeRequest, _: bool = Depends(verify_api_key)) -> Dict[str, Any]:
     """
     Acknowledge a warning.
 
@@ -339,7 +341,7 @@ async def acknowledge_warning(request: WarningAcknowledgeRequest) -> Dict[str, A
 
 
 @router.post("/resolve")
-async def resolve_warning(request: WarningResolveRequest) -> Dict[str, Any]:
+async def resolve_warning(request: WarningResolveRequest, _: bool = Depends(verify_api_key)) -> Dict[str, Any]:
     """
     Mark a warning as resolved.
 
@@ -469,6 +471,7 @@ class BatchAnalyzeRequest(BaseModel):
 @router.post("/batch/analyze")
 async def batch_analyze_contracts(
     request: BatchAnalyzeRequest,
+    _: bool = Depends(verify_api_key),
 ) -> Dict[str, Any]:
     """
     Analyze multiple contracts in batch.

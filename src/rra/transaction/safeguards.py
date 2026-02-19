@@ -114,7 +114,7 @@ class TransactionSafeguards:
         self.custom_rates = custom_rates or {}
         self.enable_rate_limiting = enable_rate_limiting
         self.enable_live_prices = enable_live_prices
-        self.transaction_timestamps: List[datetime] = []
+        self.transaction_timestamps: Dict[str, List[datetime]] = {}
 
         # Lazy-loaded price oracle
         self._price_oracle = None
@@ -291,6 +291,10 @@ class TransactionSafeguards:
         usd_value = self._to_usd(amount, currency)
         safeguard_level = self._determine_safeguard_level(usd_value)
 
+        # Force at minimum MEDIUM safeguard level when using fallback rates
+        if "fallback" in rate_source and safeguard_level == SafeguardLevel.LOW:
+            safeguard_level = SafeguardLevel.MEDIUM
+
         # Generate display string
         display_string = self._format_display(amount, currency, usd_value)
 
@@ -318,7 +322,7 @@ class TransactionSafeguards:
 
     def check_rate_limit(self, buyer_id: str) -> Tuple[bool, str]:
         """
-        Check if transaction rate limit is exceeded.
+        Check if transaction rate limit is exceeded for a specific buyer.
 
         Args:
             buyer_id: Buyer identifier
@@ -332,11 +336,17 @@ class TransactionSafeguards:
         now = datetime.utcnow()
         hour_ago = now - timedelta(hours=1)
 
-        # Cleanup old timestamps
-        self.transaction_timestamps = [ts for ts in self.transaction_timestamps if ts > hour_ago]
+        # Get or create per-buyer timestamp list
+        if buyer_id not in self.transaction_timestamps:
+            self.transaction_timestamps[buyer_id] = []
 
-        if len(self.transaction_timestamps) >= self.MAX_TRANSACTIONS_PER_HOUR:
-            oldest = min(self.transaction_timestamps)
+        # Cleanup old timestamps for this buyer
+        self.transaction_timestamps[buyer_id] = [
+            ts for ts in self.transaction_timestamps[buyer_id] if ts > hour_ago
+        ]
+
+        if len(self.transaction_timestamps[buyer_id]) >= self.MAX_TRANSACTIONS_PER_HOUR:
+            oldest = min(self.transaction_timestamps[buyer_id])
             wait_time = (oldest + timedelta(hours=1)) - now
             return False, (
                 f"Rate limit exceeded. Maximum {self.MAX_TRANSACTIONS_PER_HOUR} "
@@ -345,9 +355,15 @@ class TransactionSafeguards:
 
         return True, ""
 
-    def record_transaction(self) -> None:
-        """Record a transaction for rate limiting."""
-        self.transaction_timestamps.append(datetime.utcnow())
+    def record_transaction(self, buyer_id: str) -> None:
+        """Record a transaction for rate limiting.
+
+        Args:
+            buyer_id: Buyer identifier
+        """
+        if buyer_id not in self.transaction_timestamps:
+            self.transaction_timestamps[buyer_id] = []
+        self.transaction_timestamps[buyer_id].append(datetime.utcnow())
 
     def format_confirmation_screen(
         self, transaction_data: Dict[str, Any], time_remaining: int
@@ -407,8 +423,8 @@ class TransactionSafeguards:
 
         return "\n".join(lines)
 
-    def _parse_price(self, price_str: str) -> Optional[Tuple[float, str]]:
-        """Parse a price string into (amount, currency)."""
+    def _parse_price(self, price_str: str) -> Optional[Tuple[Decimal, str]]:
+        """Parse a price string into (amount, currency) using Decimal for precision."""
         if not price_str:
             return None
 
@@ -433,27 +449,27 @@ class TransactionSafeguards:
                     currency = groups[0]
 
                 try:
-                    amount = float(amount_str)
+                    amount = Decimal(str(amount_str))
                     return (amount, currency)
-                except ValueError:
+                except Exception:
                     continue
 
         return None
 
-    def _to_usd(self, amount: float, currency: str) -> float:
+    def _to_usd(self, amount, currency: str) -> Decimal:
         """
         Convert amount to USD equivalent using live oracle prices.
 
         Args:
-            amount: Amount in source currency
+            amount: Amount in source currency (Decimal or float)
             currency: Source currency code
 
         Returns:
-            USD equivalent value
+            USD equivalent value as Decimal
         """
         currency = currency.upper()
         rate, source = self.get_currency_rate(currency)
-        return amount * rate
+        return Decimal(str(amount)) * Decimal(str(rate))
 
     def _determine_safeguard_level(self, usd_value: float) -> SafeguardLevel:
         """Determine safeguard level based on USD value."""

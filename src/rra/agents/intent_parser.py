@@ -390,6 +390,16 @@ class IntentParser:
         self.confidence_threshold = confidence_threshold
         self.enable_sentiment = enable_sentiment
         self.nlp_callback = nlp_callback
+        self._locked = False
+
+        # Valid intents that the NLP callback is allowed to return
+        self._valid_nlp_intents: set = {it.value for it in IntentType}
+
+        # Financial intents that require pattern matching agreement
+        self._financial_intents: set = {
+            IntentType.PURCHASE_INTENT.value,
+            IntentType.ACCEPT_OFFER.value,
+        }
 
         # Compile regex patterns
         self._compiled_patterns: Dict[IntentType, List[Pattern[str]]] = {}
@@ -413,6 +423,10 @@ class IntentParser:
         Returns:
             ParsedIntent with all extracted information
         """
+        # Lock patterns on first parse call to prevent runtime injection
+        if not self._locked:
+            self._locked = True
+
         if not message or not message.strip():
             return ParsedIntent(
                 primary_intent=IntentMatch(
@@ -424,17 +438,24 @@ class IntentParser:
 
         normalized = self._normalize_message(message)
 
-        # Try NLP callback first if available
+        # Always run pattern matching (needed for financial intent validation)
+        pattern_intent_matches = self._match_intents(normalized)
+
+        # Try NLP callback if available
         if self.nlp_callback:
             try:
                 nlp_result = self.nlp_callback(message)
                 if nlp_result:
-                    return self._convert_nlp_result(nlp_result, message, normalized)
+                    validated = self._validate_nlp_result(nlp_result, pattern_intent_matches)
+                    if validated is not None:
+                        return self._convert_nlp_result(validated, message, normalized)
+                    else:
+                        logger.warning("NLP callback result failed validation, falling back to pattern matching")
             except Exception as e:
                 logger.warning(f"NLP callback failed: {e}, falling back to pattern matching")
 
         # Pattern-based parsing
-        intent_matches = self._match_intents(normalized)
+        intent_matches = pattern_intent_matches
         entities = self._extract_entities(message)
         sentiment = self._analyze_sentiment(normalized) if self.enable_sentiment else Sentiment.NEUTRAL
 
@@ -571,6 +592,60 @@ class IntentParser:
 
         return Sentiment.NEUTRAL
 
+    def _validate_nlp_result(
+        self,
+        nlp_result: Any,
+        pattern_matches: List[IntentMatch],
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Validate NLP callback result before trusting it.
+
+        Checks:
+        - Result is a dict with "intent" and "confidence" keys
+        - Confidence >= 0.8
+        - Intent is a known valid intent
+        - Financial intents (PURCHASE_INTENT, ACCEPT_OFFER) require pattern matching agreement
+
+        Args:
+            nlp_result: Raw result from NLP callback
+            pattern_matches: Results from pattern matching for cross-validation
+
+        Returns:
+            Validated result dict, or None if validation fails
+        """
+        # Must be a dict with required keys
+        if not isinstance(nlp_result, dict):
+            logger.warning("NLP callback returned non-dict result")
+            return None
+
+        if "intent" not in nlp_result or "confidence" not in nlp_result:
+            logger.warning("NLP callback result missing 'intent' or 'confidence' keys")
+            return None
+
+        # Confidence must be >= 0.8
+        confidence = nlp_result.get("confidence", 0.0)
+        if not isinstance(confidence, (int, float)) or confidence < 0.8:
+            logger.warning(f"NLP callback confidence too low: {confidence}")
+            return None
+
+        # Intent must be a known valid intent
+        intent_str = nlp_result.get("intent", "")
+        if intent_str not in self._valid_nlp_intents:
+            logger.warning(f"NLP callback returned unknown intent: {intent_str}")
+            return None
+
+        # Financial intents require pattern matching agreement
+        if intent_str in self._financial_intents:
+            pattern_intent_types = {m.intent_type.value for m in pattern_matches}
+            if intent_str not in pattern_intent_types:
+                logger.warning(
+                    f"NLP callback returned financial intent '{intent_str}' "
+                    f"but pattern matching did not agree. Falling back to patterns."
+                )
+                return None
+
+        return nlp_result
+
     def _convert_nlp_result(
         self,
         nlp_result: Dict[str, Any],
@@ -623,7 +698,16 @@ class IntentParser:
 
         Args:
             pattern: The pattern to add
+
+        Raises:
+            RuntimeError: If patterns are locked after first parse() call
         """
+        if self._locked:
+            raise RuntimeError(
+                "Cannot add patterns after parsing has started. "
+                "Add all patterns before the first call to parse()."
+            )
+
         self.patterns.append(pattern)
 
         # Compile regex patterns

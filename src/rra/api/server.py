@@ -332,7 +332,8 @@ def create_app() -> FastAPI:
 
             # Allow frame-ancestors for widget embed paths
             if request.url.path.startswith("/api/widget"):
-                frame_ancestors = "'self' *"
+                widget_origins = os.environ.get("RRA_WIDGET_ORIGINS", "'self'")
+                frame_ancestors = widget_origins
             else:
                 frame_ancestors = "'none'"
 
@@ -366,8 +367,19 @@ def create_app() -> FastAPI:
             logger.warning("Rate limiter module not available, running without rate limiting")
 
     @app.get("/")
-    def root():
-        """Root endpoint."""
+    def root(request: Request):
+        """Root endpoint. Full endpoint listing requires authentication."""
+        # Check if authenticated - return minimal info if not
+        try:
+            api_key = request.headers.get("X-API-Key") or request.headers.get("Authorization")
+            if not api_key:
+                return {"status": "ok", "version": "1.0.1-beta"}
+            # Verify the key
+            verify_api_key(request)
+        except Exception:
+            return {"status": "ok", "version": "1.0.1-beta"}
+
+        # Authenticated - return full endpoint listing
         return {
             "name": "RRA Module API",
             "version": "1.0.1-beta",

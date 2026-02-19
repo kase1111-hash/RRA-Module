@@ -327,17 +327,20 @@ def _scalar_mult_projective(k: int, point: Tuple[int, int]) -> Tuple[int, int]:
 
     # Convert to projective
     proj_point = _affine_to_projective(point)
-    result = (0, 1, 0)  # Point at infinity in projective
 
-    # Double-and-add in projective coordinates
-    while k:
-        if k & 1:
-            result = _projective_add(result, proj_point)
-        proj_point = _projective_double(proj_point)
-        k >>= 1
+    # Montgomery ladder: constant-time scalar multiplication
+    R0 = (0, 1, 0)  # Point at infinity in projective
+    R1 = proj_point
+    for i in range(k.bit_length() - 1, -1, -1):
+        if (k >> i) & 1:
+            R0 = _projective_add(R0, R1)
+            R1 = _projective_double(R1)
+        else:
+            R1 = _projective_add(R0, R1)
+            R0 = _projective_double(R0)
 
     # Convert back to affine (single inversion here)
-    return _projective_to_affine(result)
+    return _projective_to_affine(R0)
 
 
 # =============================================================================
@@ -387,15 +390,25 @@ def _get_precomputed_table(point: Tuple[int, int]) -> List[Tuple[int, int]]:
     Uses caching to avoid recomputation for frequently used points
     (especially the generator points G and H).
 
+    Cache is bounded to 4 entries to prevent unbounded memory growth.
+    If cache is full and point is not cached, falls back to non-cached computation.
+
     Args:
         point: Base point
 
     Returns:
         Precomputed table of point multiples
     """
-    if point not in _precomputed_tables:
-        _precomputed_tables[point] = _precompute_table(point)
-    return _precomputed_tables[point]
+    if point in _precomputed_tables:
+        return _precomputed_tables[point]
+
+    table = _precompute_table(point)
+
+    # Only cache if within size bound to prevent unbounded memory growth
+    if len(_precomputed_tables) < 4:
+        _precomputed_tables[point] = table
+
+    return table
 
 
 def _scalar_mult(k: int, point: Tuple[int, int]) -> Tuple[int, int]:
@@ -567,18 +580,15 @@ def _py_ecc_point_add(p1: Tuple[int, int], p2: Tuple[int, int]) -> Tuple[int, in
 
 
 # Thread pool for parallel operations (lazy initialized)
+import threading as _threading
 _thread_pool = None
-_thread_pool_lock = None
+_thread_pool_lock = _threading.Lock()
 
 
 def _get_thread_pool():
     """Get or create the thread pool for parallel operations."""
-    global _thread_pool, _thread_pool_lock
-    import threading
+    global _thread_pool
     from concurrent.futures import ThreadPoolExecutor
-
-    if _thread_pool_lock is None:
-        _thread_pool_lock = threading.Lock()
 
     with _thread_pool_lock:
         if _thread_pool is None:

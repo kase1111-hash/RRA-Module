@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 # Set up test environment before imports
 os.environ["RRA_DEV_MODE"] = "true"
 os.environ["RRA_API_KEY"] = "test-key"
+os.environ["RRA_API_KEYS"] = "test-key"
 
 from rra.api.server import app
 

@@ -480,6 +480,7 @@ def create_session_store() -> SessionStore:
 
 # Singleton session store instance
 _session_store: Optional[SessionStore] = None
+_session_store_lock = threading.Lock()
 
 
 def get_session_store() -> SessionStore:
@@ -487,13 +488,16 @@ def get_session_store() -> SessionStore:
     Get the global session store instance.
 
     Lazily creates the store on first access.
+    Thread-safe via double-checked locking.
 
     Returns:
         Global SessionStore instance
     """
     global _session_store
     if _session_store is None:
-        _session_store = create_session_store()
+        with _session_store_lock:
+            if _session_store is None:  # Double-check
+                _session_store = create_session_store()
     return _session_store
 
 
