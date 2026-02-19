@@ -165,7 +165,7 @@ Use our issue templates for better organization:
 
 ## Questions?
 
-- Check the [Support Guide](SUPPORT.md) for help resources
+- Check the [Documentation Index](docs/README.md) for help resources
 - Open an issue for bugs or feature requests
 - Join discussions in GitHub Discussions
 - Contact maintainers via GitHub

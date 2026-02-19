@@ -271,7 +271,7 @@ rra links https://github.com/user/repo.git --register
 - Review [blockchain licensing guide](docs/BLOCKCHAIN-LICENSING.md) for monetization
 - Explore [Story Protocol integration](docs/INTEGRATIONS.md#story-protocol) for programmable IP
 - See [DeFi integration](docs/DEFI-INTEGRATION.md) for yield tokens and lending
-- Review [security reports](SECURITY-REPORTS.md) for security best practices
+- Review [security audit](docs/SECURITY-AUDIT.md) for security best practices
 - See [full documentation index](docs/README.md) for all guides
 
 ## Getting Help
