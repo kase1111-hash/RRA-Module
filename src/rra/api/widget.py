@@ -9,6 +9,7 @@ Provides REST API endpoints for:
 - Widget analytics and tracking
 """
 
+import os
 import secrets
 from typing import Optional, Dict, Any, List
 from datetime import datetime
@@ -31,8 +32,11 @@ router = APIRouter(prefix="/api/widget", tags=["widget"])
 WIDGET_RATE_LIMIT = 60
 
 # Allowed origins for widget initialization (set in production)
-# Use "*" for development, specific domains in production
-ALLOWED_WIDGET_ORIGINS: set = {"*"}  # Configure via environment in production
+# Configure via RRA_WIDGET_ORIGINS environment variable (comma-separated)
+_origins_env = os.environ.get("RRA_WIDGET_ORIGINS", "")
+ALLOWED_WIDGET_ORIGINS = set(o.strip() for o in _origins_env.split(",") if o.strip())
+if not ALLOWED_WIDGET_ORIGINS:
+    ALLOWED_WIDGET_ORIGINS = set()  # No wildcard - same-origin only by default
 
 
 def _validate_widget_origin(origin: str) -> bool:

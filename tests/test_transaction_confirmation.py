@@ -421,9 +421,9 @@ class TestTransactionSafeguards:
 
     def test_safeguard_levels(self, safeguards):
         """Test safeguard level determination."""
-        # Low value
+        # Low value - elevated to MEDIUM when using fallback rates
         result = safeguards.validate_price("0.01 ETH")  # ~$20
-        assert result.safeguard_level == SafeguardLevel.LOW
+        assert result.safeguard_level == SafeguardLevel.MEDIUM
 
         # Medium value
         result = safeguards.validate_price("0.1 ETH")  # ~$200
@@ -456,7 +456,7 @@ class TestTransactionSafeguards:
         for i in range(3):
             allowed, _ = safeguards.check_rate_limit("buyer123")
             assert allowed is True
-            safeguards.record_transaction()
+            safeguards.record_transaction("buyer123")
 
         # 4th should be blocked
         allowed, message = safeguards.check_rate_limit("buyer123")

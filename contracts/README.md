@@ -35,7 +35,7 @@ Start a local node:
 anvil
 
 # Terminal 2: Deploy to local node
-export PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80  # Anvil default
+export PRIVATE_KEY=0xac0974...f2ff80  # Anvil default account #0 (see: https://book.getfoundry.sh/reference/anvil/)
 forge script script/DeployRepoLicense.s.sol --rpc-url localhost --broadcast
 ```
 

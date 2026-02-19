@@ -26,8 +26,8 @@ services:
       # Application settings
       - RRA_HOST=0.0.0.0
       - RRA_PORT=8000
-      - RRA_DEV_MODE=${RRA_DEV_MODE:-true}
-      - RRA_API_KEY=${RRA_API_KEY:-dev-api-key}
+      - RRA_DEV_MODE=${RRA_DEV_MODE:-false}
+      - RRA_API_KEY=${RRA_API_KEY:?RRA_API_KEY must be set - see .env.example}
       # Blockchain settings (optional)
       - WEB3_PROVIDER_URL=${WEB3_PROVIDER_URL:-}
       - PRIVATE_KEY=${PRIVATE_KEY:-}

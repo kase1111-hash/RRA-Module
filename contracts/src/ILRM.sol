@@ -173,6 +173,8 @@ contract ILRM is Ownable, ReentrancyGuard, Pausable {
         address indexed claimAddress
     );
 
+    event MediatorRegistered(address indexed mediator);
+
     // =========================================================================
     // Constructor
     // =========================================================================
@@ -366,6 +368,12 @@ contract ILRM is Ownable, ReentrancyGuard, Pausable {
         require(d.phase == DisputePhase.Negotiation || d.phase == DisputePhase.Mediation, "Invalid phase");
         require(d.initiatorVerified && d.counterpartyVerified, "Both parties must verify identity");
         require(_initiatorShare <= 100, "Invalid share");
+        // SECURITY: Require caller is a verified party's claim address
+        require(
+            msg.sender == claimAddresses[d.initiatorHash] ||
+            msg.sender == claimAddresses[d.counterpartyHash],
+            "Not a party to this dispute"
+        );
 
         d.phase = DisputePhase.Resolved;
         d.resolution = Resolution.MutualSettlement;
@@ -379,11 +387,13 @@ contract ILRM is Ownable, ReentrancyGuard, Pausable {
     // =========================================================================
 
     /**
-     * @notice Register as a mediator
+     * @notice Register a mediator (owner only)
+     * @param _mediator Address to register as mediator
      */
-    function registerMediator() external {
-        registeredMediators[msg.sender] = true;
-        mediatorReputation[msg.sender] = 100; // Starting reputation
+    function registerMediator(address _mediator) external onlyOwner {
+        registeredMediators[_mediator] = true;
+        mediatorReputation[_mediator] = 100; // Starting reputation
+        emit MediatorRegistered(_mediator);
     }
 
     /**

@@ -10,12 +10,15 @@ Provides REST API endpoints for:
 - Blockchain purchase link generation
 """
 
+import logging
 from typing import Optional, List, Dict, Any
 
 from fastapi import APIRouter, HTTPException, Query, Depends, BackgroundTasks
 from pydantic import BaseModel, Field
 
 from rra.api.auth import verify_api_key, optional_api_key
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter(prefix="/api/verify", tags=["verification"])
@@ -235,9 +238,11 @@ async def verify_repository(
         )
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.error(f"Verification validation error for {request.repo_url}: {e}")
+        raise HTTPException(status_code=400, detail="An internal error occurred")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Verification failed: {str(e)}")
+        logger.error(f"Verification failed for {request.repo_url}: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @router.get("/status/{repo_id}", response_model=Optional[FullVerificationResponse])
@@ -426,9 +431,11 @@ async def categorize_repository(
         )
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.error(f"Categorization validation error: {e}")
+        raise HTTPException(status_code=400, detail="An internal error occurred")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Categorization failed: {str(e)}")
+        logger.error(f"Categorization failed: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @router.get("/explorer-link/{ip_asset_id}")

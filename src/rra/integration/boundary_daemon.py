@@ -363,7 +363,7 @@ class ModeConstraints:
                 tool_allowlist={"*"},
                 memory_classification="public",
                 max_transaction_value_eth=None,
-                require_human_approval=False,
+                require_human_approval=True,
             ),
             BoundaryMode.RESTRICTED: cls(
                 mode=BoundaryMode.RESTRICTED,
@@ -374,7 +374,7 @@ class ModeConstraints:
                 tool_allowlist={"read", "negotiate", "quote", "analyze"},
                 memory_classification="internal",
                 max_transaction_value_eth=1.0,
-                require_human_approval=False,
+                require_human_approval=True,
             ),
             BoundaryMode.TRUSTED: cls(
                 mode=BoundaryMode.TRUSTED,

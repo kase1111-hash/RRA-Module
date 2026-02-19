@@ -25,6 +25,11 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger(__name__)
 
+# Only trust X-Forwarded-For from configured trusted proxies
+TRUSTED_PROXIES = set(
+    p.strip() for p in os.environ.get("RRA_TRUSTED_PROXIES", "").split(",") if p.strip()
+)
+
 
 class RateLimitExceeded(Exception):
     """Raised when rate limit is exceeded."""
@@ -313,9 +318,9 @@ class RateLimiter:
 
         # Fallback to IP address
         client_ip = request.client.host if request.client else "unknown"
-        # Check for proxy headers
+        # Only trust X-Forwarded-For from configured trusted proxies
         forwarded = request.headers.get("X-Forwarded-For", "")
-        if forwarded:
+        if forwarded and request.client and request.client.host in TRUSTED_PROXIES:
             client_ip = forwarded.split(",")[0].strip()
 
         return f"ip:{client_ip}"

@@ -15,12 +15,15 @@ import asyncio
 import logging
 import os
 import hmac
+import secrets
 from typing import Dict, Set, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 import uuid
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, Depends
 from pydantic import BaseModel
+
+from rra.api.auth import verify_api_key
 
 from rra.ingestion.knowledge_base import KnowledgeBase
 from rra.agents.negotiator import NegotiatorAgent
@@ -99,6 +102,51 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
+# Short-lived WebSocket token store (token -> {created, ttl_seconds})
+_ws_tokens: Dict[str, Dict] = {}
+_WS_TOKEN_TTL = 60  # tokens valid for 60 seconds
+
+
+def _cleanup_ws_tokens() -> None:
+    """Remove expired WebSocket tokens."""
+    now = datetime.utcnow()
+    expired = [
+        t for t, data in _ws_tokens.items()
+        if now > data["created"] + timedelta(seconds=data["ttl_seconds"])
+    ]
+    for t in expired:
+        del _ws_tokens[t]
+
+
+def _validate_ws_token(token: Optional[str]) -> bool:
+    """Validate a short-lived WebSocket token (preferred over API key in URL)."""
+    if not token:
+        return False
+    _cleanup_ws_tokens()
+    data = _ws_tokens.pop(token, None)  # Single-use: remove on validation
+    if not data:
+        return False
+    if datetime.utcnow() > data["created"] + timedelta(seconds=data["ttl_seconds"]):
+        return False
+    return True
+
+
+@router.post("/ws/token")
+async def get_ws_token(_: bool = Depends(verify_api_key)):
+    """
+    Exchange an API key for a short-lived WebSocket token.
+
+    The token should be used in the WebSocket URL query parameter instead of
+    passing the API key directly, to avoid API key exposure in URLs/logs.
+
+    Returns:
+        Dict with 'token' (valid for 60 seconds, single-use)
+    """
+    token = secrets.token_urlsafe(32)
+    _ws_tokens[token] = {"created": datetime.utcnow(), "ttl_seconds": _WS_TOKEN_TTL}
+    return {"token": token, "expires_in": _WS_TOKEN_TTL}
+
+
 def _validate_ws_api_key(api_key: Optional[str]) -> bool:
     """
     Validate API key for WebSocket connections.
@@ -137,10 +185,14 @@ def _validate_ws_api_key(api_key: Optional[str]) -> bool:
 async def websocket_negotiate(
     websocket: WebSocket,
     repo_id: str,
+    token: Optional[str] = Query(None, alias="token"),
     api_key: Optional[str] = Query(None, alias="api_key"),
 ):
     """
     WebSocket endpoint for real-time negotiation.
+
+    Authentication: Prefer using a short-lived token from POST /ws/token.
+    API key in query parameter is supported for backward compatibility but discouraged.
 
     Message Protocol:
     - Client sends: {"type": "message", "payload": {"content": "..."}}
@@ -151,10 +203,12 @@ async def websocket_negotiate(
     Args:
         websocket: WebSocket connection
         repo_id: Repository ID to negotiate for
-        api_key: API key for authentication (query parameter)
+        token: Short-lived WebSocket token (preferred, from POST /ws/token)
+        api_key: API key for authentication (deprecated, use token instead)
     """
-    # Validate API key before accepting connection
-    if not _validate_ws_api_key(api_key):
+    # Validate auth: prefer token, fall back to API key
+    is_authenticated = _validate_ws_token(token) or _validate_ws_api_key(api_key)
+    if not is_authenticated:
         await websocket.accept()
         await websocket.send_json(
             WSMessage(
@@ -299,7 +353,7 @@ async def websocket_negotiate(
                     websocket,
                     WSMessage(
                         type="error",
-                        payload={"message": str(e), "code": ErrorCode.UNKNOWN_ERROR.value},
+                        payload={"message": "An internal error occurred", "code": ErrorCode.UNKNOWN_ERROR.value},
                     ),
                 )
 
@@ -334,6 +388,7 @@ async def load_knowledge_base(repo_id: str) -> Optional[KnowledgeBase]:
 @router.websocket("/ws/dreaming")
 async def websocket_dreaming(
     websocket: WebSocket,
+    token: Optional[str] = Query(None, alias="token"),
     api_key: Optional[str] = Query(None, alias="api_key"),
 ):
     """
@@ -349,11 +404,11 @@ async def websocket_dreaming(
         websocket: WebSocket connection
         api_key: API key for authentication (query parameter)
     """
-    # Validate API key
-    if not _validate_ws_api_key(api_key):
+    # Validate auth: prefer token, fall back to API key
+    if not (_validate_ws_token(token) or _validate_ws_api_key(api_key)):
         await websocket.accept()
         await websocket.send_json(
-            {"type": "error", "payload": {"message": "Unauthorized: Invalid or missing API key"}}
+            {"type": "error", "payload": {"message": "Unauthorized: Invalid or missing credentials"}}
         )
         await websocket.close(code=4001)
         return
@@ -406,7 +461,7 @@ async def websocket_dreaming(
                 await websocket.send_json({"type": "error", "payload": {"message": "Invalid JSON"}})
             except Exception as e:
                 logger.error(f"Dreaming WebSocket error: {e}")
-                await websocket.send_json({"type": "error", "payload": {"message": str(e)}})
+                await websocket.send_json({"type": "error", "payload": {"message": "An internal error occurred"}})
 
     finally:
         dreaming_manager.disconnect(websocket)

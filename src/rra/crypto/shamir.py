@@ -59,10 +59,8 @@ def _is_probable_prime(n: int, k: int = 40) -> bool:
         d //= 2
 
     # Witness loop
-    import random
-
     for _ in range(k):
-        a = random.randrange(2, n - 1)
+        a = secrets.randbelow(n - 3) + 2
         x = pow(a, d, n)
 
         if x == 1 or x == n - 1:
@@ -235,6 +233,8 @@ class ShamirSecretSharing:
         Args:
             prime: Prime number defining the finite field
         """
+        if prime != PRIME and not _is_probable_prime(prime):
+            raise ValueError("Custom prime failed primality test")
         self.prime = prime
 
     def split(self, secret: bytes, config: ThresholdConfig, context_id: str) -> List[KeyShare]:

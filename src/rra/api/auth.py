@@ -78,17 +78,10 @@ def verify_api_key(api_key: str = Security(API_KEY_HEADER)) -> bool:
         api_keys_env = os.environ.get("RRA_API_KEY", "")
 
     if not api_keys_env:
-        # Development mode - accept any non-empty key
-        # Supports both RRA_DEV_MODE=true and RRA_ENV=development bypass
-        is_dev = (
-            os.environ.get("RRA_DEV_MODE", "").lower() == "true"
-            or os.environ.get("RRA_ENV") == "development"
-        )
-        if is_dev:
-            return True
         raise HTTPException(
             status_code=500,
-            detail="Server configuration error: No API keys configured",
+            detail="Server configuration error: No API keys configured. "
+                   "Set RRA_API_KEYS or RRA_API_KEY environment variable.",
         )
 
     # Parse valid keys
@@ -125,14 +118,15 @@ def optional_api_key(api_key: str = Security(API_KEY_HEADER)) -> Optional[bool]:
 
     Returns:
         True if valid key provided, None if no key provided
+
+    Raises:
+        HTTPException: If a key is provided but is invalid (prevents silent downgrade)
     """
     if api_key is None:
         return None
 
-    try:
-        return verify_api_key(api_key)
-    except HTTPException:
-        return None
+    # Key was provided — validate it strictly (don't silently downgrade)
+    return verify_api_key(api_key)
 
 
 # Dependency shortcuts

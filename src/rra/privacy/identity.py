@@ -20,6 +20,7 @@ Security:
 import os
 import json
 import logging
+import re
 from typing import Optional, Tuple, Dict
 from dataclasses import dataclass
 from pathlib import Path
@@ -514,6 +515,10 @@ class IdentityManager:
         if not self.storage_path:
             return False
 
+        # SECURITY FIX: Validate identity name to prevent path traversal
+        if not re.match(r'^[a-zA-Z0-9_-]+$', name):
+            raise ValueError(f"Invalid identity name: {name}")
+
         from cryptography.fernet import Fernet
         from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
         from cryptography.hazmat.primitives import hashes
@@ -544,6 +549,11 @@ class IdentityManager:
         # Save
         self.storage_path.mkdir(parents=True, exist_ok=True)
         file_path = self.storage_path / f"{name}.identity"
+
+        # SECURITY FIX: Verify resolved path stays within storage_path
+        if not file_path.resolve().is_relative_to(self.storage_path.resolve()):
+            raise ValueError(f"Invalid identity name: {name}")
+
         with open(file_path, "wb") as f:
             f.write(salt + encrypted)
 
@@ -563,12 +573,21 @@ class IdentityManager:
         if not self.storage_path:
             return None
 
+        # SECURITY FIX: Validate identity name to prevent path traversal
+        if not re.match(r'^[a-zA-Z0-9_-]+$', name):
+            raise ValueError(f"Invalid identity name: {name}")
+
         from cryptography.fernet import Fernet
         from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
         from cryptography.hazmat.primitives import hashes
         import base64
 
         file_path = self.storage_path / f"{name}.identity"
+
+        # SECURITY FIX: Verify resolved path stays within storage_path
+        if not file_path.resolve().is_relative_to(self.storage_path.resolve()):
+            raise ValueError(f"Invalid identity name: {name}")
+
         if not file_path.exists():
             return None
 

@@ -110,7 +110,7 @@ class TestBoundaryMode:
         assert constraints.blockchain_write_allowed is True
         assert constraints.file_write_allowed is True
         assert "*" in constraints.tool_allowlist
-        assert constraints.require_human_approval is False
+        assert constraints.require_human_approval is True
 
     def test_lockdown_mode_blocks_all(self):
         """Test that LOCKDOWN mode blocks everything."""
@@ -164,7 +164,9 @@ class TestBoundaryDaemon:
         assert "denied" in reason.lower()
 
         boundary_daemon.set_mode(BoundaryMode.OPEN)
-        allowed, reason = boundary_daemon.check_mode_constraint("network")
+        allowed, reason = boundary_daemon.check_mode_constraint(
+            "network", context={"human_approved": True}
+        )
         assert allowed is True
 
     def test_check_mode_constraint_blockchain(self, boundary_daemon):
@@ -178,12 +180,12 @@ class TestBoundaryDaemon:
         boundary_daemon.set_mode(BoundaryMode.RESTRICTED)
         # Restricted mode has 1 ETH limit
         allowed, reason = boundary_daemon.check_mode_constraint(
-            "transaction", context={"value_eth": 0.5}
+            "transaction", context={"value_eth": 0.5, "human_approved": True}
         )
         assert allowed is True
 
         allowed, reason = boundary_daemon.check_mode_constraint(
-            "transaction", context={"value_eth": 5.0}
+            "transaction", context={"value_eth": 5.0, "human_approved": True}
         )
         assert allowed is False
         assert "exceeds limit" in reason
@@ -778,9 +780,11 @@ class TestAccessControlFlow:
         )
         boundary_daemon.assign_policy(user.principal_id, policy.policy_id)
 
-        # In OPEN mode, everything works
+        # In OPEN mode, everything works (with human approval)
         boundary_daemon.set_mode(BoundaryMode.OPEN)
-        allowed, _ = boundary_daemon.check_mode_constraint("blockchain_write")
+        allowed, _ = boundary_daemon.check_mode_constraint(
+            "blockchain_write", context={"human_approved": True}
+        )
         assert allowed is True
 
         # In AIRGAP mode, blockchain writes are blocked

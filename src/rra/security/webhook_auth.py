@@ -12,6 +12,7 @@ Provides security for external webhook integrations:
 
 import hmac
 import hashlib
+import logging
 import secrets
 import json
 import ipaddress
@@ -23,6 +24,8 @@ from typing import Dict, List, Optional, Any
 from pathlib import Path
 from collections import defaultdict
 from urllib.parse import urlparse
+
+logger = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -406,23 +409,51 @@ class WebhookSecurity:
         self.credentials_path = credentials_path or Path(
             "agent_knowledge_bases/webhook_credentials.json"
         )
+        self._encryption = CredentialEncryption()
         self._credentials: Dict[str, Dict[str, Any]] = {}
         self._load_credentials()
 
     def _load_credentials(self) -> None:
-        """Load credentials from disk."""
+        """Load credentials from disk and decrypt secret keys."""
         if self.credentials_path.exists():
             try:
                 with open(self.credentials_path, "r") as f:
                     self._credentials = json.load(f)
+
+                # Decrypt secret_key fields
+                for agent_id, cred in self._credentials.items():
+                    if "secret_key" in cred and cred["secret_key"]:
+                        try:
+                            cred["secret_key"] = self._encryption.decrypt(cred["secret_key"])
+                        except Exception:
+                            # If decryption fails, the key may already be plaintext (migration)
+                            logger.warning(
+                                f"Could not decrypt secret_key for agent '{agent_id}'. "
+                                "Key may be in plaintext from before encryption was enabled."
+                            )
             except (json.JSONDecodeError, IOError):
                 self._credentials = {}
 
     def _save_credentials(self) -> None:
-        """Save credentials to disk."""
+        """Save credentials to disk with encrypted secret keys."""
         self.credentials_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Create a copy with encrypted secret_key fields
+        encrypted_creds = {}
+        for agent_id, cred in self._credentials.items():
+            encrypted_cred = dict(cred)
+            if "secret_key" in encrypted_cred and encrypted_cred["secret_key"]:
+                try:
+                    encrypted_cred["secret_key"] = self._encryption.encrypt(encrypted_cred["secret_key"])
+                except Exception as e:
+                    logger.error(f"Failed to encrypt secret_key for agent '{agent_id}': {e}")
+            encrypted_creds[agent_id] = encrypted_cred
+
         with open(self.credentials_path, "w") as f:
-            json.dump(self._credentials, f, indent=2, default=str)
+            json.dump(encrypted_creds, f, indent=2, default=str)
+
+        # Restrict file permissions to owner only
+        os.chmod(self.credentials_path, 0o600)
 
     def generate_credentials(
         self,

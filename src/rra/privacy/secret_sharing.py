@@ -26,6 +26,59 @@ from dataclasses import dataclass
 PRIME = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
 
 
+# Verify PRIME constant at module load
+def _verify_prime():
+    """Quick primality sanity check on PRIME constant."""
+    # Check against known value (secp256k1 order)
+    expected = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
+    if PRIME != expected:
+        raise ValueError("PRIME constant does not match expected secp256k1 order")
+
+_verify_prime()
+
+
+def _is_probable_prime(n: int, k: int = 40) -> bool:
+    """
+    Miller-Rabin primality test.
+
+    Args:
+        n: Number to test
+        k: Number of rounds (40 gives negligible error probability)
+
+    Returns:
+        True if n is probably prime
+    """
+    if n < 2:
+        return False
+    if n == 2 or n == 3:
+        return True
+    if n % 2 == 0:
+        return False
+
+    # Write n-1 as 2^r * d
+    r, d = 0, n - 1
+    while d % 2 == 0:
+        r += 1
+        d //= 2
+
+    # Witness loop
+    for _ in range(k):
+        a = secrets.randbelow(n - 3) + 2
+        x = pow(a, d, n)
+
+        if x == 1 or x == n - 1:
+            continue
+
+        for _ in range(r - 1):
+            x = pow(x, 2, n)
+            if x == n - 1:
+                break
+        else:
+            return False
+
+    return True
+
+
 @dataclass
 class Share:
     """A single share of a split secret."""
@@ -78,6 +131,8 @@ class ShamirSecretSharing:
             raise ValueError("Threshold cannot exceed total shares")
         if total_shares > 255:
             raise ValueError("Maximum 255 shares supported")
+        if prime != PRIME and not _is_probable_prime(prime):
+            raise ValueError("Custom prime failed primality test")
 
         self.threshold = threshold
         self.total_shares = total_shares

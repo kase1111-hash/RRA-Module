@@ -10,6 +10,7 @@ Provides authentication middleware and utilities:
 """
 
 import os
+import hmac
 import secrets
 import hashlib
 import json
@@ -27,7 +28,7 @@ from fastapi.security import APIKeyHeader, HTTPBearer
 
 # Environment-based configuration
 API_KEY_HEADER_NAME = "X-API-Key"
-AUTH_ENABLED = os.environ.get("RRA_AUTH_ENABLED", "false").lower() == "true"
+AUTH_ENABLED = os.environ.get("RRA_AUTH_ENABLED", "true").lower() == "true"
 ADMIN_API_KEY = os.environ.get("RRA_ADMIN_API_KEY", None)
 
 # API key storage path
@@ -202,7 +203,7 @@ async def get_api_key(
         return None
 
     # Check admin key first
-    if ADMIN_API_KEY and api_key == ADMIN_API_KEY:
+    if ADMIN_API_KEY and hmac.compare_digest(api_key, ADMIN_API_KEY):
         return {
             "key_id": "admin",
             "name": "Admin Key",

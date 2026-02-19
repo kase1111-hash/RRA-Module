@@ -43,6 +43,9 @@ htmlcov/
 # Environment variables
 .env
 .env.local
+config/environments/.env.development
+config/environments/.env.staging
+config/environments/.env.production
 
 # RRA specific - runtime data (keep .gitkeep files)
 agent_knowledge_bases/*

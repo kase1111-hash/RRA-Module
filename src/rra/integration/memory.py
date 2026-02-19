@@ -8,6 +8,10 @@ Falls back to local file storage in standalone mode.
 """
 
 import logging
+import hmac
+import hashlib
+import os
+import re
 from typing import Dict, Any, Optional
 from pathlib import Path
 import json
@@ -34,29 +38,69 @@ class LocalStateManager:
             agent_id: Unique agent identifier
             storage_dir: Directory for state files (default: ./agent_states)
         """
+        if not re.match(r'^[a-zA-Z0-9_-]+$', agent_id):
+            raise ValueError(f"Invalid agent_id: {agent_id}")
+
         self.agent_id = agent_id
         self.storage_dir = storage_dir or Path("./agent_states")
         self.storage_dir.mkdir(parents=True, exist_ok=True)
         self.state_file = self.storage_dir / f"{agent_id}.json"
 
+    def _get_mac_key(self) -> bytes:
+        """Get HMAC key derived from master secret and agent_id."""
+        master = os.environ.get("RRA_STATE_SECRET", "default-dev-state-key")
+        return hmac.new(master.encode(), self.agent_id.encode(), hashlib.sha256).digest()
+
     def save_state(self, state: Dict[str, Any]) -> None:
-        """Save agent state to local file."""
+        """Save agent state to local file with HMAC integrity protection."""
         state_with_metadata = {
             "agent_id": self.agent_id,
             "timestamp": datetime.now().isoformat(),
             "state": state,
         }
 
+        # Serialize with deterministic key ordering for HMAC
+        data_json = json.dumps(state_with_metadata, sort_keys=True)
+        mac = hmac.new(self._get_mac_key(), data_json.encode(), hashlib.sha256).hexdigest()
+
+        wrapper = {
+            "data": state_with_metadata,
+            "mac": mac,
+        }
+
         with open(self.state_file, "w") as f:
-            json.dump(state_with_metadata, f, indent=2)
+            json.dump(wrapper, f, indent=2)
 
     def load_state(self) -> Dict[str, Any]:
-        """Load agent state from local file."""
+        """Load agent state from local file with HMAC verification."""
         if not self.state_file.exists():
             return {}
 
         with open(self.state_file, "r") as f:
-            data = json.load(f)
+            raw = json.load(f)
+
+        # Handle old format (no "mac" key) gracefully
+        if "mac" not in raw:
+            logger.warning(
+                f"State file for agent '{self.agent_id}' uses old format without HMAC. "
+                "Re-save to add integrity protection."
+            )
+            return raw.get("state", {})
+
+        # Verify HMAC
+        data = raw["data"]
+        stored_mac = raw["mac"]
+        data_json = json.dumps(data, sort_keys=True)
+        expected_mac = hmac.new(self._get_mac_key(), data_json.encode(), hashlib.sha256).hexdigest()
+
+        if not hmac.compare_digest(stored_mac, expected_mac):
+            logger.critical(
+                f"HMAC verification failed for agent '{self.agent_id}' state file. "
+                "State may have been tampered with."
+            )
+            raise ValueError(
+                f"State integrity check failed for agent '{self.agent_id}': HMAC mismatch"
+            )
 
         return data.get("state", {})
 

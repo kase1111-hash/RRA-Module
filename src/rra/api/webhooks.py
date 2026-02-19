@@ -16,13 +16,16 @@ Supports use cases:
 """
 
 import logging
+import os
 import uuid
 import json
 from typing import Optional, Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
-from fastapi import APIRouter, Request, HTTPException, BackgroundTasks, Header
+from fastapi import APIRouter, Request, HTTPException, BackgroundTasks, Header, Depends
+
+from rra.api.auth import verify_api_key
 
 logger = logging.getLogger(__name__)
 from pydantic import BaseModel, Field
@@ -123,8 +126,37 @@ def _verify_session_token(session_id: str, provided_token: str) -> bool:
 router = APIRouter(prefix="/webhook", tags=["webhooks"])
 
 # Session storage (in production, use Redis or database)
+MAX_SESSIONS = int(os.environ.get("RRA_MAX_SESSIONS", "1000"))
+SESSION_TTL_HOURS = int(os.environ.get("RRA_SESSION_TTL_HOURS", "24"))
+
 _webhook_sessions: Dict[str, Dict[str, Any]] = {}
 _session_messages: Dict[str, List[Dict[str, Any]]] = {}
+
+
+def _evict_expired_sessions() -> None:
+    """Remove expired sessions to prevent unbounded memory growth."""
+    now = datetime.utcnow()
+    expired = [
+        sid for sid, data in _webhook_sessions.items()
+        if now - datetime.fromisoformat(data.get("created_at", now.isoformat())) > timedelta(hours=SESSION_TTL_HOURS)
+    ]
+    for sid in expired:
+        _webhook_sessions.pop(sid, None)
+        _session_messages.pop(sid, None)
+
+
+def _ensure_session_capacity() -> None:
+    """Ensure we haven't exceeded the maximum number of sessions."""
+    if len(_webhook_sessions) >= MAX_SESSIONS:
+        _evict_expired_sessions()
+    # If still at capacity after eviction, remove oldest
+    if len(_webhook_sessions) >= MAX_SESSIONS:
+        oldest_sid = min(
+            _webhook_sessions,
+            key=lambda s: _webhook_sessions[s].get("created_at", ""),
+        )
+        _webhook_sessions.pop(oldest_sid, None)
+        _session_messages.pop(oldest_sid, None)
 
 
 # Request/Response models
@@ -331,14 +363,14 @@ async def process_webhook_negotiation(
             )
             _webhook_sessions[session_id]["phase"] = negotiator.current_phase.value
 
-            # Send callback if provided
+            # Send callback if provided (status only — no response content to prevent data exfiltration)
             if payload.callback_url:
                 await send_callback(
                     payload.callback_url,
                     {
                         "session_id": session_id,
                         "agent_id": agent_id,
-                        "response": response,
+                        "status": "response_ready",
                         "phase": negotiator.current_phase.value,
                     },
                 )
@@ -348,8 +380,9 @@ async def process_webhook_negotiation(
         return intro
 
     except Exception as e:
+        logger.error(f"Webhook negotiation error for session {session_id}: {e}")
         _webhook_sessions[session_id]["status"] = "error"
-        _webhook_sessions[session_id]["error"] = str(e)
+        _webhook_sessions[session_id]["error"] = "An internal error occurred"
         return None
 
 
@@ -414,8 +447,21 @@ async def webhook_trigger(
     Returns:
         Session ID and chat URL for continuing the negotiation
     """
-    # Replay attack protection (if headers provided)
-    if x_request_timestamp:
+    # Check if agent has registered webhook credentials
+    creds = webhook_security.get_credentials(agent_id)
+
+    # Replay attack protection
+    if creds:
+        # When webhook credentials exist, timestamp header is REQUIRED
+        if not x_request_timestamp:
+            raise HTTPException(400, "Missing required X-Request-Timestamp header for signed webhooks")
+        is_valid, error_msg = nonce_tracker.validate_request(
+            timestamp=x_request_timestamp, nonce=x_request_nonce
+        )
+        if not is_valid:
+            raise HTTPException(400, f"Request rejected: {error_msg}")
+    elif x_request_timestamp:
+        # For unconfigured webhooks, validate timestamp if provided
         is_valid, error_msg = nonce_tracker.validate_request(
             timestamp=x_request_timestamp, nonce=x_request_nonce
         )
@@ -428,9 +474,6 @@ async def webhook_trigger(
     except (json.JSONDecodeError, ValueError, TypeError) as e:
         logger.debug(f"Invalid webhook payload: {e}")
         raise HTTPException(400, "Invalid request payload")
-
-    # Check if agent has registered webhook credentials
-    creds = webhook_security.get_credentials(agent_id)
 
     if creds:
         # Verify signature for registered webhooks
@@ -460,6 +503,9 @@ async def webhook_trigger(
 
     # SECURITY FIX MED-013: Generate session token for authentication
     session_token = _generate_session_token()
+
+    # Enforce session capacity before creating new session
+    _ensure_session_capacity()
 
     # Store session info
     _webhook_sessions[session_id] = {
@@ -633,6 +679,7 @@ async def send_session_message(
 @router.post("/credentials", response_model=WebhookCredentialsResponse)
 async def generate_credentials(
     request: WebhookCredentialsRequest,
+    _: bool = Depends(verify_api_key),
 ) -> WebhookCredentialsResponse:
     """
     Generate webhook credentials for an agent.

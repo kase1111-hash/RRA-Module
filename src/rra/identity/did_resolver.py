@@ -38,7 +38,9 @@ Usage:
 import re
 import os
 import asyncio
+import ipaddress
 import logging
+import socket as socket_mod
 from enum import Enum
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
@@ -328,12 +330,36 @@ class WebDIDResolver(DIDMethodResolver):
             path = "/".join(parts[1:])
             return f"https://{domain}/{path}/did.json"
 
+    def _is_private_ip(self, hostname: str) -> bool:
+        """Check if hostname resolves to a private/blocked IP address (SSRF protection)."""
+        from rra.security.webhook_auth import BLOCKED_NETWORKS
+
+        try:
+            ip_str = socket_mod.gethostbyname(hostname)
+            ip = ipaddress.ip_address(ip_str)
+            for network in BLOCKED_NETWORKS:
+                if ip in network:
+                    return True
+        except socket_mod.gaierror:
+            # DNS resolution failed - treat as blocked for safety
+            return True
+        return False
+
     async def resolve(self, did: str) -> Optional[DIDDocument]:
         """Resolve a Web DID by fetching the document with retry logic."""
         if not self.supports(did):
             return None
 
         url = self._did_to_url(did)
+
+        # SSRF protection: validate the hostname does not resolve to a private IP
+        from urllib.parse import urlparse as _urlparse
+        parsed_url = _urlparse(url)
+        hostname = parsed_url.hostname
+        if not hostname or self._is_private_ip(hostname):
+            logger.warning(f"SSRF blocked: DID web resolution for {did} targets private/blocked IP")
+            return None
+
         retry_config = RetryConfig(
             max_retries=3,
             base_delay=1.0,
