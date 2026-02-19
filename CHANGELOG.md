@@ -99,7 +99,7 @@ Benchmark results:
 - Optional dependencies: `gmpy2` (recommended), `py_ecc` (fallback)
 
 ### Documentation
-- Updated CRYPTO-FINDINGS-QUICK-REFERENCE.md with all 24 security fixes
+- Updated security audit documentation with all 24 security fixes
 - Added performance optimization documentation in source code
 
 ## [1.0.0-beta] - 2026-01-03
@@ -111,11 +111,11 @@ Benchmark results:
   - Working buyer interface at `marketplace/public/buy-license.html`
 - **Royalty Claiming**: `scripts/claim_royalties.py` for claiming revenue from Royalty Vault
 - **Purchase Enablement Script**: `scripts/enable_story_purchases.py` for attaching license terms
-- **Selling Licenses Guide**: `docs/SELLING-LICENSES.md` - complete monetization walkthrough
+- **Blockchain Licensing Guide**: `docs/BLOCKCHAIN-LICENSING.md` - complete monetization walkthrough
 
 ### Changed
 - Updated all documentation to reflect implemented vs. planned features
-- Moved future features (React Native, Flutter SDKs) to `FUTURE.md`
+- Moved future features (React Native, Flutter SDKs) to `ROADMAP.md`
 - Updated `docs/STORY-PROTOCOL-INTEGRATION.md` with Implementation Status section
 - Cleaned up `docs/MOBILE_SDK.md` to reflect iOS/Android only (current)
 

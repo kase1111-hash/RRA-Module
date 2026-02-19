@@ -1,7 +1,7 @@
 # Revenant Repo Agent (RRA Module)
 
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](tests/)
-[![Security](https://img.shields.io/badge/security-A--rating-blue)](SECURITY-REPORTS.md)
+[![Security](https://img.shields.io/badge/security-A--rating-blue)](docs/SECURITY-AUDIT.md)
 [![License](https://img.shields.io/badge/license-FSL--1.1--ALv2-orange)](LICENSE.md)
 [![Python](https://img.shields.io/badge/python-3.9+-blue)](pyproject.toml)
 [![Buy License](https://img.shields.io/badge/Buy_License-10_IP-6366f1)](https://kase1111-hash.github.io/RRA-Module/buy-license.html)
@@ -106,19 +106,17 @@ FastAPI server with REST endpoints, WebSocket real-time chat, webhook integratio
 - **[Specification](SPECIFICATION.md)** — Technical specification
 
 ### Licensing & Commerce
-- **[Selling Licenses](docs/SELLING-LICENSES.md)** — Monetize your repo with Story Protocol
-- **[Blockchain Licensing](docs/BLOCKCHAIN-LICENSING.md)** — Automated monetization guide
+- **[Blockchain Licensing](docs/BLOCKCHAIN-LICENSING.md)** — Monetize your repo with Story Protocol
 - **[Integrations](docs/INTEGRATIONS.md)** — NatLangChain, API client, Story Protocol
 
 ### Security
-- **[Security Reports](SECURITY-REPORTS.md)** — A- security rating
-- **[Cryptographic Audit](CRYPTOGRAPHIC-SECURITY-AUDIT-2025-12-20.md)** — 24 crypto fixes applied
+- **[Security Audit](docs/SECURITY-AUDIT.md)** — Full audit history, findings, and remediation
 - **[Transaction Security](docs/TRANSACTION-SECURITY.md)** — Two-step verification
 
 ### Community
 - **[Contributing](CONTRIBUTING.md)** — How to contribute
-- **[Roadmap](ROADMAP.md)** — Product roadmap
-- **[Support](SUPPORT.md)** — How to get help
+- **[Roadmap](ROADMAP.md)** — Vision, roadmap, and future development
+- **[Documentation Index](docs/README.md)** — Full documentation index and support
 
 ## Part of the NatLangChain Ecosystem
 

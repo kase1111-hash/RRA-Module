@@ -3077,7 +3077,7 @@ Implementation Path:
 
 ## Security Remediation Backlog
 
-**Source:** PENTEST-REPORT-2025-12-20.md, CRYPTOGRAPHIC-SECURITY-AUDIT-2025-12-20.md
+**Source:** [Security Audit](docs/SECURITY-AUDIT.md)
 **Last Updated:** 2025-12-20
 
 ### Critical Priority (Immediate Action Required)

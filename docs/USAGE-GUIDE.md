@@ -634,7 +634,7 @@ export STORY_RPC_URL=https://rpc.ankr.com/story
 - [Story Protocol Documentation](https://docs.story.foundation)
 - [StoryScan Explorer](https://storyscan.io)
 - [RRA Module GitHub](https://github.com/kase1111-hash/RRA-Module)
-- [Selling Licenses Guide](SELLING-LICENSES.md)
+- [Blockchain Licensing Guide](BLOCKCHAIN-LICENSING.md)
 - [Story Protocol Integration](STORY-PROTOCOL-INTEGRATION.md)
 - [DeFi Integration Guide](DEFI-INTEGRATION.md)
 - [Full Documentation Index](README.md)

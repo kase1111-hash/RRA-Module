@@ -211,7 +211,7 @@ make marketplace-build # Production build
 For detailed documentation, see:
 - [Usage Guide](../docs/USAGE-GUIDE.md) - Complete how-to guide
 - [Story Protocol Integration](../docs/STORY-PROTOCOL-INTEGRATION.md) - On-chain integration
-- [Selling Licenses](../docs/SELLING-LICENSES.md) - License management
+- [Blockchain Licensing](../docs/BLOCKCHAIN-LICENSING.md) - License management
 - [Full Documentation Index](../docs/README.md)
 
 ---
