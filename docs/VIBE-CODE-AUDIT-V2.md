@@ -180,11 +180,11 @@ Areas that show signs of AI generation without full human validation:
 ## Remediation Checklist
 
 ### Critical (address before any production deployment)
-- [ ] **H-001**: Wire `NegotiatorAgent.get_state()`/`restore_state()` into `RedisSessionStore` serialization
-- [ ] **H-003**: Fix `ContractManager.register_repo()` to pass nonce and signature through to the contract
+- [x] **H-001**: Wire `NegotiatorAgent.get_state()`/`restore_state()` into `RedisSessionStore` serialization
+- [x] **H-003**: Fix `ContractManager.register_repo()` to pass nonce and signature through to the contract
 
 ### High (address before public beta)
-- [ ] **H-002**: Replace marketplace mock data with real API integration
+- [x] **H-002**: Marketplace frontend removed (was presentation-only scaffolding)
 - [ ] **M-003**: Consolidate to a single auth system or clearly document the boundary
 
 ### Medium (address in normal development)
