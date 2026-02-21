@@ -59,18 +59,18 @@ Attaching license terms to IP Asset...
 LICENSE PURCHASES ENABLED!
 ============================================================
 
-Buyer Interface: marketplace/public/buy-license.html
+Buyer Interface: buy-license.html
 ```
 
 ### Step 4: Deploy Your Purchase Page
 
-The script generates `marketplace/public/buy-license.html`. Deploy it:
+The script generates `buy-license.html`. Deploy it:
 
 **Option A: GitHub Pages (Free)**
 1. Go to your repo -> Settings -> Pages
 2. Source: Deploy from branch `main`
 3. Folder: `/ (root)`
-4. Your page will be at: `https://username.github.io/repo/marketplace/public/buy-license.html`
+4. Your page will be at: `https://username.github.io/repo/buy-license.html`
 
 **Option B: Any Web Host**
 - Upload `buy-license.html` to Netlify, Vercel, or any static host
@@ -758,7 +758,7 @@ Options:
   --market-config  Path to .market.yaml (default: .market.yaml)
   --private-key    Your private key (or use STORY_PRIVATE_KEY env var)
   --network        mainnet or testnet (default: mainnet)
-  --output-dir     Where to save buyer HTML (default: marketplace/public)
+  --output-dir     Where to save buyer HTML (default: public)
 ```
 
 #### claim_royalties.py
@@ -868,7 +868,7 @@ This repository is monetized using this exact process:
 - **IP Asset:** `0xb77ABcfFbf063a3e6BACA37D72353750475D4E70`
 - **Price:** 0.05 ETH
 - **License Terms ID:** 3 (Commercial Remix)
-- **Purchase Page:** [Buy License](https://kase1111-hash.github.io/RRA-Module/marketplace/public/buy-license.html)
+- **Purchase Page:** [Buy License](https://kase1111-hash.github.io/RRA-Module/buy-license.html)
 - **StoryScan:** [View IP Asset](https://www.storyscan.io/token/0xb77ABcfFbf063a3e6BACA37D72353750475D4E70)
 
 ---

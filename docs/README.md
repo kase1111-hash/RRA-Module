@@ -42,7 +42,7 @@ Complete documentation for the Revenant Repo Agent Module.
 - **[Project Evaluation](PROJECT-EVALUATION.md)** - Software and concept-to-execution evaluation
 
 ### User Information
-- **[Buyer Beware](../Buyer-Beware.md)** - Important notice for marketplace users
+- **[Buyer Beware](../Buyer-Beware.md)** - Important notice for license buyers
 - **[FAQ](../FAQ.md)** - Frequently asked questions
 
 ### Strategy & Planning
@@ -53,7 +53,6 @@ Complete documentation for the Revenant Repo Agent Module.
 ### Examples & SDKs
 - **[Examples Directory](../examples/README.md)** - Code examples and demonstrations
 - **[SDKs Directory](../sdks/README.md)** - SDK documentation
-- **[Marketplace](../marketplace/README.md)** - Marketplace frontend documentation
 - **[Contracts](../contracts/README.md)** - Smart contract documentation
 
 ## Documentation Structure
@@ -97,7 +96,6 @@ RRA-Module/
 │   └── Licensing-Reconciliation-Module-update.md  # Dispute resolution
 │
 ├── contracts/                             # Solidity smart contracts (Foundry)
-├── marketplace/                           # Next.js marketplace UI
 ├── sdks/                                  # Mobile SDKs
 ├── examples/                              # Code examples
 └── tests/                                 # Test suite (33+ files, 1,040+ tests)
@@ -158,7 +156,7 @@ RRA-Module/
 - [Pull Request Process](../CONTRIBUTING.md#pull-request-process)
 
 #### For Users/Buyers
-- [Marketplace Notice](../Buyer-Beware.md)
+- [Buyer Notice](../Buyer-Beware.md)
 - [License Purchase Flow](BLOCKCHAIN-LICENSING.md#6-on-chain-transaction)
 - [Access Verification](BLOCKCHAIN-LICENSING.md#verification--trust)
 

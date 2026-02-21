@@ -228,6 +228,8 @@ class ContractManager:
         repo_url: str,
         target_price: str,
         floor_price: str,
+        nonce: bytes,
+        signature: bytes,
         developer_address: str,
         private_key: str,
     ) -> str:
@@ -238,6 +240,8 @@ class ContractManager:
             repo_url: Repository URL
             target_price: Target price (e.g., "0.05 ETH")
             floor_price: Floor price (e.g., "0.02 ETH")
+            nonce: Unique nonce for replay protection
+            signature: Registrar signature authorizing registration
             developer_address: Developer's Ethereum address
             private_key: Private key for signing
 
@@ -299,7 +303,8 @@ class ContractManager:
 
         try:
             tx_hash = self.license_contract.register_repository(
-                repo_url, target_wei, floor_wei, developer_address, private_key
+                repo_url, target_wei, floor_wei, nonce, signature,
+                developer_address, private_key,
             )
             logger.info(f"Repository registered successfully. TX: {tx_hash}")
             return tx_hash

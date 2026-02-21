@@ -4,7 +4,7 @@
 .PHONY: help install test lint build clean
 .PHONY: story-check story-mint story-claim story-debug story-pay
 .PHONY: workflow-license workflow-royalty workflow-derivative
-.PHONY: marketplace-dev marketplace-build docs
+.PHONY: docs
 
 # Default target
 help:
@@ -31,10 +31,6 @@ help:
 	@echo "  workflow-royalty     Run royalty management workflow"
 	@echo "  workflow-derivative  Run derivative tracking workflow"
 	@echo ""
-	@echo "Marketplace:"
-	@echo "  marketplace-dev   Start marketplace in development mode"
-	@echo "  marketplace-build Build marketplace for production"
-	@echo ""
 	@echo "Documentation:"
 	@echo "  docs             Generate documentation"
 	@echo ""
@@ -58,7 +54,6 @@ install-python:
 install-node:
 	@echo "Installing Node.js dependencies..."
 	cd scripts && npm install
-	cd marketplace && npm install
 	@echo "Node.js dependencies installed."
 
 test: test-python test-node
@@ -83,18 +78,15 @@ lint-python:
 lint-node:
 	@echo "Linting JavaScript/TypeScript code..."
 	cd scripts && npm run lint || true
-	cd marketplace && npm run lint || true
 
 build:
 	@echo "Building project..."
 	python -m build || echo "Python build skipped"
-	cd marketplace && npm run build
 
 clean:
 	@echo "Cleaning build artifacts..."
 	rm -rf build/ dist/ *.egg-info/
 	rm -rf .pytest_cache/ .mypy_cache/ .ruff_cache/
-	rm -rf marketplace/.next/ marketplace/out/
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	@echo "Clean complete."
 
@@ -152,22 +144,6 @@ endif
 workflow-derivative:
 	@echo "Running derivative tracking workflow..."
 	node examples/workflows/derivative-tracking-workflow.js
-
-# =============================================================================
-# Marketplace
-# =============================================================================
-
-marketplace-dev:
-	@echo "Starting marketplace in development mode..."
-	cd marketplace && npm run dev
-
-marketplace-build:
-	@echo "Building marketplace for production..."
-	cd marketplace && npm run build
-
-marketplace-start:
-	@echo "Starting marketplace production server..."
-	cd marketplace && npm start
 
 # =============================================================================
 # Documentation

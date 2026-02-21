@@ -247,7 +247,6 @@ def create_app() -> FastAPI:
         allowed_origins = [
             "https://natlangchain.io",
             "https://app.natlangchain.io",
-            "https://marketplace.natlangchain.io",
         ]
 
     # In development, also allow localhost
@@ -388,13 +387,6 @@ def create_app() -> FastAPI:
                 "negotiate": "/api/negotiate",
                 "verify": "/api/verify",
                 "repositories": "/api/repositories",
-                "marketplace": {
-                    "repos": "/api/marketplace/repos",
-                    "featured": "/api/marketplace/featured",
-                    "categories": "/api/marketplace/categories",
-                    "agent_details": "/api/marketplace/agent/{repo_id}/details",
-                    "agent_stats": "/api/marketplace/agent/{repo_id}/stats",
-                },
                 "deep_links": {
                     "generate": "/api/links/generate",
                     "resolve": "/api/links/resolve/{repo_id}",
@@ -737,7 +729,6 @@ def create_app() -> FastAPI:
 
     # Include all API routers
     try:
-        from rra.api.marketplace import router as marketplace_router
         from rra.api.websocket import router as websocket_router
         from rra.api.deep_links import router as deep_links_router
         from rra.api.webhooks import router as webhooks_router
@@ -748,7 +739,6 @@ def create_app() -> FastAPI:
         from rra.api.warnings import router as warnings_router
         from rra.api.verification_api import router as verification_router
 
-        app.include_router(marketplace_router)
         app.include_router(websocket_router)
         app.include_router(deep_links_router)
         app.include_router(webhooks_router)

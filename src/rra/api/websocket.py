@@ -105,6 +105,7 @@ manager = ConnectionManager()
 # Short-lived WebSocket token store (token -> {created, ttl_seconds})
 _ws_tokens: Dict[str, Dict] = {}
 _WS_TOKEN_TTL = 60  # tokens valid for 60 seconds
+_WS_TOKEN_MAX_SIZE = 10_000  # maximum pending tokens before rejecting new ones
 
 
 def _cleanup_ws_tokens() -> None:
@@ -141,7 +142,21 @@ async def get_ws_token(_: bool = Depends(verify_api_key)):
 
     Returns:
         Dict with 'token' (valid for 60 seconds, single-use)
+
+    Raises:
+        HTTPException 429: If the token store is at capacity
     """
+    from fastapi import HTTPException
+
+    # Evict expired tokens before checking capacity
+    _cleanup_ws_tokens()
+
+    if len(_ws_tokens) >= _WS_TOKEN_MAX_SIZE:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many pending WebSocket tokens. Try again shortly.",
+        )
+
     token = secrets.token_urlsafe(32)
     _ws_tokens[token] = {"created": datetime.utcnow(), "ttl_seconds": _WS_TOKEN_TTL}
     return {"token": token, "expires_in": _WS_TOKEN_TTL}
@@ -362,17 +377,30 @@ async def websocket_negotiate(
 
 
 async def load_knowledge_base(repo_id: str) -> Optional[KnowledgeBase]:
-    """Load knowledge base by repo ID."""
+    """Load knowledge base by repo ID.
+
+    Searches both plain JSON and gzip-compressed knowledge base files.
+    """
     from pathlib import Path
+    import gzip
     import hashlib
 
     kb_dir = Path("agent_knowledge_bases")
     if not kb_dir.exists():
         return None
 
-    for kb_file in kb_dir.glob("*_kb.json"):
+    # Search both plain and compressed knowledge bases
+    kb_files = list(kb_dir.glob("*_kb.json")) + list(kb_dir.glob("*_kb.json.gz"))
+
+    for kb_file in kb_files:
         try:
-            kb = KnowledgeBase.load(kb_file)
+            if kb_file.suffix == ".gz":
+                with gzip.open(kb_file, "rt", encoding="utf-8") as f:
+                    data = json.load(f)
+                kb = KnowledgeBase(**data) if isinstance(data, dict) else KnowledgeBase.load(kb_file)
+            else:
+                kb = KnowledgeBase.load(kb_file)
+
             # Generate ID from URL and compare
             normalized = kb.repo_url.lower().strip().rstrip(".git")
             generated_id = hashlib.sha256(normalized.encode()).hexdigest()[:12]

@@ -343,22 +343,6 @@ class TestReDoSPrevention:
         # Should complete in under 1 second
         assert elapsed < 1.0, f"Regex took too long: {elapsed}s (possible ReDoS)"
 
-    def test_marketplace_url_regex_timeout(self):
-        """Marketplace URL regex should not hang on malicious input."""
-        from rra.api.marketplace import parse_repo_url
-
-        # Craft input that could cause catastrophic backtracking
-        malicious_input = "github.com/" + "a" * 10000 + "/" + "b.c.d.e.f." * 1000
-
-        start_time = time.time()
-        try:
-            parse_repo_url(malicious_input)
-        except Exception:
-            pass
-        elapsed = time.time() - start_time
-
-        # Should complete in under 1 second
-        assert elapsed < 1.0, f"Regex took too long: {elapsed}s (possible ReDoS)"
 
 
 # =============================================================================

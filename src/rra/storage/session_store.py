@@ -17,6 +17,7 @@ import os
 import threading
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Dict, Optional, TypeVar, Generic
 
 logger = logging.getLogger(__name__)
@@ -311,21 +312,47 @@ class RedisSessionStore(SessionStore):
         return f"{self.key_prefix}{session_id}"
 
     def _serialize(self, session: SessionData) -> bytes:
-        """Serialize session metadata for Redis storage (JSON-safe, no pickle)."""
+        """Serialize session data for Redis storage (JSON-safe, no pickle).
+
+        If the payload has a `get_state()` method (e.g. NegotiatorAgent),
+        its state is persisted so it can be restored on deserialization.
+        """
         data = {
             "created_at": session.created_at.isoformat(),
             "last_activity": session.last_activity.isoformat(),
             "expiry_hours": session.expiry_hours,
             "metadata": session.metadata,
         }
+
+        # Persist payload state if the payload supports it
+        if session.payload is not None and hasattr(session.payload, "get_state"):
+            try:
+                data["payload_state"] = session.payload.get_state()
+                data["payload_type"] = type(session.payload).__qualname__
+            except Exception as e:
+                logger.warning(f"Failed to serialize payload state: {e}")
+
         return json.dumps(data).encode("utf-8")
 
     def _deserialize(self, data: bytes) -> Optional[SessionData]:
-        """Deserialize session data from Redis (JSON-safe, no pickle)."""
+        """Deserialize session data from Redis (JSON-safe, no pickle).
+
+        If ``payload_state`` is present, the payload is reconstructed via
+        the corresponding class's ``restore_state()`` method.
+        """
         try:
             parsed = json.loads(data.decode("utf-8"))
+
+            # Attempt to reconstruct the payload from saved state
+            payload = None
+            payload_state = parsed.get("payload_state")
+            if payload_state is not None:
+                payload = self._reconstruct_payload(
+                    parsed.get("payload_type"), payload_state
+                )
+
             session = SessionData(
-                payload=None,  # Payload must be reconstructed by caller
+                payload=payload,
                 expiry_hours=parsed.get("expiry_hours", self.default_ttl_hours),
                 metadata=parsed.get("metadata", {}),
             )
@@ -335,6 +362,41 @@ class RedisSessionStore(SessionStore):
         except (json.JSONDecodeError, KeyError, ValueError) as e:
             logger.warning(f"Failed to deserialize session: {e}")
             return None
+
+    @staticmethod
+    def _reconstruct_payload(
+        payload_type: Optional[str], state: Dict[str, Any]
+    ) -> Any:
+        """Reconstruct a payload object from its serialized state.
+
+        Currently supports NegotiatorAgent.  Falls back to returning the
+        raw state dict for unknown types so that callers can still access
+        the data.
+        """
+        if payload_type == "NegotiatorAgent":
+            try:
+                from rra.agents.negotiator import NegotiatorAgent
+                from rra.ingestion.knowledge_base import KnowledgeBase
+
+                # Rebuild a minimal KnowledgeBase from saved metadata
+                kb_meta = state.get("kb_metadata", {})
+                repo_path_str = kb_meta.get("repo_path") or ""
+                kb = KnowledgeBase(
+                    repo_url=kb_meta.get("repo_url", ""),
+                    repo_path=Path(repo_path_str),
+                )
+
+                agent = NegotiatorAgent(knowledge_base=kb)
+                agent.restore_state(state)
+                return agent
+            except Exception as e:
+                logger.warning(
+                    f"Failed to reconstruct NegotiatorAgent: {e}"
+                )
+                return state
+
+        # Unknown payload type – return raw state so caller can handle it
+        return state
 
     def get(self, session_id: str) -> Optional[SessionData]:
         """Retrieve session from Redis."""

@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit
  *     baseUrl = "https://api.natlangchain.io",
  *     apiKey = "your-api-key"
  * )
- * val agents = client.marketplace.listAgents()
+ * val agents = client.agents.listAgents()
  * ```
  */
 class RRAClient(
@@ -48,8 +48,8 @@ class RRAClient(
         prettyPrint = false
     }
 
-    /** Marketplace API client */
-    val marketplace: MarketplaceClient by lazy { MarketplaceClient(this) }
+    /** Agents API client */
+    val agents: AgentsClient by lazy { AgentsClient(this) }
 
     /** Negotiation API client */
     val negotiation: NegotiationClient by lazy { NegotiationClient(this) }

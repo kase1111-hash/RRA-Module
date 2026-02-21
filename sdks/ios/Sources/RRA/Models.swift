@@ -5,7 +5,7 @@ import Foundation
 
 // MARK: - Agent Models
 
-/// Represents an RRA agent in the marketplace.
+/// Represents an RRA licensing agent.
 public struct Agent: Codable, Identifiable, Sendable {
     public let id: String
     public let name: String
@@ -50,7 +50,7 @@ public struct AgentListResponse: Codable, Sendable {
     public let hasMore: Bool
 }
 
-/// Search parameters for marketplace.
+/// Search parameters for agent discovery.
 public struct MarketplaceSearchParams: Encodable {
     public var query: String?
     public var tags: [String]?

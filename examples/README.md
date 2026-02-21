@@ -199,9 +199,6 @@ make workflow-license     # License workflow
 make workflow-royalty     # Royalty workflow
 make workflow-derivative  # Derivative tracking
 
-# Marketplace
-make marketplace-dev   # Start dev server
-make marketplace-build # Production build
 ```
 
 ---
