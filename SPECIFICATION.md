@@ -71,7 +71,6 @@ Transform GitHub into a vibrant marketplace for autonomous code assets, where zo
 - ✅ **AI negotiation agents** functional
 - ✅ **Blockchain licensing framework** implemented
 - ✅ **CLI and API** fully functional
-- ✅ **Marketplace UI** complete with search, filtering, agent details
 - ✅ **Superfluid streaming payments** complete
 - ✅ **Analytics Dashboard** complete with real-time metrics
 - ✅ **Mobile SDKs** (iOS/Android) complete
@@ -240,13 +239,11 @@ GitHub Repository
 #### Description
 A NatLangChain Discovery Dashboard that serves as the primary entry point for buyers. Each repository gets a canonical URL (`natlangchain.io/agent/<repo-id>`) where users can instantly chat with the Negotiator Agent.
 
-#### Implementation (Completed)
-- ✅ Next.js 14 marketplace frontend (`marketplace/`)
-- ✅ Agent discovery and search (`marketplace/src/app/search/page.tsx`)
-- ✅ Agent detail pages (`marketplace/src/app/agent/[id]/page.tsx`)
+#### Implementation (In Progress)
 - ✅ Deep links system (`src/rra/services/deep_links.py`)
-- ✅ API endpoints (`src/rra/api/marketplace.py`, `src/rra/api/deep_links.py`)
+- ✅ API endpoints (`src/rra/api/deep_links.py`)
 - ✅ WebSocket negotiation (`src/rra/api/websocket.py`)
+- ⬚ Frontend (removed; was presentation-only scaffolding — to be rebuilt with real API integration)
 
 #### Implementation Plan
 
@@ -615,7 +612,7 @@ Drop-in JavaScript widget that embeds full negotiation functionality into any we
 #### Current Gap
 - No embeddable component
 - Cannot integrate into existing sites
-- Requires full page navigation to marketplace
+- Requires full page navigation to purchase
 - No white-label options
 
 #### Implementation Plan
@@ -2475,8 +2472,7 @@ natlangchain.io/user/{username}              # Developer profile
 **Status:** 100% Complete
 
 **Implemented Features:**
-1. **Marketplace UI** - ✅ Complete (`marketplace/`)
-2. **Webhook Bridge** - ✅ Complete (`src/rra/api/webhooks.py`, `src/rra/integrations/github_webhooks.py`)
+1. **Webhook Bridge** - ✅ Complete (`src/rra/api/webhooks.py`, `src/rra/integrations/github_webhooks.py`)
 3. **Deep Links System** - ✅ Complete (`src/rra/services/deep_links.py`)
 4. **Embeddable Widget** - ✅ Complete (`src/rra/api/widget.py`)
 5. **Analytics Dashboard** - ✅ Complete (`src/rra/api/analytics.py`)
@@ -3084,7 +3080,7 @@ Implementation Path:
 
 | ID | Issue | File | Effort | Status |
 |----|-------|------|--------|--------|
-| CRIT-001 | Missing Auth - marketplace.py | src/rra/api/marketplace.py | 1 day | ✅ Already had optional_api_key |
+| CRIT-001 | Missing Auth - marketplace.py | src/rra/api/marketplace.py (removed) | N/A | ✅ Module removed |
 | CRIT-002 | Missing Auth - deep_links.py | src/rra/api/deep_links.py | 1 day | ✅ Already had verify_api_key |
 | CRIT-003 | Missing Auth - widget.py | src/rra/api/widget.py | 1 day | ✅ Added origin validation |
 | CRIT-004 | Point Deserialization Curve Validation | src/rra/crypto/pedersen.py | 2 hours | ✅ _is_on_curve() check |
@@ -3308,7 +3304,7 @@ The RRA Module has **Phases 1-5 complete** and is **production-ready**. The crit
 ### Recommended Immediate Actions
 
 **Priority 1 - Critical Security (This Week)**
-1. **CRIT-001 to CRIT-003:** Add authentication to marketplace.py, deep_links.py, widget.py endpoints
+1. **CRIT-001 to CRIT-003:** Add authentication to API endpoints (marketplace.py removed; deep_links.py, widget.py secured)
 2. **CRIT-004:** Add curve validation to Pedersen point deserialization
 3. **CRIT-005:** Add primality verification for Shamir SS prime constant
 

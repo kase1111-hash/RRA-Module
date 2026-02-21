@@ -747,7 +747,7 @@ async def enable_purchases(
     market_config_path: str,
     private_key: str,
     network: str = "mainnet",
-    output_dir: str = "marketplace/public",
+    output_dir: str = "public",
 ) -> Dict[str, Any]:
     """
     Main function to enable purchases for an IP Asset.
@@ -860,7 +860,7 @@ def main():
     )
     parser.add_argument(
         "--output-dir",
-        default="marketplace/public",
+        default="public",
         help="Output directory for generated files",
     )
 

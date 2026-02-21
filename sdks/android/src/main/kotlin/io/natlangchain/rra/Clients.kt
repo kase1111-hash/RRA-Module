@@ -4,18 +4,18 @@
 package io.natlangchain.rra
 
 /**
- * Client for marketplace API operations.
+ * Client for agent discovery API operations.
  */
-class MarketplaceClient internal constructor(private val client: RRAClient) {
+class AgentsClient internal constructor(private val client: RRAClient) {
 
     /**
-     * List agents in the marketplace.
+     * List available agents.
      */
     suspend fun listAgents(
         page: Int = 1,
         pageSize: Int = 20
     ): AgentListResponse = client.get(
-        path = "/api/marketplace/agents",
+        path = "/api/repositories/agents",
         queryParams = mapOf(
             "page" to page.toString(),
             "page_size" to pageSize.toString()
@@ -35,24 +35,24 @@ class MarketplaceClient internal constructor(private val client: RRAClient) {
         params.page?.let { queryParams["page"] = it.toString() }
         params.pageSize?.let { queryParams["page_size"] = it.toString() }
 
-        return client.get(path = "/api/marketplace/search", queryParams = queryParams)
+        return client.get(path = "/api/repositories/search", queryParams = queryParams)
     }
 
     /**
      * Get a specific agent by ID.
      */
-    suspend fun getAgent(id: String): Agent = client.get(path = "/api/marketplace/agents/$id")
+    suspend fun getAgent(id: String): Agent = client.get(path = "/api/repositories/agents/$id")
 
     /**
      * Get featured agents.
      */
-    suspend fun getFeatured(): List<Agent> = client.get(path = "/api/marketplace/featured")
+    suspend fun getFeatured(): List<Agent> = client.get(path = "/api/repositories/featured")
 
     /**
      * Get trending agents.
      */
     suspend fun getTrending(limit: Int = 10): List<Agent> = client.get(
-        path = "/api/marketplace/trending",
+        path = "/api/repositories/trending",
         queryParams = mapOf("limit" to limit.toString())
     )
 }

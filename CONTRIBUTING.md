@@ -92,7 +92,6 @@ RRA-Module/
 │   ├── transaction/      # Two-step verification
 │   └── verification/     # Code verification, blockchain links
 ├── contracts/            # Solidity smart contracts (Foundry)
-├── marketplace/          # Next.js marketplace frontend
 ├── sdks/                 # iOS and Android SDKs
 ├── tests/                # Test suite (42 files, 1,237+ tests)
 ├── scripts/              # Blockchain & automation scripts

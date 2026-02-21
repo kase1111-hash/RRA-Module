@@ -9,7 +9,7 @@ import kotlinx.serialization.Serializable
 // MARK: - Agent Models
 
 /**
- * Represents an RRA agent in the marketplace.
+ * Represents an RRA licensing agent.
  */
 @Serializable
 data class Agent(
@@ -66,7 +66,7 @@ data class AgentListResponse(
 )
 
 /**
- * Search parameters for marketplace.
+ * Search parameters for agent discovery.
  */
 @Serializable
 data class MarketplaceSearchParams(

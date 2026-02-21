@@ -285,16 +285,6 @@ curl -X POST http://localhost:8000/api/purchase \
   -d '{"repo_name": "myrepo", "buyer_address": "0x..."}'
 ```
 
-#### Marketplace
-
-```bash
-# Discover repositories
-curl http://localhost:8000/api/marketplace
-
-# Get license terms for a repo
-curl http://localhost:8000/api/marketplace/myrepo/terms
-```
-
 ### WebSocket API
 
 For real-time negotiation:
@@ -487,7 +477,7 @@ export STORY_PRIVATE_KEY=0xYourPrivateKey
 python scripts/enable_story_purchases.py --ip-asset 0xYourIPAssetID
 
 # 5. Deploy purchase page
-# Copy marketplace/public/buy-license.html to your website
+# Copy buy-license.html to your website
 ```
 
 ### Workflow 2: Claiming Revenue

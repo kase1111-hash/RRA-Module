@@ -3,24 +3,24 @@
 
 import Foundation
 
-// MARK: - Marketplace Client
+// MARK: - Agents Client
 
-/// Client for marketplace API operations.
-public class MarketplaceClient {
+/// Client for agent discovery API operations.
+public class AgentsClient {
     private weak var client: RRAClient?
 
     init(client: RRAClient) {
         self.client = client
     }
 
-    /// List agents in the marketplace.
+    /// List available agents.
     public func listAgents(
         page: Int = 1,
         pageSize: Int = 20
     ) async throws -> AgentListResponse {
         guard let client = client else { throw RRAError.invalidResponse }
         return try await client.get(
-            path: "/api/marketplace/agents",
+            path: "/api/repositories/agents",
             queryItems: [
                 URLQueryItem(name: "page", value: String(page)),
                 URLQueryItem(name: "page_size", value: String(pageSize))
@@ -55,26 +55,26 @@ public class MarketplaceClient {
             queryItems.append(URLQueryItem(name: "page_size", value: String(pageSize)))
         }
 
-        return try await client.get(path: "/api/marketplace/search", queryItems: queryItems)
+        return try await client.get(path: "/api/repositories/search", queryItems: queryItems)
     }
 
     /// Get a specific agent by ID.
     public func getAgent(id: String) async throws -> Agent {
         guard let client = client else { throw RRAError.invalidResponse }
-        return try await client.get(path: "/api/marketplace/agents/\(id)")
+        return try await client.get(path: "/api/repositories/agents/\(id)")
     }
 
     /// Get featured agents.
     public func getFeatured() async throws -> [Agent] {
         guard let client = client else { throw RRAError.invalidResponse }
-        return try await client.get(path: "/api/marketplace/featured")
+        return try await client.get(path: "/api/repositories/featured")
     }
 
     /// Get trending agents.
     public func getTrending(limit: Int = 10) async throws -> [Agent] {
         guard let client = client else { throw RRAError.invalidResponse }
         return try await client.get(
-            path: "/api/marketplace/trending",
+            path: "/api/repositories/trending",
             queryItems: [URLQueryItem(name: "limit", value: String(limit))]
         )
     }

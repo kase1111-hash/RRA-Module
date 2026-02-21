@@ -8,7 +8,7 @@ import Foundation
 /// Example usage:
 /// ```swift
 /// let client = RRAClient(baseURL: "https://api.natlangchain.io", apiKey: "your-api-key")
-/// let agents = try await client.marketplace.listAgents()
+/// let agents = try await client.agents.listAgents()
 /// ```
 public class RRAClient {
 
@@ -31,9 +31,9 @@ public class RRAClient {
 
     // MARK: - Sub-clients
 
-    /// Marketplace API client
-    public lazy var marketplace: MarketplaceClient = {
-        MarketplaceClient(client: self)
+    /// Agents API client
+    public lazy var agents: AgentsClient = {
+        AgentsClient(client: self)
     }()
 
     /// Negotiation API client

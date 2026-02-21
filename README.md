@@ -73,7 +73,7 @@ Autonomous negotiator and buyer agents that conduct multi-turn license negotiati
 ### 3. Blockchain Licensing (`rra.contracts`, `rra.chains`)
 ERC-721 license NFTs with on-chain terms enforcement. Two-step transaction verification. Story Protocol integration for programmable IP licensing.
 
-### 4. API & Marketplace (`rra.api`, `rra.cli`)
+### 4. API & CLI (`rra.api`, `rra.cli`)
 FastAPI server with REST endpoints, WebSocket real-time chat, webhook integration, embeddable widget, and a CLI with 10+ commands.
 
 ## Module Overview

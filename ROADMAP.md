@@ -114,7 +114,7 @@ This is Shopify-for-code, but autonomous.
 
 #### Tech Cost
 
-- Frontend marketplace
+- Agent discovery frontend
 - Agent router
 - Wallet connect (already needed)
 
@@ -124,7 +124,7 @@ This is Shopify-for-code, but autonomous.
 
 This is the most underrated and most powerful step.
 
-**Priority:** Ship alongside or immediately after marketplace links
+**Priority:** Ship alongside or immediately after deep links
 
 #### What This Is
 

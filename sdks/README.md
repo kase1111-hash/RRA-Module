@@ -27,8 +27,8 @@ let client = RRAClient(
     apiKey: "your-api-key"
 )
 
-// List marketplace agents
-let agents = try await client.marketplace.listAgents()
+// List available agents
+let agents = try await client.agents.list()
 
 // Start a negotiation
 let session = try await client.negotiation.start(
@@ -75,8 +75,8 @@ val client = RRAClient(
     apiKey = "your-api-key"
 )
 
-// List marketplace agents
-val agents = client.marketplace.listAgents()
+// List available agents
+val agents = client.agents.list()
 
 // Start a negotiation
 val session = client.negotiation.start(
