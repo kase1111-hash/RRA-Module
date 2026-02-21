@@ -46,7 +46,7 @@ class PriceValidation:
     """
 
     is_valid: bool
-    normalized_price: float
+    normalized_price: Decimal
     currency: str
     display_string: str
     warnings: List[str] = field(default_factory=list)
@@ -78,9 +78,9 @@ class TransactionSafeguards:
     """
 
     # Price thresholds for safeguard levels (in USD equivalent)
-    LOW_THRESHOLD = 50
-    MEDIUM_THRESHOLD = 500
-    HIGH_THRESHOLD = 5000
+    LOW_THRESHOLD = Decimal("50")
+    MEDIUM_THRESHOLD = Decimal("500")
+    HIGH_THRESHOLD = Decimal("5000")
 
     # Stablecoin rates (always 1:1 with USD)
     STABLECOIN_RATES = {
@@ -91,8 +91,8 @@ class TransactionSafeguards:
     }
 
     # Minimum and maximum sane prices
-    MIN_SANE_PRICE = 0.0001
-    MAX_SANE_PRICE = 1000000
+    MIN_SANE_PRICE = Decimal("0.0001")
+    MAX_SANE_PRICE = Decimal("1000000")
 
     # Rate limiting: max transactions per hour
     MAX_TRANSACTIONS_PER_HOUR = 10
@@ -471,7 +471,7 @@ class TransactionSafeguards:
         rate, source = self.get_currency_rate(currency)
         return Decimal(str(amount)) * Decimal(str(rate))
 
-    def _determine_safeguard_level(self, usd_value: float) -> SafeguardLevel:
+    def _determine_safeguard_level(self, usd_value: Decimal) -> SafeguardLevel:
         """Determine safeguard level based on USD value."""
         if usd_value < self.LOW_THRESHOLD:
             return SafeguardLevel.LOW
@@ -482,7 +482,7 @@ class TransactionSafeguards:
         else:
             return SafeguardLevel.CRITICAL
 
-    def _format_display(self, amount: float, currency: str, usd_value: float) -> str:
+    def _format_display(self, amount: Decimal, currency: str, usd_value: Decimal) -> str:
         """Format price for clear display."""
         # Format amount based on currency
         if currency in ["ETH"]:
@@ -502,7 +502,7 @@ class TransactionSafeguards:
 
     def _generate_confirmation_prompt(
         self,
-        amount: float,
+        amount: Decimal,
         currency: str,
         level: SafeguardLevel,
         warnings: List[str],
@@ -534,7 +534,7 @@ class TransactionSafeguards:
         return base
 
     def verify_explicit_confirmation(
-        self, user_input: str, expected_amount: float, expected_currency: str, level: SafeguardLevel
+        self, user_input: str, expected_amount: Decimal, expected_currency: str, level: SafeguardLevel
     ) -> Tuple[bool, str]:
         """
         Verify user's explicit confirmation input.

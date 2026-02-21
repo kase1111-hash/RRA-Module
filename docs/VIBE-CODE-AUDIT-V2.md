@@ -185,12 +185,12 @@ Areas that show signs of AI generation without full human validation:
 
 ### High (address before public beta)
 - [x] **H-002**: Marketplace frontend removed (was presentation-only scaffolding)
-- [ ] **M-003**: Consolidate to a single auth system or clearly document the boundary
+- [x] **M-003**: Removed unused `security/api_auth.py`; canonical auth is `api/auth.py`
 
 ### Medium (address in normal development)
-- [ ] **M-001**: Add size cap and periodic cleanup for `_ws_tokens`
-- [ ] **M-002**: Add `.json.gz` glob support to WebSocket KB loader
-- [ ] **M-004**: Maintain `Decimal` type consistency in safeguards module
+- [x] **M-001**: Add size cap and periodic cleanup for `_ws_tokens`
+- [x] **M-002**: Add `.json.gz` glob support to WebSocket KB loader
+- [x] **M-004**: Maintain `Decimal` type consistency in safeguards module
 
 ### Low (quality improvements)
 - [ ] Remove or flesh out stub modules (`defi/`, `predictions/`, `pricing/`)
