@@ -10,7 +10,7 @@ This script:
 3. Attaches license terms (ID 28437)
 
 Usage:
-    python scripts/mint_and_register_ip.py --private-key 0x...
+    python scripts/mint_and_register_ip.py
 """
 
 import argparse
@@ -137,13 +137,12 @@ IP_ASSET_REGISTRY_ABI = [
 
 def main():
     parser = argparse.ArgumentParser(description="Mint and Register IP Asset")
-    parser.add_argument("--private-key", help="Private key (or set STORY_PRIVATE_KEY)")
     args = parser.parse_args()
 
-    private_key = args.private_key or os.environ.get("STORY_PRIVATE_KEY")
+    private_key = os.environ.get("STORY_PRIVATE_KEY")
     if not private_key:
         print("Error: Private key required")
-        print("Usage: python scripts/mint_and_register_ip.py --private-key 0x...")
+        print("Usage: export STORY_PRIVATE_KEY=0x... && python " + __file__)
         sys.exit(1)
 
     # Connect

@@ -7,7 +7,7 @@ Step 2: Mint and Register IP Asset
 Uses the already-created SPG NFT collection to mint and register an IP Asset.
 
 Usage:
-    python scripts/step2_register_ip.py --private-key 0x...
+    python scripts/step2_register_ip.py
 """
 
 import argparse
@@ -87,10 +87,9 @@ IP_ASSET_REGISTRY_ABI = [
 
 def main():
     parser = argparse.ArgumentParser(description="Step 2: Mint and Register IP Asset")
-    parser.add_argument("--private-key", help="Private key (or set STORY_PRIVATE_KEY)")
     args = parser.parse_args()
 
-    private_key = args.private_key or os.environ.get("STORY_PRIVATE_KEY")
+    private_key = os.environ.get("STORY_PRIVATE_KEY")
     if not private_key:
         print("Error: Private key required")
         sys.exit(1)

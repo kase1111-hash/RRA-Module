@@ -157,17 +157,25 @@ class SecurityConfig:
     rate_limit_requests: int = 100
     rate_limit_window: int = 60  # seconds
 
-    # CORS
+    # CORS — default to empty (must be explicitly configured per environment)
     cors_enabled: bool = True
-    cors_origins: List[str] = field(default_factory=lambda: ["*"])
+    cors_origins: List[str] = field(default_factory=list)
     cors_methods: List[str] = field(default_factory=lambda: ["GET", "POST", "PUT", "DELETE"])
-    cors_headers: List[str] = field(default_factory=lambda: ["*"])
+    cors_headers: List[str] = field(default_factory=lambda: ["Content-Type", "Authorization", "X-API-Key"])
 
     # Secrets
     secrets_backend: str = "env"  # env, file, vault, aws
 
-    # Encryption
+    # Encryption — must be explicitly set when encryption features are used
     encryption_key: str = ""
+
+    def validate_encryption_key(self) -> None:
+        """Raise if encryption_key is empty when encryption is needed."""
+        if not self.encryption_key:
+            raise ValueError(
+                "RRA_ENCRYPTION_KEY must be set. "
+                "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
 
 
 @dataclass
@@ -484,6 +492,9 @@ def _apply_env_overrides(config: EnvironmentConfig) -> EnvironmentConfig:
     if os.environ.get("RRA_CORS_ORIGINS"):
         config.security.cors_origins = os.environ["RRA_CORS_ORIGINS"].split(",")
 
+    if os.environ.get("RRA_ENCRYPTION_KEY"):
+        config.security.encryption_key = os.environ["RRA_ENCRYPTION_KEY"]
+
     if os.environ.get("RRA_SECRETS_BACKEND"):
         config.security.secrets_backend = os.environ["RRA_SECRETS_BACKEND"]
 
@@ -585,6 +596,9 @@ def validate_config(config: EnvironmentConfig) -> List[str]:
 
         if config.cache.backend == "memory":
             issues.append("In-memory cache should not be used in production")
+
+        if config.security.secrets_backend in ("vault", "aws") and not config.security.encryption_key:
+            issues.append("Encryption key must be set when using vault or aws secrets backend")
 
     # General validations
     if config.security.auth_enabled and not config.security.jwt_secret_key:

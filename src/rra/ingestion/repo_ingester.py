@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 from rra.config.market_config import MarketConfig
 from rra.ingestion.knowledge_base import KnowledgeBase
 from rra.exceptions import ValidationError
+from rra.security.input_sanitizer import sanitize_kb_text
 from rra.status.dreaming import get_dreaming_status
 
 
@@ -594,7 +595,9 @@ class RepoIngester:
             if file_path.exists():
                 try:
                     with open(file_path, "r", encoding="utf-8") as f:
-                        docs[doc_file] = f.read()
+                        # Sanitize ingested text to prevent prompt injection
+                        # via malicious content embedded in repository docs
+                        docs[doc_file] = sanitize_kb_text(f.read(), field_name=doc_file)
                 except Exception as e:
                     logger.warning(f"Could not read {doc_file}: {e}")
 

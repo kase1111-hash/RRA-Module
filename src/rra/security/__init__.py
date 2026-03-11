@@ -13,6 +13,11 @@ from rra.security.webhook_auth import (
     rate_limiter,
 )
 
+from rra.security.input_sanitizer import (
+    sanitize_buyer_message,
+    sanitize_kb_text,
+)
+
 from rra.security.logging import (
     SecurityLogger,
     SecurityEventType,
@@ -49,4 +54,7 @@ __all__ = [
     "log_ssrf_blocked",
     "log_injection_blocked",
     "log_suspicious_activity",
+    # Input sanitization
+    "sanitize_buyer_message",
+    "sanitize_kb_text",
 ]

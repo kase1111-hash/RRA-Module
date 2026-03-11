@@ -12,7 +12,7 @@ Usage:
     python scripts/claim_and_unwrap.py
 
 Or with arguments:
-    python scripts/claim_and_unwrap.py --ip-asset 0x... --private-key 0x...
+    STORY_PRIVATE_KEY=0x... python scripts/claim_and_unwrap.py --ip-asset 0x...
 """
 
 import argparse
@@ -107,11 +107,10 @@ WIP_ABI = [
 def main():
     parser = argparse.ArgumentParser(description="Claim royalties and unwrap WIP to native IP")
     parser.add_argument("--ip-asset", default=IP_ASSET_ID, help="IP Asset ID")
-    parser.add_argument("--private-key", help="Private key (or set STORY_PRIVATE_KEY)")
     parser.add_argument("--unwrap-only", action="store_true", help="Only unwrap existing WIP, skip claim")
     args = parser.parse_args()
 
-    private_key = args.private_key or os.environ.get("STORY_PRIVATE_KEY")
+    private_key = os.environ.get("STORY_PRIVATE_KEY")
     if not private_key:
         print("Error: Set STORY_PRIVATE_KEY environment variable")
         print("Usage: set STORY_PRIVATE_KEY=0x... && python scripts/claim_and_unwrap.py")

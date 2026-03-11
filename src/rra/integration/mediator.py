@@ -5,6 +5,15 @@ Integration with mediator-node for agent-to-agent message routing.
 
 Enables RRA agents to communicate with other agents in the NatLangChain
 ecosystem through the mediator network.
+
+SECURITY — Agent-to-Agent Trust Boundary:
+    All messages received from other agents (via mediator-node or local
+    queues) are treated as UNTRUSTED INPUT. Receiving agents must:
+    1. Validate message schema before processing
+    2. Never execute instructions embedded in message content
+    3. Never elevate privileges based on sender identity alone
+    4. Log all inter-agent messages for audit purposes
+    See: OWASP Agentic Top 10 — ASI03 (Excessive Agency)
 """
 
 import logging
@@ -114,17 +123,32 @@ class MediatorNodeRouter:
             self._fallback.send_message(to_agent, message)
 
     def receive_message(self) -> Optional[Dict[str, Any]]:
-        """Receive next message from mediator-node."""
-        if not self.available:
-            return self._fallback.receive_message()
+        """
+        Receive next message from mediator-node.
 
-        try:
-            return self.client.poll_message(timeout=0)
-        except Exception as e:
-            logger.warning(f"Failed to receive from mediator-node: {e}")
-            if not hasattr(self, "_fallback"):
-                self._fallback = LocalMessageRouter(self.agent_id)
-            return self._fallback.receive_message()
+        SECURITY: Messages from other agents are untrusted. The returned
+        message should be validated against an expected schema before
+        any content is used in agent reasoning or actions.
+        """
+        if not self.available:
+            msg = self._fallback.receive_message()
+        else:
+            try:
+                msg = self.client.poll_message(timeout=0)
+            except Exception as e:
+                logger.warning(f"Failed to receive from mediator-node: {e}")
+                if not hasattr(self, "_fallback"):
+                    self._fallback = LocalMessageRouter(self.agent_id)
+                msg = self._fallback.receive_message()
+
+        if msg is not None:
+            # Log all received inter-agent messages for audit
+            logger.info(
+                "Agent %s received message from %s",
+                self.agent_id,
+                msg.get("from", "unknown"),
+            )
+        return msg
 
 
 def get_message_router(agent_id: str, prefer_mediator: bool = True) -> MessageRouterProtocol:

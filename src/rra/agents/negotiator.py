@@ -20,6 +20,7 @@ from rra.config.market_config import NegotiationStyle
 from rra.integration.base import BaseAgent, IntegrationMode
 from rra.exceptions import ConfigurationError
 from rra.agents.intent_parser import IntentParser, IntentType, ParsedIntent
+from rra.security.input_sanitizer import sanitize_buyer_message
 
 
 class NegotiationPhase(str, Enum):
@@ -129,6 +130,9 @@ class NegotiatorAgent(BaseAgent):
         Returns:
             Response from the negotiator
         """
+        # Sanitize buyer input to defend against prompt injection
+        buyer_message = sanitize_buyer_message(buyer_message)
+
         self._log_message("buyer", buyer_message)
 
         # Parse buyer intent

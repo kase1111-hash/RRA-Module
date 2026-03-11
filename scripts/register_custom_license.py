@@ -8,7 +8,7 @@ This script registers new PIL license terms with a custom URI pointing to
 license metadata that includes the custom license name.
 
 Usage:
-    python scripts/register_custom_license.py --private-key 0x...
+    python scripts/register_custom_license.py
 """
 
 import argparse
@@ -92,10 +92,9 @@ LICENSING_MODULE_ABI = [
 
 def main():
     parser = argparse.ArgumentParser(description="Register Custom License Terms")
-    parser.add_argument("--private-key", help="Private key (or set STORY_PRIVATE_KEY)")
     args = parser.parse_args()
 
-    private_key = args.private_key or os.environ.get("STORY_PRIVATE_KEY")
+    private_key = os.environ.get("STORY_PRIVATE_KEY")
     if not private_key:
         print("Error: Private key required")
         sys.exit(1)

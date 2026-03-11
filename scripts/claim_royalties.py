@@ -7,7 +7,7 @@ Claim Royalties from Story Protocol
 Claims pending revenue from your IP Asset's Royalty Vault.
 
 Usage:
-    python scripts/claim_royalties.py --ip-asset 0xYourIPAssetID --private-key $PRIVATE_KEY
+    STORY_PRIVATE_KEY=0x... python scripts/claim_royalties.py --ip-asset 0xYourIPAssetID
 
 Or with environment variables:
     set STORY_PRIVATE_KEY=0x...
@@ -301,9 +301,6 @@ def main():
         default="0xf08574c30337dde7C38869b8d399BA07ab23a07F",
         help="Story Protocol IP Asset ID (address)",
     )
-    parser.add_argument(
-        "--private-key",
-        help="Private key for signing transactions (or use STORY_PRIVATE_KEY env var)",
     )
     parser.add_argument(
         "--network",
@@ -315,9 +312,9 @@ def main():
     args = parser.parse_args()
 
     # Get private key from args or environment
-    private_key = args.private_key or os.environ.get("STORY_PRIVATE_KEY")
+    private_key = os.environ.get("STORY_PRIVATE_KEY")
     if not private_key:
-        print("Error: Private key required. Use --private-key or set STORY_PRIVATE_KEY")
+        print("Error: Set STORY_PRIVATE_KEY environment variable")
         sys.exit(1)
 
     claim_royalties(
