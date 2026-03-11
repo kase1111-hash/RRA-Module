@@ -8,7 +8,7 @@ This script verifies the license minting configuration and can perform
 a test purchase to confirm payment routing.
 
 Usage:
-    python scripts/test_license_purchase.py --private-key 0x... [--mint]
+    python scripts/test_license_purchase.py [--mint]
 """
 
 import argparse
@@ -144,11 +144,10 @@ WIP_TOKEN_ABI = [
 
 def main():
     parser = argparse.ArgumentParser(description="Test License Purchase")
-    parser.add_argument("--private-key", help="Private key")
     parser.add_argument("--mint", action="store_true", help="Actually mint a license (costs 0.005 IP)")
     args = parser.parse_args()
 
-    private_key = args.private_key or os.environ.get("STORY_PRIVATE_KEY")
+    private_key = os.environ.get("STORY_PRIVATE_KEY")
     if not private_key:
         print("Error: Private key required")
         sys.exit(1)
@@ -382,7 +381,7 @@ def main():
     else:
         print("\n" + "-" * 60)
         print("To perform a test mint (costs 0.005 IP), run:")
-        print(f"  python scripts/test_license_purchase.py --private-key 0x... --mint")
+        print(f"  python scripts/test_license_purchase.py --mint")
         print("-" * 60)
 
 

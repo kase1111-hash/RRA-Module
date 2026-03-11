@@ -676,6 +676,11 @@ async def get_widget_script() -> Response:
 
 })();
 """
+    # SECURITY NOTE: Access-Control-Allow-Origin: * is intentional here.
+    # This endpoint serves a static JS loader (no auth tokens, no cookies,
+    # no user-specific data). It functions like a CDN-hosted script and must
+    # be embeddable on any domain. All authenticated operations go through
+    # the widget session token in subsequent API calls, not this endpoint.
     return Response(
         content=script,
         media_type="application/javascript",

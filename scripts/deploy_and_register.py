@@ -7,7 +7,7 @@ Deploy ERC-721 and Register as IP Asset
 Deploys a minimal ERC-721, mints token #1, and registers it as an IP Asset.
 
 Usage:
-    python scripts/deploy_and_register.py --private-key 0x...
+    python scripts/deploy_and_register.py
 """
 
 import argparse
@@ -104,10 +104,9 @@ LICENSING_MODULE_ABI = [
 
 def main():
     parser = argparse.ArgumentParser(description="Deploy NFT and Register as IP Asset")
-    parser.add_argument("--private-key", help="Private key (or set STORY_PRIVATE_KEY)")
     args = parser.parse_args()
 
-    private_key = args.private_key or os.environ.get("STORY_PRIVATE_KEY")
+    private_key = os.environ.get("STORY_PRIVATE_KEY")
     if not private_key:
         print("Error: Private key required")
         sys.exit(1)

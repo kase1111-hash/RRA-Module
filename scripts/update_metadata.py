@@ -8,7 +8,7 @@ This script updates the metadata URIs for an existing IP Asset using the
 CoreMetadataModule contract.
 
 Usage:
-    python scripts/update_metadata.py --private-key 0x...
+    python scripts/update_metadata.py
 """
 
 import argparse
@@ -112,14 +112,13 @@ def fetch_and_hash(url: str) -> tuple[str, bytes]:
 
 def main():
     parser = argparse.ArgumentParser(description="Update IP Asset Metadata")
-    parser.add_argument("--private-key", help="Private key (or set STORY_PRIVATE_KEY)")
     parser.add_argument("--ip-asset", default=IP_ASSET_ID, help="IP Asset ID to update")
     args = parser.parse_args()
 
-    private_key = args.private_key or os.environ.get("STORY_PRIVATE_KEY")
+    private_key = os.environ.get("STORY_PRIVATE_KEY")
     if not private_key:
         print("Error: Private key required")
-        print("Usage: python scripts/update_metadata.py --private-key 0x...")
+        print("Usage: export STORY_PRIVATE_KEY=0x... && python " + __file__)
         sys.exit(1)
 
     # Connect

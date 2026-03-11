@@ -691,7 +691,11 @@ class TestSecurityEdgeCases:
 
     def test_special_characters_in_price(self):
         """Test handling of special characters in price strings."""
-        safeguards = TransactionSafeguards()
+        from decimal import Decimal
+
+        safeguards = TransactionSafeguards(
+            max_tx_value_usd=Decimal("999999999"),
+        )
 
         # Should handle commas
         result = safeguards.validate_price("1,000 ETH")

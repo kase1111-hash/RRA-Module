@@ -8,7 +8,7 @@ Registers a new IP Asset on Story Protocol mainnet using the
 RegistrationWorkflows contract.
 
 Usage:
-    python scripts/register_ip_asset.py --private-key $STORY_PRIVATE_KEY
+    python scripts/register_ip_asset.py
 
 Or with environment variables:
     set STORY_PRIVATE_KEY=0x...
@@ -261,9 +261,6 @@ def main():
     parser = argparse.ArgumentParser(
         description="Register IP Asset with Story Protocol"
     )
-    parser.add_argument(
-        "--private-key",
-        help="Private key for signing transactions (or use STORY_PRIVATE_KEY env var)",
     )
     parser.add_argument(
         "--network",
@@ -275,9 +272,9 @@ def main():
     args = parser.parse_args()
 
     # Get private key from args or environment
-    private_key = args.private_key or os.environ.get("STORY_PRIVATE_KEY")
+    private_key = os.environ.get("STORY_PRIVATE_KEY")
     if not private_key:
-        print("Error: Private key required. Use --private-key or set STORY_PRIVATE_KEY")
+        print("Error: Set STORY_PRIVATE_KEY environment variable")
         sys.exit(1)
 
     register_ip_asset(

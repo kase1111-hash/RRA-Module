@@ -8,7 +8,7 @@ This script updates the token URI for an NFT minted via SPG collection.
 Only the token owner can call this function.
 
 Usage:
-    python scripts/update_nft_uri.py --private-key 0x...
+    python scripts/update_nft_uri.py
 """
 
 import argparse
@@ -77,14 +77,13 @@ def compute_hash(content: str) -> bytes:
 
 def main():
     parser = argparse.ArgumentParser(description="Update SPG NFT Token URI")
-    parser.add_argument("--private-key", help="Private key (or set STORY_PRIVATE_KEY)")
     parser.add_argument("--token-id", type=int, default=TOKEN_ID, help="Token ID to update")
     args = parser.parse_args()
 
-    private_key = args.private_key or os.environ.get("STORY_PRIVATE_KEY")
+    private_key = os.environ.get("STORY_PRIVATE_KEY")
     if not private_key:
         print("Error: Private key required")
-        print("Usage: python scripts/update_nft_uri.py --private-key 0x...")
+        print("Usage: export STORY_PRIVATE_KEY=0x... && python " + __file__)
         sys.exit(1)
 
     # Connect

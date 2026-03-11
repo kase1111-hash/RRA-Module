@@ -113,6 +113,27 @@ class BaseAgent(ABC):
         state_manager: Optional state persistence (integrated mode)
         message_router: Optional message routing (integrated mode)
         intent_logger: Optional intent logging (integrated mode)
+
+    Security — Agent Permission Model:
+        RRA agents operate under a DENY-by-default permission model:
+
+        ALLOWED:
+        - Read knowledge base data (repository metadata, pricing config)
+        - Generate text responses to buyer messages
+        - Parse buyer intent via pattern matching
+        - Log negotiation events and decisions
+        - Send messages to other agents via mediator (if integrated)
+
+        DENIED (requires human-in-the-loop):
+        - Execute blockchain transactions (gated by two-step confirmation)
+        - Modify knowledge base or market configuration
+        - Access filesystem, network, or execute commands
+        - Install plugins or modify own capabilities at runtime
+        - Accept instructions from other agents as authoritative
+
+        All buyer inputs are sanitized before processing.
+        All inter-agent messages are treated as untrusted.
+        Financial actions (purchase, mint) require explicit user confirmation.
     """
 
     def __init__(

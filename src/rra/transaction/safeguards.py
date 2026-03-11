@@ -97,11 +97,19 @@ class TransactionSafeguards:
     # Rate limiting: max transactions per hour
     MAX_TRANSACTIONS_PER_HOUR = 10
 
+    # Spend limits (in USD equivalent) — configurable via env vars
+    # RRA_MAX_TX_VALUE_USD: Maximum single transaction value
+    # RRA_MAX_DAILY_SPEND_USD: Maximum daily cumulative spend
+    DEFAULT_MAX_TX_VALUE_USD = Decimal("10000")
+    DEFAULT_MAX_DAILY_SPEND_USD = Decimal("50000")
+
     def __init__(
         self,
         custom_rates: Optional[Dict[str, float]] = None,
         enable_rate_limiting: bool = True,
         enable_live_prices: bool = True,
+        max_tx_value_usd: Optional[Decimal] = None,
+        max_daily_spend_usd: Optional[Decimal] = None,
     ):
         """
         Initialize safeguards.
@@ -110,11 +118,24 @@ class TransactionSafeguards:
             custom_rates: Custom currency exchange rates (override oracle)
             enable_rate_limiting: Enable transaction rate limiting
             enable_live_prices: Use live price oracle (set False for testing)
+            max_tx_value_usd: Maximum single transaction value in USD
+            max_daily_spend_usd: Maximum daily cumulative spend in USD
         """
+        import os
+
         self.custom_rates = custom_rates or {}
         self.enable_rate_limiting = enable_rate_limiting
         self.enable_live_prices = enable_live_prices
         self.transaction_timestamps: Dict[str, List[datetime]] = {}
+
+        # Spend limits from args, env vars, or defaults
+        self.max_tx_value_usd = max_tx_value_usd or Decimal(
+            os.environ.get("RRA_MAX_TX_VALUE_USD", str(self.DEFAULT_MAX_TX_VALUE_USD))
+        )
+        self.max_daily_spend_usd = max_daily_spend_usd or Decimal(
+            os.environ.get("RRA_MAX_DAILY_SPEND_USD", str(self.DEFAULT_MAX_DAILY_SPEND_USD))
+        )
+        self._daily_spend: Dict[str, List[tuple]] = {}  # buyer_id -> [(datetime, usd_amount)]
 
         # Lazy-loaded price oracle
         self._price_oracle = None
@@ -258,6 +279,14 @@ class TransactionSafeguards:
         elif amount > self.MAX_SANE_PRICE:
             errors.append(f"Price {amount} exceeds maximum allowed ({self.MAX_SANE_PRICE})")
 
+        # Check against per-transaction spend limit
+        usd_value = self._to_usd(amount, currency)
+        if usd_value > self.max_tx_value_usd:
+            errors.append(
+                f"Transaction (~${usd_value:,.2f} USD) exceeds max "
+                f"transaction limit (${self.max_tx_value_usd:,.2f})"
+            )
+
         # Check against floor price
         if floor_price:
             floor_parsed = self._parse_price(floor_price)
@@ -355,15 +384,72 @@ class TransactionSafeguards:
 
         return True, ""
 
-    def record_transaction(self, buyer_id: str) -> None:
-        """Record a transaction for rate limiting.
+    def check_spend_limits(
+        self, buyer_id: str, amount: Decimal, currency: str
+    ) -> Tuple[bool, str]:
+        """
+        Check if a transaction exceeds spend limits.
 
         Args:
             buyer_id: Buyer identifier
+            amount: Transaction amount
+            currency: Currency code
+
+        Returns:
+            Tuple of (allowed, error_message)
         """
+        usd_value = self._to_usd(amount, currency)
+
+        # Check single transaction limit
+        if usd_value > self.max_tx_value_usd:
+            return False, (
+                f"Transaction value (~${usd_value:,.2f} USD) exceeds maximum "
+                f"single transaction limit (${self.max_tx_value_usd:,.2f} USD). "
+                f"Adjust via RRA_MAX_TX_VALUE_USD environment variable."
+            )
+
+        # Check daily cumulative spend
+        now = datetime.utcnow()
+        day_ago = now - timedelta(days=1)
+
+        if buyer_id not in self._daily_spend:
+            self._daily_spend[buyer_id] = []
+
+        # Clean old entries
+        self._daily_spend[buyer_id] = [
+            (ts, amt) for ts, amt in self._daily_spend[buyer_id] if ts > day_ago
+        ]
+
+        daily_total = sum(amt for _, amt in self._daily_spend[buyer_id])
+        if daily_total + usd_value > self.max_daily_spend_usd:
+            return False, (
+                f"Adding ~${usd_value:,.2f} would exceed daily spend limit "
+                f"(${daily_total:,.2f} + ${usd_value:,.2f} > "
+                f"${self.max_daily_spend_usd:,.2f}). "
+                f"Adjust via RRA_MAX_DAILY_SPEND_USD environment variable."
+            )
+
+        return True, ""
+
+    def record_transaction(self, buyer_id: str, amount: Optional[Decimal] = None, currency: Optional[str] = None) -> None:
+        """Record a transaction for rate limiting and spend tracking.
+
+        Args:
+            buyer_id: Buyer identifier
+            amount: Transaction amount (for spend tracking)
+            currency: Currency code (for spend tracking)
+        """
+        now = datetime.utcnow()
         if buyer_id not in self.transaction_timestamps:
             self.transaction_timestamps[buyer_id] = []
-        self.transaction_timestamps[buyer_id].append(datetime.utcnow())
+        self.transaction_timestamps[buyer_id].append(now)
+
+        # Track daily spend
+        if amount is not None and currency is not None:
+            if buyer_id not in self._daily_spend:
+                self._daily_spend[buyer_id] = []
+            usd_value = self._to_usd(amount, currency)
+            self._daily_spend[buyer_id].append((now, usd_value))
 
     def format_confirmation_screen(
         self, transaction_data: Dict[str, Any], time_remaining: int
