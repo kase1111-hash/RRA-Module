@@ -37,7 +37,7 @@ dependencies = [
     "rich>=13.7.0",
     "httpx>=0.25.2",
     "eth-abi>=4.0.0",
-    "eth-utils>=2.3.0",
+    "eth-utils>=5.3.1",
     # Security - pinned to fix CVEs
     "cryptography>=44.0.0",  # Fixes CVE-2023-50782, CVE-2024-0727, PYSEC-2024-225, GHSA-h4gh-qq45-vh27
 ]
