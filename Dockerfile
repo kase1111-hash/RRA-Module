@@ -7,7 +7,7 @@
 # Stage 1: Builder
 # Install dependencies and build the package
 # -----------------------------------------------------------------------------
-FROM python:3.11-slim as builder
+FROM python:3.12-slim as builder
 
 # Set build-time environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -46,12 +46,12 @@ RUN pip install --no-deps .
 # Stage 2: Production
 # Minimal runtime image
 # -----------------------------------------------------------------------------
-FROM python:3.11-slim as production
+FROM python:3.12-slim as production
 
 # Labels
 LABEL org.opencontainers.image.title="RRA-Module" \
       org.opencontainers.image.description="Revenant Repo Agent Module - Transform dormant repos into autonomous licensing agents" \
-      org.opencontainers.image.version="0.1.0-alpha" \
+      org.opencontainers.image.version="1.0.1-beta" \
       org.opencontainers.image.vendor="RRA Contributors" \
       org.opencontainers.image.source="https://github.com/kase1111-hash/RRA-Module"
 
