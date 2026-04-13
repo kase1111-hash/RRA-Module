@@ -54,7 +54,7 @@ dev = [
     "types-PyYAML>=6.0.12",
     "types-requests>=2.31.0",
     # Security - ensure pip is up to date
-    "pip>=25.0",  # Fixes CVE-2025-8869
+    "pip>=26.0.1",  # Fixes CVE-2025-8869
 ]
 
 # NatLangChain ecosystem integration (optional)
