@@ -61,7 +61,7 @@ from rra.contracts.story_protocol import StoryProtocolClient
 # Install with development dependencies
 pip install -e ".[dev]"
 
-# Run tests (1,237 test cases)
+# Run tests (1,000+ test cases)
 pytest
 
 # Run with coverage
@@ -80,7 +80,7 @@ make build
 ## Testing
 
 - **Framework:** pytest with pytest-asyncio
-- **Location:** `tests/` directory (48 test files)
+- **Location:** `tests/` directory (40 test files)
 - **Run all tests:** `pytest`
 - **Integration tests:** `pytest -m integration`
 - **Key fixtures in:** `tests/conftest.py`

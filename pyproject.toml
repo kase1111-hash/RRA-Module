@@ -38,6 +38,8 @@ dependencies = [
     "httpx>=0.28.1",
     "eth-abi>=5.2.0",
     "eth-utils>=6.0.0",
+    # Story Protocol - programmable IP licensing
+    "story-protocol-python-sdk>=0.3.18",
     # Security - pinned to fix CVEs
     "cryptography>=46.0.7",
 ]
