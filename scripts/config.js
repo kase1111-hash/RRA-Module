@@ -25,10 +25,10 @@ const DEFAULTS = {
     rpcUrl: "https://mainnet.storyrpc.io",
     chainId: 1514,
 
-    // Contract Addresses (Story Protocol Mainnet)
+    // Contract Addresses (Story Protocol Mainnet, chain 1514 — same on Aeneid testnet)
     contracts: {
-        licensingModule: "0xd81fd78f557b457b4350cb95d20b547bfeb4d857",
-        pilTemplate: "0x0752b15ee7303033854bde1b32bc7a4008752dc0",
+        licensingModule: "0x04fbd8a2e56dd85CFD5500A4A4DfA955B9f1dE6f",
+        pilTemplate: "0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316",
         royaltyModule: "0xD2f60c40fEbccf6311f8B47c4f2Ec6b040400086",
         ipAssetRegistry: "0x77319B4031e6eF1250907aa00018B8B1c67a244b",
         wipToken: "0x1514000000000000000000000000000000000000",
@@ -158,9 +158,12 @@ function loadConfig() {
 
     // Extract from .market.yaml if available
     if (marketYaml) {
-        // Story Protocol settings
-        if (marketYaml.defi_integrations?.story_protocol) {
-            const sp = marketYaml.defi_integrations.story_protocol;
+        // Story Protocol settings (canonical key: protocol_integrations;
+        // defi_integrations accepted for backwards compatibility)
+        const sp =
+            marketYaml.protocol_integrations?.story_protocol ||
+            marketYaml.defi_integrations?.story_protocol;
+        if (sp) {
 
             if (sp.ip_asset_id) {
                 config.ipAssetId = sp.ip_asset_id;

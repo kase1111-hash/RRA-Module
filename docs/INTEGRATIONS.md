@@ -61,13 +61,10 @@ The RRA Module is designed as a **first-class NatLangChain extension** that work
 
 #### 1. memory-vault - State Persistence
 ```python
-from rra.agents.negotiator import NegotiatorAgent
+from rra.integration.base import BaseAgent
 
-# Standalone: Uses local file storage
-agent = NegotiatorAgent(kb)
-
-# Integrated: Uses memory-vault
-agent = NegotiatorAgent(kb, integrated=True)
+# Standalone: uses local file storage; integrated: persists to memory-vault
+agent = BaseAgent(agent_id="rra_agent", integrated=True)
 agent.save_state()  # Persists to memory-vault
 ```
 
@@ -98,9 +95,9 @@ router.send_message(
 
 #### 4. IntentLog - Decision Auditing
 ```python
-agent = NegotiatorAgent(kb, integrated=True)
-agent.log_intent("negotiate_price", {"proposed": "0.03 ETH"})
-agent.log_decision("accept_offer", {"final_price": "0.04 ETH"})
+agent = BaseAgent(agent_id="rra_agent", integrated=True)
+agent.log_intent("license_purchase", {"price": "0.005 IP"})
+agent.log_decision("license_minted", {"license_terms_id": 28437})
 ```
 
 ---

@@ -28,17 +28,16 @@ pip install rra-module
 # 2. Create configuration in your repo root
 cat > .market.yaml << 'EOF'
 license_model: "perpetual"
-target_price: "0.05 ETH"
-floor_price: "0.02 ETH"
-negotiation_style: "concise"
+target_price: "0.05 IP"
+floor_price: "0.02 IP"
 EOF
 
 # 3. Initialize and ingest your repo
 rra init
 rra ingest https://github.com/youruser/yourrepo
 
-# 4. Start the negotiation agent
-rra agent
+# 4. Generate purchase links
+rra purchase-link https://github.com/youruser/yourrepo --wallet 0xYourWallet
 ```
 
 ---
@@ -108,9 +107,7 @@ target_price: "0.05 ETH"        # Your asking price
 floor_price: "0.02 ETH"         # Minimum you'll accept
 ceiling_price: "0.15 ETH"       # Maximum (for premium features)
 
-# === Negotiation ===
-negotiation_style: "concise"    # concise | persuasive | strict | adaptive
-negotiation_rounds_max: 5
+# === Licensing Options ===
 allow_custom_fork_rights: true
 
 # === Updates ===
@@ -128,7 +125,7 @@ blockchain:
     community: 1
 
 # === Story Protocol ===
-defi_integrations:
+protocol_integrations:
   story_protocol:
     enabled: true
     network: "mainnet"
@@ -144,17 +141,6 @@ defi_integrations:
     derivative_royalty_percentage: 0.09  # 9%
 ```
 
-### Negotiation Styles
-
-| Style | Behavior |
-|-------|----------|
-| `concise` | Quick, to-the-point responses. Fast deal closure. |
-| `persuasive` | Highlights repo strengths, upsells premium features |
-| `strict` | No negotiations below floor price, minimal concessions |
-| `adaptive` | Learns from buyer behavior, adjusts approach dynamically |
-
----
-
 ## CLI Commands
 
 ### Core Commands
@@ -165,9 +151,6 @@ rra init [--config .market.yaml]
 
 # Ingest repository and build knowledge base
 rra ingest <repo_url> [--verify] [--categorize]
-
-# Start interactive negotiation agent
-rra agent [--repo <repo_name>]
 
 # List all ingested repositories
 rra list
@@ -254,21 +237,23 @@ curl http://localhost:8000/api/repositories
 curl http://localhost:8000/api/repository/myrepo
 ```
 
-#### Negotiation
+#### Purchase Links
 
 ```bash
-# Start negotiation session
-curl -X POST http://localhost:8000/api/negotiate/start \
+# Generate all purchase links for a repository
+curl -X POST http://localhost:8000/api/links/generate \
   -H "Content-Type: application/json" \
-  -d '{"repo_name": "myrepo"}'
+  -H "X-API-Key: $RRA_API_KEY" \
+  -d '{"repo_url": "https://github.com/user/repo"}'
 
-# Send negotiation message
-curl -X POST http://localhost:8000/api/negotiate/message \
+# Register a repository with its on-chain details
+curl -X POST http://localhost:8000/api/links/register \
   -H "Content-Type: application/json" \
-  -d '{"session_id": "abc123", "message": "I want to buy a license"}'
+  -H "X-API-Key: $RRA_API_KEY" \
+  -d '{"repo_url": "https://github.com/user/repo", "ip_asset_id": "0xYourIPAssetID", "license_terms_id": 28437, "network": "mainnet"}'
 
-# Get negotiation summary
-curl http://localhost:8000/api/negotiate/summary/abc123
+# Get an embeddable buy button
+curl http://localhost:8000/api/links/embed/<repo_id>
 ```
 
 #### License Verification
@@ -285,25 +270,11 @@ curl -X POST http://localhost:8000/api/purchase \
   -d '{"repo_name": "myrepo", "buyer_address": "0x..."}'
 ```
 
-### WebSocket API
-
-For real-time negotiation:
-
-```javascript
-const ws = new WebSocket('ws://localhost:8000/ws/negotiate/session123');
-
-ws.onmessage = (event) => {
-  const response = JSON.parse(event.data);
-  console.log('Agent:', response.message);
-};
-
-ws.send(JSON.stringify({ message: "I want to buy a license" }));
-```
-
 ### Python SDK
 
 ```python
-from rra import MarketConfig, RepoIngester, NegotiatorAgent
+from rra import MarketConfig, RepoIngester
+from rra.services.deep_links import DeepLinkService
 
 # Load configuration
 config = MarketConfig.from_yaml(".market.yaml")
@@ -312,17 +283,14 @@ config = MarketConfig.from_yaml(".market.yaml")
 ingester = RepoIngester(workspace_dir="./workspace")
 knowledge_base = ingester.ingest_repo("https://github.com/user/repo")
 
-# Start negotiation
-agent = NegotiatorAgent(knowledge_base)
-session_id = agent.start_negotiation()
-
-# Conduct negotiation
-response = agent.respond("I'm interested in buying a license")
-print(response)
-
-# Get summary
-summary = agent.get_negotiation_summary()
-print(f"Current offer: {summary['current_price']}")
+# Generate purchase links
+links = DeepLinkService()
+links.register_repo(
+    "https://github.com/user/repo",
+    metadata={"ip_asset_id": "0xYourIPAssetID", "license_terms_id": 28437},
+)
+print(links.get_purchase_url("https://github.com/user/repo"))
+print(links.generate_badge_markdown("https://github.com/user/repo"))
 ```
 
 ---
@@ -333,11 +301,11 @@ print(f"Current offer: {summary['current_price']}")
 
 1. **Register on Story Protocol** using their app: https://app.story.foundation
 
-2. **Get your IP Asset ID** after registration (e.g., `0xb77ABcfFbf063a3e6BACA37D72353750475D4E70`)
+2. **Get your IP Asset ID** after registration (e.g., `0xf08574c30337dde7C38869b8d399BA07ab23a07F`)
 
 3. **Update your .market.yaml**:
    ```yaml
-   defi_integrations:
+   protocol_integrations:
      story_protocol:
        enabled: true
        ip_asset_id: "0xYourIPAssetID"
@@ -461,9 +429,8 @@ cd yourrepo
 # 2. Create market configuration
 cat > .market.yaml << 'EOF'
 license_model: "perpetual"
-target_price: "0.05 ETH"
-floor_price: "0.02 ETH"
-negotiation_style: "concise"
+target_price: "0.05 IP"
+floor_price: "0.02 IP"
 blockchain:
   wallets:
     developer: "0xYourWalletAddress"
@@ -610,8 +577,8 @@ export STORY_RPC_URL=https://rpc.ankr.com/story
 
 | Contract | Address |
 |----------|---------|
-| Licensing Module | `0xd81fd78f557b457b4350cb95d20b547bfeb4d857` |
-| PIL Template | `0x0752b15ee7303033854bde1b32bc7a4008752dc0` |
+| Licensing Module | `0x04fbd8a2e56dd85CFD5500A4A4DfA955B9f1dE6f` |
+| PIL Template | `0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316` |
 | Royalty Module | `0xD2f60c40fEbccf6311f8B47c4f2Ec6b040400086` |
 | IP Asset Registry | `0x77319B4031e6eF1250907aa00018B8B1c67a244b` |
 | WIP Token | `0x1514000000000000000000000000000000000000` |

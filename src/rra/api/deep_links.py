@@ -4,9 +4,9 @@
 Deep Links API endpoints for RRA Module.
 
 Provides REST API endpoints for:
-- Generating deep links for repositories
+- Generating purchase links for repositories
 - Resolving repo IDs to repository info
-- Getting badges and embed codes
+- Getting badges and embeddable buy buttons
 - QR code generation
 """
 
@@ -16,7 +16,6 @@ from pydantic import BaseModel
 
 from rra.api.auth import verify_api_key, optional_api_key
 from rra.services.deep_links import DeepLinkService
-
 
 router = APIRouter(prefix="/api/links", tags=["deep-links"])
 
@@ -31,29 +30,29 @@ class GenerateLinksRequest(BaseModel):
 
 class LinksResponse(BaseModel):
     repo_id: str
-    agent_page: str
-    chat_direct: str
-    license_individual: str
-    license_team: str
+    purchase_page: str
+    explorer_url: Optional[str] = None
+    license_standard: str
+    license_premium: str
     license_enterprise: str
     qr_code: str
     qr_code_svg: str
     badge_markdown: str
     badge_html: str
-    embed_script: str
+    embed_button: str
 
 
 class ResolveResponse(BaseModel):
     repo_url: str
     created_at: str
-    agent_active: bool
+    active: bool
     metadata: dict = {}
 
 
 class BadgeRequest(BaseModel):
     repo_url: str
     style: str = "flat"
-    label: str = "License This Repo"
+    label: str = "Buy License"
 
 
 class BadgeResponse(BaseModel):
@@ -73,6 +72,9 @@ class RegisterRepoRequest(BaseModel):
     owner: Optional[str] = None
     name: Optional[str] = None
     description: Optional[str] = None
+    ip_asset_id: Optional[str] = None
+    license_terms_id: Optional[int] = None
+    network: Optional[str] = None
 
 
 class RegisterRepoResponse(BaseModel):
@@ -87,7 +89,7 @@ async def generate_links(
     _auth: bool = Depends(verify_api_key),
 ) -> LinksResponse:
     """
-    Generate all deep links for a repository.
+    Generate all purchase links for a repository.
 
     Returns:
         All available link types for the repository
@@ -118,9 +120,11 @@ async def resolve_repo_id(
     return ResolveResponse(
         repo_url=mapping["repo_url"],
         created_at=mapping["created_at"],
-        agent_active=mapping.get("agent_active", True),
+        active=mapping.get("active", mapping.get("agent_active", True)),
         metadata={
-            k: v for k, v in mapping.items() if k not in ("repo_url", "created_at", "agent_active")
+            k: v
+            for k, v in mapping.items()
+            if k not in ("repo_url", "created_at", "active", "agent_active")
         },
     )
 
@@ -133,7 +137,9 @@ async def register_repo(
     """
     Register a repository for deep linking.
 
-    This creates a permanent mapping from repo ID to URL and returns all generated links.
+    This creates a permanent mapping from repo ID to URL and returns all
+    generated links. Passing ip_asset_id / license_terms_id / network makes
+    purchase links target the registered Story Protocol IP asset directly.
 
     Args:
         request: Repository URL and optional metadata
@@ -148,6 +154,12 @@ async def register_repo(
         metadata["name"] = request.name
     if request.description:
         metadata["description"] = request.description
+    if request.ip_asset_id:
+        metadata["ip_asset_id"] = request.ip_asset_id
+    if request.license_terms_id:
+        metadata["license_terms_id"] = request.license_terms_id
+    if request.network:
+        metadata["network"] = request.network
 
     repo_id = link_service.register_repo(request.repo_url, metadata)
     links = link_service.get_all_links(request.repo_url)
@@ -188,9 +200,9 @@ async def generate_badge(
     """
     from urllib.parse import quote
 
-    link_service.get_agent_url(request.repo_url)
     badge_url = (
-        f"https://img.shields.io/badge/{quote(request.label)}-RRA-blue?style={request.style}"
+        f"https://img.shields.io/badge/{quote(request.label)}-Story_Protocol-6366f1"
+        f"?style={request.style}"
     )
 
     return BadgeResponse(
@@ -216,25 +228,18 @@ async def get_qr_code(
         size: QR code size (50-1000 pixels)
 
     Returns:
-        URLs to PNG and SVG QR codes
+        URLs to PNG and SVG QR codes encoding the purchase page URL
     """
-    # Resolve repo_id to URL first
-    mapping = link_service.resolve_repo_id(repo_id)
-    if mapping:
-        repo_url = mapping["repo_url"]
-    else:
-        # If not registered, construct URL from ID
-        # This allows QR codes for any repo_id
-        repo_url = repo_id
-
     from urllib.parse import quote
 
-    agent_url = (
-        link_service.get_agent_url(repo_url)
-        if mapping
-        else f"{link_service.base_url}/agent/{repo_id}"
-    )
-    encoded_url = quote(agent_url)
+    mapping = link_service.resolve_repo_id(repo_id)
+    if mapping:
+        purchase_url = link_service.get_purchase_url(mapping["repo_url"])
+    else:
+        # Not registered: the purchase page can still resolve by repo ID
+        purchase_url = f"{link_service.base_url}?repo={repo_id}"
+
+    encoded_url = quote(purchase_url, safe="")
 
     return QRCodeResponse(
         png_url=f"https://api.qrserver.com/v1/create-qr-code/?size={size}x{size}&data={encoded_url}",
@@ -249,41 +254,32 @@ async def get_embed_code(
     _auth: Optional[bool] = Depends(optional_api_key),
 ) -> dict:
     """
-    Get embeddable widget code for a repository.
+    Get an embeddable buy button for a repository.
 
     Args:
         repo_id: Repository ID
 
     Returns:
-        JavaScript and HTML embed codes
+        HTML buy-button embed code linking to the purchase page
     """
     mapping = link_service.resolve_repo_id(repo_id)
-    base_url = link_service.base_url
 
-    js_embed = f"""<!-- RRA Negotiation Widget -->
-<div id="rra-widget-{repo_id}"></div>
-<script src="{base_url}/embed.js" data-repo-id="{repo_id}"></script>"""
-
-    iframe_embed = f"""<!-- RRA Negotiation iFrame -->
-<iframe
-  src="{base_url}/agent/{repo_id}/embed"
-  width="400"
-  height="600"
-  frameborder="0"
-  style="border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);"
-></iframe>"""
-
-    button_html = f"""<!-- RRA License Button -->
-<a href="{base_url}/agent/{repo_id}"
-   style="display: inline-block; padding: 12px 24px; background: #3b82f6; color: white; text-decoration: none; border-radius: 6px; font-weight: 500;">
-  License This Repository
-</a>"""
+    if mapping:
+        button_html = link_service.generate_embed_button(mapping["repo_url"])
+        purchase_url = link_service.get_purchase_url(mapping["repo_url"])
+    else:
+        purchase_url = f"{link_service.base_url}?repo={repo_id}"
+        button_html = (
+            f'<a href="{purchase_url}" target="_blank" rel="noopener noreferrer" '
+            'style="display: inline-block; padding: 12px 24px; background: #6366f1; '
+            'color: white; text-decoration: none; border-radius: 6px; font-weight: 500;">'
+            "Buy License</a>"
+        )
 
     return {
         "repo_id": repo_id,
-        "js_embed": js_embed,
-        "iframe_embed": iframe_embed,
         "button_html": button_html,
+        "purchase_url": purchase_url,
         "repo_url": mapping["repo_url"] if mapping else None,
     }
 

@@ -5,11 +5,9 @@ FastAPI server for RRA Module.
 
 Provides REST API endpoints for:
 - Repository ingestion
-- Agent management
-- Negotiation sessions
 - License verification
-- Marketplace discovery (NEW)
-- WebSocket real-time chat (NEW)
+- Purchase link generation (deep links)
+- Analytics and verification
 """
 
 import logging
@@ -38,7 +36,6 @@ from rra.api.auth import (
     generate_session_id,
     SESSION_EXPIRY_HOURS,
 )
-
 
 # =============================================================================
 # Security Utilities
@@ -133,7 +130,6 @@ def sanitize_error_message(error: Exception) -> str:
 
 
 from rra.ingestion.knowledge_base import KnowledgeBase
-from rra.agents.negotiator import NegotiatorAgent
 
 
 # Request/Response models
@@ -147,22 +143,6 @@ class IngestResponse(BaseModel):
     repo_url: str
     kb_path: str
     summary: Dict[str, Any]
-
-
-class NegotiationRequest(BaseModel):
-    kb_path: str
-    message: Optional[str] = None
-
-
-class NegotiationMessageRequest(BaseModel):
-    session_id: str
-    message: str
-
-
-class NegotiationResponse(BaseModel):
-    message: str
-    phase: str
-    session_id: str
 
 
 class LicenseVerifyRequest(BaseModel):
@@ -189,28 +169,6 @@ def get_session(session_id: str) -> Optional[SessionData]:
     """
     store = get_session_store()
     return store.get(session_id)
-
-
-def create_session(agent: NegotiatorAgent, metadata: Optional[Dict[str, Any]] = None) -> str:
-    """
-    Create a new session with the given agent.
-
-    Args:
-        agent: NegotiatorAgent instance
-        metadata: Optional session metadata
-
-    Returns:
-        Generated session ID
-    """
-    store = get_session_store()
-    session_id = generate_session_id()
-    session = SessionData(
-        payload=agent,
-        expiry_hours=SESSION_EXPIRY_HOURS,
-        metadata=metadata or {},
-    )
-    store.set(session_id, session)
-    return session_id
 
 
 def cleanup_expired_sessions() -> None:
@@ -297,9 +255,8 @@ def create_app() -> FastAPI:
             # Prevent MIME type sniffing
             response.headers["X-Content-Type-Options"] = "nosniff"
 
-            # Prevent clickjacking (except for widget endpoints that need embedding)
-            if not request.url.path.startswith("/api/widget"):
-                response.headers["X-Frame-Options"] = "DENY"
+            # Prevent clickjacking
+            response.headers["X-Frame-Options"] = "DENY"
 
             # Enable XSS protection in older browsers
             response.headers["X-XSS-Protection"] = "1; mode=block"
@@ -329,12 +286,7 @@ def create_app() -> FastAPI:
                     o.strip() for o in cors_env.split(",") if o.strip()
                 )
 
-            # Allow frame-ancestors for widget embed paths
-            if request.url.path.startswith("/api/widget"):
-                widget_origins = os.environ.get("RRA_WIDGET_ORIGINS", "'self'")
-                frame_ancestors = widget_origins
-            else:
-                frame_ancestors = "'none'"
+            frame_ancestors = "'none'"
 
             csp_directives = [
                 "default-src 'self'",
@@ -384,7 +336,6 @@ def create_app() -> FastAPI:
             "version": "1.0.1-beta",
             "endpoints": {
                 "ingest": "/api/ingest",
-                "negotiate": "/api/negotiate",
                 "verify": "/api/verify",
                 "repositories": "/api/repositories",
                 "deep_links": {
@@ -396,14 +347,6 @@ def create_app() -> FastAPI:
                     "embed": "/api/links/embed/{repo_id}",
                     "stats": "/api/links/stats",
                 },
-                "webhooks": {
-                    "trigger": "/webhook/{agent_id}",
-                    "session_status": "/webhook/session/{session_id}",
-                    "session_messages": "/webhook/session/{session_id}/messages",
-                    "send_message": "/webhook/session/{session_id}/message",
-                    "credentials": "/webhook/credentials",
-                    "rate_limit": "/webhook/rate-limit/{agent_id}",
-                },
                 "streaming": {
                     "create": "/api/streaming/create",
                     "activate": "/api/streaming/activate/{license_id}",
@@ -412,16 +355,6 @@ def create_app() -> FastAPI:
                     "access": "/api/streaming/access/{license_id}",
                     "tokens": "/api/streaming/tokens",
                     "stats": "/api/streaming/stats",
-                },
-                "websocket": "/ws/negotiate/{repo_id}",
-                "widget": {
-                    "init": "/api/widget/init",
-                    "embed_js": "/api/widget/embed.js",
-                    "message": "/api/widget/message",
-                    "config": "/api/widget/config/{widget_id}",
-                    "event": "/api/widget/event",
-                    "analytics": "/api/widget/analytics/{agent_id}",
-                    "demo": "/api/widget/demo",
                 },
                 "analytics": {
                     "overview": "/api/analytics/overview",
@@ -471,115 +404,6 @@ def create_app() -> FastAPI:
             # Sanitize error message to prevent information disclosure
             logger.error(f"Repository ingestion failed for {request.repo_url}: {e}")
             raise HTTPException(status_code=500, detail=sanitize_error_message(e))
-
-    @app.post("/api/negotiate/start", response_model=NegotiationResponse)
-    async def start_negotiation(
-        request: NegotiationRequest,
-        authenticated: bool = Depends(verify_api_key),
-    ):
-        """
-        Start a new negotiation session.
-
-        Creates a negotiation agent and returns its introduction.
-        Requires API key authentication.
-        """
-        logger.info(f"Starting negotiation for KB: {request.kb_path}")
-        try:
-            # Cleanup expired sessions periodically
-            cleanup_expired_sessions()
-
-            # Security: Validate kb_path to prevent path traversal
-            if not validate_kb_path(request.kb_path):
-                logger.warning(f"Invalid knowledge base path rejected: {request.kb_path}")
-                raise HTTPException(status_code=400, detail="Invalid knowledge base path")
-
-            # Load knowledge base
-            kb = KnowledgeBase.load(Path(request.kb_path))
-
-            # Create negotiator
-            negotiator = NegotiatorAgent(kb)
-
-            # Start negotiation
-            intro = negotiator.start_negotiation()
-
-            # Create session with Redis-backed storage (or in-memory fallback)
-            session_id = create_session(
-                agent=negotiator,
-                metadata={"repo_url": kb.repo_url, "kb_path": str(request.kb_path)},
-            )
-
-            logger.info(f"Negotiation session started: {session_id} for {kb.repo_url}")
-            return NegotiationResponse(
-                message=intro, phase=negotiator.current_phase.value, session_id=session_id
-            )
-
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"Failed to start negotiation for {request.kb_path}: {e}")
-            raise HTTPException(status_code=500, detail=sanitize_error_message(e))
-
-    @app.post("/api/negotiate/message", response_model=NegotiationResponse)
-    async def send_message(
-        request: NegotiationMessageRequest,
-        authenticated: bool = Depends(verify_api_key),
-    ):
-        """
-        Send a message in an active negotiation.
-
-        Requires API key authentication.
-        """
-        store = get_session_store()
-        session = store.get(request.session_id)
-
-        if session is None:
-            logger.warning(f"Message sent to unknown/expired session: {request.session_id[:8]}...")
-            raise HTTPException(status_code=404, detail="Session not found or expired")
-
-        try:
-            # Update last activity
-            store.touch(request.session_id)
-
-            negotiator = session.payload
-            response = negotiator.respond(request.message)
-
-            logger.debug(
-                f"Message processed for session {request.session_id[:8]}..., phase: {negotiator.current_phase.value}"
-            )
-            return NegotiationResponse(
-                message=response, phase=negotiator.current_phase.value, session_id=request.session_id
-            )
-
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"Message processing failed for session {request.session_id[:8]}...: {e}")
-            raise HTTPException(status_code=500, detail=sanitize_error_message(e))
-
-    @app.get("/api/negotiate/summary/{session_id}")
-    async def get_negotiation_summary(
-        session_id: str,
-        authenticated: bool = Depends(verify_api_key),
-    ):
-        """
-        Get summary of a negotiation session.
-
-        Args:
-            session_id: Negotiation session ID
-
-        Returns:
-            Summary including history and current state
-
-        Requires API key authentication.
-        """
-        store = get_session_store()
-        session = store.get(session_id)
-
-        if session is None:
-            raise HTTPException(status_code=404, detail="Session not found or expired")
-
-        store.touch(session_id)
-        return session.payload.get_negotiation_summary()
 
     @app.get("/api/repositories")
     async def list_repositories(
@@ -729,21 +553,15 @@ def create_app() -> FastAPI:
 
     # Include all API routers
     try:
-        from rra.api.websocket import router as websocket_router
         from rra.api.deep_links import router as deep_links_router
-        from rra.api.webhooks import router as webhooks_router
         from rra.api.streaming import router as streaming_router
-        from rra.api.widget import router as widget_router
         from rra.api.analytics import router as analytics_router
         from rra.api.entropy import router as entropy_router
         from rra.api.warnings import router as warnings_router
         from rra.api.verification_api import router as verification_router
 
-        app.include_router(websocket_router)
         app.include_router(deep_links_router)
-        app.include_router(webhooks_router)
         app.include_router(streaming_router)
-        app.include_router(widget_router)
         app.include_router(analytics_router)
         app.include_router(entropy_router)
         app.include_router(warnings_router)

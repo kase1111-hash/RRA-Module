@@ -3,15 +3,16 @@
 """
 Deep Links Service for RRA Module.
 
-Provides URL generation and resolution for:
-- Agent pages
-- Direct negotiation chat links
-- Specific license tier links
-- Search results
-- Category browsing
-- Developer profiles
-- QR code generation
-- README badge generation
+Generates shareable purchase links for repositories licensed on Story
+Protocol. Every link points at a real surface:
+
+- The hosted purchase page (buy-license.html), which reads
+  ``?ipAsset=…&terms=…&network=…`` query parameters and lets a buyer mint
+  a license token in one wallet interaction.
+- The Story Protocol explorer page for the registered IP asset.
+
+Also provides README badge, QR code, and embeddable buy-button generation,
+all targeting the purchase URL.
 """
 
 import hashlib
@@ -24,31 +25,41 @@ from urllib.parse import urlencode, quote
 
 class DeepLinkService:
     """
-    Generate and resolve deep links for RRA agents and repositories.
+    Generate and resolve purchase deep links for RRA repositories.
 
-    URL Structure:
-    - /agent/{repo_id}                    # Agent home page
-    - /agent/{repo_id}/chat               # Direct to negotiation chat
-    - /agent/{repo_id}/license/{tier}     # Specific license tier
-    - /search?q={query}                   # Search results
-    - /category/{category}                # Browse by category
-    - /user/{username}                    # Developer profile
+    Repositories are identified by a short stable ID derived from their
+    URL. Registering a repository can attach its on-chain details
+    (``ip_asset_id``, ``license_terms_id``, ``network``) so generated
+    links carry everything the purchase page needs.
     """
 
-    # Story Protocol testnet explorer (live blockchain infrastructure)
-    # TODO: Switch to mainnet (https://explorer.story.foundation) for production
-    DEFAULT_BASE_URL = "https://aeneid.explorer.story.foundation"
+    # Hosted purchase page (a static buy-license.html served from GitHub
+    # Pages). Override with your own hosting via base_url.
+    DEFAULT_BASE_URL = "https://kase1111-hash.github.io/RRA-Module/buy-license.html"
 
-    def __init__(self, base_url: Optional[str] = None, mappings_path: Optional[Path] = None):
+    # Story Protocol explorers
+    EXPLORER_URLS = {
+        "mainnet": "https://explorer.story.foundation",
+        "testnet": "https://aeneid.explorer.story.foundation",
+    }
+
+    def __init__(
+        self,
+        base_url: Optional[str] = None,
+        mappings_path: Optional[Path] = None,
+        network: str = "mainnet",
+    ):
         """
         Initialize the deep link service.
 
         Args:
-            base_url: Base URL for generated links (default: Story Protocol testnet explorer)
-                      Use https://explorer.story.foundation for mainnet
+            base_url: URL of the hosted purchase page (default: this repo's
+                      GitHub Pages buy-license.html)
             mappings_path: Path to store repo ID mappings (default: agent_knowledge_bases/repo_mappings.json)
+            network: Default Story Protocol network for explorer links
         """
         self.base_url = (base_url or self.DEFAULT_BASE_URL).rstrip("/")
+        self.network = network if network in self.EXPLORER_URLS else "mainnet"
         self.mappings_path = mappings_path or Path("agent_knowledge_bases/repo_mappings.json")
         self._mappings: Dict[str, Dict[str, Any]] = {}
         self._load_mappings()
@@ -93,7 +104,10 @@ class DeepLinkService:
 
         Args:
             repo_url: Repository URL
-            metadata: Optional metadata (owner, name, description, etc.)
+            metadata: Optional metadata. Recognized keys include
+                      ``ip_asset_id``, ``license_terms_id``, and ``network``
+                      (used to enrich purchase links), plus anything else
+                      the caller wants to store (owner, name, description).
 
         Returns:
             Repository ID
@@ -103,7 +117,7 @@ class DeepLinkService:
         self._mappings[repo_id] = {
             "repo_url": repo_url,
             "created_at": datetime.utcnow().isoformat(),
-            "agent_active": True,
+            "active": True,
             **(metadata or {}),
         }
 
@@ -122,86 +136,71 @@ class DeepLinkService:
         """
         return self._mappings.get(repo_id)
 
-    def get_agent_url(self, repo_url: str) -> str:
+    def get_purchase_url(self, repo_url: str, tier: Optional[str] = None) -> str:
         """
-        Get the agent page URL for a repository.
+        Get the purchase page URL for a repository.
+
+        If the repository was registered with on-chain details
+        (ip_asset_id / license_terms_id / network), they are embedded as
+        query parameters so the purchase page targets the right IP asset.
 
         Args:
             repo_url: Repository URL
+            tier: Optional license tier name (e.g. 'standard', 'premium')
 
         Returns:
-            Full agent page URL
+            Full purchase page URL
         """
         repo_id = self.generate_repo_id(repo_url)
-        return f"{self.base_url}/agent/{repo_id}"
+        mapping = self._mappings.get(repo_id, {})
 
-    def get_chat_url(self, repo_url: str) -> str:
-        """
-        Get the direct chat URL for a repository.
+        params: Dict[str, Any] = {"repo": repo_id}
+        if mapping.get("ip_asset_id"):
+            params["ipAsset"] = mapping["ip_asset_id"]
+        if mapping.get("license_terms_id"):
+            params["terms"] = mapping["license_terms_id"]
+        network = mapping.get("network", self.network)
+        if network:
+            params["network"] = network
+        if tier:
+            params["tier"] = tier
 
-        Args:
-            repo_url: Repository URL
-
-        Returns:
-            Full chat URL (opens negotiation immediately)
-        """
-        repo_id = self.generate_repo_id(repo_url)
-        return f"{self.base_url}/agent/{repo_id}/chat"
+        return f"{self.base_url}?{urlencode(params)}"
 
     def get_license_url(self, repo_url: str, tier: str) -> str:
         """
-        Get the license tier URL for a repository.
+        Get the purchase URL for a specific license tier.
 
         Args:
             repo_url: Repository URL
-            tier: License tier name (e.g., 'individual', 'team', 'enterprise')
+            tier: License tier name (e.g., 'standard', 'premium', 'enterprise')
 
         Returns:
-            Full license tier URL
+            Purchase page URL for the tier
+        """
+        return self.get_purchase_url(repo_url, tier=tier)
+
+    def get_explorer_url(self, repo_url: str) -> Optional[str]:
+        """
+        Get the Story Protocol explorer URL for a repository's IP asset.
+
+        Args:
+            repo_url: Repository URL
+
+        Returns:
+            Explorer IPA page URL, or None if no IP asset is registered
         """
         repo_id = self.generate_repo_id(repo_url)
-        return f"{self.base_url}/agent/{repo_id}/license/{quote(tier)}"
-
-    def get_search_url(self, query: str, **filters) -> str:
-        """
-        Get a search URL with optional filters.
-
-        Args:
-            query: Search query
-            **filters: Additional filters (language, price_min, price_max, etc.)
-
-        Returns:
-            Full search URL
-        """
-        params = {"q": query, **filters}
-        return f"{self.base_url}/search?{urlencode(params)}"
-
-    def get_category_url(self, category: str) -> str:
-        """
-        Get a category browse URL.
-
-        Args:
-            category: Category name
-
-        Returns:
-            Full category URL
-        """
-        return f"{self.base_url}/category/{quote(category)}"
-
-    def get_user_url(self, username: str) -> str:
-        """
-        Get a developer profile URL.
-
-        Args:
-            username: Developer username
-
-        Returns:
-            Full user profile URL
-        """
-        return f"{self.base_url}/user/{quote(username)}"
+        mapping = self._mappings.get(repo_id, {})
+        ip_asset_id = mapping.get("ip_asset_id")
+        if not ip_asset_id:
+            return None
+        network = mapping.get("network", self.network)
+        explorer = self.EXPLORER_URLS.get(network, self.EXPLORER_URLS["mainnet"])
+        return f"{explorer}/ipa/{ip_asset_id}"
 
     def generate_badge_markdown(
-        self, repo_url: str, style: str = "flat", label: str = "License This Repo"
+        self, repo_url: str, style: str = "flat", label: str = "Buy License"
     ) -> str:
         """
         Generate a README badge in Markdown format.
@@ -212,15 +211,17 @@ class DeepLinkService:
             label: Badge label text
 
         Returns:
-            Markdown badge code
+            Markdown badge code linking to the purchase page
         """
-        agent_url = self.get_agent_url(repo_url)
+        purchase_url = self.get_purchase_url(repo_url)
         # Use shields.io for badge generation
-        badge_url = f"https://img.shields.io/badge/{quote(label)}-RRA-blue?style={style}"
-        return f"[![{label}]({badge_url})]({agent_url})"
+        badge_url = (
+            f"https://img.shields.io/badge/{quote(label)}-Story_Protocol-6366f1?style={style}"
+        )
+        return f"[![{label}]({badge_url})]({purchase_url})"
 
     def generate_badge_html(
-        self, repo_url: str, style: str = "flat", label: str = "License This Repo"
+        self, repo_url: str, style: str = "flat", label: str = "Buy License"
     ) -> str:
         """
         Generate a README badge in HTML format.
@@ -231,26 +232,32 @@ class DeepLinkService:
             label: Badge label text
 
         Returns:
-            HTML badge code
+            HTML badge code linking to the purchase page
         """
-        agent_url = self.get_agent_url(repo_url)
-        badge_url = f"https://img.shields.io/badge/{quote(label)}-RRA-blue?style={style}"
-        return f'<a href="{agent_url}"><img src="{badge_url}" alt="{label}"></a>'
+        purchase_url = self.get_purchase_url(repo_url)
+        badge_url = (
+            f"https://img.shields.io/badge/{quote(label)}-Story_Protocol-6366f1?style={style}"
+        )
+        return f'<a href="{purchase_url}"><img src="{badge_url}" alt="{label}"></a>'
 
-    def generate_embed_script(self, repo_url: str) -> str:
+    def generate_embed_button(self, repo_url: str, label: str = "Buy License") -> str:
         """
-        Generate an embeddable script tag for websites.
+        Generate an embeddable HTML buy button for websites.
 
         Args:
             repo_url: Repository URL
+            label: Button label text
 
         Returns:
-            JavaScript embed code
+            Self-contained HTML anchor styled as a button
         """
-        repo_id = self.generate_repo_id(repo_url)
-        return f"""<!-- RRA Negotiation Widget -->
-<div id="rra-widget-{repo_id}"></div>
-<script src="{self.base_url}/embed.js" data-repo-id="{repo_id}"></script>"""
+        purchase_url = self.get_purchase_url(repo_url)
+        return (
+            f'<a href="{purchase_url}" target="_blank" rel="noopener noreferrer" '
+            'style="display: inline-block; padding: 12px 24px; background: #6366f1; '
+            'color: white; text-decoration: none; border-radius: 6px; font-weight: 500;">'
+            f"{label}</a>"
+        )
 
     def generate_qr_code_url(self, repo_url: str, size: int = 200) -> str:
         """
@@ -261,10 +268,10 @@ class DeepLinkService:
             size: QR code size in pixels
 
         Returns:
-            URL to QR code image
+            URL to QR code image encoding the purchase page URL
         """
-        agent_url = self.get_agent_url(repo_url)
-        encoded_url = quote(agent_url)
+        purchase_url = self.get_purchase_url(repo_url)
+        encoded_url = quote(purchase_url, safe="")
         # Using QR Server API (free, no auth required)
         return f"https://api.qrserver.com/v1/create-qr-code/?size={size}x{size}&data={encoded_url}"
 
@@ -277,13 +284,13 @@ class DeepLinkService:
             size: QR code size
 
         Returns:
-            URL to SVG QR code
+            URL to SVG QR code encoding the purchase page URL
         """
-        agent_url = self.get_agent_url(repo_url)
-        encoded_url = quote(agent_url)
+        purchase_url = self.get_purchase_url(repo_url)
+        encoded_url = quote(purchase_url, safe="")
         return f"https://api.qrserver.com/v1/create-qr-code/?size={size}x{size}&format=svg&data={encoded_url}"
 
-    def get_all_links(self, repo_url: str) -> Dict[str, str]:
+    def get_all_links(self, repo_url: str) -> Dict[str, Any]:
         """
         Get all available links for a repository.
 
@@ -297,16 +304,16 @@ class DeepLinkService:
 
         return {
             "repo_id": repo_id,
-            "agent_page": self.get_agent_url(repo_url),
-            "chat_direct": self.get_chat_url(repo_url),
-            "license_individual": self.get_license_url(repo_url, "individual"),
-            "license_team": self.get_license_url(repo_url, "team"),
+            "purchase_page": self.get_purchase_url(repo_url),
+            "explorer_url": self.get_explorer_url(repo_url),
+            "license_standard": self.get_license_url(repo_url, "standard"),
+            "license_premium": self.get_license_url(repo_url, "premium"),
             "license_enterprise": self.get_license_url(repo_url, "enterprise"),
             "qr_code": self.generate_qr_code_url(repo_url),
             "qr_code_svg": self.generate_qr_code_svg(repo_url),
             "badge_markdown": self.generate_badge_markdown(repo_url),
             "badge_html": self.generate_badge_html(repo_url),
-            "embed_script": self.generate_embed_script(repo_url),
+            "embed_button": self.generate_embed_button(repo_url),
         }
 
     def get_stats(self) -> Dict[str, Any]:
@@ -316,9 +323,13 @@ class DeepLinkService:
         Returns:
             Dictionary with stats
         """
-        active = sum(1 for m in self._mappings.values() if m.get("agent_active", True))
+        active = sum(
+            1 for m in self._mappings.values() if m.get("active", m.get("agent_active", True))
+        )
+        with_ip_asset = sum(1 for m in self._mappings.values() if m.get("ip_asset_id"))
         return {
             "total_registered": len(self._mappings),
-            "active_agents": active,
-            "inactive_agents": len(self._mappings) - active,
+            "active": active,
+            "inactive": len(self._mappings) - active,
+            "with_ip_asset": with_ip_asset,
         }

@@ -6,8 +6,7 @@ Main CLI entry point for RRA Module.
 Provides commands for:
 - Initializing repositories with .market.yaml
 - Ingesting repositories
-- Starting negotiation sessions
-- Managing agents
+- Generating blockchain purchase links
 """
 
 import json
@@ -28,11 +27,8 @@ from rra.config.market_config import (
     NegotiationStyle,
 )
 from rra.ingestion.repo_ingester import RepoIngester
-from rra.agents.negotiator import NegotiatorAgent
-from rra.agents.buyer import BuyerAgent
 from rra.status.dreaming import get_dreaming_status
 from rra.status.cli_integration import enable_dreaming_output, get_dreaming_summary
-
 
 console = Console()
 
@@ -45,7 +41,7 @@ def cli(ctx, dreaming):
     """
     RRA Module - Revenant Repo Agent
 
-    Transform dormant repositories into autonomous licensing agents.
+    Turn dormant repositories into licensable IP with on-chain purchase links.
     """
     ctx.ensure_object(dict)
     ctx.obj["dreaming"] = dreaming
@@ -111,7 +107,9 @@ def init(
     console.print("\n[bold]Next steps:[/bold]")
     console.print("  1. Review and customize .market.yaml")
     console.print("  2. Run: rra ingest <repo-url> to create knowledge base")
-    console.print("  3. Run: rra agent start <repo-url> to launch negotiation agent")
+    console.print(
+        "  3. Run: rra purchase-link <repo-url> --wallet <address> to generate purchase links"
+    )
 
 
 @cli.command()
@@ -411,92 +409,6 @@ def ingest(
 
 
 @cli.command()
-@click.argument("kb_path", type=click.Path(exists=True, path_type=Path))
-@click.option("--interactive", is_flag=True, help="Start interactive negotiation session")
-@click.option("--simulate", is_flag=True, help="Run simulation with buyer agent")
-def agent(kb_path: Path, interactive: bool, simulate: bool):
-    """
-    Start a negotiation agent for a repository.
-
-    Loads the knowledge base and starts an autonomous negotiation agent.
-    """
-    from rra.ingestion.knowledge_base import KnowledgeBase
-
-    console.print(
-        Panel.fit("[bold blue]Starting Negotiation Agent[/bold blue]", border_style="blue")
-    )
-
-    try:
-        # Load knowledge base
-        with console.status("[bold blue]Loading knowledge base...", spinner="dots"):
-            kb = KnowledgeBase.load(kb_path)
-
-        console.print(f"[green]✓[/green] Loaded: {kb.repo_url}\n")
-
-        # Create negotiator
-        negotiator = NegotiatorAgent(kb)
-
-        if simulate:
-            # Run simulation
-            console.print("[bold]Running negotiation simulation...[/bold]\n")
-
-            buyer = BuyerAgent(name="SimulatedBuyer")
-            buyer.set_budget("0.04 ETH")
-            buyer.add_requirement("API access")
-
-            result = buyer.simulate_negotiation(negotiator, strategy="haggle")
-
-            console.print("\n[bold]Simulation Complete![/bold]")
-            console.print(f"Messages exchanged: {result['messages_exchanged']}")
-
-            # Show history
-            console.print("\n[bold]Negotiation History:[/bold]")
-            for interaction in buyer.get_interaction_history():
-                direction = "→" if interaction["direction"] == "sent" else "←"
-                console.print(f"\n{direction} {interaction['content'][:150]}...")
-
-        elif interactive:
-            # Interactive session
-            console.print("[bold]Starting interactive negotiation session[/bold]")
-            console.print("Type 'quit' to exit\n")
-
-            # Start negotiation
-            intro = negotiator.start_negotiation()
-            console.print(f"[blue]Negotiator:[/blue] {intro}\n")
-
-            while True:
-                # Get user input
-                user_input = console.input("[green]You:[/green] ")
-
-                if user_input.lower() in ["quit", "exit", "q"]:
-                    break
-
-                # Get response
-                response = negotiator.respond(user_input)
-                console.print(f"\n[blue]Negotiator:[/blue] {response}\n")
-
-            # Show summary
-            summary = negotiator.get_negotiation_summary()
-            console.print("\n[bold]Negotiation Summary:[/bold]")
-            console.print(f"Phase: {summary['phase']}")
-            console.print(f"Messages: {summary['message_count']}")
-
-        else:
-            # Just show agent info
-            intro = negotiator.start_negotiation()
-            console.print("[bold]Agent Introduction:[/bold]")
-            console.print(Panel(intro, border_style="blue"))
-
-            console.print("\n[bold]Agent ready![/bold]")
-            console.print("Use --interactive for manual negotiation")
-            console.print("Use --simulate for automated simulation")
-
-    except Exception as e:
-        console.print(f"[red]✗[/red] Failed to start agent: {e}", style="bold red")
-        sys.exit(1)
-
-
-@cli.command()
 @click.option(
     "--workspace", type=click.Path(path_type=Path), default=Path("./agent_knowledge_bases")
 )
@@ -627,15 +539,14 @@ metadata:
 @click.option("--register", is_flag=True, help="Register the repository for permanent linking")
 def links(repo_url: str, output_format: str, register: bool):
     """
-    Generate shareable deep links for a repository.
+    Generate shareable purchase links for a repository.
 
     Creates URLs for:
-    - Agent page (for browsing)
-    - Direct chat (starts negotiation immediately)
+    - Purchase page (buy a license on Story Protocol)
     - License tiers (specific tier purchase)
     - QR codes (for print/sharing)
     - README badges (for documentation)
-    - Embed codes (for websites)
+    - Embeddable buy buttons (for websites)
     """
     from rra.services.deep_links import DeepLinkService
     import json
@@ -666,10 +577,9 @@ def links(repo_url: str, output_format: str, register: bool):
 
 | Type | URL |
 |------|-----|
-| Agent Page | [{all_links['agent_page']}]({all_links['agent_page']}) |
-| Direct Chat | [{all_links['chat_direct']}]({all_links['chat_direct']}) |
-| Individual License | [{all_links['license_individual']}]({all_links['license_individual']}) |
-| Team License | [{all_links['license_team']}]({all_links['license_team']}) |
+| Purchase Page | [{all_links['purchase_page']}]({all_links['purchase_page']}) |
+| Standard License | [{all_links['license_standard']}]({all_links['license_standard']}) |
+| Premium License | [{all_links['license_premium']}]({all_links['license_premium']}) |
 | Enterprise License | [{all_links['license_enterprise']}]({all_links['license_enterprise']}) |
 
 ## QR Code
@@ -685,7 +595,7 @@ def links(repo_url: str, output_format: str, register: bool):
 ## Embed Code
 
 ```html
-{all_links['embed_script']}
+{all_links['embed_button']}
 ```
 """
         console.print(Markdown(md))
@@ -697,10 +607,11 @@ def links(repo_url: str, output_format: str, register: bool):
         table.add_column("URL/Value", style="green")
 
         table.add_row("Repository ID", all_links["repo_id"])
-        table.add_row("Agent Page", all_links["agent_page"])
-        table.add_row("Direct Chat", all_links["chat_direct"])
-        table.add_row("Individual License", all_links["license_individual"])
-        table.add_row("Team License", all_links["license_team"])
+        table.add_row("Purchase Page", all_links["purchase_page"])
+        if all_links.get("explorer_url"):
+            table.add_row("Story Explorer", all_links["explorer_url"])
+        table.add_row("Standard License", all_links["license_standard"])
+        table.add_row("Premium License", all_links["license_premium"])
         table.add_row("Enterprise License", all_links["license_enterprise"])
         table.add_row("QR Code (PNG)", all_links["qr_code"])
 
@@ -711,8 +622,8 @@ def links(repo_url: str, output_format: str, register: bool):
         console.print(Panel(all_links["badge_markdown"], border_style="dim"))
 
         # Embed section
-        console.print("\n[bold]Embed Code (HTML):[/bold]")
-        console.print(Panel(all_links["embed_script"], border_style="dim"))
+        console.print("\n[bold]Buy Button (HTML):[/bold]")
+        console.print(Panel(all_links["embed_button"], border_style="dim"))
 
 
 @cli.command()
@@ -1374,12 +1285,17 @@ def register(
                 raw_config = yaml.safe_load(f)
 
             # Create a MarketConfig with the Story Protocol settings
-            defi = raw_config.get("defi_integrations", {})
-            story_config = defi.get("story_protocol", {})
+            # (canonical key: protocol_integrations; defi_integrations kept
+            # for backwards compatibility)
+            story_config = (
+                raw_config.get("protocol_integrations", {}).get("story_protocol")
+                or raw_config.get("defi_integrations", {}).get("story_protocol")
+                or {}
+            )
 
             if not story_config.get("enabled", False):
                 console.print("\n[yellow]⚠ Story Protocol not enabled in .market.yaml[/yellow]")
-                console.print("  Set defi_integrations.story_protocol.enabled: true")
+                console.print("  Set protocol_integrations.story_protocol.enabled: true")
 
             # Build MarketConfig
             market_config = MarketConfig(
@@ -1495,9 +1411,9 @@ def register(
 
             # Show explorer link
             if network == "mainnet":
-                explorer = f"https://explorer.story.foundation/ip-asset/{result['ip_asset_id']}"
+                explorer = f"https://explorer.story.foundation/ipa/{result['ip_asset_id']}"
             else:
-                explorer = f"https://aeneid.storyscan.xyz/ip-asset/{result['ip_asset_id']}"
+                explorer = f"https://aeneid.explorer.story.foundation/ipa/{result['ip_asset_id']}"
 
             console.print("\n[bold]View on Explorer:[/bold]")
             console.print(f"  {explorer}")

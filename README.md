@@ -4,17 +4,17 @@
 [![Security](https://img.shields.io/badge/security-A--rating-blue)](docs/SECURITY-AUDIT.md)
 [![License](https://img.shields.io/badge/license-FSL--1.1--ALv2-orange)](LICENSE.md)
 [![Python](https://img.shields.io/badge/python-3.9+-blue)](pyproject.toml)
-[![Buy License](https://img.shields.io/badge/Buy_License-10_IP-6366f1)](https://kase1111-hash.github.io/RRA-Module/buy-license.html)
+[![Buy License](https://img.shields.io/badge/Buy_License-0.005_IP-6366f1)](https://kase1111-hash.github.io/RRA-Module/buy-license.html)
 
 ---
 
 ## What is RRA?
 
-**Turn abandoned GitHub repos into autonomous licensing agents.**
+**Turn abandoned GitHub repos into licensable IP with one-click purchase links.**
 
-RRA clones a dormant repository, analyzes it, spawns an AI negotiation agent, and sells licenses as on-chain NFTs. The developer configures a `.market.yaml`, and the agent handles everything: marketing the code, negotiating terms, minting license tokens, and distributing revenue.
+RRA registers a repository as an IP asset on Story Protocol, attaches programmable license terms, and generates frictionless purchase links: a buyer clicks a link, connects a wallet, and mints a license NFT in one transaction. The developer configures a `.market.yaml`; RRA handles registration, link/badge/QR generation, and on-chain royalty distribution.
 
-**One sentence:** Dead code makes money while you sleep.
+**One sentence:** Dead code earns license revenue while you sleep.
 
 ---
 
@@ -24,21 +24,21 @@ This repository is **live on Story Protocol**. Buy a license NFT to use this cod
 
 | | |
 |---|---|
-| **Price** | 10 IP |
+| **Price** | 0.005 IP (read live from the on-chain license terms) |
 | **License Type** | Perpetual, Transferable |
 | **What You Get** | Full source access, commercial use, derivative rights |
 | **Purchase** | **[Buy Now](https://kase1111-hash.github.io/RRA-Module/buy-license.html)** |
-| **Verify on Chain** | [Story Explorer](https://aeneid.explorer.story.foundation/token/0xb77ABcfFbf063a3e6BACA37D72353750475D4E70) |
+| **Verify on Chain** | [Story Explorer](https://explorer.story.foundation/ipa/0xf08574c30337dde7C38869b8d399BA07ab23a07F) |
 
 ---
 
 ## How It Works
 
 ```
-1. Configure   (.market.yaml — pricing, terms, agent personality)
-2. Ingest      (clone repo, parse code, build knowledge base)
-3. Negotiate   (AI agent handles multi-turn license negotiations)
-4. Sell        (mint ERC-721 license NFT, distribute revenue on-chain)
+1. Configure   (.market.yaml — pricing, license terms, Story Protocol settings)
+2. Register    (register the repo as an IP asset with license terms on Story)
+3. Share       (generate purchase links, README badges, QR codes)
+4. Sell        (buyer opens the link and mints a license NFT on-chain)
 ```
 
 ## Quick Start
@@ -53,8 +53,11 @@ rra init /path/to/your-repo
 # Ingest a repository and build its knowledge base
 rra ingest https://github.com/your/repo
 
-# Start the negotiation agent
-rra agent agent_knowledge_bases/repo_kb.json --simulate
+# Generate blockchain purchase links
+rra purchase-link https://github.com/your/repo --wallet 0xYourWallet --network mainnet
+
+# Generate shareable links, badges, and QR codes
+rra links https://github.com/your/repo --register
 
 # Launch the API server
 uvicorn rra.api.server:app --reload
@@ -65,25 +68,25 @@ uvicorn rra.api.server:app --reload
 RRA is focused on four things:
 
 ### 1. Repository Ingestion (`rra.ingestion`)
-Clone repos, parse code across languages, extract dependencies, generate a knowledge base the agent can use to sell the code intelligently.
+Clone repos, parse code across languages, extract dependencies, and verify code quality so buyers know what they are licensing.
 
-### 2. AI Negotiation Agents (`rra.agents`)
-Autonomous negotiator and buyer agents that conduct multi-turn license negotiations. Configurable personality, pricing flexibility, and negotiation strategies.
+### 2. Purchase Links (`rra.services`, `rra.verification`)
+Generate frictionless purchase links, README badges, QR codes, and embeddable buy buttons that point at a hosted purchase page or the Story Protocol explorer.
 
 ### 3. Blockchain Licensing (`rra.contracts`, `rra.chains`)
-ERC-721 license NFTs with on-chain terms enforcement. Two-step transaction verification. Story Protocol integration for programmable IP licensing.
+License NFTs with on-chain terms enforcement. Two-step transaction verification. Story Protocol integration for programmable IP licensing and royalties.
 
 ### 4. API & CLI (`rra.api`, `rra.cli`)
-FastAPI server with REST endpoints, WebSocket real-time chat, webhook integration, embeddable widget, and a CLI with 10+ commands.
+FastAPI server with REST endpoints for link generation and verification, and a CLI covering the full register-and-sell flow.
 
 ## Module Overview
 
 | Layer | Modules | Purpose |
 |-------|---------|---------|
-| **Core** | `config`, `ingestion`, `agents`, `exceptions` | Repo parsing, knowledge base, agent lifecycle |
+| **Core** | `config`, `ingestion`, `exceptions` | Repo parsing, knowledge base, verification |
 | **Blockchain** | `contracts`, `chains`, `transaction`, `oracles` | Smart contracts, multi-chain, tx verification |
 | **Security** | `security`, `crypto`, `privacy` | API auth, Pedersen commitments, viewing keys |
-| **Negotiation** | `negotiation`, `pricing`, `bundling` | Clause hardening, adaptive pricing, bundling |
+| **Pricing** | `pricing`, `bundling` | Adaptive pricing, bundling |
 | **Platform** | `api`, `cli`, `verification`, `services` | REST API, CLI, code verification, deep links |
 | **Governance** | `governance`, `legal`, `reconciliation` | DAO voting, compliance, dispute resolution |
 | **Integration** | `integration`, `integrations`, `identity` | NatLangChain ecosystem, Story Protocol, DID |

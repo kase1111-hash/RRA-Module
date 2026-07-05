@@ -48,13 +48,15 @@ STORY_MAINNET_CONTRACTS = {
     "zero_address": "0x0000000000000000000000000000000000000000",
 }
 
-# Story Protocol Testnet Contract Addresses
+# Story Protocol Testnet (Aeneid) Contract Addresses
+# Story v1.3 uses deterministic deployments: core contracts share the same
+# addresses on mainnet (1514) and Aeneid testnet (1315).
 STORY_TESTNET_CONTRACTS = {
-    "licensing_module": "0xd81fd78f557b457b4350cB95D20b547bFEb4D857",
+    "licensing_module": "0x04fbd8a2e56dd85CFD5500A4A4DfA955B9f1dE6f",
     "pil_template": "0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316",
-    "ip_asset_registry": "0x1a9d0d28a0422F26D31Be72Edc6f13ea4371E11B",
-    "license_registry": "0x529a750E02d8E2f0Be4B0a9e9f6B6b8fB9B8E9F9",
-    "royalty_module": "0x3C27b2D7d30131D4B58C3584FD7c86e104C67883",
+    "ip_asset_registry": "0x77319B4031e6eF1250907aa00018B8B1c67a244b",
+    "license_registry": "0x529a750E02d8E2f15649c13D69a465286a780e24",
+    "royalty_module": "0xD2f60c40fEbccf6311f8B47c4f2Ec6b040400086",
     "royalty_policy_lap": "0xBe54FB168b3c982b7AaE60dB6CF75Bd8447b390E",  # LAP policy
     "wip_token": "0x1514000000000000000000000000000000000000",
     "zero_address": "0x0000000000000000000000000000000000000000",
@@ -115,8 +117,13 @@ def convert_market_yaml_to_pil_terms(market_config: Dict[str, Any]) -> PILTermsC
 
     Maps the market.yaml fields to Story Protocol's PILTerms structure.
     """
-    # Get Story Protocol config section
-    story_config = market_config.get("defi_integrations", {}).get("story_protocol", {})
+    # Get Story Protocol config section (canonical key is protocol_integrations;
+    # defi_integrations is accepted for backwards compatibility)
+    story_config = (
+        market_config.get("protocol_integrations", {}).get("story_protocol")
+        or market_config.get("defi_integrations", {}).get("story_protocol")
+        or {}
+    )
     pil_config = story_config.get("pil_terms", {})
 
     # Parse pricing
@@ -586,7 +593,7 @@ class StoryProtocolPurchaseEnabler:
         <div class="text-center mt-8 text-gray-500">
             <p>License NFT minted on <a href="https://story.foundation" target="_blank" class="text-blue-400 hover:underline">Story Protocol</a></p>
             <p class="text-sm mt-2">
-                <a href="https://www.storyscan.io/token/{ip_asset_id}" target="_blank" class="hover:underline">
+                <a href="https://explorer.story.foundation/ipa/{ip_asset_id}" target="_blank" class="hover:underline">
                     View IP Asset on StoryScan
                 </a>
             </p>
@@ -816,7 +823,7 @@ async def enable_purchases(
     print(f"License Terms ID: {license_terms_id}")
     print(f"Network: {network}")
     print(f"\nBuyer Interface: {interface_path}")
-    print(f"\nStoryScan URL: https://www.storyscan.io/token/{ip_asset_id}")
+    print(f"\nStoryScan URL: https://explorer.story.foundation/ipa/{ip_asset_id}")
     print("\nBuyers can now mint license tokens by:")
     print("  1. Opening the buyer interface HTML file")
     print("  2. Connecting their wallet")
@@ -829,7 +836,7 @@ async def enable_purchases(
         "attach_result": attach_result,
         "terms": terms_result,
         "buyer_interface": interface_path,
-        "storyscan_url": f"https://www.storyscan.io/token/{ip_asset_id}",
+        "storyscan_url": f"https://explorer.story.foundation/ipa/{ip_asset_id}",
     }
 
 
@@ -846,7 +853,6 @@ def main():
         "--market-config",
         default=".market.yaml",
         help="Path to market.yaml configuration file",
-    )
     )
     parser.add_argument(
         "--network",

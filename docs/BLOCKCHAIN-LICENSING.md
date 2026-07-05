@@ -230,7 +230,7 @@ If you have not registered yet, use Story Protocol's tools:
 - Story Protocol App: https://app.story.foundation
 - Or use the SDK programmatically
 
-After registration, you receive an **IP Asset ID** (e.g., `0xb77ABcfFbf063a3e6BACA37D72353750475D4E70`).
+After registration, you receive an **IP Asset ID** (e.g., `0xf08574c30337dde7C38869b8d399BA07ab23a07F`).
 
 Add this to your `.market.yaml`:
 ```yaml
@@ -270,8 +270,8 @@ The buyer now owns an NFT proving they have a license to your code.
 
 | Contract | Address |
 |----------|---------|
-| Licensing Module | `0xd81fd78f557b457b4350cb95d20b547bfeb4d857` |
-| PIL Template | `0x0752b15ee7303033854bde1b32bc7a4008752dc0` |
+| Licensing Module | `0x04fbd8a2e56dd85CFD5500A4A4DfA955B9f1dE6f` |
+| PIL Template | `0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316` |
 | Royalty Module | `0x3C27b2D7d30131D4B58C3584FD7c86e104C67883` |
 | IP Asset Registry | `0x77319B4031e6eF1250907aa00018B8B1c67a244b` |
 
@@ -856,7 +856,7 @@ This repository demonstrates all integration points:
 | **Verification** | `scripts/verify_license.py` | Compliance checking |
 | **Automation** | `.github/workflows/` | Continuous verification |
 | **Smart Contract** | `src/rra/contracts/` | On-chain enforcement |
-| **Agents** | `src/rra/agents/` | Automated negotiation |
+| **Purchase Links** | `src/rra/services/deep_links.py` | Shareable buy links, badges, QR codes |
 | **Documentation** | `LICENSING.md` | Human-readable guide |
 
 ---
@@ -865,11 +865,11 @@ This repository demonstrates all integration points:
 
 This repository is monetized using this exact process:
 
-- **IP Asset:** `0xb77ABcfFbf063a3e6BACA37D72353750475D4E70`
-- **Price:** 0.05 ETH
-- **License Terms ID:** 3 (Commercial Remix)
+- **IP Asset:** `0xf08574c30337dde7C38869b8d399BA07ab23a07F`
+- **Price:** 0.005 IP (defined by the on-chain license terms)
+- **License Terms ID:** 28437 (custom commercial terms, LAP royalty policy)
 - **Purchase Page:** [Buy License](https://kase1111-hash.github.io/RRA-Module/buy-license.html)
-- **StoryScan:** [View IP Asset](https://www.storyscan.io/token/0xb77ABcfFbf063a3e6BACA37D72353750475D4E70)
+- **Story Explorer:** [View IP Asset](https://explorer.story.foundation/ipa/0xf08574c30337dde7C38869b8d399BA07ab23a07F)
 
 ---
 
