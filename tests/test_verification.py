@@ -320,7 +320,7 @@ class TestBlockchainLinkGenerator:
         # Test testnet (default)
         gen = BlockchainLinkGenerator()
         assert gen.network == NetworkType.TESTNET
-        assert "testnet" in gen.marketplace_url
+        assert "aeneid" in gen.explorer_url
 
         # Test mainnet
         gen_mainnet = BlockchainLinkGenerator(network=NetworkType.MAINNET)
@@ -329,7 +329,13 @@ class TestBlockchainLinkGenerator:
         # Test localhost
         gen_local = BlockchainLinkGenerator(network=NetworkType.LOCALHOST)
         assert gen_local.network == NetworkType.LOCALHOST
-        assert "localhost" in gen_local.marketplace_url
+        assert "localhost" in gen_local.explorer_url
+
+        # Custom hosted purchase page
+        gen_custom = BlockchainLinkGenerator(
+            purchase_base_url="https://example.github.io/repo/buy-license.html"
+        )
+        assert gen_custom.purchase_base_url == "https://example.github.io/repo/buy-license.html"
 
     def test_generate_ip_asset_id(self):
         """Test IP Asset ID generation is deterministic."""
@@ -364,9 +370,11 @@ class TestBlockchainLinkGenerator:
             price_eth=0.05,
         )
 
-        assert "purchase" in link.url
+        # Without a hosted purchase page the link targets the Story explorer
+        # IP asset page, where buyers can mint license tokens directly.
+        assert f"/ipa/{ip_asset_id}" in link.url
         assert link.tier == LicenseTier.STANDARD
-        assert link.price_display == "0.05 ETH"
+        assert link.price_display == "0.05 IP"
         assert link.ip_asset_id == ip_asset_id
 
     def test_generate_all_tier_links(self):

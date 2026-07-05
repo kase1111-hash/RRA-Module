@@ -115,7 +115,6 @@ RRA-Module/
 #### AI Agents & Negotiation
 - [Negotiation Agent](../README.md#2-licensing-as-a-service-laas)
 - [Buyer Agent Interface](../README.md#b-buyer-agent-interface)
-- [Agent Workflow](BLOCKCHAIN-LICENSING.md#example-negotiation)
 - [Clause Hardening](Licensing-Reconciliation-Module-update.md) - AI-powered clause improvement
 
 #### Licensing & Legal

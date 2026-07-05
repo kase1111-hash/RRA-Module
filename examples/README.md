@@ -26,7 +26,6 @@ examples/
 │   ├── release-license.yml
 │   └── royalty-report.yml
 ├── story_protocol_example.py    # Python Story Protocol integration
-├── simple_negotiation.py        # Basic negotiation example
 └── blockchain_licensing_demo.py # Blockchain demo
 ```
 
@@ -122,12 +121,6 @@ python examples/story_protocol_example.py
 ```
 
 **Note:** The example runs in simulation mode by default to prevent accidental transactions. Uncomment the actual transaction code blocks to execute real blockchain operations.
-
-### Simple Negotiation
-
-**File:** `simple_negotiation.py`
-
-Basic example of the negotiation flow.
 
 ### Blockchain Licensing Demo
 

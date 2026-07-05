@@ -2,10 +2,10 @@
 
 ## Project Overview
 
-**RRA-Module** (Revenant Repo Agent Module) is a Python/Smart-contract extension for the NatLangChain framework that transforms dormant GitHub repositories into autonomous AI-driven licensing agents. The system enables developers to monetize abandoned code through automated negotiations and blockchain-based licensing.
+**RRA-Module** (Revenant Repo Agent Module) is a Python/Smart-contract extension for the NatLangChain framework that turns dormant GitHub repositories into licensable IP assets on Story Protocol. The system enables developers to monetize abandoned code through frictionless on-chain purchase links and blockchain-based licensing.
 
 **Core Capabilities:**
-- AI-powered license negotiation agents (LLM-based)
+- Frictionless purchase-link generation (hosted buy page, badges, QR codes)
 - NFT-based license tokens via smart contracts (EVM networks)
 - Story Protocol integration for programmable IP licensing
 - Zero-touch monetization with `.market.yaml` configuration
@@ -17,7 +17,7 @@
 src/rra/
 ├── config/          # .market.yaml parsing (MarketConfig)
 ├── ingestion/       # Repository cloning and knowledge base generation
-├── agents/          # Negotiator and Buyer agent implementations
+├── services/        # Purchase deep links (badges, QR codes, buy buttons)
 ├── contracts/       # Smart contract interfaces (license_nft, story_protocol)
 ├── chains/          # Multi-chain support and RPC handling
 ├── verification/    # Code quality and security verification
@@ -39,7 +39,8 @@ src/rra/
 ```bash
 rra init          # Initialize repo with .market.yaml
 rra ingest        # Clone repo and generate knowledge base
-rra agent         # Start negotiation agent
+rra purchase-link # Generate blockchain purchase links
+rra links         # Generate shareable links, badges, QR codes
 rra verify        # Verify code quality
 rra story status  # Check Story Protocol integration
 ```
@@ -51,7 +52,7 @@ uvicorn rra.api.server:app --host 0.0.0.0 --port 8000
 
 **Core Library:**
 ```python
-from rra import MarketConfig, RepoIngester, NegotiatorAgent
+from rra import MarketConfig, RepoIngester
 from rra.contracts.story_protocol import StoryProtocolClient
 ```
 
@@ -88,14 +89,13 @@ make build
 Common test patterns:
 - Mock NatLangChain server for integration tests
 - Async test support via `@pytest.mark.asyncio`
-- Fixtures for `market_config`, `knowledge_base`, mock agents
+- Fixtures for `market_config`, `knowledge_base`
 
 ## Configuration
 
 **`.market.yaml`** - Repository monetization config:
 - License model (per-seat, subscription, one-time, perpetual)
 - Pricing (target, floor, ceiling)
-- Negotiation settings (style, personality, max rounds)
 - Blockchain config (network, revenue split, wallets)
 - Story Protocol settings (IP asset ID, PIL terms, royalties)
 

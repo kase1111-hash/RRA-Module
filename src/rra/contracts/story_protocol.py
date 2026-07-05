@@ -63,17 +63,19 @@ class StoryProtocolClient:
     # See: https://docs.story.foundation/developers/deployed-smart-contracts
     STORY_MAINNET_CONTRACTS = {
         "IPAssetRegistry": "0x77319B4031e6eF1250907aa00018B8B1c67a244b",
-        "LicenseRegistry": "0xf49da534215DA7b48E57A41d3f6b0E5B5F4b6111",
+        "LicenseRegistry": "0x529a750E02d8E2f15649c13D69a465286a780e24",
         "LicensingModule": "0x04fbd8a2e56dd85CFD5500A4A4DfA955B9f1dE6f",
         "RoyaltyModule": "0xD2f60c40fEbccf6311f8B47c4f2Ec6b040400086",
         "PILicenseTemplate": "0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316",
     }
 
+    # Story v1.3 uses deterministic deployments: the Aeneid testnet (1315)
+    # shares the mainnet contract addresses.
     STORY_TESTNET_CONTRACTS = {
-        "IPAssetRegistry": "0x1a9d0d28a0422F26D31Be72Edc6f13ea4371E11B",
-        "LicenseRegistry": "0x529a750E02d8E2f0d9e8A99F95B81f5c9B3E22b0",
-        "LicensingModule": "0x5a7D9Fa17DE09350F481A53B470D798c1c1aabae",
-        "RoyaltyModule": "0x968beb5432c362c12b5Be6967a5d6F1ED5A63F55",
+        "IPAssetRegistry": "0x77319B4031e6eF1250907aa00018B8B1c67a244b",
+        "LicenseRegistry": "0x529a750E02d8E2f15649c13D69a465286a780e24",
+        "LicensingModule": "0x04fbd8a2e56dd85CFD5500A4A4DfA955B9f1dE6f",
+        "RoyaltyModule": "0xD2f60c40fEbccf6311f8B47c4f2Ec6b040400086",
         "PILicenseTemplate": "0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316",
     }
 
@@ -423,9 +425,9 @@ class StoryProtocolClient:
     def _get_explorer_url(self, ip_asset_id: str) -> str:
         """Get the explorer URL for an IP Asset."""
         if self.network == "mainnet":
-            return f"https://explorer.story.foundation/ip/{ip_asset_id}"
+            return f"https://explorer.story.foundation/ipa/{ip_asset_id}"
         else:
-            return f"https://aeneid.storyscan.xyz/address/{ip_asset_id}"
+            return f"https://aeneid.explorer.story.foundation/ipa/{ip_asset_id}"
 
 
 # Convenience function for quick registration

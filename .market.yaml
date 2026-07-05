@@ -1,5 +1,5 @@
 # RRA Module - Blockchain Licensing Configuration
-# This file defines how this repository is monetized on-chain via automated agent negotiation
+# This file defines how this repository is monetized on-chain via Story Protocol license purchases
 
 # Base License Information
 license_identifier: "FSL-1.1-ALv2"
@@ -8,14 +8,9 @@ copyright_year: 2025
 
 # Pricing Configuration
 license_model: "perpetual"  # Options: per-seat, subscription, one-time, perpetual, custom
-target_price: "0.005 ETH"   # One-time payment for perpetual license (test price)
-floor_price: "0.002 ETH"   # Minimum acceptable price (agents won't go below this)
-ceiling_price: "0.15 ETH"  # Maximum price for premium features
-
-# Negotiation Agent Configuration
-negotiation_style: "persuasive"  # Options: concise, persuasive, strict, adaptive
-agent_personality: "Professional" # How the agent presents the repository
-negotiation_rounds_max: 5         # Maximum back-and-forth negotiations
+target_price: "0.005 IP"   # One-time payment for perpetual license (matches on-chain minting fee)
+floor_price: "0.002 IP"    # Minimum acceptable price
+ceiling_price: "0.15 IP"   # Maximum price for premium features
 
 # Licensing Terms Available On-Chain
 license_terms:
@@ -73,10 +68,10 @@ blockchain:
     revocable: false           # Cannot be revoked after sale
     expiry_enabled: false      # Perpetual license - never expires
 
-# Repository Features (for agent marketing)
+# Repository Features (shown to buyers)
 features:
-  - "AI-Driven Negotiation Agents"
   - "Blockchain License Management"
+  - "Story Protocol Purchase Links"
   - "GitHub Integration"
   - "Automated Revenue Distribution"
   - "Knowledge Base Generation"
@@ -132,7 +127,7 @@ protocol_integrations:
     network: "mainnet"  # Options: mainnet, testnet
 
     # License Terms Configuration (for purchases)
-    license_terms_id: 28437  # Custom terms with 0.005 ETH minting fee and LAP royalty policy
+    license_terms_id: 28437  # Custom terms with 0.005 IP minting fee and LAP royalty policy
 
     # Programmable IP License (PIL) Terms
     pil_terms:
@@ -168,21 +163,6 @@ custom_clauses:
     enforced_by: "time-lock-contract"
     effective_date: "2027-12-19"
 
-# Agent Behavior Modifiers
-agent_behavior:
-  # How aggressive is pricing?
-  pricing_flexibility: 0.6  # 0.0 = rigid, 1.0 = very flexible
-
-  # Respond to these buyer signals
-  respond_to_volume_discount: true  # Offer discounts for bulk purchases
-  respond_to_reputation: true        # Better terms for high-rep buyers
-  respond_to_open_source_use: true  # Special pricing for OSS projects
-
-  # Marketing approach
-  highlight_features: true   # Proactively mention key features
-  offer_demos: true         # Offer sandbox/demo access
-  provide_metrics: true     # Share repo statistics and quality metrics
-
 # Marketplace Settings
 marketplace:
   visibility: "public"      # Publicly listed in NatLangChain marketplace
@@ -193,16 +173,14 @@ marketplace:
     - "Automation"
 
   tags:
-    - "ai-agents"
     - "blockchain-licensing"
     - "github-integration"
-    - "automated-monetization"
+    - "story-protocol"
     - "smart-contracts"
 
 # Analytics & Reporting
 analytics:
-  track_negotiations: true   # Log all negotiation sessions (privacy-preserving)
-  track_conversions: true    # Monitor negotiation → sale conversion rate
+  track_conversions: true    # Monitor link → sale conversion rate
   track_revenue: true        # On-chain revenue tracking
   publish_stats: "aggregated" # Share anonymized statistics
 
@@ -223,5 +201,4 @@ metadata:
   version: "1.1.0"
   last_updated: "2026-02-06"
   ingested: true  # Dogfooding: this repo is its own first customer
-  agent_id: "rra-self-license-agent"  # Self-licensing agent
   contract_address: null  # Populated when deployed to blockchain

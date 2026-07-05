@@ -55,18 +55,13 @@ This will:
 - Extract API endpoints and documentation
 - Create an Agent Knowledge Base (AKB)
 
-### 3. Start the Negotiation Agent
+### 3. Generate Purchase Links
 
-Launch an interactive negotiation session:
-
-```bash
-rra agent path/to/your_repo_kb.json --interactive
-```
-
-Or run a simulation:
+Create shareable purchase links, badges, and QR codes:
 
 ```bash
-rra agent path/to/your_repo_kb.json --simulate
+rra purchase-link https://github.com/username/my-awesome-project --wallet 0xYourWallet
+rra links https://github.com/username/my-awesome-project --register
 ```
 
 ### 4. Automated GitHub Actions (Optional)
@@ -113,8 +108,8 @@ rra ingest https://github.com/username/my-awesome-project.git
 # 5. View repository info
 rra info agent_knowledge_bases/username_my-awesome-project_kb.json
 
-# 6. Test negotiation
-rra agent agent_knowledge_bases/username_my-awesome-project_kb.json --simulate
+# 6. Generate purchase links
+rra purchase-link https://github.com/username/my-awesome-project.git --wallet 0xYourWallet
 
 # 7. List all ingested repos
 rra list
@@ -140,10 +135,11 @@ curl -X POST http://localhost:8000/api/ingest \
   -H "Content-Type: application/json" \
   -d '{"repo_url": "https://github.com/user/repo.git"}'
 
-# Start negotiation
-curl -X POST http://localhost:8000/api/negotiate/start \
+# Generate purchase links
+curl -X POST http://localhost:8000/api/links/generate \
   -H "Content-Type: application/json" \
-  -d '{"kb_path": "agent_knowledge_bases/repo_kb.json"}'
+  -H "X-API-Key: $RRA_API_KEY" \
+  -d '{"repo_url": "https://github.com/user/repo.git"}'
 
 # List repositories
 curl http://localhost:8000/api/repositories
@@ -176,8 +172,11 @@ rra ingest <repo-url> [--workspace=./cloned_repos] [--force]
                       [--verify/--no-verify] [--categorize/--no-categorize]
                       [--wallet=0x...] [--network=testnet]
 
-# Manage negotiation agents
-rra agent <kb-path> [--interactive] [--simulate]
+# Generate purchase links
+rra purchase-link <repo-url> --wallet <address> [--network=mainnet]
+
+# Generate shareable links, badges, and QR codes
+rra links <repo-url> [--register] [--format=table|json|markdown]
 
 # List all ingested repositories
 rra list [--workspace=./agent_knowledge_bases]

@@ -142,16 +142,10 @@ class BlockchainLinkGenerator:
         NetworkType.LOCALHOST: 31337,
     }
 
-    # RRA Marketplace URLs (frontend)
-    MARKETPLACE_URLS = {
-        NetworkType.MAINNET: "https://marketplace.rra.io",
-        NetworkType.TESTNET: "https://testnet.marketplace.rra.io",
-        NetworkType.LOCALHOST: "http://localhost:3001",
-    }
-
     def __init__(
         self,
         network: NetworkType = NetworkType.TESTNET,
+        purchase_base_url: Optional[str] = None,
         marketplace_base_url: Optional[str] = None,
     ):
         """
@@ -159,10 +153,15 @@ class BlockchainLinkGenerator:
 
         Args:
             network: Target blockchain network
-            marketplace_base_url: Custom marketplace URL (overrides defaults)
+            purchase_base_url: URL of a hosted purchase page (e.g. a
+                buy-license.html served from GitHub Pages). When omitted,
+                purchase links point at the Story Protocol explorer page for
+                the IP asset, where buyers can mint license tokens directly.
+            marketplace_base_url: Deprecated alias for purchase_base_url.
         """
         self.network = network
-        self.marketplace_url = marketplace_base_url or self.MARKETPLACE_URLS[network]
+        base = purchase_base_url or marketplace_base_url
+        self.purchase_base_url = base.rstrip("/") if base else None
         self.explorer_url = self.EXPLORER_URLS[network]
         self.chain_id = self.CHAIN_IDS[network]
 
@@ -208,25 +207,25 @@ class BlockchainLinkGenerator:
         Returns:
             PurchaseLink with URL and details
         """
-        # Generate repo ID for URL
-        repo_id = self._generate_repo_id(repo_url)
+        if self.purchase_base_url:
+            # Hosted purchase page (e.g. buy-license.html on GitHub Pages)
+            params = {
+                "ipAsset": ip_asset_id,
+                "tier": tier.value,
+                "chain": self.chain_id,
+            }
+            if license_terms_id:
+                params["terms"] = license_terms_id
+            query_string = "&".join(f"{k}={v}" for k, v in params.items())
+            url = f"{self.purchase_base_url}?{query_string}"
+        else:
+            # Story explorer serves a live page for every registered IP asset
+            # where buyers can connect a wallet and mint license tokens.
+            url = f"{self.explorer_url}/ipa/{ip_asset_id}"
 
-        # Build purchase URL
-        params = {
-            "ipAsset": ip_asset_id,
-            "tier": tier.value,
-            "chain": self.chain_id,
-        }
-        if license_terms_id:
-            params["terms"] = license_terms_id
-
-        # Create URL with query params
-        query_string = "&".join(f"{k}={v}" for k, v in params.items())
-        url = f"{self.marketplace_url}/purchase/{repo_id}?{query_string}"
-
-        # Calculate price in wei
+        # Calculate price in wei (IP is the native Story Protocol token)
         price_wei = int(price_eth * 10**18)
-        price_display = f"{price_eth} ETH" if price_eth > 0 else "Contact for pricing"
+        price_display = f"{price_eth} IP" if price_eth > 0 else "Contact for pricing"
 
         return PurchaseLink(
             url=url,
@@ -236,7 +235,7 @@ class BlockchainLinkGenerator:
             tier=tier,
             price_wei=price_wei,
             price_display=price_display,
-            currency="ETH",
+            currency="IP",
             metadata=metadata or {},
         )
 
@@ -294,7 +293,7 @@ class BlockchainLinkGenerator:
         Returns:
             Explorer URL
         """
-        return f"{self.explorer_url}/ip-asset/{ip_asset_id}"
+        return f"{self.explorer_url}/ipa/{ip_asset_id}"
 
     def generate_license_terms_link(self, license_terms_id: str) -> str:
         """
@@ -479,11 +478,6 @@ class BlockchainLinkGenerator:
 </style>
 """
 
-    def _generate_repo_id(self, repo_url: str) -> str:
-        """Generate a short repository ID from URL."""
-        normalized = repo_url.lower().strip().rstrip(".git")
-        return hashlib.sha256(normalized.encode()).hexdigest()[:12]
-
     def generate_deep_link(
         self,
         ip_asset_id: str,
@@ -501,15 +495,13 @@ class BlockchainLinkGenerator:
         Returns:
             Deep link URL
         """
-        base = f"{self.marketplace_url}/{action}/{ip_asset_id}"
-        params = [f"chain={self.chain_id}"]
-
-        if wallet_address:
-            params.append(f"wallet={wallet_address}")
-
-        if params:
-            return f"{base}?{'&'.join(params)}"
-        return base
+        if self.purchase_base_url:
+            base = f"{self.purchase_base_url}?action={action}&ipAsset={ip_asset_id}"
+            params = [f"chain={self.chain_id}"]
+            if wallet_address:
+                params.append(f"wallet={wallet_address}")
+            return f"{base}&{'&'.join(params)}"
+        return f"{self.explorer_url}/ipa/{ip_asset_id}"
 
     def generate_qr_data(self, purchase_link: PurchaseLink) -> str:
         """

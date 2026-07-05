@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="version" content="2.0.0-mainnet">
+    <meta name="version" content="2.2.0-mainnet">
     <title>Purchase License - Repository License</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/ethers@6/dist/ethers.umd.min.js"></script>
@@ -39,11 +39,11 @@
             <div class="bg-gray-700/50 rounded-xl p-6 mb-6">
                 <h2 class="text-xl font-semibold mb-4">Included Features</h2>
                 <ul class="space-y-2">
-                    <li class="flex items-start gap-2"><span class="text-green-500">&#10003;</span><div><strong>AI-Driven Negotiation Agents</strong> — Autonomous agents handle AI negotiation for developers, enabling zombie repo activation</div></li>
-                    <li class="flex items-start gap-2"><span class="text-green-500">&#10003;</span><div><strong>Blockchain License Management</strong> — On-chain abandoned software licensing with NFT-based entitlements</div></li>
-                    <li class="flex items-start gap-2"><span class="text-green-500">&#10003;</span><div><strong>GitHub Integration</strong> — Seamlessly revive unmaintained repos with automatic ingestion and dead code revival</div></li>
-                    <li class="flex items-start gap-2"><span class="text-green-500">&#10003;</span><div><strong>Automated Revenue Distribution</strong> — Generate passive developer income through smart contract royalties</div></li>
-                    <li class="flex items-start gap-2"><span class="text-green-500">&#10003;</span><div><strong>Knowledge Base Generation</strong> — Transform any codebase into vectorized knowledge to monetize old GitHub projects</div></li>
+                    <li class="flex items-start gap-2"><span class="text-green-500">&#10003;</span><div><strong>Full Source Access</strong> — Complete access to the repository source code</div></li>
+                    <li class="flex items-start gap-2"><span class="text-green-500">&#10003;</span><div><strong>Commercial Use</strong> — Deploy and use the code in commercial products</div></li>
+                    <li class="flex items-start gap-2"><span class="text-green-500">&#10003;</span><div><strong>Derivative Rights</strong> — Fork and build derivative works with attribution</div></li>
+                    <li class="flex items-start gap-2"><span class="text-green-500">&#10003;</span><div><strong>On-Chain Proof</strong> — Your license is an NFT on Story Protocol, verifiable by anyone</div></li>
+                    <li class="flex items-start gap-2"><span class="text-green-500">&#10003;</span><div><strong>Transferable</strong> — Licenses can be resold or transferred to another wallet</div></li>
                 </ul>
             </div>
 
@@ -103,7 +103,7 @@
                     View IP Asset on Explorer
                 </a>
             </p>
-            <p class="text-xs mt-4 text-gray-600">v2.1.0-mainnet | IP: 0xf08574c...a07F | Terms: 28437</p>
+            <p id="version-info" class="text-xs mt-4 text-gray-600"></p>
         </div>
     </div>
 
@@ -112,8 +112,9 @@
         // USER CONFIGURATION - Match these to your .market.yaml
         // ============================================
         const CONFIG = {
-            // Pricing (from .market.yaml target_price)
-            price: 10,
+            // Fallback price shown until the real minting fee is read from
+            // the license terms on-chain (see loadOnChainPrice below).
+            price: 0.005,
             currency: "IP",  // Native IP token for payments
 
             // Network: "mainnet" or "testnet"
@@ -124,6 +125,17 @@
             licenseTermsId: 28437
         };
 
+        // Allow links to configure the page: ?ipAsset=0x..&terms=123&network=testnet
+        (function applyUrlOverrides() {
+            const params = new URLSearchParams(window.location.search);
+            const ipAsset = params.get('ipAsset');
+            const terms = params.get('terms');
+            const network = params.get('network');
+            if (ipAsset && /^0x[0-9a-fA-F]{40}$/.test(ipAsset)) CONFIG.ipAssetId = ipAsset;
+            if (terms && /^[0-9]+$/.test(terms)) CONFIG.licenseTermsId = parseInt(terms, 10);
+            if (network === 'mainnet' || network === 'testnet') CONFIG.network = network;
+        })();
+
         // ============================================
         // NETWORK CONFIGURATION (auto-configured based on CONFIG.network)
         // ============================================
@@ -132,40 +144,102 @@
                 chainId: 1514,
                 rpc: "https://mainnet.storyrpc.io",
                 explorer: "https://explorer.story.foundation",
+                txExplorer: "https://www.storyscan.io",
                 name: "Story Protocol"
             },
             testnet: {
                 chainId: 1315,
                 rpc: "https://aeneid.storyrpc.io",
                 explorer: "https://aeneid.explorer.story.foundation",
+                txExplorer: "https://aeneid.storyscan.io",
                 name: "Story Aeneid Testnet"
             }
         };
 
         // Derived configuration
         const NETWORK = NETWORKS[CONFIG.network];
-        const PRICE_WEI = (CONFIG.price * 1e18).toString();
 
-        // Story Protocol Contract Addresses (Mainnet - Chain ID 1514)
+        // Story Protocol Contract Addresses (identical on mainnet 1514 and Aeneid 1315)
         // See: https://docs.story.foundation/developers/deployed-smart-contracts
-        const LICENSING_MODULE = "0x04fbd8a2e56dd85CFD5500A4A4DfA955B9f1dE6f";  // Mainnet
-        const PIL_TEMPLATE = "0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316";      // Mainnet
+        const LICENSING_MODULE = "0x04fbd8a2e56dd85CFD5500A4A4DfA955B9f1dE6f";
+        const PIL_TEMPLATE = "0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316";
         const WIP_TOKEN = "0x1514000000000000000000000000000000000000";          // Wrapped IP Token
-        const ROYALTY_WORKFLOWS = "0x9515faE61E0c0447C6AC6dEe5628A2097aFE1890"; // For WIP approval
+        // RoyaltyModule pulls the WIP minting fee (via safeTransferFrom) when
+        // LicensingModule.mintLicenseTokens runs, so it is the approval target.
+        const ROYALTY_MODULE = "0xD2f60c40fEbccf6311f8B47c4f2Ec6b040400086";
+
+        // 100% in Story's revenue-share scale (1% = 10^6). Used as the
+        // maxRevenueShare cap so any terms-level revenue share is accepted.
+        const MAX_REVENUE_SHARE = 100_000_000;
+
+        // Minting fee for the configured license terms. Starts from the
+        // CONFIG fallback and is replaced by the on-chain value at page load.
+        let priceWei = ethers.parseEther(String(CONFIG.price));
+        let feeCurrency = WIP_TOKEN;
+        let onChainPriceLoaded = false;
+
+        const PIL_READ_ABI = [
+            {
+                "inputs": [{"name": "licenseTermsId", "type": "uint256"}],
+                "name": "getRoyaltyPolicy",
+                "outputs": [
+                    {"name": "royaltyPolicy", "type": "address"},
+                    {"name": "royaltyPercent", "type": "uint32"},
+                    {"name": "mintingFee", "type": "uint256"},
+                    {"name": "currency", "type": "address"}
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
 
         let provider;
         let signer;
 
+        function setPriceDisplays() {
+            const amount = ethers.formatEther(priceWei);
+            const suffix = onChainPriceLoaded ? '' : ' (loading…)';
+            const priceText = `${amount} ${CONFIG.currency}${suffix}`;
+            document.getElementById('price-display').textContent = priceText;
+            document.getElementById('btn-price-display').textContent = `${amount} ${CONFIG.currency}`;
+        }
+
+        // Read the actual minting fee from the registered license terms so the
+        // page always shows what the contract will charge.
+        async function loadOnChainPrice() {
+            try {
+                const readProvider = new ethers.JsonRpcProvider(NETWORK.rpc);
+                const pil = new ethers.Contract(PIL_TEMPLATE, PIL_READ_ABI, readProvider);
+                const [, royaltyPercent, mintingFee, currency] =
+                    await pil.getRoyaltyPolicy(CONFIG.licenseTermsId);
+                priceWei = mintingFee;
+                if (currency && currency !== ethers.ZeroAddress) {
+                    feeCurrency = currency;
+                }
+                onChainPriceLoaded = true;
+                console.log(`[price] on-chain minting fee: ${ethers.formatEther(mintingFee)} ` +
+                    `(currency ${currency}, revShare ${Number(royaltyPercent) / 1e6}%)`);
+            } catch (err) {
+                console.warn('[price] could not read minting fee from chain, using fallback', err);
+                onChainPriceLoaded = false;
+            }
+            setPriceDisplays();
+        }
+
         // Initialize page displays on page load
         function initializeDisplays() {
-            // Set price displays
-            const priceText = `${CONFIG.price} ${CONFIG.currency}`;
-            document.getElementById('price-display').textContent = priceText;
-            document.getElementById('btn-price-display').textContent = priceText;
+            setPriceDisplays();
 
             // Set IP Asset explorer link
             document.getElementById('ip-asset-link').href =
                 `${NETWORK.explorer}/ipa/${CONFIG.ipAssetId}`;
+
+            // Footer version/config info
+            const shortIp = CONFIG.ipAssetId.slice(0, 9) + '…' + CONFIG.ipAssetId.slice(-4);
+            document.getElementById('version-info').textContent =
+                `v2.2.0-${CONFIG.network} | IP: ${shortIp} | Terms: ${CONFIG.licenseTermsId}`;
+
+            loadOnChainPrice();
         }
 
         // Run initialization when DOM is ready
@@ -240,7 +314,7 @@
                 (error.message && error.message.includes('insufficient funds'))) {
                 errorInfo.type = 'insufficient_funds';
                 errorInfo.message = 'Insufficient funds for transaction';
-                errorInfo.details = `Required: ${CONFIG.price} ${CONFIG.currency} + gas fees`;
+                errorInfo.details = `Required: ${ethers.formatEther(priceWei)} ${CONFIG.currency} + gas fees`;
                 return errorInfo;
             }
 
@@ -314,16 +388,21 @@
             }
 
             try {
+                // Make sure we have the real on-chain price before charging anyone
+                if (!onChainPriceLoaded) {
+                    await loadOnChainPrice();
+                }
+
                 // Log configuration
                 logDebugInfo('Network', CONFIG.network);
                 logDebugInfo('Chain ID', NETWORK.chainId);
                 logDebugInfo('LicensingModule', LICENSING_MODULE);
                 logDebugInfo('PIL Template', PIL_TEMPLATE);
-                logDebugInfo('WIP Token', WIP_TOKEN);
+                logDebugInfo('Fee Currency', feeCurrency);
                 logDebugInfo('IP Asset ID', CONFIG.ipAssetId);
                 logDebugInfo('License Terms ID', CONFIG.licenseTermsId);
-                logDebugInfo('Price (WIP)', CONFIG.price);
-                logDebugInfo('Price (Wei)', PRICE_WEI);
+                logDebugInfo('Price (from chain)', onChainPriceLoaded);
+                logDebugInfo('Price (Wei)', priceWei.toString());
 
                 // Verify network
                 const network = await provider.getNetwork();
@@ -391,7 +470,7 @@
                     }
                 ];
 
-                const wipToken = new ethers.Contract(WIP_TOKEN, erc20ABI, signer);
+                const feeToken = new ethers.Contract(feeCurrency, erc20ABI, signer);
                 const licensingModule = new ethers.Contract(LICENSING_MODULE, licensingABI, signer);
 
                 const receiverAddress = await signer.getAddress();
@@ -401,39 +480,40 @@
                 const nativeBalance = await provider.getBalance(receiverAddress);
                 logDebugInfo('Native IP Balance', `${ethers.formatEther(nativeBalance)} IP`);
 
-                // Check WIP token balance
-                const wipBalance = await wipToken.balanceOf(receiverAddress);
-                const wipBalanceFormatted = ethers.formatEther(wipBalance);
-                logDebugInfo('WIP Token Balance', `${wipBalanceFormatted} WIP`);
+                if (priceWei > 0n) {
+                    // Check fee token (WIP) balance
+                    const wipBalance = await feeToken.balanceOf(receiverAddress);
+                    logDebugInfo('Fee Token Balance', `${ethers.formatEther(wipBalance)}`);
 
-                const priceWei = BigInt(PRICE_WEI);
+                    // If insufficient WIP, wrap exactly the shortfall from native IP
+                    if (wipBalance < priceWei && feeCurrency.toLowerCase() === WIP_TOKEN.toLowerCase()) {
+                        const shortfall = priceWei - wipBalance;
+                        logDebugInfo('Status', `Wrapping ${ethers.formatEther(shortfall)} IP to WIP...`);
 
-                // If insufficient WIP, offer to wrap native IP
-                if (wipBalance < priceWei) {
-                    logDebugInfo('Status', 'Insufficient WIP tokens, wrapping native IP...');
+                        if (nativeBalance < shortfall + BigInt("100000000000000")) { // shortfall + gas buffer
+                            throw new Error(`Insufficient balance. Need ${ethers.formatEther(shortfall)} more IP to wrap to WIP. Have: ${ethers.formatEther(nativeBalance)} IP`);
+                        }
 
-                    if (nativeBalance < priceWei + BigInt("100000000000000")) { // price + gas buffer
-                        throw new Error(`Insufficient balance. Need ${CONFIG.price} IP to wrap to WIP. Have: ${ethers.formatEther(nativeBalance)} IP`);
+                        // Wrap native IP to WIP
+                        const wrapTx = await feeToken.deposit({ value: shortfall });
+                        logDebugInfo('Wrap TX', wrapTx.hash);
+                        await wrapTx.wait();
+                        logDebugInfo('Status', 'Successfully wrapped IP to WIP!');
                     }
 
-                    // Wrap native IP to WIP
-                    const wrapTx = await wipToken.deposit({ value: priceWei });
-                    logDebugInfo('Wrap TX', wrapTx.hash);
-                    await wrapTx.wait();
-                    logDebugInfo('Status', 'Successfully wrapped IP to WIP!');
-                }
+                    // The RoyaltyModule executes the fee transferFrom, so it is
+                    // the contract that needs the allowance.
+                    const currentAllowance = await feeToken.allowance(receiverAddress, ROYALTY_MODULE);
+                    logDebugInfo('Current Allowance (RoyaltyModule)', ethers.formatEther(currentAllowance));
 
-                // Check current allowance
-                const currentAllowance = await wipToken.allowance(receiverAddress, ROYALTY_WORKFLOWS);
-                logDebugInfo('Current Allowance', ethers.formatEther(currentAllowance));
-
-                // Approve WIP spending if needed
-                if (currentAllowance < priceWei) {
-                    logDebugInfo('Status', 'Approving WIP tokens...');
-                    const approveTx = await wipToken.approve(ROYALTY_WORKFLOWS, priceWei);
-                    logDebugInfo('Approve TX', approveTx.hash);
-                    await approveTx.wait();
-                    logDebugInfo('Status', 'WIP tokens approved!');
+                    // Approve fee spending if needed
+                    if (currentAllowance < priceWei) {
+                        logDebugInfo('Status', 'Approving license fee...');
+                        const approveTx = await feeToken.approve(ROYALTY_MODULE, priceWei);
+                        logDebugInfo('Approve TX', approveTx.hash);
+                        await approveTx.wait();
+                        logDebugInfo('Status', 'License fee approved!');
+                    }
                 }
 
                 // Estimate gas for mintLicenseTokens (NO value sent - WIP is used)
@@ -447,8 +527,8 @@
                         1,
                         receiverAddress,
                         "0x",
-                        priceWei,  // maxMintingFee - max we're willing to pay
-                        10000      // maxRevenueShare - 100% (in basis points)
+                        priceWei,          // maxMintingFee - max we're willing to pay
+                        MAX_REVENUE_SHARE  // accept any terms-level revenue share
                     );
                     logDebugInfo('Gas Estimate', gasEstimate.toString());
                 } catch (estimateError) {
@@ -465,7 +545,7 @@
                             receiverAddress,
                             "0x",
                             priceWei,
-                            10000
+                            MAX_REVENUE_SHARE
                         );
                     } catch (staticError) {
                         logDebugInfo('Static Call Error', staticError.reason || staticError.message);
@@ -483,8 +563,8 @@
                     1,
                     receiverAddress,
                     "0x",
-                    priceWei,  // maxMintingFee
-                    10000,     // maxRevenueShare
+                    priceWei,           // maxMintingFee
+                    MAX_REVENUE_SHARE,  // accept any terms-level revenue share
                     { gasLimit: gasEstimate * 120n / 100n } // 20% buffer, NO value
                 );
 
@@ -500,7 +580,7 @@
                 loadingDiv.classList.add('hidden');
                 successDiv.classList.remove('hidden');
                 document.getElementById('tx-link').href =
-                    `${NETWORK.explorer}/ipa/${CONFIG.ipAssetId}`;
+                    `${NETWORK.txExplorer}/tx/${tx.hash}`;
 
             } catch (error) {
                 console.error('Purchase error:', error);

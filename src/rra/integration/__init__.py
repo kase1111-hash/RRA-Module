@@ -16,16 +16,7 @@ This module provides optional integrations with NatLangChain components:
 
 Usage:
     The RRA module works standalone by default. Ecosystem integrations
-    are activated automatically when the respective packages are installed:
-
-    # Standalone mode (default)
-    from rra.agents.negotiator import NegotiatorAgent
-    agent = NegotiatorAgent(kb)
-
-    # Integrated mode (when natlangchain is installed)
-    from rra.agents.negotiator import NegotiatorAgent
-    agent = NegotiatorAgent(kb, integrated=True)
-    # Automatically uses Agent-OS, memory-vault, etc.
+    are activated automatically when the respective packages are installed.
 
 Installation:
     # Standalone

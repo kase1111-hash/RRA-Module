@@ -20,7 +20,6 @@ import hashlib
 from pathlib import Path
 from rra.exceptions import ValidationError
 
-
 # =============================================================================
 # TEST: Command Injection Prevention
 # =============================================================================
@@ -303,18 +302,6 @@ class TestInputValidation:
                 grace_period_hours=9000,
             )
 
-    def test_validate_session_id_format(self):
-        """Validate session ID format."""
-        from rra.api.webhooks import validate_session_id
-
-        # Valid format
-        assert validate_session_id("wh_abc123def456789012345678901234567890")
-
-        # Invalid formats
-        assert not validate_session_id("invalid")
-        assert not validate_session_id("wh_")
-        assert not validate_session_id("../../../etc/passwd")
-
 
 # =============================================================================
 # TEST: ReDoS Prevention
@@ -342,7 +329,6 @@ class TestReDoSPrevention:
 
         # Should complete in under 1 second
         assert elapsed < 1.0, f"Regex took too long: {elapsed}s (possible ReDoS)"
-
 
 
 # =============================================================================
@@ -391,19 +377,16 @@ class TestSessionSecurity:
 
     def test_session_id_entropy(self):
         """Session IDs should have sufficient entropy (at least 128 bits)."""
-        from rra.api.webhooks import generate_session_id
+        from rra.api.auth import generate_session_id
 
         session_id = generate_session_id()
 
-        # Remove prefix
-        token_part = session_id.replace("wh_", "")
-
         # Should have at least 32 characters (128 bits in base64/hex)
-        assert len(token_part) >= 32, f"Session ID too short: {len(token_part)} chars"
+        assert len(session_id) >= 32, f"Session ID too short: {len(session_id)} chars"
 
     def test_session_ids_are_unique(self):
         """Session IDs should be unique."""
-        from rra.api.webhooks import generate_session_id
+        from rra.api.auth import generate_session_id
 
         session_ids = [generate_session_id() for _ in range(1000)]
 
@@ -486,13 +469,6 @@ class TestResourceLimits:
         # Should be reasonable (e.g., 10MB)
         assert MAX_FILE_SIZE <= 50 * 1024 * 1024, "MAX_FILE_SIZE too large"
         assert MAX_FILE_SIZE >= 1 * 1024 * 1024, "MAX_FILE_SIZE too small"
-
-    def test_json_payload_size_limit(self):
-        """JSON payload should have size limit."""
-        from rra.api.webhooks import MAX_PAYLOAD_SIZE
-
-        # Should be reasonable (e.g., 1MB)
-        assert MAX_PAYLOAD_SIZE <= 10 * 1024 * 1024, "MAX_PAYLOAD_SIZE too large"
 
 
 # =============================================================================
