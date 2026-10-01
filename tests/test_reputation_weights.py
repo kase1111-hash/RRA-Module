@@ -26,7 +26,6 @@ from rra.governance.rep_voting import (
     create_rep_weighted_governance,
 )
 
-
 # =============================================================================
 # ReputationManager Tests
 # =============================================================================

@@ -31,7 +31,6 @@ from rra.api.analytics import (
     calculate_rate,
 )
 
-
 client = TestClient(app, headers={"X-API-Key": "test-api-key-for-testing"})
 
 

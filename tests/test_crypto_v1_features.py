@@ -45,10 +45,7 @@ class TestEncryptedKeyExport:
 
         # Import with correct password
         restored = ViewingKey.import_private_encrypted(
-            encrypted_data,
-            password,
-            KeyPurpose.DISPUTE_EVIDENCE,
-            "test-1"
+            encrypted_data, password, KeyPurpose.DISPUTE_EVIDENCE, "test-1"
         )
 
         # Verify keys match
@@ -61,10 +58,7 @@ class TestEncryptedKeyExport:
 
         with pytest.raises((ValueError, Exception)):  # Decryption should fail
             ViewingKey.import_private_encrypted(
-                encrypted,
-                b"wrong_password",
-                KeyPurpose.DISPUTE_EVIDENCE,
-                "test-2"
+                encrypted, b"wrong_password", KeyPurpose.DISPUTE_EVIDENCE, "test-2"
             )
 
     def test_tampered_data_fails(self):
@@ -78,10 +72,7 @@ class TestEncryptedKeyExport:
 
         with pytest.raises((ValueError, Exception)):
             ViewingKey.import_private_encrypted(
-                bytes(tampered),
-                b"password123",
-                KeyPurpose.DISPUTE_EVIDENCE,
-                "test-3"
+                bytes(tampered), b"password123", KeyPurpose.DISPUTE_EVIDENCE, "test-3"
             )
 
 
@@ -155,7 +146,7 @@ class TestPedersenPerformance:
         import time
 
         # Large random value
-        a = int.from_bytes(os.urandom(32), 'big') % BN254_FIELD_PRIME
+        a = int.from_bytes(os.urandom(32), "big") % BN254_FIELD_PRIME
         if a == 0:
             a = 1
 
@@ -333,16 +324,11 @@ class TestBackwardsCompatibility:
 
         # Both should allow key restoration
         restored_old = ViewingKey.from_private_bytes(
-            old_bytes,
-            KeyPurpose.DISPUTE_EVIDENCE,
-            "migrate-test"
+            old_bytes, KeyPurpose.DISPUTE_EVIDENCE, "migrate-test"
         )
 
         restored_new = ViewingKey.import_private_encrypted(
-            new_encrypted,
-            password,
-            KeyPurpose.DISPUTE_EVIDENCE,
-            "migrate-test"
+            new_encrypted, password, KeyPurpose.DISPUTE_EVIDENCE, "migrate-test"
         )
 
         # Both restorations should produce valid keys

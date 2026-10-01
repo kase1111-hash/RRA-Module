@@ -30,7 +30,6 @@ from rra.exceptions import ValidationError
 from rra.security.input_sanitizer import sanitize_kb_text
 from rra.status.dreaming import get_dreaming_status
 
-
 # Security constants
 MAX_FILES = 10000  # Maximum files to process per repository
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB max file size

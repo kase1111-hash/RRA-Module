@@ -581,6 +581,7 @@ def _py_ecc_point_add(p1: Tuple[int, int], p2: Tuple[int, int]) -> Tuple[int, in
 
 # Thread pool for parallel operations (lazy initialized)
 import threading as _threading
+
 _thread_pool = None
 _thread_pool_lock = _threading.Lock()
 

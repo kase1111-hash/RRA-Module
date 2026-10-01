@@ -34,7 +34,6 @@ from src.rra.config.environment import (
     _apply_env_overrides,
 )
 
-
 # =============================================================================
 # Environment Enum Tests
 # =============================================================================
@@ -289,7 +288,10 @@ class TestEnvironmentOverrides:
 
         with patch.dict(
             os.environ,
-            {"RRA_FEATURE_enable_superfluid_streaming": "true", "RRA_FEATURE_enable_story_protocol": "false"},
+            {
+                "RRA_FEATURE_enable_superfluid_streaming": "true",
+                "RRA_FEATURE_enable_story_protocol": "false",
+            },
         ):
             config = _apply_env_overrides(config)
 

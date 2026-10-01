@@ -585,7 +585,8 @@ class EncryptedIPFSStorage:
     def _validate_cid(cid: str) -> None:
         """Validate IPFS CID format to prevent injection attacks."""
         import re
-        CID_PATTERN = re.compile(r'^(Qm[1-9A-HJ-NP-Za-km-z]{44,}|bafy[a-z2-7]{50,})$')
+
+        CID_PATTERN = re.compile(r"^(Qm[1-9A-HJ-NP-Za-km-z]{44,}|bafy[a-z2-7]{50,})$")
         if not CID_PATTERN.match(cid):
             raise ValueError(f"Invalid IPFS CID format: {cid}")
 

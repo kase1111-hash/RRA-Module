@@ -303,8 +303,13 @@ class ContractManager:
 
         try:
             tx_hash = self.license_contract.register_repository(
-                repo_url, target_wei, floor_wei, nonce, signature,
-                developer_address, private_key,
+                repo_url,
+                target_wei,
+                floor_wei,
+                nonce,
+                signature,
+                developer_address,
+                private_key,
             )
             logger.info(f"Repository registered successfully. TX: {tx_hash}")
             return tx_hash

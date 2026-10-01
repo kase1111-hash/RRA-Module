@@ -16,7 +16,6 @@ from dataclasses import dataclass
 from typing import Dict
 from web3 import Web3
 
-
 # =============================================================================
 # Test Constants - Story Protocol Mainnet
 # =============================================================================

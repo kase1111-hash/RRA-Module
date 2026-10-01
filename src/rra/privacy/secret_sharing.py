@@ -20,7 +20,6 @@ import secrets
 from typing import List, Tuple
 from dataclasses import dataclass
 
-
 # Prime for finite field operations (256-bit prime close to 2^256)
 # Using secp256k1 order for Ethereum compatibility
 PRIME = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
@@ -33,6 +32,7 @@ def _verify_prime():
     expected = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
     if PRIME != expected:
         raise ValueError("PRIME constant does not match expected secp256k1 order")
+
 
 _verify_prime()
 

@@ -138,18 +138,24 @@ class TestPriceCache:
     def test_cache_clear(self):
         """Test cache clearing."""
         cache = PriceCache()
-        cache.set("ETH/USD", PriceData(
-            price=Decimal("2500"),
-            currency_pair="ETH/USD",
-            source=PriceSource.FALLBACK,
-            timestamp=datetime.utcnow(),
-        ))
-        cache.set("BTC/USD", PriceData(
-            price=Decimal("40000"),
-            currency_pair="BTC/USD",
-            source=PriceSource.FALLBACK,
-            timestamp=datetime.utcnow(),
-        ))
+        cache.set(
+            "ETH/USD",
+            PriceData(
+                price=Decimal("2500"),
+                currency_pair="ETH/USD",
+                source=PriceSource.FALLBACK,
+                timestamp=datetime.utcnow(),
+            ),
+        )
+        cache.set(
+            "BTC/USD",
+            PriceData(
+                price=Decimal("40000"),
+                currency_pair="BTC/USD",
+                source=PriceSource.FALLBACK,
+                timestamp=datetime.utcnow(),
+            ),
+        )
 
         cache.clear()
 

@@ -1083,9 +1083,7 @@ def purchase_link(
         return
 
     console.print(
-        Panel.fit(
-            f"[bold blue]Purchase Link[/bold blue]\n{repo_url}", border_style="blue"
-        )
+        Panel.fit(f"[bold blue]Purchase Link[/bold blue]\n{repo_url}", border_style="blue")
     )
     console.print(f"[bold]IP Asset:[/bold]       {data['ip_asset_id']} ({data['network']})")
     console.print(f"[bold]License Terms:[/bold]  {data['license_terms_id']}")

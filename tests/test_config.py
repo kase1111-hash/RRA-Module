@@ -129,8 +129,7 @@ def test_config_from_yaml_reads_story_protocol_block(section):
     """IP asset settings in the nested story_protocol block reach MarketConfig."""
     with tempfile.TemporaryDirectory() as tmpdir:
         file_path = Path(tmpdir) / ".market.yaml"
-        file_path.write_text(
-            f"""
+        file_path.write_text(f"""
 target_price: "0.005 IP"
 floor_price: "0.002 IP"
 {section}:
@@ -138,8 +137,7 @@ floor_price: "0.002 IP"
     enabled: true
     ip_asset_id: "0xf08574c30337dde7C38869b8d399BA07ab23a07F"
     license_terms_id: 28437
-"""
-        )
+""")
 
         config = MarketConfig.from_yaml(file_path)
 

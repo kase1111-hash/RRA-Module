@@ -444,7 +444,9 @@ class WebhookSecurity:
             encrypted_cred = dict(cred)
             if "secret_key" in encrypted_cred and encrypted_cred["secret_key"]:
                 try:
-                    encrypted_cred["secret_key"] = self._encryption.encrypt(encrypted_cred["secret_key"])
+                    encrypted_cred["secret_key"] = self._encryption.encrypt(
+                        encrypted_cred["secret_key"]
+                    )
                 except Exception as e:
                     logger.error(f"Failed to encrypt secret_key for agent '{agent_id}': {e}")
             encrypted_creds[agent_id] = encrypted_cred

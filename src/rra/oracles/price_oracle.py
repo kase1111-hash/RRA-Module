@@ -195,9 +195,7 @@ class ChainlinkOracle(PriceOracle):
             web3_provider_url: Ethereum RPC URL (default from RRA_WEB3_PROVIDER_URL)
             custom_feeds: Additional feed addresses to use
         """
-        self.provider_url = web3_provider_url or os.environ.get(
-            "RRA_WEB3_PROVIDER_URL"
-        )
+        self.provider_url = web3_provider_url or os.environ.get("RRA_WEB3_PROVIDER_URL")
         self.feeds = {**self.FEED_ADDRESSES}
         if custom_feeds:
             self.feeds.update(custom_feeds)
@@ -234,9 +232,7 @@ class ChainlinkOracle(PriceOracle):
             from web3 import Web3
 
             address = Web3.to_checksum_address(self.feeds[pair])
-            self._contracts[pair] = web3.eth.contract(
-                address=address, abi=self.AGGREGATOR_ABI
-            )
+            self._contracts[pair] = web3.eth.contract(address=address, abi=self.AGGREGATOR_ABI)
 
         return self._contracts[pair]
 
@@ -355,9 +351,7 @@ class CoinGeckoOracle(PriceOracle):
             if self.api_key:
                 headers["x-cg-pro-api-key"] = self.api_key
 
-            response = requests.get(
-                url, params=params, headers=headers, timeout=self.timeout
-            )
+            response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
             response.raise_for_status()
 
             data = response.json()
@@ -392,9 +386,7 @@ class CoinGeckoOracle(PriceOracle):
     def is_available(self) -> bool:
         """Check if CoinGecko API is reachable."""
         try:
-            response = requests.get(
-                f"{self.BASE_URL}/ping", timeout=self.timeout
-            )
+            response = requests.get(f"{self.BASE_URL}/ping", timeout=self.timeout)
             return response.status_code == 200
         except requests.RequestException:
             return False
@@ -488,9 +480,7 @@ class AggregatedPriceOracle:
         # Fallback is always included
         self.oracles.append(FallbackPriceOracle())
 
-    def get_price(
-        self, base: str, quote: str = "USD", skip_cache: bool = False
-    ) -> PriceData:
+    def get_price(self, base: str, quote: str = "USD", skip_cache: bool = False) -> PriceData:
         """
         Get price from best available oracle.
 

@@ -680,9 +680,7 @@ class BoundarySIEMClient:
 
         for attempt in range(self.config.retry_attempts):
             try:
-                with safe_urlopen(
-                    req, timeout=self.config.connect_timeout_seconds
-                ) as resp:
+                with safe_urlopen(req, timeout=self.config.connect_timeout_seconds) as resp:
                     if resp.status == 200:
                         logger.debug(f"Sent {len(events)} events to SIEM")
                         return True

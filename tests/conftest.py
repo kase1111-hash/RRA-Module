@@ -12,7 +12,6 @@ from dataclasses import dataclass, field
 
 import pytest
 
-
 # =============================================================================
 # Blockchain Mock Infrastructure
 # =============================================================================

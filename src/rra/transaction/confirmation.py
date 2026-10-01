@@ -384,7 +384,9 @@ class TransactionConfirmation:
         tx_id = keccak(
             f"{buyer_id}:{seller_id}:{repo_url}:{datetime.utcnow().isoformat()}".encode()
             + os.urandom(8)
-        ).hex()[:32]  # 128-bit collision resistance
+        ).hex()[
+            :32
+        ]  # 128-bit collision resistance
 
         # Calculate expiry
         timeout = timeout_seconds or self.default_timeout

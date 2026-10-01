@@ -354,6 +354,7 @@ class WebDIDResolver(DIDMethodResolver):
 
         # SSRF protection: validate the hostname does not resolve to a private IP
         from urllib.parse import urlparse as _urlparse
+
         parsed_url = _urlparse(url)
         hostname = parsed_url.hostname
         if not hostname or self._is_private_ip(hostname):

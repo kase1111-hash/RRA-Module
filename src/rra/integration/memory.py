@@ -38,7 +38,7 @@ class LocalStateManager:
             agent_id: Unique agent identifier
             storage_dir: Directory for state files (default: ./agent_states)
         """
-        if not re.match(r'^[a-zA-Z0-9_-]+$', agent_id):
+        if not re.match(r"^[a-zA-Z0-9_-]+$", agent_id):
             raise ValueError(f"Invalid agent_id: {agent_id}")
 
         self.agent_id = agent_id

@@ -162,7 +162,9 @@ class SecurityConfig:
     cors_enabled: bool = True
     cors_origins: List[str] = field(default_factory=list)
     cors_methods: List[str] = field(default_factory=lambda: ["GET", "POST", "PUT", "DELETE"])
-    cors_headers: List[str] = field(default_factory=lambda: ["Content-Type", "Authorization", "X-API-Key"])
+    cors_headers: List[str] = field(
+        default_factory=lambda: ["Content-Type", "Authorization", "X-API-Key"]
+    )
 
     # Secrets
     secrets_backend: str = "env"  # env, file, vault, aws
@@ -175,7 +177,7 @@ class SecurityConfig:
         if not self.encryption_key:
             raise ValueError(
                 "RRA_ENCRYPTION_KEY must be set. "
-                "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+                'Generate one with: python -c "import secrets; print(secrets.token_hex(32))"'
             )
 
 
@@ -598,7 +600,10 @@ def validate_config(config: EnvironmentConfig) -> List[str]:
         if config.cache.backend == "memory":
             issues.append("In-memory cache should not be used in production")
 
-        if config.security.secrets_backend in ("vault", "aws") and not config.security.encryption_key:
+        if (
+            config.security.secrets_backend in ("vault", "aws")
+            and not config.security.encryption_key
+        ):
             issues.append("Encryption key must be set when using vault or aws secrets backend")
 
     # General validations

@@ -153,9 +153,7 @@ class TransactionSafeguards:
                 self._price_oracle = get_price_oracle()
                 logger.info("Price oracle initialized for transaction safeguards")
             except ImportError:
-                logger.warning(
-                    "Price oracle module not available. Using fallback rates."
-                )
+                logger.warning("Price oracle module not available. Using fallback rates.")
             except Exception as e:
                 logger.warning(f"Failed to initialize price oracle: {e}")
         return self._price_oracle
@@ -191,9 +189,7 @@ class TransactionSafeguards:
                     source = f"{price_data.source.value}"
                     if price_data.is_stale:
                         source += " (stale)"
-                    logger.debug(
-                        f"Got {currency}/USD rate {rate} from {source}"
-                    )
+                    logger.debug(f"Got {currency}/USD rate {rate} from {source}")
                     return rate, source
             except Exception as e:
                 logger.warning(f"Oracle price fetch failed for {currency}: {e}")
@@ -267,10 +263,7 @@ class TransactionSafeguards:
         if rate_source == "unknown":
             warnings.append(f"Unknown currency '{currency}'. Proceed with caution.")
         elif rate_source.startswith("fallback"):
-            warnings.append(
-                f"Using fallback price for {currency}. "
-                "Live price data unavailable."
-            )
+            warnings.append(f"Using fallback price for {currency}. " "Live price data unavailable.")
         elif "stale" in rate_source:
             warnings.append(f"Price data for {currency} may be outdated.")
 
@@ -387,9 +380,7 @@ class TransactionSafeguards:
 
         return True, ""
 
-    def check_spend_limits(
-        self, buyer_id: str, amount: Decimal, currency: str
-    ) -> Tuple[bool, str]:
+    def check_spend_limits(self, buyer_id: str, amount: Decimal, currency: str) -> Tuple[bool, str]:
         """
         Check if a transaction exceeds spend limits.
 
@@ -434,7 +425,9 @@ class TransactionSafeguards:
 
         return True, ""
 
-    def record_transaction(self, buyer_id: str, amount: Optional[Decimal] = None, currency: Optional[str] = None) -> None:
+    def record_transaction(
+        self, buyer_id: str, amount: Optional[Decimal] = None, currency: Optional[str] = None
+    ) -> None:
         """Record a transaction for rate limiting and spend tracking.
 
         Args:
@@ -623,7 +616,11 @@ class TransactionSafeguards:
         return base
 
     def verify_explicit_confirmation(
-        self, user_input: str, expected_amount: Decimal, expected_currency: str, level: SafeguardLevel
+        self,
+        user_input: str,
+        expected_amount: Decimal,
+        expected_currency: str,
+        level: SafeguardLevel,
     ) -> Tuple[bool, str]:
         """
         Verify user's explicit confirmation input.

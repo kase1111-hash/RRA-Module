@@ -37,7 +37,6 @@ from rra.templates import (
     create_template_library,
 )
 
-
 # ============ Jurisdiction Detection Tests ============
 
 

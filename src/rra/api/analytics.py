@@ -26,7 +26,6 @@ from pydantic import BaseModel, Field
 
 from rra.api.auth import verify_api_key
 
-
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
 
