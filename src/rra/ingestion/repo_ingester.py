@@ -378,13 +378,21 @@ class RepoIngester:
 
         # Generate blockchain links
         if self.generate_blockchain_links and self.owner_address:
-            dreaming.start("Generating blockchain links")
-            print("  Generating blockchain links...")
-            kb.blockchain_links = self._generate_blockchain_links(kb)
-            print(
-                f"    Generated {len(kb.blockchain_links.get('purchase_links', []))} purchase links"
-            )
-            dreaming.complete("Generating blockchain links")
+            ip_asset_id = kb.market_config.ip_asset_id if kb.market_config else None
+            if ip_asset_id:
+                dreaming.start("Generating blockchain links")
+                print("  Generating blockchain links...")
+                kb.blockchain_links = self._generate_blockchain_links(kb)
+                print(
+                    f"    Generated {len(kb.blockchain_links.get('purchase_links', []))} purchase links"
+                )
+                dreaming.complete("Generating blockchain links")
+            else:
+                # Links need a real Story Protocol IP asset to be purchasable
+                print(
+                    "  Skipping purchase links: no Story Protocol IP asset in .market.yaml "
+                    "(register with `rra story register`)"
+                )
 
         return kb
 
@@ -453,6 +461,7 @@ class RepoIngester:
             verification_score=verification_score,
             tags=tags,
             technologies=technologies,
+            ip_asset_id=kb.market_config.ip_asset_id if kb.market_config else None,
         )
 
         return listing.to_dict()

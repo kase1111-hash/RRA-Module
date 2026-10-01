@@ -122,3 +122,26 @@ def test_create_default_config():
         # Should have created file
         config_file = repo_path / ".market.yaml"
         assert config_file.exists()
+
+
+@pytest.mark.parametrize("section", ["protocol_integrations", "defi_integrations"])
+def test_config_from_yaml_reads_story_protocol_block(section):
+    """IP asset settings in the nested story_protocol block reach MarketConfig."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        file_path = Path(tmpdir) / ".market.yaml"
+        file_path.write_text(
+            f"""
+target_price: "0.005 IP"
+floor_price: "0.002 IP"
+{section}:
+  story_protocol:
+    enabled: true
+    ip_asset_id: "0xf08574c30337dde7C38869b8d399BA07ab23a07F"
+    license_terms_id: 28437
+"""
+        )
+
+        config = MarketConfig.from_yaml(file_path)
+
+        assert config.story_protocol_enabled is True
+        assert config.ip_asset_id == "0xf08574c30337dde7C38869b8d399BA07ab23a07F"

@@ -475,6 +475,56 @@ class TestBlockchainLinkGenerator:
         assert len(listing.purchase_links) == 2
         assert len(listing.tags) == 2
 
+    def test_marketplace_listing_uses_registered_ip_asset(self):
+        """A real IP asset ID replaces the placeholder in listings and links."""
+        from rra.verification.blockchain_link import BlockchainLinkGenerator, NetworkType
+
+        ip_asset = "0xf08574c30337dde7C38869b8d399BA07ab23a07F"
+        gen = BlockchainLinkGenerator(network=NetworkType.MAINNET)
+
+        listing = gen.generate_marketplace_listing(
+            repo_url="https://github.com/test/repo",
+            repo_name="repo",
+            description="A test repository",
+            category="library",
+            owner_address="0x1234567890abcdef1234567890abcdef12345678",
+            pricing={"standard": 0.05},
+            ip_asset_id=ip_asset,
+        )
+
+        assert listing.ip_asset_id == ip_asset
+        assert listing.purchase_links[0].url == f"https://explorer.story.foundation/ipa/{ip_asset}"
+
+    def test_hosted_page_links_carry_network(self):
+        """The hosted buy page picks its chain from the `network` parameter."""
+        from rra.verification.blockchain_link import BlockchainLinkGenerator, NetworkType
+
+        gen = BlockchainLinkGenerator(
+            network=NetworkType.TESTNET,
+            purchase_base_url="https://example.github.io/repo/buy-license.html",
+        )
+        link = gen.generate_purchase_link(
+            repo_url="https://github.com/test/repo",
+            ip_asset_id="0x" + "a" * 40,
+            license_terms_id="12",
+        )
+
+        assert "network=testnet" in link.url
+        assert "terms=12" in link.url
+
+    def test_normalize_ip_asset_id(self):
+        """IP asset IDs are checksummed; bad checksums and malformed IDs are rejected."""
+        from rra.verification.blockchain_link import normalize_ip_asset_id
+
+        checksummed = "0xf08574c30337dde7C38869b8d399BA07ab23a07F"
+        assert normalize_ip_asset_id(checksummed) == checksummed
+        assert normalize_ip_asset_id(checksummed.lower()) == checksummed
+        assert normalize_ip_asset_id("0x" + checksummed[2:].upper()) == checksummed
+        # Mixed case with a wrong checksum is most likely a typo
+        assert normalize_ip_asset_id("0xF08574c30337dde7C38869b8d399BA07ab23a07F") is None
+        assert normalize_ip_asset_id("0x1234") is None
+        assert normalize_ip_asset_id(None) is None
+
     def test_generate_embed_widget(self):
         """Test embed widget HTML generation."""
         from rra.verification.blockchain_link import BlockchainLinkGenerator

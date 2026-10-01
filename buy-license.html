@@ -32,6 +32,10 @@
                         <span class="text-gray-400">Transferable</span>
                         <span>Yes</span>
                     </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">IP Asset</span>
+                        <a id="ip-asset-display" href="#" target="_blank" rel="noopener" class="font-mono text-sm text-blue-400 hover:underline"></a>
+                    </div>
                 </div>
             </div>
 
@@ -122,18 +126,49 @@
 
             // Story Protocol IP Asset (your registered IP)
             ipAssetId: "0xf08574c30337dde7C38869b8d399BA07ab23a07F",
-            licenseTermsId: 28437
+            licenseTermsId: 28437,
+
+            // `rra links` repo ID for this repository, so ?repo= links made
+            // for it keep using the defaults above
+            repoId: "dd02dede5e6b"
         };
+
+        // Set when the URL targets another repository without naming its
+        // IP asset and license terms. Purchasing is disabled in that case.
+        let LINK_ERROR = null;
 
         // Allow links to configure the page: ?ipAsset=0x..&terms=123&network=testnet
         (function applyUrlOverrides() {
             const params = new URLSearchParams(window.location.search);
+            const repo = params.get('repo');
             const ipAsset = params.get('ipAsset');
             const terms = params.get('terms');
             const network = params.get('network');
-            if (ipAsset && /^0x[0-9a-fA-F]{40}$/.test(ipAsset)) CONFIG.ipAssetId = ipAsset;
-            if (terms && /^[0-9]+$/.test(terms)) CONFIG.licenseTermsId = parseInt(terms, 10);
             if (network === 'mainnet' || network === 'testnet') CONFIG.network = network;
+
+            // isAddress also rejects mixed-case addresses with a bad checksum (likely typos)
+            const validIp = ipAsset && /^0x[0-9a-fA-F]{40}$/.test(ipAsset) && ethers.isAddress(ipAsset);
+            const validTerms = terms && /^[0-9]+$/.test(terms);
+            const isDefaultIp = validIp && ipAsset.toLowerCase() === CONFIG.ipAssetId.toLowerCase();
+
+            // No repository-specific parameters: sell this repository's license.
+            if (!ipAsset && !terms && (!repo || repo === CONFIG.repoId)) return;
+
+            // A link for another repository must name its own IP asset and
+            // terms. Falling back to the defaults above would sell this
+            // repository's license instead.
+            if (!validIp) {
+                LINK_ERROR = "This purchase link doesn't name a valid Story Protocol IP asset, " +
+                    "so it can't sell a license. Ask the repository owner for an updated link.";
+                return;
+            }
+            if (!validTerms && !isDefaultIp) {
+                LINK_ERROR = "This purchase link is missing its license terms ID, " +
+                    "so it can't sell a license. Ask the repository owner for an updated link.";
+                return;
+            }
+            CONFIG.ipAssetId = ethers.getAddress(ipAsset);
+            if (validTerms) CONFIG.licenseTermsId = parseInt(terms, 10);
         })();
 
         // ============================================
@@ -228,14 +263,29 @@
 
         // Initialize page displays on page load
         function initializeDisplays() {
+            if (LINK_ERROR) {
+                // Don't offer a purchase the link can't describe correctly
+                document.getElementById('price-display').textContent = '—';
+                document.getElementById('ip-asset-display').textContent = '—';
+                document.getElementById('wallet-section').classList.add('hidden');
+                document.getElementById('status').classList.remove('hidden');
+                document.getElementById('status-error').classList.remove('hidden');
+                document.getElementById('error-message').textContent = LINK_ERROR;
+                return;
+            }
+
             setPriceDisplays();
 
-            // Set IP Asset explorer link
-            document.getElementById('ip-asset-link').href =
-                `${NETWORK.explorer}/ipa/${CONFIG.ipAssetId}`;
+            // Set IP Asset explorer links
+            const ipAssetUrl = `${NETWORK.explorer}/ipa/${CONFIG.ipAssetId}`;
+            const shortIp = CONFIG.ipAssetId.slice(0, 9) + '…' + CONFIG.ipAssetId.slice(-4);
+            document.getElementById('ip-asset-link').href = ipAssetUrl;
+            const ipAssetDisplay = document.getElementById('ip-asset-display');
+            ipAssetDisplay.href = ipAssetUrl;
+            ipAssetDisplay.textContent = shortIp;
+            ipAssetDisplay.title = CONFIG.ipAssetId;
 
             // Footer version/config info
-            const shortIp = CONFIG.ipAssetId.slice(0, 9) + '…' + CONFIG.ipAssetId.slice(-4);
             document.getElementById('version-info').textContent =
                 `v2.2.0-${CONFIG.network} | IP: ${shortIp} | Terms: ${CONFIG.licenseTermsId}`;
 
@@ -246,6 +296,7 @@
         document.addEventListener('DOMContentLoaded', initializeDisplays);
 
         async function connectWallet() {
+            if (LINK_ERROR) return;
             if (typeof window.ethereum === 'undefined') {
                 alert('Please install MetaMask or another Web3 wallet');
                 return;
@@ -367,6 +418,7 @@
         }
 
         async function purchaseLicense() {
+            if (LINK_ERROR) return;
             if (!signer) {
                 alert('Please connect your wallet first');
                 return;

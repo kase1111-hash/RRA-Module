@@ -33,7 +33,6 @@ This creates a default configuration that you can customize:
 license_model: "per-seat"
 target_price: "0.05 ETH"
 floor_price: "0.02 ETH"
-negotiation_style: "concise"
 allow_custom_fork_rights: true
 features:
   - "Full source code access"
@@ -57,12 +56,16 @@ This will:
 
 ### 3. Generate Purchase Links
 
+Purchase links point at your repository's Story Protocol IP asset, so register it first
+(`rra story register`, below), then add its `license_terms_id` to `.market.yaml`.
 Create shareable purchase links, badges, and QR codes:
 
 ```bash
-rra purchase-link https://github.com/username/my-awesome-project --wallet 0xYourWallet
-rra links https://github.com/username/my-awesome-project --register
+rra purchase-link https://github.com/username/my-awesome-project --config .market.yaml
+rra links https://github.com/username/my-awesome-project --config .market.yaml --register
 ```
+
+Or pass the IDs directly: `--ip-asset 0x... --terms 12345 [--network testnet]`.
 
 ### 4. Automated GitHub Actions (Optional)
 
@@ -108,8 +111,9 @@ rra ingest https://github.com/username/my-awesome-project.git
 # 5. View repository info
 rra info agent_knowledge_bases/username_my-awesome-project_kb.json
 
-# 6. Generate purchase links
-rra purchase-link https://github.com/username/my-awesome-project.git --wallet 0xYourWallet
+# 6. Register on Story Protocol, then generate purchase links
+rra story register https://github.com/username/my-awesome-project.git --wallet 0xYourWallet
+rra purchase-link https://github.com/username/my-awesome-project.git --config .market.yaml
 
 # 7. List all ingested repos
 rra list
@@ -154,7 +158,7 @@ curl http://localhost:8000/api/repositories
 | `license_model` | string | Yes | Licensing model: `per-seat`, `subscription`, `one-time`, `perpetual`, `custom` |
 | `target_price` | string | Yes | Target price (e.g., "0.05 ETH") |
 | `floor_price` | string | Yes | Minimum acceptable price |
-| `negotiation_style` | string | No | Style: `concise`, `persuasive`, `strict`, `adaptive` (default: `concise`) |
+| `protocol_integrations.story_protocol` | map | No | Story Protocol settings: `enabled`, `network`, `ip_asset_id`, `license_terms_id` (used by `--config`) |
 | `features` | list | No | Key features to highlight |
 | `developer_wallet` | string | No | Ethereum wallet address for payments |
 | `royalty_on_derivatives` | float | No | Royalty percentage (0.0-1.0) for forks |
@@ -164,19 +168,20 @@ curl http://localhost:8000/api/repositories
 ```bash
 # Initialize repository with .market.yaml
 rra init <path> [--target-price=0.05 ETH] [--floor-price=0.02 ETH]
-                 [--license-model=per-seat] [--negotiation-style=concise]
-                 [--wallet=0x...]
+                 [--license-model=per-seat] [--wallet=0x...]
 
 # Ingest repository and generate knowledge base
 rra ingest <repo-url> [--workspace=./cloned_repos] [--force]
                       [--verify/--no-verify] [--categorize/--no-categorize]
                       [--wallet=0x...] [--network=testnet]
 
-# Generate purchase links
-rra purchase-link <repo-url> --wallet <address> [--network=mainnet]
+# Generate the purchase link for a registered IP asset
+rra purchase-link <repo-url> (--config .market.yaml | --ip-asset 0x... --terms <id>)
+                  [--network=mainnet|testnet] [--format=table|json|markdown]
 
 # Generate shareable links, badges, and QR codes
-rra links <repo-url> [--register] [--format=table|json|markdown]
+rra links <repo-url> [--config .market.yaml | --ip-asset 0x... --terms <id>]
+                     [--register] [--format=table|json|markdown]
 
 # List all ingested repositories
 rra list [--workspace=./agent_knowledge_bases]
@@ -187,19 +192,11 @@ rra info <kb-path>
 # Show example .market.yaml configuration
 rra example
 
-# Generate shareable deep links
-rra links <repo-url> [--format=table|json|markdown] [--register]
-
 # Resolve a repository ID to its URL
 rra resolve <repo-id>
 
 # Verify repository code quality
 rra verify <repo-url> [--skip-tests] [--skip-security] [--workspace=./cloned_repos]
-
-# Generate blockchain purchase links
-rra purchase-link <repo-url> --wallet=0x... [--network=testnet]
-                             [--standard-price=0.05] [--premium-price=0.15]
-                             [--enterprise-price=0.50] [--format=table|json|markdown]
 
 # Categorize a repository
 rra categorize <repo-url> [--workspace=./cloned_repos]
@@ -251,17 +248,19 @@ rra story register https://github.com/user/repo.git \
 Generate shareable links for your repository:
 
 ```bash
-# Generate all link formats
-rra links https://github.com/user/repo.git --register
+# Generate all link formats for your registered IP asset
+rra links https://github.com/user/repo.git --ip-asset 0x... --terms 12345
 
 # Output includes:
-# - Agent page URL
-# - Direct chat URL
-# - License tier URLs
+# - Purchase page URL (one-click license mint)
+# - Story Protocol explorer URL
 # - QR code URL
 # - README badge markdown
-# - Embed script HTML
+# - Embeddable buy button HTML
 ```
+
+The IP asset details are saved, so later runs for the same repository don't need the flags.
+Use `--format json` for machine-readable output.
 
 ## Next Steps
 

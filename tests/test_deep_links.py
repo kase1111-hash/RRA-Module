@@ -75,6 +75,25 @@ class TestDeepLinkService:
             assert "terms=28437" in url
             assert "network=mainnet" in url
 
+    def test_reregister_keeps_on_chain_details(self):
+        """Re-registering without metadata must not drop a stored IP asset."""
+        with TemporaryDirectory() as tmpdir:
+            service = DeepLinkService(mappings_path=Path(tmpdir) / "mappings.json")
+            repo_url = "https://github.com/user/repo"
+            repo_id = service.register_repo(
+                repo_url, metadata={"ip_asset_id": "0x" + "f" * 40, "license_terms_id": 7}
+            )
+            created_at = service.resolve_repo_id(repo_id)["created_at"]
+
+            service.register_repo(repo_url)
+            service.register_repo(repo_url, metadata={"ip_asset_id": None, "network": "testnet"})
+
+            mapping = service.resolve_repo_id(repo_id)
+            assert mapping["ip_asset_id"] == "0x" + "f" * 40
+            assert mapping["license_terms_id"] == 7
+            assert mapping["network"] == "testnet"
+            assert mapping["created_at"] == created_at
+
     def test_get_license_url(self):
         """Test license tier URL generation."""
         service = DeepLinkService(base_url="https://test.io/buy.html")

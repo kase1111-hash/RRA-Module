@@ -12,25 +12,26 @@ Provides commands for:
 import json
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional, Tuple
 
 import click
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
-from rich.markdown import Markdown
 
 from rra import __version__
 from rra.config.market_config import (
     MarketConfig,
     LicenseModel,
-    NegotiationStyle,
+    story_protocol_settings,
 )
 from rra.ingestion.repo_ingester import RepoIngester
 from rra.status.dreaming import get_dreaming_status
 from rra.status.cli_integration import enable_dreaming_output, get_dreaming_summary
 
 console = Console()
+# Warnings and errors go to stderr so --format json output stays parseable
+err_console = Console(stderr=True)
 
 
 @click.group()
@@ -59,18 +60,12 @@ def cli(ctx, dreaming):
     type=click.Choice(["per-seat", "subscription", "one-time", "perpetual", "custom"]),
     default="per-seat",
 )
-@click.option(
-    "--negotiation-style",
-    type=click.Choice(["concise", "persuasive", "strict", "adaptive"]),
-    default="concise",
-)
 @click.option("--wallet", help="Ethereum wallet address for payments")
 def init(
     repo_path: Path,
     target_price: str,
     floor_price: str,
     license_model: str,
-    negotiation_style: str,
     wallet: Optional[str],
 ):
     """
@@ -90,7 +85,6 @@ def init(
         target_price=target_price,
         floor_price=floor_price,
         license_model=LicenseModel(license_model),
-        negotiation_style=NegotiationStyle(negotiation_style),
         allow_custom_fork_rights=True,
         description="Automated licensing for this repository",
         features=["Full source code access", "Regular updates", "Developer support"],
@@ -106,9 +100,9 @@ def init(
     console.print(f"\n[green]✓[/green] Created configuration: {config_path}")
     console.print("\n[bold]Next steps:[/bold]")
     console.print("  1. Review and customize .market.yaml")
-    console.print("  2. Run: rra ingest <repo-url> to create knowledge base")
+    console.print("  2. Run: rra story register <repo-url> --wallet <address> to register the IP")
     console.print(
-        "  3. Run: rra purchase-link <repo-url> --wallet <address> to generate purchase links"
+        "  3. Run: rra links <repo-url> --ip-asset <id> --terms <id> to generate purchase links"
     )
 
 
@@ -408,11 +402,11 @@ def ingest(
         sys.exit(1)
 
 
-@cli.command()
+@cli.command("list")
 @click.option(
     "--workspace", type=click.Path(path_type=Path), default=Path("./agent_knowledge_bases")
 )
-def list(workspace: Path):
+def list_repos(workspace: Path):
     """
     List all ingested repositories and their knowledge bases.
     """
@@ -420,7 +414,8 @@ def list(workspace: Path):
         console.print("[yellow]No knowledge bases found[/yellow]")
         return
 
-    kb_files = list(workspace.glob("*_kb.json"))
+    # Knowledge bases are saved gzip-compressed by default (*_kb.json.gz)
+    kb_files = sorted([*workspace.glob("*_kb.json"), *workspace.glob("*_kb.json.gz")])
 
     if not kb_files:
         console.print("[yellow]No knowledge bases found[/yellow]")
@@ -473,7 +468,8 @@ def info(kb_path: Path):
             config_table.add_row("License Model", kb.market_config.license_model.value)
             config_table.add_row("Target Price", kb.market_config.target_price)
             config_table.add_row("Floor Price", kb.market_config.floor_price)
-            config_table.add_row("Negotiation Style", kb.market_config.negotiation_style.value)
+            if kb.market_config.ip_asset_id:
+                config_table.add_row("Story IP Asset", kb.market_config.ip_asset_id)
 
             console.print(config_table)
 
@@ -489,46 +485,173 @@ def example():
     """
     example_yaml = """# .market.yaml - RRA Module Configuration
 
-license_model: "per-seat"  # Options: per-seat, subscription, one-time, perpetual, custom
-target_price: "0.05 ETH"   # Suggested starting price
-floor_price: "0.02 ETH"    # Minimum acceptable price
-
-negotiation_style: "concise"  # Options: concise, persuasive, strict, adaptive
+license_model: "perpetual"  # Options: per-seat, subscription, one-time, perpetual, custom
+target_price: "0.005 IP"    # Advertised price (buyers pay the on-chain minting fee)
+floor_price: "0.002 IP"     # Minimum acceptable price
 
 allow_custom_fork_rights: true
 auto_renewal: false
 
-# Optional settings
 description: "Production-ready API framework with extensive documentation"
 features:
   - "Full source code access"
   - "Regular updates and bug fixes"
-  - "Developer support via GitHub issues"
   - "Commercial use permitted"
 
 update_frequency: "weekly"  # Options: daily, weekly, monthly, on-push
-sandbox_tests: "tests/verification.py"  # Path to verification scripts
+developer_wallet: "0xYourWallet"
 
-# Blockchain settings
-developer_wallet: "0x1234..."  # Your Ethereum address
-royalty_on_derivatives: 0.15   # 15% royalty on forks/derivatives
-
-# Additional metadata
-metadata:
-  category: "web-framework"
-  maturity: "production"
+# Story Protocol - filled in after `rra story register`
+protocol_integrations:
+  story_protocol:
+    enabled: true
+    network: "mainnet"            # mainnet or testnet
+    ip_asset_id: "0x..."          # Your registered IP asset
+    license_terms_id: 12345       # License terms buyers mint against
+    pil_terms:
+      commercial_use: true
+      derivatives_allowed: true
+      derivatives_attribution: true
+      derivatives_reciprocal: false
+    derivative_royalty_percentage: 0.09
 """
 
-    console.print(Panel(Markdown(example_yaml), title="Example .market.yaml", border_style="blue"))
+    # Plain output so the YAML can be copied straight from the terminal
+    click.echo(example_yaml)
 
-    console.print("\n[bold]Quick Start:[/bold]")
-    console.print("  1. Create .market.yaml in your repo root")
-    console.print("  2. Run: rra init <repo-path>")
-    console.print("  3. Customize the generated configuration")
+    console.print("[bold]Quick Start:[/bold]")
+    console.print("  1. Run: rra init <repo-path>  (writes .market.yaml)")
+    console.print("  2. Customize the generated configuration")
+    console.print("  3. Run: rra story register <repo-url> --wallet <address>")
+    console.print("  4. Run: rra links <repo-url> --config .market.yaml")
+
+
+def _story_link_options(f):
+    """Options shared by `links` and `purchase-link` for targeting a Story IP asset."""
+    f = click.option(
+        "--base-url",
+        help="Your own hosted buy-license.html (default: the RRA-Module GitHub Pages copy)",
+    )(f)
+    f = click.option(
+        "--config",
+        "config_path",
+        type=click.Path(exists=True, dir_okay=False, path_type=Path),
+        help="Read ip_asset_id, license_terms_id and network from this .market.yaml",
+    )(f)
+    f = click.option(
+        "--network",
+        type=click.Choice(["mainnet", "testnet"]),
+        help="Story Protocol network (default: mainnet)",
+    )(f)
+    f = click.option(
+        "--terms",
+        "license_terms_id",
+        type=int,
+        help="License terms ID attached to the IP asset (what buyers mint)",
+    )(f)
+    f = click.option("--ip-asset", help="Registered Story Protocol IP asset ID (0x...)")(f)
+    return f
+
+
+def _resolve_story_target(
+    config_path: Optional[Path],
+    ip_asset: Optional[str],
+    license_terms_id: Optional[int],
+    network: Optional[str],
+) -> Tuple[Optional[str], Optional[int], Optional[str]]:
+    """
+    Combine --ip-asset/--terms/--network with an explicit --config file.
+
+    Command-line values win. The .market.yaml is only read when --config is
+    given, so links for one repository never pick up another repository's
+    IP asset from the current directory.
+    """
+    if config_path:
+        import yaml
+
+        with open(config_path) as f:
+            story = story_protocol_settings(yaml.safe_load(f) or {})
+        ip_asset = ip_asset or story.get("ip_asset_id")
+        if license_terms_id is None and story.get("license_terms_id") is not None:
+            try:
+                license_terms_id = int(story["license_terms_id"])
+            except (TypeError, ValueError):
+                raise click.BadParameter(
+                    f"license_terms_id in {config_path} is not a number",
+                    param_hint="--config",
+                )
+        network = network or story.get("network")
+
+    if ip_asset:
+        from rra.verification.blockchain_link import normalize_ip_asset_id
+
+        normalized = normalize_ip_asset_id(str(ip_asset))
+        if not normalized:
+            raise click.BadParameter(
+                f"'{ip_asset}' is not a valid Story Protocol IP asset ID "
+                "(expected a 0x-prefixed 20-byte address; check for typos)",
+                param_hint="--ip-asset",
+            )
+        ip_asset = normalized
+    if network and network not in ("mainnet", "testnet"):
+        raise click.BadParameter(
+            f"network '{network}' must be mainnet or testnet", param_hint="--network"
+        )
+    return ip_asset, license_terms_id, network
+
+
+def _link_service_for(
+    repo_url: str,
+    config_path: Optional[Path],
+    ip_asset: Optional[str],
+    license_terms_id: Optional[int],
+    network: Optional[str],
+    base_url: Optional[str],
+    register: bool,
+) -> Tuple[Any, Dict[str, Any]]:
+    """Build a DeepLinkService, saving any on-chain details for the repository."""
+    from rra.services.deep_links import DeepLinkService
+
+    ip_asset, license_terms_id, network = _resolve_story_target(
+        config_path, ip_asset, license_terms_id, network
+    )
+    service = DeepLinkService(base_url=base_url, network=network or "mainnet")
+
+    # Links are built from the saved registration, so store the IP asset
+    # details whenever they are supplied (and on an explicit --register).
+    if register or ip_asset or license_terms_id is not None or network:
+        service.register_repo(
+            repo_url,
+            {
+                "ip_asset_id": ip_asset,
+                "license_terms_id": license_terms_id,
+                "network": network,
+            },
+        )
+
+    mapping = service.resolve_repo_id(service.generate_repo_id(repo_url)) or {}
+    return service, mapping
+
+
+def _warn_if_not_purchasable(mapping: Dict[str, Any]) -> None:
+    """Explain on stderr why generated links cannot take payments yet."""
+    if not mapping.get("ip_asset_id"):
+        err_console.print(
+            "[yellow]⚠ No Story Protocol IP asset for this repository, so these links "
+            "can't take payments yet.[/yellow]\n"
+            "  Register it with `rra story register`, then pass --ip-asset and --terms "
+            "(or --config .market.yaml)."
+        )
+    elif mapping.get("license_terms_id") is None:
+        err_console.print(
+            "[yellow]⚠ No license terms ID, so buyers can't mint a license yet.[/yellow]\n"
+            "  Pass --terms with the license terms attached to your IP asset."
+        )
 
 
 @cli.command()
 @click.argument("repo_url")
+@_story_link_options
 @click.option(
     "--format",
     "output_format",
@@ -536,52 +659,64 @@ metadata:
     default="table",
     help="Output format",
 )
-@click.option("--register", is_flag=True, help="Register the repository for permanent linking")
-def links(repo_url: str, output_format: str, register: bool):
+@click.option(
+    "--register",
+    is_flag=True,
+    help="Save the repository so later runs reuse its IP asset details",
+)
+def links(
+    repo_url: str,
+    ip_asset: Optional[str],
+    license_terms_id: Optional[int],
+    network: Optional[str],
+    config_path: Optional[Path],
+    base_url: Optional[str],
+    output_format: str,
+    register: bool,
+):
     """
     Generate shareable purchase links for a repository.
 
-    Creates URLs for:
-    - Purchase page (buy a license on Story Protocol)
-    - License tiers (specific tier purchase)
+    Links open the hosted purchase page for the repository's Story Protocol
+    IP asset, where a buyer connects a wallet and mints a license token.
+
+    Creates:
+    - Purchase page URL
+    - Story Protocol explorer URL
     - QR codes (for print/sharing)
     - README badges (for documentation)
     - Embeddable buy buttons (for websites)
+
+    Example:
+        rra links https://github.com/you/repo --ip-asset 0x... --terms 12345
     """
-    from rra.services.deep_links import DeepLinkService
-    import json
-
-    console.print(
-        Panel.fit(f"[bold blue]Generating Deep Links[/bold blue]\n{repo_url}", border_style="blue")
+    service, mapping = _link_service_for(
+        repo_url, config_path, ip_asset, license_terms_id, network, base_url, register
     )
-
-    service = DeepLinkService()
-
-    # Register if requested
-    if register:
-        service.register_repo(repo_url)
-        console.print("[green]✓[/green] Repository registered for permanent linking\n")
-
-    # Get all links
     all_links = service.get_all_links(repo_url)
+    _warn_if_not_purchasable(mapping)
 
     if output_format == "json":
-        console.print(json.dumps(all_links, indent=2))
+        # Raw JSON on stdout so it can be piped to other tools
+        click.echo(json.dumps(all_links, indent=2))
+        return
 
-    elif output_format == "markdown":
-        md = f"""# Deep Links for Repository
+    if output_format == "markdown":
+        md = f"""# Purchase Links
 
+**Repository:** {repo_url}
 **Repository ID:** `{all_links['repo_id']}`
-
-## Quick Links
 
 | Type | URL |
 |------|-----|
 | Purchase Page | [{all_links['purchase_page']}]({all_links['purchase_page']}) |
-| Standard License | [{all_links['license_standard']}]({all_links['license_standard']}) |
-| Premium License | [{all_links['license_premium']}]({all_links['license_premium']}) |
-| Enterprise License | [{all_links['license_enterprise']}]({all_links['license_enterprise']}) |
-
+"""
+        if all_links.get("explorer_url"):
+            md += (
+                f"| Story Explorer | [{all_links['explorer_url']}]"
+                f"({all_links['explorer_url']}) |\n"
+            )
+        md += f"""
 ## QR Code
 
 ![QR Code]({all_links['qr_code']})
@@ -592,38 +727,39 @@ def links(repo_url: str, output_format: str, register: bool):
 {all_links['badge_markdown']}
 ```
 
-## Embed Code
+## Buy Button
 
 ```html
 {all_links['embed_button']}
 ```
 """
-        console.print(Markdown(md))
+        click.echo(md)
+        return
 
-    else:  # table format
-        # Basic links table
-        table = Table(title="Generated Links", show_header=True)
-        table.add_column("Type", style="cyan", width=20)
-        table.add_column("URL/Value", style="green")
+    console.print(
+        Panel.fit(f"[bold blue]Purchase Links[/bold blue]\n{repo_url}", border_style="blue")
+    )
+    console.print(f"[bold]Repository ID:[/bold]  {all_links['repo_id']}")
+    if mapping.get("ip_asset_id"):
+        console.print(
+            f"[bold]IP Asset:[/bold]       {mapping['ip_asset_id']} "
+            f"({mapping.get('network', service.network)})"
+        )
+    if mapping.get("license_terms_id") is not None:
+        console.print(f"[bold]License Terms:[/bold]  {mapping['license_terms_id']}")
 
-        table.add_row("Repository ID", all_links["repo_id"])
-        table.add_row("Purchase Page", all_links["purchase_page"])
-        if all_links.get("explorer_url"):
-            table.add_row("Story Explorer", all_links["explorer_url"])
-        table.add_row("Standard License", all_links["license_standard"])
-        table.add_row("Premium License", all_links["license_premium"])
-        table.add_row("Enterprise License", all_links["license_enterprise"])
-        table.add_row("QR Code (PNG)", all_links["qr_code"])
-
-        console.print(table)
-
-        # Badge section
-        console.print("\n[bold]README Badge (Markdown):[/bold]")
-        console.print(Panel(all_links["badge_markdown"], border_style="dim"))
-
-        # Embed section
-        console.print("\n[bold]Buy Button (HTML):[/bold]")
-        console.print(Panel(all_links["embed_button"], border_style="dim"))
+    # URLs and snippets go out unwrapped so they can be copied intact
+    sections = [
+        ("Purchase page", all_links["purchase_page"]),
+        ("Story explorer", all_links.get("explorer_url")),
+        ("QR code (PNG)", all_links["qr_code"]),
+        ("README badge (Markdown)", all_links["badge_markdown"]),
+        ("Buy button (HTML)", all_links["embed_button"]),
+    ]
+    for label, value in sections:
+        if value:
+            console.print(f"\n[bold]{label}:[/bold]")
+            click.echo(value)
 
 
 @cli.command()
@@ -881,20 +1017,9 @@ def verify(
         sys.exit(1)
 
 
-@cli.command()
+@cli.command("purchase-link")
 @click.argument("repo_url")
-@click.option("--wallet", required=True, help="Your Ethereum wallet address")
-@click.option(
-    "--network",
-    type=click.Choice(["mainnet", "testnet", "localhost"]),
-    default="testnet",
-    help="Blockchain network",
-)
-@click.option("--standard-price", type=float, default=0.05, help="Price for standard license (ETH)")
-@click.option("--premium-price", type=float, default=0.15, help="Price for premium license (ETH)")
-@click.option(
-    "--enterprise-price", type=float, default=0.50, help="Price for enterprise license (ETH)"
-)
+@_story_link_options
 @click.option(
     "--format",
     "output_format",
@@ -902,124 +1027,72 @@ def verify(
     default="table",
     help="Output format",
 )
+@click.option("--wallet", hidden=True, help="Deprecated and ignored")
 def purchase_link(
     repo_url: str,
-    wallet: str,
-    network: str,
-    standard_price: float,
-    premium_price: float,
-    enterprise_price: float,
+    ip_asset: Optional[str],
+    license_terms_id: Optional[int],
+    network: Optional[str],
+    config_path: Optional[Path],
+    base_url: Optional[str],
     output_format: str,
+    wallet: Optional[str],
 ):
     """
-    Generate blockchain purchase links for a repository.
+    Generate the one-click purchase link for a registered repository.
 
-    Creates links to Story Protocol entries where buyers can purchase licenses.
-    Links include:
-    - Standard tier license
-    - Premium tier license
-    - Enterprise tier license
+    The link opens the hosted purchase page for the repository's Story
+    Protocol IP asset. The price buyers pay is the minting fee in the
+    on-chain license terms, which the page reads live.
+
+    Example:
+        rra purchase-link https://github.com/you/repo --config .market.yaml
     """
-    from rra.verification.blockchain_link import BlockchainLinkGenerator, NetworkType
-    import json
+    service, mapping = _link_service_for(
+        repo_url, config_path, ip_asset, license_terms_id, network, base_url, register=False
+    )
+
+    if not mapping.get("ip_asset_id") or mapping.get("license_terms_id") is None:
+        missing = "IP asset" if not mapping.get("ip_asset_id") else "license terms ID"
+        err_console.print(f"[red]✗[/red] No Story Protocol {missing} for {repo_url}.")
+        err_console.print(
+            "  Register the repository with `rra story register`, then pass "
+            "--ip-asset and --terms (or --config .market.yaml)."
+        )
+        sys.exit(1)
+
+    data = {
+        "repo_url": repo_url,
+        "repo_id": service.generate_repo_id(repo_url),
+        "network": mapping.get("network", service.network),
+        "ip_asset_id": mapping["ip_asset_id"],
+        "license_terms_id": mapping["license_terms_id"],
+        "purchase_url": service.get_purchase_url(repo_url),
+        "explorer_url": service.get_explorer_url(repo_url),
+    }
+
+    if output_format == "json":
+        click.echo(json.dumps(data, indent=2))
+        return
+
+    if output_format == "markdown":
+        click.echo(
+            f"[Buy a license]({data['purchase_url']}) · "
+            f"[View on Story Protocol]({data['explorer_url']})"
+        )
+        return
 
     console.print(
         Panel.fit(
-            f"[bold blue]Generating Purchase Links[/bold blue]\n{repo_url}", border_style="blue"
+            f"[bold blue]Purchase Link[/bold blue]\n{repo_url}", border_style="blue"
         )
     )
-
-    try:
-        network_type = NetworkType(network)
-    except ValueError:
-        network_type = NetworkType.TESTNET
-
-    generator = BlockchainLinkGenerator(network=network_type)
-
-    # Generate IP Asset ID
-    ip_asset_id = generator.generate_ip_asset_id(repo_url, wallet)
-
-    # Generate links
-    pricing = {
-        "standard": standard_price,
-        "premium": premium_price,
-        "enterprise": enterprise_price,
-    }
-
-    links = generator.generate_all_tier_links(
-        repo_url=repo_url,
-        ip_asset_id=ip_asset_id,
-        pricing=pricing,
-    )
-
-    # Generate explorer link
-    explorer_url = generator.generate_explorer_link(ip_asset_id)
-
-    if output_format == "json":
-        data = {
-            "ip_asset_id": ip_asset_id,
-            "explorer_url": explorer_url,
-            "network": network,
-            "links": [link.to_dict() for link in links],
-        }
-        console.print(json.dumps(data, indent=2))
-
-    elif output_format == "markdown":
-        md = f"""# Purchase Links for {repo_url.split('/')[-1]}
-
-**IP Asset ID:** `{ip_asset_id}`
-**Network:** {network}
-
-## License Tiers
-
-| Tier | Price | Purchase Link |
-|------|-------|---------------|
-"""
-        for link in links:
-            md += f"| {link.tier.value.capitalize()} | {link.price_display} | [{link.url}]({link.url}) |\n"
-
-        md += f"""
-## View on Story Protocol
-
-[View IP Asset on Story Protocol Explorer]({explorer_url})
-
-## Embed Widget
-
-```html
-{generator.generate_embed_widget(generator.generate_marketplace_listing(
-    repo_url=repo_url,
-    repo_name=repo_url.split("/")[-1],
-    description="Software License",
-    category="software",
-    owner_address=wallet,
-    pricing=pricing,
-))}
-```
-"""
-        console.print(Markdown(md))
-
-    else:  # table format
-        console.print(f"\n[bold]IP Asset ID:[/bold] [cyan]{ip_asset_id}[/cyan]")
-        console.print(f"[bold]Network:[/bold] {network}")
-        console.print(f"[bold]Explorer:[/bold] {explorer_url}\n")
-
-        table = Table(title="Purchase Links", show_header=True)
-        table.add_column("Tier", style="cyan", width=12)
-        table.add_column("Price", style="green", width=12)
-        table.add_column("URL", style="blue")
-
-        for link in links:
-            table.add_row(
-                link.tier.value.capitalize(),
-                link.price_display,
-                link.url,
-            )
-
-        console.print(table)
-
-        console.print("\n[bold]Quick Actions:[/bold]")
-        console.print(f"  • Copy link for standard tier: {links[0].url}")
-        console.print(f"  • View on explorer: {explorer_url}")
+    console.print(f"[bold]IP Asset:[/bold]       {data['ip_asset_id']} ({data['network']})")
+    console.print(f"[bold]License Terms:[/bold]  {data['license_terms_id']}")
+    console.print("\n[bold]Purchase link:[/bold]")
+    click.echo(data["purchase_url"])
+    console.print("\n[bold]Story explorer:[/bold]")
+    click.echo(data["explorer_url"])
 
 
 @cli.command()
@@ -1287,11 +1360,7 @@ def register(
             # Create a MarketConfig with the Story Protocol settings
             # (canonical key: protocol_integrations; defi_integrations kept
             # for backwards compatibility)
-            story_config = (
-                raw_config.get("protocol_integrations", {}).get("story_protocol")
-                or raw_config.get("defi_integrations", {}).get("story_protocol")
-                or {}
-            )
+            story_config = story_protocol_settings(raw_config)
 
             if not story_config.get("enabled", False):
                 console.print("\n[yellow]⚠ Story Protocol not enabled in .market.yaml[/yellow]")
@@ -1395,14 +1464,21 @@ def register(
                     with open(config_path) as f:
                         raw_config = yaml.safe_load(f)
 
-                    if "defi_integrations" not in raw_config:
-                        raw_config["defi_integrations"] = {}
-                    if "story_protocol" not in raw_config["defi_integrations"]:
-                        raw_config["defi_integrations"]["story_protocol"] = {}
-
-                    raw_config["defi_integrations"]["story_protocol"]["ip_asset_id"] = result[
-                        "ip_asset_id"
-                    ]
+                    # Write back to the block the settings were read from:
+                    # protocol_integrations (canonical) unless the file only
+                    # has the legacy defi_integrations block.
+                    section_key = (
+                        "defi_integrations"
+                        if "protocol_integrations" not in raw_config
+                        and (raw_config.get("defi_integrations") or {}).get("story_protocol")
+                        else "protocol_integrations"
+                    )
+                    section = raw_config.setdefault(section_key, {}) or {}
+                    raw_config[section_key] = section
+                    story_block = section.setdefault("story_protocol", {}) or {}
+                    section["story_protocol"] = story_block
+                    story_block["ip_asset_id"] = result["ip_asset_id"]
+                    story_block["network"] = network
 
                     with open(config_path, "w") as f:
                         yaml.dump(raw_config, f, default_flow_style=False, sort_keys=False)

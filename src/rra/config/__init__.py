@@ -2,6 +2,11 @@
 # Copyright 2025 Kase Branham
 """Configuration handling for RRA Module."""
 
-from rra.config.market_config import MarketConfig, LicenseModel, NegotiationStyle
+from rra.config.market_config import (
+    MarketConfig,
+    LicenseModel,
+    NegotiationStyle,
+    story_protocol_settings,
+)
 
-__all__ = ["MarketConfig", "LicenseModel", "NegotiationStyle"]
+__all__ = ["MarketConfig", "LicenseModel", "NegotiationStyle", "story_protocol_settings"]

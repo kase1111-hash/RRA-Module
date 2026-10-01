@@ -276,11 +276,30 @@ async def get_verification_status(
     raise HTTPException(status_code=404, detail="Verification not found")
 
 
+IP_ASSET_REQUIRED = (
+    "ip_asset_id is required: purchase links must point at the repository's "
+    "registered Story Protocol IP asset (register with `rra story register`)."
+)
+
+
+def _require_ip_asset_id(ip_asset_id: Optional[str]) -> str:
+    """Reject requests that would produce links to a nonexistent IP asset."""
+    from rra.verification.blockchain_link import normalize_ip_asset_id
+
+    normalized = normalize_ip_asset_id(ip_asset_id)
+    if not normalized:
+        raise HTTPException(status_code=400, detail=IP_ASSET_REQUIRED)
+    return normalized
+
+
 @router.get("/purchase-links/{repo_id}", response_model=List[PurchaseLinkResponse])
 async def get_purchase_links(
     repo_id: str,
     owner_address: str = Query(..., description="Owner's Ethereum address"),
     network: str = Query("testnet", description="Blockchain network"),
+    ip_asset_id: Optional[str] = Query(
+        None, description="Registered Story Protocol IP asset ID (0x + 40 hex chars)"
+    ),
     _auth: Optional[bool] = Depends(optional_api_key),
 ) -> List[PurchaseLinkResponse]:
     """
@@ -290,11 +309,14 @@ async def get_purchase_links(
         repo_id: Repository ID or URL
         owner_address: Owner's Ethereum address
         network: Blockchain network
+        ip_asset_id: Registered Story Protocol IP asset ID
 
     Returns:
         List of purchase links for different license tiers
     """
     from rra.verification.blockchain_link import BlockchainLinkGenerator, NetworkType
+
+    ip_asset_id = _require_ip_asset_id(ip_asset_id)
 
     try:
         network_type = NetworkType(network)
@@ -313,7 +335,6 @@ async def get_purchase_links(
     # Use repo_id as the URL if it looks like a URL
     repo_url = repo_id if "github.com" in repo_id else f"https://github.com/{repo_id}"
 
-    ip_asset_id = generator.generate_ip_asset_id(repo_url, owner_address)
     links = generator.generate_all_tier_links(
         repo_url=repo_url,
         ip_asset_id=ip_asset_id,
@@ -338,6 +359,9 @@ async def get_embed_widget(
     owner_address: str = Query(..., description="Owner's Ethereum address"),
     network: str = Query("testnet", description="Blockchain network"),
     theme: str = Query("light", description="Widget theme (light/dark)"),
+    ip_asset_id: Optional[str] = Query(
+        None, description="Registered Story Protocol IP asset ID (0x + 40 hex chars)"
+    ),
     _auth: Optional[bool] = Depends(optional_api_key),
 ) -> Dict[str, str]:
     """
@@ -348,11 +372,14 @@ async def get_embed_widget(
         owner_address: Owner's Ethereum address
         network: Blockchain network
         theme: Widget theme (light/dark)
+        ip_asset_id: Registered Story Protocol IP asset ID
 
     Returns:
         HTML widget code for embedding
     """
     from rra.verification.blockchain_link import BlockchainLinkGenerator, NetworkType
+
+    ip_asset_id = _require_ip_asset_id(ip_asset_id)
 
     try:
         network_type = NetworkType(network)
@@ -384,6 +411,7 @@ async def get_embed_widget(
         verification_score=cached["verification"]["score"] if cached else 0.0,
         tags=cached["category"]["tags"] if cached else [],
         technologies=cached["category"]["technologies"] if cached else [],
+        ip_asset_id=ip_asset_id,
     )
 
     html = generator.generate_embed_widget(listing, theme=theme)

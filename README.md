@@ -53,11 +53,15 @@ rra init /path/to/your-repo
 # Ingest a repository and build its knowledge base
 rra ingest https://github.com/your/repo
 
-# Generate blockchain purchase links
-rra purchase-link https://github.com/your/repo --wallet 0xYourWallet --network mainnet
+# Register the repo as an IP asset on Story Protocol (saves ip_asset_id to .market.yaml)
+rra story register https://github.com/your/repo --wallet 0xYourWallet --network mainnet
+
+# Generate the one-click purchase link for the registered IP asset
+# (add license_terms_id to .market.yaml, or pass --ip-asset/--terms instead of --config)
+rra purchase-link https://github.com/your/repo --config .market.yaml
 
 # Generate shareable links, badges, and QR codes
-rra links https://github.com/your/repo --register
+rra links https://github.com/your/repo --config .market.yaml --register
 
 # Launch the API server
 uvicorn rra.api.server:app --reload

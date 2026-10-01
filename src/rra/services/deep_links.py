@@ -114,11 +114,15 @@ class DeepLinkService:
         """
         repo_id = self.generate_repo_id(repo_url)
 
+        # Merge into any existing registration so re-registering without
+        # on-chain details doesn't drop a previously stored ip_asset_id.
+        existing = self._mappings.get(repo_id, {})
         self._mappings[repo_id] = {
+            **existing,
             "repo_url": repo_url,
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": existing.get("created_at", datetime.utcnow().isoformat()),
             "active": True,
-            **(metadata or {}),
+            **{k: v for k, v in (metadata or {}).items() if v is not None},
         }
 
         self._save_mappings()
