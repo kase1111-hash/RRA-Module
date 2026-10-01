@@ -267,9 +267,17 @@ class EnvironmentConfig:
 
     def __post_init__(self) -> None:
         """Initialize directories and validate config."""
-        # Ensure directories exist
-        self.data_dir.mkdir(parents=True, exist_ok=True)
-        self.logs_dir.mkdir(parents=True, exist_ok=True)
+        # Ensure directories exist. Staging/production default to system
+        # paths (/var/lib/rra, /var/log/rra) that a non-root user can't
+        # create, so warn instead of failing to load the configuration.
+        for directory, env_var in (
+            (self.data_dir, "RRA_DATA_DIR"),
+            (self.logs_dir, "RRA_LOGS_DIR"),
+        ):
+            try:
+                directory.mkdir(parents=True, exist_ok=True)
+            except OSError as e:
+                logger.warning(f"Cannot create {directory} ({e}); set {env_var} to a writable path")
 
     @property
     def is_development(self) -> bool:
@@ -387,8 +395,8 @@ def _get_staging_config() -> EnvironmentConfig:
             tracing_enabled=True,
             tracing_sample_rate=0.5,
         ),
-        data_dir=Path("/var/lib/rra/data"),
-        logs_dir=Path("/var/log/rra"),
+        data_dir=Path(os.environ.get("RRA_DATA_DIR", "/var/lib/rra/data")),
+        logs_dir=Path(os.environ.get("RRA_LOGS_DIR", "/var/log/rra")),
     )
 
 
@@ -454,8 +462,8 @@ def _get_production_config() -> EnvironmentConfig:
             tracing_enabled=True,
             tracing_sample_rate=0.1,
         ),
-        data_dir=Path("/var/lib/rra/data"),
-        logs_dir=Path("/var/log/rra"),
+        data_dir=Path(os.environ.get("RRA_DATA_DIR", "/var/lib/rra/data")),
+        logs_dir=Path(os.environ.get("RRA_LOGS_DIR", "/var/log/rra")),
     )
 
 
