@@ -33,6 +33,7 @@ Override Settings:
 
 import os
 import logging
+import tempfile
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Optional, List
@@ -260,9 +261,9 @@ class EnvironmentConfig:
     # Paths
     data_dir: Path = field(default_factory=lambda: Path("data"))
     logs_dir: Path = field(default_factory=lambda: Path("logs"))
-    temp_dir: Path = field(default_factory=lambda: Path("/tmp/rra"))
+    temp_dir: Path = field(default_factory=lambda: Path(tempfile.gettempdir()) / "rra")
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize directories and validate config."""
         # Ensure directories exist
         self.data_dir.mkdir(parents=True, exist_ok=True)
@@ -338,7 +339,7 @@ def _get_staging_config() -> EnvironmentConfig:
         environment=Environment.STAGING,
         debug=True,
         testing=False,
-        api_host="0.0.0.0",
+        api_host="0.0.0.0",  # nosec B104 - containerized deploy behind a reverse proxy
         api_port=8000,
         api_base_url=os.environ.get("RRA_API_URL", "https://staging-api.rra.dev"),
         api_docs_enabled=True,
@@ -395,7 +396,7 @@ def _get_production_config() -> EnvironmentConfig:
         environment=Environment.PRODUCTION,
         debug=False,
         testing=False,
-        api_host="0.0.0.0",
+        api_host="0.0.0.0",  # nosec B104 - containerized deploy behind a reverse proxy
         api_port=8000,
         api_base_url=os.environ.get("RRA_API_URL", "https://api.rra.io"),
         api_docs_enabled=False,  # Disabled in production

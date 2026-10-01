@@ -211,7 +211,7 @@ class MarketConfig(BaseModel):
         Returns:
             Dictionary of parameters suitable for smart contract deployment
         """
-        params = {
+        params: Dict[str, Any] = {
             "license_model": self.license_model.value,
             "target_price_wei": self._parse_price_to_wei(self.target_price),
             "floor_price_wei": self._parse_price_to_wei(self.floor_price),

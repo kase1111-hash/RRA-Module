@@ -361,7 +361,7 @@ class GasEstimator:
             tx.pop("maxPriorityFeePerGas", None)
 
             estimated = self.web3.eth.estimate_gas(tx)
-            return estimated
+            return int(estimated)
 
         except Exception as e:
             logger.debug(f"Dynamic estimation failed: {e}")
@@ -461,7 +461,7 @@ class GasEstimator:
                 # Use median of recent priority fees
                 fees = [r[0] for r in rewards if r]
                 if fees:
-                    return sorted(fees)[len(fees) // 2]
+                    return int(sorted(fees)[len(fees) // 2])
         except Exception:
             pass
 

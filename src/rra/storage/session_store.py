@@ -173,7 +173,7 @@ class InMemorySessionStore(SessionStore):
     Thread-safe via internal lock for concurrent access.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize in-memory store."""
         self._sessions: Dict[str, SessionData] = {}
         self._lock = threading.Lock()
@@ -401,7 +401,7 @@ class RedisSessionStore(SessionStore):
     def delete(self, session_id: str) -> bool:
         """Delete session from Redis."""
         key = self._make_key(session_id)
-        return self._redis.delete(key) > 0
+        return bool(self._redis.delete(key) > 0)
 
     def exists(self, session_id: str) -> bool:
         """Check if session exists in Redis."""

@@ -6,9 +6,10 @@ License NFT contract interaction module.
 Provides Python interface for interacting with the RepoLicense smart contract.
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, cast
 from web3 import Web3
 from web3.exceptions import ContractLogicError
+from web3.types import TxParams
 
 from rra.contracts.artifacts import load_contract, ContractArtifact
 from rra.contracts.gas_estimator import (
@@ -57,6 +58,7 @@ class LicenseNFTContract:
 
         self.abi = contract_abi
 
+        self.contract: Optional[Any]
         if contract_address:
             self.contract = self.w3.eth.contract(
                 address=Web3.to_checksum_address(contract_address), abi=self.abi
@@ -153,6 +155,12 @@ class LicenseNFTContract:
                 )
 
             contract_address = tx_receipt["contractAddress"]
+            if contract_address is None:
+                raise ContractDeploymentError(
+                    contract_name=self.CONTRACT_NAME,
+                    reason="Deployment receipt has no contract address",
+                    tx_hash=tx_hash.hex(),
+                )
 
             # Initialize contract instance
             self.contract = self.w3.eth.contract(address=contract_address, abi=self._artifact.abi)
@@ -306,13 +314,16 @@ class LicenseNFTContract:
             royalty_basis_points,
             token_uri,
         ).build_transaction(
-            {
-                "from": licensee_address,
-                "value": payment_wei,
-                "nonce": self.w3.eth.get_transaction_count(licensee_address),
-                "gas": gas_limit,
-                "gasPrice": self.w3.eth.gas_price,
-            }
+            cast(
+                TxParams,
+                {
+                    "from": licensee_address,
+                    "value": payment_wei,
+                    "nonce": self.w3.eth.get_transaction_count(licensee_address),
+                    "gas": gas_limit,
+                    "gasPrice": self.w3.eth.gas_price,
+                },
+            )
         )
 
         # Sign and send
@@ -339,7 +350,7 @@ class LicenseNFTContract:
             )
 
         try:
-            return self.contract.functions.isLicenseValid(token_id).call()
+            return bool(self.contract.functions.isLicenseValid(token_id).call())
         except ContractLogicError:
             return False
 
@@ -420,7 +431,9 @@ class LicenseNFTContract:
                 contract_name=self.CONTRACT_NAME,
             )
 
-        return self.contract.functions.userLicenses(Web3.to_checksum_address(user_address)).call()
+        return list(
+            self.contract.functions.userLicenses(Web3.to_checksum_address(user_address)).call()
+        )
 
     def get_registrar(self) -> str:
         """Get the registrar address."""
@@ -431,7 +444,7 @@ class LicenseNFTContract:
                 contract_name=self.CONTRACT_NAME,
             )
 
-        return self.contract.functions.registrar().call()
+        return str(self.contract.functions.registrar().call())
 
     @staticmethod
     def _get_minimal_abi() -> list:

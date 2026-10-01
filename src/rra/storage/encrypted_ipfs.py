@@ -46,6 +46,7 @@ from rra.exceptions import (
     EncryptionError,
     ValidationError,
 )
+from rra.security.http import safe_urlopen
 
 logger = logging.getLogger(__name__)
 
@@ -549,7 +550,7 @@ class EncryptedIPFSStorage:
 
         try:
             request = urllib.request.Request(url, data=body, headers=headers)
-            with urllib.request.urlopen(request, timeout=self.config.timeout) as response:
+            with safe_urlopen(request, timeout=self.config.timeout) as response:
                 result = json.loads(response.read().decode())
                 cid = result.get("Hash")
 
@@ -596,7 +597,7 @@ class EncryptedIPFSStorage:
             url = f"{self.config.api_url}/cat?arg={cid}"
             try:
                 request = urllib.request.Request(url)
-                with urllib.request.urlopen(request, timeout=self.config.timeout) as response:
+                with safe_urlopen(request, timeout=self.config.timeout) as response:
                     return response.read()
             except urllib.error.URLError:
                 pass
@@ -604,7 +605,7 @@ class EncryptedIPFSStorage:
         # Fallback to public gateway
         gateway_url = f"https://ipfs.io/ipfs/{cid}"
         request = urllib.request.Request(gateway_url)
-        with urllib.request.urlopen(request, timeout=self.config.timeout) as response:
+        with safe_urlopen(request, timeout=self.config.timeout) as response:
             return response.read()
 
     def _ipfs_pin(self, cid: str) -> bool:
@@ -613,7 +614,7 @@ class EncryptedIPFSStorage:
         url = f"{self.config.api_url}/pin/add?arg={cid}"
         try:
             request = urllib.request.Request(url, method="POST")
-            with urllib.request.urlopen(request, timeout=self.config.timeout) as response:
+            with safe_urlopen(request, timeout=self.config.timeout) as response:
                 return response.status == 200
         except urllib.error.URLError:
             return False
@@ -664,7 +665,7 @@ class EncryptedIPFSStorage:
 
         try:
             request = urllib.request.Request(url, data=body, headers=headers)
-            with urllib.request.urlopen(request, timeout=self.config.timeout) as response:
+            with safe_urlopen(request, timeout=self.config.timeout) as response:
                 result = json.loads(response.read().decode())
                 cid = result.get("IpfsHash")
 
@@ -719,7 +720,7 @@ class EncryptedIPFSStorage:
                 data=json.dumps(tx).encode(),
                 headers={"Content-Type": "application/json"},
             )
-            with urllib.request.urlopen(request, timeout=self.config.timeout) as response:
+            with safe_urlopen(request, timeout=self.config.timeout) as response:
                 result = json.loads(response.read().decode())
                 tx_id = result.get("id", hashlib.sha256(data).hexdigest()[:43])
 
@@ -750,7 +751,7 @@ class EncryptedIPFSStorage:
         """Download from Arweave."""
         url = f"{self.config.api_url or 'https://arweave.net'}/{tx_id}"
         request = urllib.request.Request(url)
-        with urllib.request.urlopen(request, timeout=self.config.timeout) as response:
+        with safe_urlopen(request, timeout=self.config.timeout) as response:
             return response.read()
 
 

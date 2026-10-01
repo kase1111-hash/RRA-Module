@@ -46,7 +46,7 @@ rra purchase-link https://github.com/youruser/yourrepo --wallet 0xYourWallet
 
 ### Prerequisites
 
-- Python 3.9 or higher
+- Python 3.10 or higher
 - Node.js 18+ (for JavaScript scripts)
 - A Web3 wallet (MetaMask) with IP tokens for gas
 
