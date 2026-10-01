@@ -261,6 +261,24 @@ def pytest_configure(config):
     os.environ["RRA_API_KEY"] = "test-api-key-for-testing"
 
 
+@pytest.fixture(autouse=True)
+def offline_price_oracle(monkeypatch):
+    """
+    Keep the global price oracle off the network.
+
+    TransactionSafeguards and the oracle convenience functions use the
+    module-level oracle, which would otherwise query CoinGecko and make
+    results depend on whether the machine has internet access.
+    """
+    from rra.oracles import price_oracle
+
+    monkeypatch.setattr(
+        price_oracle,
+        "_price_oracle",
+        price_oracle.AggregatedPriceOracle(enable_chainlink=False, enable_coingecko=False),
+    )
+
+
 @pytest.fixture(scope="session")
 def api_headers():
     """Provide standard API headers for authenticated requests."""

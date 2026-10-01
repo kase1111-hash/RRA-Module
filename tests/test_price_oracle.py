@@ -389,21 +389,22 @@ class TestAggregatedPriceOracle:
 class TestConvenienceFunctions:
     """Tests for convenience functions."""
 
+    # The offline_price_oracle fixture (conftest.py) limits the global
+    # oracle to fallback prices, so these don't depend on network access.
+
     def test_get_eth_usd_price(self):
         """Test getting ETH/USD price."""
-        with patch("rra.oracles.price_oracle._price_oracle", None):
-            price = get_eth_usd_price()
+        price = get_eth_usd_price()
 
-            # Should get fallback price
-            assert price == Decimal("2000")
+        # Should get fallback price
+        assert price == Decimal("2000")
 
     def test_convert_to_usd(self):
         """Test USD conversion."""
-        with patch("rra.oracles.price_oracle._price_oracle", None):
-            usd = convert_to_usd(Decimal("2"), "ETH")
+        usd = convert_to_usd(Decimal("2"), "ETH")
 
-            # 2 ETH * $2000 = $4000
-            assert usd == Decimal("4000")
+        # 2 ETH * $2000 = $4000
+        assert usd == Decimal("4000")
 
 
 class TestTransactionSafeguardsIntegration:
