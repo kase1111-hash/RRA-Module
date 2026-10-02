@@ -1,0 +1,66 @@
+# License Income Monitor
+# Reads this repository's Story Protocol IP asset revenue once a day and keeps
+# a "License income" issue up to date. New revenue adds a comment to that
+# issue, which sends a GitHub notification.
+#
+# Optional repository variables (Settings > Secrets and variables > Actions >
+# Variables): IP_ASSET_ID, LICENSE_TERMS_ID, STORY_RPC_URL.
+
+name: License Income
+
+on:
+  schedule:
+    - cron: "17 13 * * *"  # daily, 13:17 UTC
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "scripts/monitor-income.js"
+      - "scripts/income-issue.js"
+      - ".github/workflows/license-income.yml"
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    name: Check license income
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+
+      - name: Read on-chain income
+        env:
+          IP_ASSET_ID: ${{ vars.IP_ASSET_ID }}
+          LICENSE_TERMS_ID: ${{ vars.LICENSE_TERMS_ID }}
+          STORY_RPC_URL: ${{ vars.STORY_RPC_URL }}
+        run: |
+          node scripts/monitor-income.js > income.json
+          cat income.json
+
+      - name: Update income issue
+        uses: actions/github-script@v8
+        env:
+          # Pull requests only read the chain; they never touch issues
+          DRY_RUN: ${{ github.event_name == 'pull_request' }}
+        with:
+          script: |
+            const fs = require("fs");
+            const updateIncomeIssue = require(`${process.env.GITHUB_WORKSPACE}/scripts/income-issue.js`);
+            const status = JSON.parse(fs.readFileSync("income.json", "utf8"));
+            const result = await updateIncomeIssue({
+              github,
+              context,
+              status,
+              dryRun: process.env.DRY_RUN === "true",
+            });
+            core.info(JSON.stringify(result, null, 2));
+            await core.summary
+              .addHeading("License income")
+              .addRaw(`Total received: ${status.totalRevenue} IP, unclaimed: ${status.unclaimed} IP`)
+              .addCodeBlock(JSON.stringify({ status, result }, null, 2), "json")
+              .write();
