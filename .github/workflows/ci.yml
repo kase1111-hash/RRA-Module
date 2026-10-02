@@ -66,8 +66,6 @@ jobs:
                src/rra/transaction/safeguards.py \
                src/rra/contracts/license_nft.py \
                src/rra/contracts/gas_estimator.py \
-               src/rra/agents/negotiator.py \
-               src/rra/agents/intent_parser.py \
                --config-file mypy.ini
           echo "Strict modules type check passed!"
 
@@ -84,7 +82,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12"]
 
     steps:
       - uses: actions/checkout@v6

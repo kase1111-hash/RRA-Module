@@ -28,7 +28,6 @@ from rra.transaction.safeguards import (
     SafeguardLevel,
 )
 
-
 # ============================================================================
 # Price Commitment Tests
 # ============================================================================
@@ -436,6 +435,14 @@ class TestTransactionSafeguards:
         # Critical value
         result = safeguards.validate_price("10 ETH")  # ~$20000
         assert result.safeguard_level == SafeguardLevel.CRITICAL
+
+    def test_validate_price_in_wei(self, safeguards):
+        """Prices in WEI are converted to ETH (this used to raise TypeError)."""
+        result = safeguards.validate_price("5000000000000000 WEI")
+
+        assert result.is_valid is True
+        assert result.currency == "ETH"
+        assert result.normalized_price == Decimal("0.005")
 
     def test_display_formatting(self, safeguards):
         """Test price display formatting."""

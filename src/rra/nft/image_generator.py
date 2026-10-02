@@ -9,7 +9,6 @@ dynamic fields like repo name, license type, price, and licensee.
 
 from xml.sax.saxutils import escape
 
-
 # License type display names
 LICENSE_TYPE_NAMES = {
     0: "Per-Seat",

@@ -2,6 +2,7 @@
 # Copyright 2025 Kase Branham
 """Tests for session storage module."""
 
+import sys
 import time
 import pytest
 from datetime import datetime, timedelta
@@ -190,7 +191,13 @@ class TestInMemorySessionStore:
 class TestRedisSessionStore:
     """Tests for Redis session storage (with mocking)."""
 
-    @patch("rra.storage.session_store.redis")
+    @pytest.fixture
+    def mock_redis_module(self):
+        """Stand-in for the redis package, which RedisSessionStore imports lazily."""
+        module = MagicMock()
+        with patch.dict(sys.modules, {"redis": module}):
+            yield module
+
     def test_redis_initialization(self, mock_redis_module):
         """Test Redis store initialization."""
         mock_client = MagicMock()
@@ -202,7 +209,6 @@ class TestRedisSessionStore:
         mock_redis_module.from_url.assert_called_once()
         mock_client.ping.assert_called_once()
 
-    @patch("rra.storage.session_store.redis")
     def test_redis_set_and_get(self, mock_redis_module):
         """Test Redis set and get operations."""
         mock_client = MagicMock()
@@ -219,7 +225,6 @@ class TestRedisSessionStore:
         call_args = mock_client.setex.call_args
         assert call_args[0][0] == "rra:session:test-session"
 
-    @patch("rra.storage.session_store.redis")
     def test_redis_delete(self, mock_redis_module):
         """Test Redis delete operation."""
         mock_client = MagicMock()

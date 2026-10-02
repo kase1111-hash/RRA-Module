@@ -101,7 +101,7 @@ Common test patterns:
 
 ## Code Conventions
 
-- **Python:** 3.9+ required (tested on 3.9-3.12)
+- **Python:** 3.10+ required (tested on 3.10-3.12)
 - **Formatting:** Black with default settings
 - **Type hints:** Use throughout, checked with mypy
 - **Exceptions:** Custom hierarchy in `src/rra/exceptions.py` with error codes

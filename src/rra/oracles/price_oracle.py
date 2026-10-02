@@ -87,25 +87,34 @@ class PriceCache:
     """
 
     cache: Dict[str, PriceData] = field(default_factory=dict)
-    ttl_seconds: int = 60  # 1 minute default TTL
+    ttl_seconds: float = 60  # 1 minute default TTL
+    # When each entry was cached. TTL counts from here rather than from the
+    # price's own timestamp: Chainlink feeds update on a heartbeat (often an
+    # hour) and fallback prices carry a fixed date, so expiring by data age
+    # would mean those prices are never cached at all.
+    _cached_at: Dict[str, float] = field(default_factory=dict, repr=False)
 
     def get(self, currency_pair: str) -> Optional[PriceData]:
         """Get cached price if not expired."""
         data = self.cache.get(currency_pair)
         if data is None:
             return None
-        if data.age_seconds > self.ttl_seconds:
-            del self.cache[currency_pair]
+        cached_at = self._cached_at.get(currency_pair, 0.0)
+        if time.monotonic() - cached_at > self.ttl_seconds:
+            self.cache.pop(currency_pair, None)
+            self._cached_at.pop(currency_pair, None)
             return None
         return data
 
     def set(self, currency_pair: str, data: PriceData) -> None:
         """Cache price data."""
         self.cache[currency_pair] = data
+        self._cached_at[currency_pair] = time.monotonic()
 
     def clear(self) -> None:
         """Clear all cached prices."""
         self.cache.clear()
+        self._cached_at.clear()
 
 
 class PriceOracle(ABC):
@@ -186,17 +195,15 @@ class ChainlinkOracle(PriceOracle):
             web3_provider_url: Ethereum RPC URL (default from RRA_WEB3_PROVIDER_URL)
             custom_feeds: Additional feed addresses to use
         """
-        self.provider_url = web3_provider_url or os.environ.get(
-            "RRA_WEB3_PROVIDER_URL"
-        )
+        self.provider_url = web3_provider_url or os.environ.get("RRA_WEB3_PROVIDER_URL")
         self.feeds = {**self.FEED_ADDRESSES}
         if custom_feeds:
             self.feeds.update(custom_feeds)
 
-        self._web3 = None
+        self._web3: Optional[Any] = None
         self._contracts: Dict[str, Any] = {}
 
-    def _get_web3(self):
+    def _get_web3(self) -> Optional[Any]:
         """Lazy-load web3 connection."""
         if self._web3 is None:
             if not self.provider_url:
@@ -215,7 +222,7 @@ class ChainlinkOracle(PriceOracle):
 
         return self._web3
 
-    def _get_contract(self, pair: str):
+    def _get_contract(self, pair: str) -> Optional[Any]:
         """Get or create contract instance for feed."""
         if pair not in self._contracts:
             web3 = self._get_web3()
@@ -225,9 +232,7 @@ class ChainlinkOracle(PriceOracle):
             from web3 import Web3
 
             address = Web3.to_checksum_address(self.feeds[pair])
-            self._contracts[pair] = web3.eth.contract(
-                address=address, abi=self.AGGREGATOR_ABI
-            )
+            self._contracts[pair] = web3.eth.contract(address=address, abi=self.AGGREGATOR_ABI)
 
         return self._contracts[pair]
 
@@ -312,7 +317,7 @@ class CoinGeckoOracle(PriceOracle):
         """
         self.api_key = api_key or os.environ.get("COINGECKO_API_KEY")
         self.timeout = timeout
-        self._last_request_time = 0
+        self._last_request_time = 0.0
         self._min_request_interval = 1.5  # Rate limit: ~30 req/min for free tier
 
     def _rate_limit(self) -> None:
@@ -346,9 +351,7 @@ class CoinGeckoOracle(PriceOracle):
             if self.api_key:
                 headers["x-cg-pro-api-key"] = self.api_key
 
-            response = requests.get(
-                url, params=params, headers=headers, timeout=self.timeout
-            )
+            response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
             response.raise_for_status()
 
             data = response.json()
@@ -374,13 +377,16 @@ class CoinGeckoOracle(PriceOracle):
         except (KeyError, ValueError) as e:
             logger.warning(f"CoinGecko response parsing error: {e}")
             return None
+        except Exception as e:
+            # Return None like the other oracles so AggregatedPriceOracle
+            # falls through to the next source instead of raising.
+            logger.warning(f"CoinGecko unexpected error for {base}/{quote}: {e}")
+            return None
 
     def is_available(self) -> bool:
         """Check if CoinGecko API is reachable."""
         try:
-            response = requests.get(
-                f"{self.BASE_URL}/ping", timeout=self.timeout
-            )
+            response = requests.get(f"{self.BASE_URL}/ping", timeout=self.timeout)
             return response.status_code == 200
         except requests.RequestException:
             return False
@@ -474,9 +480,7 @@ class AggregatedPriceOracle:
         # Fallback is always included
         self.oracles.append(FallbackPriceOracle())
 
-    def get_price(
-        self, base: str, quote: str = "USD", skip_cache: bool = False
-    ) -> PriceData:
+    def get_price(self, base: str, quote: str = "USD", skip_cache: bool = False) -> PriceData:
         """
         Get price from best available oracle.
 
@@ -515,8 +519,11 @@ class AggregatedPriceOracle:
 
             price_data = oracle.get_price(base, quote)
             if price_data is not None:
-                # Cache successful result
-                self.cache.set(pair, price_data)
+                # Cache live results only. Cached prices are reported as
+                # PriceSource.CACHE, which would hide from callers (e.g.
+                # TransactionSafeguards) that a hardcoded fallback was used.
+                if price_data.source != PriceSource.FALLBACK:
+                    self.cache.set(pair, price_data)
                 return price_data
 
         # This shouldn't happen with fallback oracle

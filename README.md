@@ -3,7 +3,7 @@
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](tests/)
 [![Security](https://img.shields.io/badge/security-A--rating-blue)](docs/SECURITY-AUDIT.md)
 [![License](https://img.shields.io/badge/license-FSL--1.1--ALv2-orange)](LICENSE.md)
-[![Python](https://img.shields.io/badge/python-3.9+-blue)](pyproject.toml)
+[![Python](https://img.shields.io/badge/python-3.10+-blue)](pyproject.toml)
 [![Buy License](https://img.shields.io/badge/Buy_License-0.005_IP-6366f1)](https://kase1111-hash.github.io/RRA-Module/buy-license.html)
 
 ---
@@ -53,11 +53,15 @@ rra init /path/to/your-repo
 # Ingest a repository and build its knowledge base
 rra ingest https://github.com/your/repo
 
-# Generate blockchain purchase links
-rra purchase-link https://github.com/your/repo --wallet 0xYourWallet --network mainnet
+# Register the repo as an IP asset on Story Protocol (saves ip_asset_id to .market.yaml)
+rra story register https://github.com/your/repo --wallet 0xYourWallet --network mainnet
+
+# Generate the one-click purchase link for the registered IP asset
+# (add license_terms_id to .market.yaml, or pass --ip-asset/--terms instead of --config)
+rra purchase-link https://github.com/your/repo --config .market.yaml
 
 # Generate shareable links, badges, and QR codes
-rra links https://github.com/your/repo --register
+rra links https://github.com/your/repo --config .market.yaml --register
 
 # Launch the API server
 uvicorn rra.api.server:app --reload

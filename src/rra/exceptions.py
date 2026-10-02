@@ -240,7 +240,7 @@ class ContractError(RRAError):
         contract_address: Optional[str] = None,
         function_name: Optional[str] = None,
         cause: Optional[Exception] = None,
-        **extra_context,
+        **extra_context: Any,
     ):
         context = {**extra_context}
         if contract_name:
@@ -373,7 +373,7 @@ class TransactionError(RRAError):
         to_address: Optional[str] = None,
         value: Optional[int] = None,
         cause: Optional[Exception] = None,
-        **extra_context,
+        **extra_context: Any,
     ):
         context = {**extra_context}
         if tx_hash:
@@ -453,7 +453,7 @@ class StorageError(RRAError):
         provider: Optional[str] = None,
         uri: Optional[str] = None,
         cause: Optional[Exception] = None,
-        **extra_context,
+        **extra_context: Any,
     ):
         context = {**extra_context}
         if provider:
@@ -554,7 +554,7 @@ class DisputeError(RRAError):
         dispute_id: Optional[int] = None,
         current_status: Optional[str] = None,
         cause: Optional[Exception] = None,
-        **extra_context,
+        **extra_context: Any,
     ):
         context = {**extra_context}
         if dispute_id is not None:
@@ -646,7 +646,7 @@ class IntegrationError(RRAError):
         endpoint: Optional[str] = None,
         status_code: Optional[int] = None,
         cause: Optional[Exception] = None,
-        **extra_context,
+        **extra_context: Any,
     ):
         context = {**extra_context}
         if service:
@@ -750,7 +750,7 @@ class BatchProcessingError(RRAError):
         batch_id: Optional[int] = None,
         dispute_count: Optional[int] = None,
         cause: Optional[Exception] = None,
-        **extra_context,
+        **extra_context: Any,
     ):
         context = {**extra_context}
         if batch_id is not None:
@@ -814,7 +814,7 @@ class OracleError(RRAError):
         source: Optional[str] = None,
         event_id: Optional[str] = None,
         cause: Optional[Exception] = None,
-        **extra_context,
+        **extra_context: Any,
     ):
         context = {**extra_context}
         if source:
@@ -887,7 +887,7 @@ class NegotiationError(RRAError):
         error_code: ErrorCode = ErrorCode.NEGOTIATION_INVALID_STATE,
         negotiation_id: Optional[str] = None,
         cause: Optional[Exception] = None,
-        **extra_context,
+        **extra_context: Any,
     ):
         context = {**extra_context}
         if negotiation_id:

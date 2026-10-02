@@ -23,9 +23,12 @@ import logging
 import re
 from decimal import Decimal
 from enum import Enum
-from typing import Dict, Any, Optional, List, Tuple
+from typing import TYPE_CHECKING, Dict, Any, Optional, List, Tuple, Union
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+
+if TYPE_CHECKING:
+    from rra.oracles.price_oracle import AggregatedPriceOracle
 
 logger = logging.getLogger(__name__)
 
@@ -138,10 +141,10 @@ class TransactionSafeguards:
         self._daily_spend: Dict[str, List[tuple]] = {}  # buyer_id -> [(datetime, usd_amount)]
 
         # Lazy-loaded price oracle
-        self._price_oracle = None
+        self._price_oracle: Optional["AggregatedPriceOracle"] = None
 
     @property
-    def price_oracle(self):
+    def price_oracle(self) -> Optional["AggregatedPriceOracle"]:
         """Lazy-load price oracle to avoid import issues."""
         if self._price_oracle is None and self.enable_live_prices:
             try:
@@ -150,9 +153,7 @@ class TransactionSafeguards:
                 self._price_oracle = get_price_oracle()
                 logger.info("Price oracle initialized for transaction safeguards")
             except ImportError:
-                logger.warning(
-                    "Price oracle module not available. Using fallback rates."
-                )
+                logger.warning("Price oracle module not available. Using fallback rates.")
             except Exception as e:
                 logger.warning(f"Failed to initialize price oracle: {e}")
         return self._price_oracle
@@ -188,9 +189,7 @@ class TransactionSafeguards:
                     source = f"{price_data.source.value}"
                     if price_data.is_stale:
                         source += " (stale)"
-                    logger.debug(
-                        f"Got {currency}/USD rate {rate} from {source}"
-                    )
+                    logger.debug(f"Got {currency}/USD rate {rate} from {source}")
                     return rate, source
             except Exception as e:
                 logger.warning(f"Oracle price fetch failed for {currency}: {e}")
@@ -241,7 +240,7 @@ class TransactionSafeguards:
         if not parsed:
             return PriceValidation(
                 is_valid=False,
-                normalized_price=0,
+                normalized_price=Decimal(0),
                 currency="UNKNOWN",
                 display_string="Invalid price",
                 errors=[f"Cannot parse price: '{price_str}'"],
@@ -256,7 +255,7 @@ class TransactionSafeguards:
             currency = "USD"
         elif currency in ["ETHER", "WEI"]:
             if currency == "WEI":
-                amount = amount / 1e18
+                amount = amount / Decimal(10**18)
             currency = "ETH"
 
         # Check currency rate and source
@@ -264,10 +263,7 @@ class TransactionSafeguards:
         if rate_source == "unknown":
             warnings.append(f"Unknown currency '{currency}'. Proceed with caution.")
         elif rate_source.startswith("fallback"):
-            warnings.append(
-                f"Using fallback price for {currency}. "
-                "Live price data unavailable."
-            )
+            warnings.append(f"Using fallback price for {currency}. " "Live price data unavailable.")
         elif "stale" in rate_source:
             warnings.append(f"Price data for {currency} may be outdated.")
 
@@ -384,9 +380,7 @@ class TransactionSafeguards:
 
         return True, ""
 
-    def check_spend_limits(
-        self, buyer_id: str, amount: Decimal, currency: str
-    ) -> Tuple[bool, str]:
+    def check_spend_limits(self, buyer_id: str, amount: Decimal, currency: str) -> Tuple[bool, str]:
         """
         Check if a transaction exceeds spend limits.
 
@@ -431,7 +425,9 @@ class TransactionSafeguards:
 
         return True, ""
 
-    def record_transaction(self, buyer_id: str, amount: Optional[Decimal] = None, currency: Optional[str] = None) -> None:
+    def record_transaction(
+        self, buyer_id: str, amount: Optional[Decimal] = None, currency: Optional[str] = None
+    ) -> None:
         """Record a transaction for rate limiting and spend tracking.
 
         Args:
@@ -542,7 +538,7 @@ class TransactionSafeguards:
 
         return None
 
-    def _to_usd(self, amount, currency: str) -> Decimal:
+    def _to_usd(self, amount: Union[Decimal, float], currency: str) -> Decimal:
         """
         Convert amount to USD equivalent using live oracle prices.
 
@@ -620,7 +616,11 @@ class TransactionSafeguards:
         return base
 
     def verify_explicit_confirmation(
-        self, user_input: str, expected_amount: Decimal, expected_currency: str, level: SafeguardLevel
+        self,
+        user_input: str,
+        expected_amount: Decimal,
+        expected_currency: str,
+        level: SafeguardLevel,
     ) -> Tuple[bool, str]:
         """
         Verify user's explicit confirmation input.

@@ -516,7 +516,7 @@ class IdentityManager:
             return False
 
         # SECURITY FIX: Validate identity name to prevent path traversal
-        if not re.match(r'^[a-zA-Z0-9_-]+$', name):
+        if not re.match(r"^[a-zA-Z0-9_-]+$", name):
             raise ValueError(f"Invalid identity name: {name}")
 
         from cryptography.fernet import Fernet
@@ -574,7 +574,7 @@ class IdentityManager:
             return None
 
         # SECURITY FIX: Validate identity name to prevent path traversal
-        if not re.match(r'^[a-zA-Z0-9_-]+$', name):
+        if not re.match(r"^[a-zA-Z0-9_-]+$", name):
             raise ValueError(f"Invalid identity name: {name}")
 
         from cryptography.fernet import Fernet

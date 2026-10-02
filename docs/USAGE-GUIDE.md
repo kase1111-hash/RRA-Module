@@ -33,11 +33,12 @@ floor_price: "0.02 IP"
 EOF
 
 # 3. Initialize and ingest your repo
-rra init
+rra init .
 rra ingest https://github.com/youruser/yourrepo
 
-# 4. Generate purchase links
-rra purchase-link https://github.com/youruser/yourrepo --wallet 0xYourWallet
+# 4. Register on Story Protocol, then generate purchase links
+rra story register https://github.com/youruser/yourrepo --wallet 0xYourWallet
+rra purchase-link https://github.com/youruser/yourrepo --ip-asset 0x... --terms 12345
 ```
 
 ---
@@ -46,7 +47,7 @@ rra purchase-link https://github.com/youruser/yourrepo --wallet 0xYourWallet
 
 ### Prerequisites
 
-- Python 3.9 or higher
+- Python 3.10 or higher
 - Node.js 18+ (for JavaScript scripts)
 - A Web3 wallet (MetaMask) with IP tokens for gas
 

@@ -14,6 +14,22 @@ import yaml
 from pydantic import BaseModel, Field, field_validator
 
 
+def story_protocol_settings(raw: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Return the ``story_protocol`` block from raw .market.yaml data.
+
+    The canonical location is ``protocol_integrations.story_protocol``;
+    ``defi_integrations.story_protocol`` is still read for older configs.
+    Returns an empty dict when neither is present.
+    """
+    for key in ("protocol_integrations", "defi_integrations"):
+        section = raw.get(key) or {}
+        block = section.get("story_protocol") if isinstance(section, dict) else None
+        if isinstance(block, dict) and block:
+            return dict(block)
+    return {}
+
+
 class LicenseModel(str, Enum):
     """Supported license models for code monetization."""
 
@@ -185,6 +201,14 @@ class MarketConfig(BaseModel):
         if not data:
             raise ValueError(f"Empty or invalid YAML file: {file_path}")
 
+        # Story Protocol settings live in a nested block; surface the ones
+        # MarketConfig models unless they are also set at the top level.
+        story = story_protocol_settings(data)
+        if story:
+            data.setdefault("story_protocol_enabled", bool(story.get("enabled", False)))
+            if story.get("ip_asset_id"):
+                data.setdefault("ip_asset_id", story["ip_asset_id"])
+
         return cls(**data)
 
     def to_yaml(self, file_path: Path) -> None:
@@ -211,7 +235,7 @@ class MarketConfig(BaseModel):
         Returns:
             Dictionary of parameters suitable for smart contract deployment
         """
-        params = {
+        params: Dict[str, Any] = {
             "license_model": self.license_model.value,
             "target_price_wei": self._parse_price_to_wei(self.target_price),
             "floor_price_wei": self._parse_price_to_wei(self.floor_price),

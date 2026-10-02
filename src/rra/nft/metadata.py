@@ -179,9 +179,16 @@ class NFTMetadataBuilder:
         attributes = [
             {"trait_type": "License Type", "value": license_info.license_type_name},
             {"trait_type": "Duration", "value": license_info.duration_display},
-            {"trait_type": "Max Seats", "value": license_info.max_seats if license_info.max_seats > 0 else "Unlimited"},
+            {
+                "trait_type": "Max Seats",
+                "value": license_info.max_seats if license_info.max_seats > 0 else "Unlimited",
+            },
             {"trait_type": "Allow Forks", "value": "Yes" if license_info.allow_forks else "No"},
-            {"trait_type": "Royalty", "value": license_info.royalty_display, "display_type": "string"},
+            {
+                "trait_type": "Royalty",
+                "value": license_info.royalty_display,
+                "display_type": "string",
+            },
             {"trait_type": "Price", "value": license_info.price_display},
             {"trait_type": "Software", "value": license_info.repo_name},
             {"trait_type": "Issued At", "value": issued_at, "display_type": "date"},

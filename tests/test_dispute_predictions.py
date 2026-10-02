@@ -32,7 +32,6 @@ from src.rra.analytics.term_analysis import (
     find_high_entropy_terms,
 )
 
-
 # =============================================================================
 # DisputeWarningGenerator Tests
 # =============================================================================

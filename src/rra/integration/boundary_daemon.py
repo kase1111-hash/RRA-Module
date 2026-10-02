@@ -30,6 +30,8 @@ import time
 import uuid
 from contextlib import contextmanager
 
+from rra.security.http import safe_urlopen
+
 try:
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
     from cryptography.hazmat.primitives import serialization
@@ -710,7 +712,7 @@ class DaemonConnection:
 
             req = urllib.request.Request(f"{self.http_url}/health", method="GET")
             req.add_header("User-Agent", "RRA-Module/0.1.0")
-            with urllib.request.urlopen(req, timeout=self.connect_timeout) as resp:
+            with safe_urlopen(req, timeout=self.connect_timeout) as resp:
                 return resp.status == 200
         except Exception:
             pass
@@ -879,7 +881,7 @@ class DaemonConnection:
             req.add_header("X-Correlation-ID", correlation_id)
 
         try:
-            with urllib.request.urlopen(req, timeout=self.read_timeout) as resp:
+            with safe_urlopen(req, timeout=self.read_timeout) as resp:
                 return json.loads(resp.read().decode())
         except urllib.error.HTTPError as e:
             error_body = e.read().decode() if e.fp else ""

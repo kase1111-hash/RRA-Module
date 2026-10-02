@@ -21,7 +21,6 @@ from dataclasses import dataclass, field
 from fastapi import HTTPException, Security, Depends
 from fastapi.security import APIKeyHeader
 
-
 # API Key configuration
 API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
 
@@ -42,7 +41,9 @@ class SessionData:
 
     def is_expired(self) -> bool:
         """Check if session has expired."""
-        return datetime.now(timezone.utc) - self.last_activity > timedelta(hours=SESSION_EXPIRY_HOURS)
+        return datetime.now(timezone.utc) - self.last_activity > timedelta(
+            hours=SESSION_EXPIRY_HOURS
+        )
 
     def touch(self) -> None:
         """Update last activity timestamp."""
@@ -81,7 +82,7 @@ def verify_api_key(api_key: str = Security(API_KEY_HEADER)) -> bool:
         raise HTTPException(
             status_code=500,
             detail="Server configuration error: No API keys configured. "
-                   "Set RRA_API_KEYS or RRA_API_KEY environment variable.",
+            "Set RRA_API_KEYS or RRA_API_KEY environment variable.",
         )
 
     # Parse valid keys

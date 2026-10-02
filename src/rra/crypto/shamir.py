@@ -25,7 +25,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 
-
 # Use a large prime for the finite field
 # This is a 256-bit prime, safe for 32-byte secrets
 PRIME = 2**256 - 189  # A known safe prime

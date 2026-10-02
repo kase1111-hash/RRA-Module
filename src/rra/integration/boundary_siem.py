@@ -27,6 +27,8 @@ import socket
 import os
 import re
 
+from rra.security.http import safe_urlopen
+
 from rra.integration.boundary_daemon import (
     BoundaryEvent,
     EventSeverity,
@@ -678,9 +680,7 @@ class BoundarySIEMClient:
 
         for attempt in range(self.config.retry_attempts):
             try:
-                with urllib.request.urlopen(
-                    req, timeout=self.config.connect_timeout_seconds
-                ) as resp:
+                with safe_urlopen(req, timeout=self.config.connect_timeout_seconds) as resp:
                     if resp.status == 200:
                         logger.debug(f"Sent {len(events)} events to SIEM")
                         return True
@@ -811,7 +811,7 @@ class BoundarySIEMClient:
             req.add_header("Authorization", f"Bearer {self.config.api_key}")
 
         try:
-            with urllib.request.urlopen(req, timeout=self.config.read_timeout_seconds) as resp:
+            with safe_urlopen(req, timeout=self.config.read_timeout_seconds) as resp:
                 data = json.loads(resp.read().decode())
                 return [SIEMAlert.from_dict(a) for a in data.get("alerts", [])]
         except Exception as e:
@@ -880,7 +880,7 @@ class BoundarySIEMClient:
             req.add_header("Authorization", f"Bearer {self.config.api_key}")
 
         try:
-            with urllib.request.urlopen(req, timeout=self.config.connect_timeout_seconds) as resp:
+            with safe_urlopen(req, timeout=self.config.connect_timeout_seconds) as resp:
                 return resp.status == 200
         except Exception as e:
             logger.error(f"Failed to update alert {alert_id}: {e}")
@@ -906,7 +906,7 @@ class BoundarySIEMClient:
             req.add_header("Authorization", f"Bearer {self.config.api_key}")
 
         try:
-            with urllib.request.urlopen(req, timeout=self.config.read_timeout_seconds) as resp:
+            with safe_urlopen(req, timeout=self.config.read_timeout_seconds) as resp:
                 data = json.loads(resp.read().decode())
                 rules = []
                 for r in data.get("rules", []):
@@ -969,7 +969,7 @@ class BoundarySIEMClient:
             req.add_header("Authorization", f"Bearer {self.config.api_key}")
 
         try:
-            with urllib.request.urlopen(req, timeout=self.config.read_timeout_seconds) as resp:
+            with safe_urlopen(req, timeout=self.config.read_timeout_seconds) as resp:
                 data = json.loads(resp.read().decode())
                 return data.get("results", [])
         except Exception as e:
@@ -991,7 +991,7 @@ class BoundarySIEMClient:
 
         error_msg = "unknown"
         try:
-            with urllib.request.urlopen(req, timeout=self.config.connect_timeout_seconds) as resp:
+            with safe_urlopen(req, timeout=self.config.connect_timeout_seconds) as resp:
                 if resp.status == 200:
                     data = json.loads(resp.read().decode())
                     return {
@@ -1021,7 +1021,7 @@ class BoundarySIEMClient:
             req.add_header("Authorization", f"Bearer {self.config.api_key}")
 
         try:
-            with urllib.request.urlopen(req, timeout=self.config.read_timeout_seconds) as resp:
+            with safe_urlopen(req, timeout=self.config.read_timeout_seconds) as resp:
                 return json.loads(resp.read().decode())
         except Exception as e:
             logger.error(f"Failed to get SIEM stats: {e}")

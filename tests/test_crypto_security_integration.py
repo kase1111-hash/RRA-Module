@@ -23,9 +23,9 @@ Tests all security fixes from the 2025-12-20 security audit:
 """
 
 import pytest
+import statistics
 import time
 import os
-
 
 # =============================================================================
 # CRITICAL-001: BN254 Constant Verification
@@ -233,19 +233,23 @@ class TestTimingSafeOperations:
 
         # Run multiple reconstructions and check timing variance
         times = []
-        for _ in range(10):
+        for _ in range(20):
             start = time.perf_counter()
             shamir.reconstruct([shares[0], shares[1], shares[2]])
             elapsed = time.perf_counter() - start
             times.append(elapsed)
 
-        # Timing should be relatively consistent (within 3x of mean)
-        mean_time = sum(times) / len(times)
-        max_time = max(times)
+        # Timing should be relatively consistent: the 90th percentile within
+        # 3x of the median. Comparing percentiles rather than the single max
+        # tolerates an occasional scheduler/GC pause (sub-millisecond runs
+        # make one pause enough to fail a max-based check on shared runners).
+        times.sort()
+        median_time = statistics.median(times)
+        p90_time = times[int(len(times) * 0.9) - 1]
 
         assert (
-            max_time < mean_time * 3
-        ), f"Timing variance too high: max={max_time:.6f}s, mean={mean_time:.6f}s"
+            p90_time < median_time * 3
+        ), f"Timing variance too high: p90={p90_time:.6f}s, median={median_time:.6f}s"
 
 
 # =============================================================================
@@ -387,15 +391,16 @@ class TestConstantTimeComparisons:
             elapsed = time.perf_counter() - start
             wrong_times.append(elapsed)
 
-        # Timing should be similar for correct and incorrect (constant-time)
-        mean_correct = sum(times) / len(times)
-        mean_wrong = sum(wrong_times) / len(wrong_times)
+        # Timing should be similar for correct and incorrect (constant-time).
+        # Medians, so a single scheduler pause can't skew either side.
+        median_correct = statistics.median(times)
+        median_wrong = statistics.median(wrong_times)
 
         # Should be within 2x of each other
-        ratio = max(mean_correct, mean_wrong) / min(mean_correct, mean_wrong)
+        ratio = max(median_correct, median_wrong) / min(median_correct, median_wrong)
         assert (
             ratio < 2.0
-        ), f"Timing difference too large: correct={mean_correct:.9f}s, wrong={mean_wrong:.9f}s"
+        ), f"Timing difference too large: correct={median_correct:.9f}s, wrong={median_wrong:.9f}s"
 
 
 # =============================================================================

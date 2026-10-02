@@ -9,10 +9,31 @@ Creates links that allow buyers to purchase licenses directly on-chain.
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass, field
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 from enum import Enum
+
+from eth_utils import is_checksum_address, to_checksum_address
+
+_HEX_ADDRESS = re.compile(r"^0x[0-9a-fA-F]{40}$")
+
+
+def normalize_ip_asset_id(value: Optional[str]) -> Optional[str]:
+    """
+    Validate a Story Protocol IP asset ID and return it checksummed.
+
+    IP asset IDs are 20-byte addresses. All-lowercase or all-uppercase hex
+    is accepted; mixed case must carry a valid EIP-55 checksum, since a
+    mismatch usually means a typo. Returns None if the value is invalid.
+    """
+    if not value or not _HEX_ADDRESS.match(value):
+        return None
+    digits = value[2:]
+    if digits != digits.lower() and digits != digits.upper() and not is_checksum_address(value):
+        return None
+    return str(to_checksum_address(value))
 
 
 class NetworkType(str, Enum):
@@ -167,10 +188,13 @@ class BlockchainLinkGenerator:
 
     def generate_ip_asset_id(self, repo_url: str, owner_address: str) -> str:
         """
-        Generate a deterministic IP Asset ID from repository URL and owner.
+        Generate a deterministic placeholder ID from repository URL and owner.
 
-        This creates a consistent ID that can be used before the asset is
-        actually registered on-chain.
+        This is NOT a Story Protocol IP asset ID: real IDs are 20-byte
+        addresses assigned when the repository is registered (see
+        ``rra story register``). Links built from a placeholder do not lead
+        to a purchasable asset, so pass the real ``ip_asset_id`` wherever
+        one is accepted.
 
         Args:
             repo_url: Repository URL
@@ -214,6 +238,9 @@ class BlockchainLinkGenerator:
                 "tier": tier.value,
                 "chain": self.chain_id,
             }
+            # The hosted buy page selects its chain from `network`
+            if self.network in (NetworkType.MAINNET, NetworkType.TESTNET):
+                params["network"] = self.network.value
             if license_terms_id:
                 params["terms"] = license_terms_id
             query_string = "&".join(f"{k}={v}" for k, v in params.items())
@@ -319,6 +346,7 @@ class BlockchainLinkGenerator:
         tags: Optional[List[str]] = None,
         technologies: Optional[List[str]] = None,
         license_terms: Optional[Dict[str, str]] = None,
+        ip_asset_id: Optional[str] = None,
     ) -> MarketplaceListing:
         """
         Generate a complete marketplace listing with purchase links.
@@ -334,12 +362,15 @@ class BlockchainLinkGenerator:
             tags: List of tags
             technologies: List of technologies
             license_terms: Optional dict mapping tier to license terms ID
+            ip_asset_id: The repository's registered Story Protocol IP asset
+                ID. When omitted a placeholder from generate_ip_asset_id is
+                used, which does not resolve to a purchasable asset.
 
         Returns:
             MarketplaceListing with all purchase links
         """
-        # Generate IP Asset ID
-        ip_asset_id = self.generate_ip_asset_id(repo_url, owner_address)
+        if not ip_asset_id:
+            ip_asset_id = self.generate_ip_asset_id(repo_url, owner_address)
 
         # Generate purchase links for all tiers
         purchase_links = self.generate_all_tier_links(

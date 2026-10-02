@@ -138,18 +138,24 @@ class TestPriceCache:
     def test_cache_clear(self):
         """Test cache clearing."""
         cache = PriceCache()
-        cache.set("ETH/USD", PriceData(
-            price=Decimal("2500"),
-            currency_pair="ETH/USD",
-            source=PriceSource.FALLBACK,
-            timestamp=datetime.utcnow(),
-        ))
-        cache.set("BTC/USD", PriceData(
-            price=Decimal("40000"),
-            currency_pair="BTC/USD",
-            source=PriceSource.FALLBACK,
-            timestamp=datetime.utcnow(),
-        ))
+        cache.set(
+            "ETH/USD",
+            PriceData(
+                price=Decimal("2500"),
+                currency_pair="ETH/USD",
+                source=PriceSource.FALLBACK,
+                timestamp=datetime.utcnow(),
+            ),
+        )
+        cache.set(
+            "BTC/USD",
+            PriceData(
+                price=Decimal("40000"),
+                currency_pair="BTC/USD",
+                source=PriceSource.FALLBACK,
+                timestamp=datetime.utcnow(),
+            ),
+        )
 
         cache.clear()
 
@@ -257,7 +263,8 @@ class TestChainlinkOracle:
         assert oracle.is_available() is False
         assert oracle.get_price("ETH", "USD") is None
 
-    @patch("rra.oracles.price_oracle.Web3")
+    # web3 is imported lazily inside ChainlinkOracle, so patch it at the source
+    @patch("web3.Web3")
     def test_chainlink_connection_failure(self, mock_web3_class):
         """Test Chainlink connection failure."""
         mock_web3 = MagicMock()
@@ -287,20 +294,43 @@ class TestAggregatedPriceOracle:
         assert price_data.source == PriceSource.FALLBACK
 
     def test_aggregated_caching(self):
-        """Test that results are cached."""
+        """Live results are cached."""
+        live = MagicMock()
+        live.is_available.return_value = True
+        live.get_price.return_value = PriceData(
+            price=Decimal("2500"),
+            currency_pair="ETH/USD",
+            source=PriceSource.COINGECKO,
+            # An hour-old feed value must still be cached (TTL counts from caching)
+            timestamp=datetime.utcnow() - timedelta(hours=1),
+        )
+        oracle = AggregatedPriceOracle(
+            cache_ttl_seconds=60,
+            enable_chainlink=False,
+            enable_coingecko=False,
+        )
+        oracle.oracles.insert(0, live)
+
+        # First call
+        price_data1 = oracle.get_price("ETH", "USD")
+        assert price_data1.source == PriceSource.COINGECKO
+
+        # Second call should be from cache
+        price_data2 = oracle.get_price("ETH", "USD")
+        assert price_data2.source == PriceSource.CACHE
+        assert price_data2.price == Decimal("2500")
+        live.get_price.assert_called_once()
+
+    def test_aggregated_does_not_cache_fallback(self):
+        """Fallback prices stay labelled as fallback so callers can warn about them."""
         oracle = AggregatedPriceOracle(
             cache_ttl_seconds=60,
             enable_chainlink=False,
             enable_coingecko=False,
         )
 
-        # First call
-        price_data1 = oracle.get_price("ETH", "USD")
-        assert price_data1.source == PriceSource.FALLBACK
-
-        # Second call should be from cache
-        price_data2 = oracle.get_price("ETH", "USD")
-        assert price_data2.source == PriceSource.CACHE
+        assert oracle.get_price("ETH", "USD").source == PriceSource.FALLBACK
+        assert oracle.get_price("ETH", "USD").source == PriceSource.FALLBACK
 
     def test_aggregated_skip_cache(self):
         """Test skipping cache."""
@@ -359,21 +389,22 @@ class TestAggregatedPriceOracle:
 class TestConvenienceFunctions:
     """Tests for convenience functions."""
 
+    # The offline_price_oracle fixture (conftest.py) limits the global
+    # oracle to fallback prices, so these don't depend on network access.
+
     def test_get_eth_usd_price(self):
         """Test getting ETH/USD price."""
-        with patch("rra.oracles.price_oracle._price_oracle", None):
-            price = get_eth_usd_price()
+        price = get_eth_usd_price()
 
-            # Should get fallback price
-            assert price == Decimal("2000")
+        # Should get fallback price
+        assert price == Decimal("2000")
 
     def test_convert_to_usd(self):
         """Test USD conversion."""
-        with patch("rra.oracles.price_oracle._price_oracle", None):
-            usd = convert_to_usd(Decimal("2"), "ETH")
+        usd = convert_to_usd(Decimal("2"), "ETH")
 
-            # 2 ETH * $2000 = $4000
-            assert usd == Decimal("4000")
+        # 2 ETH * $2000 = $4000
+        assert usd == Decimal("4000")
 
 
 class TestTransactionSafeguardsIntegration:

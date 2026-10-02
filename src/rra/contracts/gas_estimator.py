@@ -183,11 +183,7 @@ class GasEstimator:
         strategy = strategy or self.default_strategy
 
         # Try dynamic estimation first if web3 available and transaction provided
-        if (
-            strategy == GasEstimationStrategy.DYNAMIC
-            and self.web3
-            and transaction
-        ):
+        if strategy == GasEstimationStrategy.DYNAMIC and self.web3 and transaction:
             try:
                 estimate = self._estimate_dynamic(transaction, from_address)
                 if estimate is not None:
@@ -296,7 +292,7 @@ class GasEstimator:
 
         # Trim history if needed
         if len(self._history) > self.max_history_size:
-            self._history = self._history[-self.max_history_size:]
+            self._history = self._history[-self.max_history_size :]
 
         # Update average
         self._update_average(transaction_type)
@@ -361,7 +357,7 @@ class GasEstimator:
             tx.pop("maxPriorityFeePerGas", None)
 
             estimated = self.web3.eth.estimate_gas(tx)
-            return estimated
+            return int(estimated)
 
         except Exception as e:
             logger.debug(f"Dynamic estimation failed: {e}")
@@ -461,7 +457,7 @@ class GasEstimator:
                 # Use median of recent priority fees
                 fees = [r[0] for r in rewards if r]
                 if fees:
-                    return sorted(fees)[len(fees) // 2]
+                    return int(sorted(fees)[len(fees) // 2])
         except Exception:
             pass
 
@@ -471,9 +467,7 @@ class GasEstimator:
         """Get gas estimation statistics."""
         return {
             "history_size": len(self._history),
-            "averages": {
-                t.value: g for t, g in self._average_gas.items()
-            },
+            "averages": {t.value: g for t, g in self._average_gas.items()},
             "default_strategy": self.default_strategy.value,
             "has_web3": self.web3 is not None,
         }

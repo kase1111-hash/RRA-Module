@@ -33,6 +33,7 @@ Override Settings:
 
 import os
 import logging
+import tempfile
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Optional, List
@@ -161,7 +162,9 @@ class SecurityConfig:
     cors_enabled: bool = True
     cors_origins: List[str] = field(default_factory=list)
     cors_methods: List[str] = field(default_factory=lambda: ["GET", "POST", "PUT", "DELETE"])
-    cors_headers: List[str] = field(default_factory=lambda: ["Content-Type", "Authorization", "X-API-Key"])
+    cors_headers: List[str] = field(
+        default_factory=lambda: ["Content-Type", "Authorization", "X-API-Key"]
+    )
 
     # Secrets
     secrets_backend: str = "env"  # env, file, vault, aws
@@ -174,7 +177,7 @@ class SecurityConfig:
         if not self.encryption_key:
             raise ValueError(
                 "RRA_ENCRYPTION_KEY must be set. "
-                "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+                'Generate one with: python -c "import secrets; print(secrets.token_hex(32))"'
             )
 
 
@@ -260,13 +263,21 @@ class EnvironmentConfig:
     # Paths
     data_dir: Path = field(default_factory=lambda: Path("data"))
     logs_dir: Path = field(default_factory=lambda: Path("logs"))
-    temp_dir: Path = field(default_factory=lambda: Path("/tmp/rra"))
+    temp_dir: Path = field(default_factory=lambda: Path(tempfile.gettempdir()) / "rra")
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize directories and validate config."""
-        # Ensure directories exist
-        self.data_dir.mkdir(parents=True, exist_ok=True)
-        self.logs_dir.mkdir(parents=True, exist_ok=True)
+        # Ensure directories exist. Staging/production default to system
+        # paths (/var/lib/rra, /var/log/rra) that a non-root user can't
+        # create, so warn instead of failing to load the configuration.
+        for directory, env_var in (
+            (self.data_dir, "RRA_DATA_DIR"),
+            (self.logs_dir, "RRA_LOGS_DIR"),
+        ):
+            try:
+                directory.mkdir(parents=True, exist_ok=True)
+            except OSError as e:
+                logger.warning(f"Cannot create {directory} ({e}); set {env_var} to a writable path")
 
     @property
     def is_development(self) -> bool:
@@ -338,7 +349,7 @@ def _get_staging_config() -> EnvironmentConfig:
         environment=Environment.STAGING,
         debug=True,
         testing=False,
-        api_host="0.0.0.0",
+        api_host="0.0.0.0",  # nosec B104 - containerized deploy behind a reverse proxy
         api_port=8000,
         api_base_url=os.environ.get("RRA_API_URL", "https://staging-api.rra.dev"),
         api_docs_enabled=True,
@@ -384,8 +395,8 @@ def _get_staging_config() -> EnvironmentConfig:
             tracing_enabled=True,
             tracing_sample_rate=0.5,
         ),
-        data_dir=Path("/var/lib/rra/data"),
-        logs_dir=Path("/var/log/rra"),
+        data_dir=Path(os.environ.get("RRA_DATA_DIR", "/var/lib/rra/data")),
+        logs_dir=Path(os.environ.get("RRA_LOGS_DIR", "/var/log/rra")),
     )
 
 
@@ -395,7 +406,7 @@ def _get_production_config() -> EnvironmentConfig:
         environment=Environment.PRODUCTION,
         debug=False,
         testing=False,
-        api_host="0.0.0.0",
+        api_host="0.0.0.0",  # nosec B104 - containerized deploy behind a reverse proxy
         api_port=8000,
         api_base_url=os.environ.get("RRA_API_URL", "https://api.rra.io"),
         api_docs_enabled=False,  # Disabled in production
@@ -451,8 +462,8 @@ def _get_production_config() -> EnvironmentConfig:
             tracing_enabled=True,
             tracing_sample_rate=0.1,
         ),
-        data_dir=Path("/var/lib/rra/data"),
-        logs_dir=Path("/var/log/rra"),
+        data_dir=Path(os.environ.get("RRA_DATA_DIR", "/var/lib/rra/data")),
+        logs_dir=Path(os.environ.get("RRA_LOGS_DIR", "/var/log/rra")),
     )
 
 
@@ -597,7 +608,10 @@ def validate_config(config: EnvironmentConfig) -> List[str]:
         if config.cache.backend == "memory":
             issues.append("In-memory cache should not be used in production")
 
-        if config.security.secrets_backend in ("vault", "aws") and not config.security.encryption_key:
+        if (
+            config.security.secrets_backend in ("vault", "aws")
+            and not config.security.encryption_key
+        ):
             issues.append("Encryption key must be set when using vault or aws secrets backend")
 
     # General validations

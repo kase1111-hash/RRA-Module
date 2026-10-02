@@ -12,7 +12,6 @@ from dataclasses import dataclass, field
 
 import pytest
 
-
 # =============================================================================
 # Blockchain Mock Infrastructure
 # =============================================================================
@@ -260,6 +259,24 @@ def pytest_configure(config):
     # Set valid API keys for tests (used by both dev-mode and production auth tests)
     os.environ["RRA_API_KEYS"] = "test-api-key-for-testing,secondary-test-key"
     os.environ["RRA_API_KEY"] = "test-api-key-for-testing"
+
+
+@pytest.fixture(autouse=True)
+def offline_price_oracle(monkeypatch):
+    """
+    Keep the global price oracle off the network.
+
+    TransactionSafeguards and the oracle convenience functions use the
+    module-level oracle, which would otherwise query CoinGecko and make
+    results depend on whether the machine has internet access.
+    """
+    from rra.oracles import price_oracle
+
+    monkeypatch.setattr(
+        price_oracle,
+        "_price_oracle",
+        price_oracle.AggregatedPriceOracle(enable_chainlink=False, enable_coingecko=False),
+    )
 
 
 @pytest.fixture(scope="session")
